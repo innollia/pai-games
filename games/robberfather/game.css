@@ -21,3 +21,14 @@ html[lang=ko] h1{font-size:clamp(45px,5.6vw,83px);line-height:1.2;letter-spacing
 #attempts i.empty{background:transparent}
 .door-prompt{bottom:150px;color:#f1dfae;border-color:#d8bf7a}
 #attemptHint.warning{color:#ec8a6a}
+.pickpocket{position:absolute;right:3%;top:19%;width:44%;z-index:6;padding:10px 12px 12px;background:#12241ff2;border:1px solid #d6b87a;box-shadow:0 10px 40px #000a}
+.pick-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:8px}
+.pick-top strong{color:#ebc88d;font-size:17px;font-weight:500}
+.pick-top small{color:#a4b69a;font-size:13px;text-align:right}
+.pickpocket canvas{display:block;width:100%;aspect-ratio:640/400;cursor:grab;touch-action:none;border:1px solid #0006}
+.pickpocket canvas:active{cursor:grabbing}
+.pick-bottom{display:flex;align-items:center;gap:12px;margin-top:8px}
+.pick-bottom span{flex:1;color:#e1dcc0;font-size:15px}
+.pick-bottom span.bad{color:#f08a6c}
+.pick-track{width:34%;height:6px;background:#ffffff1c}
+.pick-track i{display:block;height:100%;width:0;background:#e7c27a}

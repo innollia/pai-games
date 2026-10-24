@@ -80,3 +80,16 @@ Object.assign(MESSAGES.ko,{
  helpSurvive:'세 칸을 못 먹으면 굶은 밤입니다. 썩은 음식을 먹으면 배가 덜 찼어도 상한 식사로 칩니다. 이틀 연속 굶으면 아들이 잡혀가고, 이틀 연속 상한 음식을 먹으면 쓰러집니다.',
  canvasLabel:'2D 생존 게임. 방향키 이동, ↑ 가게 들어가기, E 소매치기 또는 썩은 음식 챙기기, Q 두고 가기, F 박스에 숨기, G 길게 썩은 음식 버리기, Shift 달리기, M 귀가.',
 });
+// The pocket minigame.
+Object.assign(MESSAGES.en,{
+ pickTitle:'{name} · the pocket',pickHint:'Grab the wallet, then draw it out slowly along the line. ← / → gives up.',noteGrab:'Click and hold the wallet.',noteFollow:'Slowly… follow the line.',noteRegrab:'You let go. Grab the wallet again.',noteOff:'Off the line! They felt something.',noteFast:'Too fast! The wallet slipped back.',
+ pocketHere:'E or click the pocket',hold:'E or click · draw it out',progress:'Drawing it out…',steal:'Pick a pocket',
+ tutorialSteal:'Someone is close. Stop, press E or click their pocket, then trace the line with your mouse.',
+ helpSteal:'Stop beside someone and press E or click their pocket. Hold the wallet with the mouse and draw it out along the line to the end. Leave the line or move too fast and it slips back, and they grow suspicious. Passersby give 1 portion, wealthy people 2, police 3; the richer, the twistier the line. If you are spotted twice in one day you cannot steal again until tomorrow.',
+});
+Object.assign(MESSAGES.ko,{
+ pickTitle:'{name} · 주머니',pickHint:'지갑을 잡고 선을 따라 천천히 빼내세요. ← / → 누르면 포기.',noteGrab:'지갑을 클릭해서 꾹 잡으세요.',noteFollow:'천천히… 선을 따라가세요.',noteRegrab:'손을 놓았어요. 지갑을 다시 잡으세요.',noteOff:'선을 벗어났다! 상대가 뭔가 느꼈어요.',noteFast:'너무 빨라요! 지갑이 다시 미끄러졌어요.',
+ pocketHere:'E 또는 주머니 클릭',hold:'E 또는 클릭 · 지갑 빼내기',progress:'빼내는 중…',steal:'소매치기',
+ tutorialSteal:'옆에 사람이 있습니다. 멈춘 뒤 E를 누르거나 주머니를 클릭하고, 마우스로 선을 따라 지갑을 빼내세요.',
+ helpSteal:'사람 옆에 멈춰 E를 누르거나 주머니를 클릭하세요. 마우스로 지갑을 잡고 선을 따라 끝까지 빼내면 성공입니다. 선을 벗어나거나 너무 빨리 움직이면 지갑이 미끄러지고 의심이 오릅니다. 행인 1칸, 부유층 2칸, 경찰 3칸이고, 부자일수록 선이 더 꼬불꼬불합니다. 하루에 두 번 들키면 그날은 더 훔칠 수 없습니다.',
+});

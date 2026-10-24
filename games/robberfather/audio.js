@@ -89,6 +89,7 @@ export class Soundscape {
     this.tone(65,.14,v*.65,.16,34);break;
    }
    case'step':this.foot++;this.noiseHit(e.running?.12:.16,e.running?.19:.115,650+(this.foot%2)*260);this.tone(100+(this.foot%2)*15,.075,e.running?.07:.04,0,45);break;
+   case'slip':this.noiseHit(.34,.14,620);this.tone(150,.14,.06,0,80);break;
    case'rustle':this.noiseHit(.22,.07,1700);this.noiseHit(.13,.035,2400,.13);break;
    case'stolen':this.noiseHit(.34,.19,1350);this.noiseHit(.18,.1,2400,.18);this.tone(780,.1,.017,.12,480,'triangle');break;
    case'detected':case'witnessed':case'recognized':this.director.alert();this.shout();this.noiseHit(.23,.16,900);break;
