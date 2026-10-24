@@ -1,6 +1,7 @@
-import {WIDTH as W,HEIGHT as H,WORLD,GROUND,TYPES,RULES,BOXES,BINS,SHOPS,INSIDE_DOOR,COUNTER,SELLS,ALLEY,ALLEY_DOORS,areaAt} from './engine.js?v=20261024-12';
+import {WIDTH as W,HEIGHT as H,WORLD,GROUND,TYPES,RULES,BOXES,BINS,SHOPS,INSIDE_DOOR,COUNTER,SELLS,ALLEY,ALLEY_DOORS,areaAt} from './engine.js?v=20261024-13';
 const SHOP_NAMES=['bakery','market','cafe','hotel','pharmacy','darkAlley'],SIGNS={bread:'breadSign',potato:'potatoSign',medicine:'medicineSign'};
-import {t,getLocale} from './i18n.js?v=20261024-12';
+import {t,getLocale} from './i18n.js?v=20261024-13';
+import {HD2D} from './hd2d.js?v=20261024-13';
 // Street view is drawn closer than the full canvas so characters read larger.
 const STREET_ZOOM=1.5;
 const canvas=(w=W,h=H)=>{const el=document.createElement('canvas');el.width=w;el.height=h;return el;};
@@ -92,10 +93,11 @@ function interiorBackground(shop){if(shop.kind===ALLEY)return alleyBackground();
  // Soft dark corners.
  const v=c.createRadialGradient(W/2,H/2,240,W/2,H/2,W*.75);v.addColorStop(0,'#00000000');v.addColorStop(1,'#00000066');c.fillStyle=v;c.fillRect(0,0,W,H);return el;}
 export class Renderer{
- constructor(el){this.el=el;this.out=el.getContext('2d');this.surface=canvas();this.c=this.surface.getContext('2d');this.camera=0;this.zoom=1;this.focus={x:W*.5,y:H*.5};this.locale='';this.reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;this.night=nightBackground();this.rooms=[];this.area=-1;this.snap=false;}
+ constructor(el){this.el=el;this.out=el.getContext('2d');this.surface=canvas();this.c=this.surface.getContext('2d');this.camera=0;this.zoom=1;this.focus={x:W*.5,y:H*.5};this.locale='';this.reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;this.night=nightBackground();this.rooms=[];this.area=-1;this.snap=false;this.fx=new HD2D();}
  draw(g,time,dt){const c=this.c;if(this.locale!==getLocale()){this.locale=getLocale();this.day=dayBackground();this.rooms=SHOPS.map(interiorBackground);}const shop=areaAt(g.player.x),area=shop?shop.id:-1;if(area!==this.area){this.area=area;this.snap=true;}c.clearRect(0,0,W,H);c.save();if(g.mode==='ending'){if(g.ending==='arrest')this.drawArrest(c,g,time);else if(g.ending==='robbed')this.drawRobbed(c,g,time);else this.drawCollapse(c,g,time);}else if(['intro','night'].includes(g.mode)){c.drawImage(this.night,0,0,W,H);this.drawMeal(c,g,time);}else this.drawStreet(c,g,time,dt);c.restore();
  const street=['day','caught','return','morning'].includes(g.mode),base=street?STREET_ZOOM:1;const holding=g.mode==='day'&&g.activeTarget!==null&&g.target;const ratio=holding?Math.min(1,g.progress/TYPES[g.target.type].hold):0;const wanted=base+(holding?(this.reduced?.35:1.3)*ratio:0);this.zoom+=(wanted-this.zoom)*Math.min(1,dt*6);if(Math.abs(this.zoom-wanted)<.002)this.zoom=wanted;const fx=holding?g.target.x-this.camera:street?g.player.x-this.camera:W*.5,fy=holding?g.target.y-42:street?GROUND-130:H*.5,ease=street&&this.zoom>1.01?Math.min(1,dt*7):1;this.focus.x+=(fx-this.focus.x)*ease;this.focus.y+=(fy-this.focus.y)*ease;if(this.snap){this.focus.x=fx;this.focus.y=fy;this.snap=false;}
  const sw=W/this.zoom,sh=H/this.zoom;const sx=Math.max(0,Math.min(W-sw,this.focus.x-sw/2)),sy=Math.max(0,Math.min(H-sh,this.focus.y-sh/2));this.view={sx,sy,zoom:this.zoom,cam:Math.round(this.camera)};this.out.imageSmoothingEnabled=false;this.out.clearRect(0,0,W,H);this.out.drawImage(this.surface,sx,sy,sw,sh,0,0,W,H);
+ const look=street?(shop?(shop.kind===ALLEY?'alley':'shop'):'day'):'night';this.fx.apply(this.out,look,street?(this.focus.y-sy)*this.zoom:560,time,holding?.6:1);
  if(this.zoom>base+.02){const fx=(this.focus.x-sx)*this.zoom,fy=(this.focus.y-sy)*this.zoom;const lens=this.out.createRadialGradient(fx,fy,145,fx,fy,Math.max(W,H)*.8);lens.addColorStop(0,'rgba(6,18,17,0)');lens.addColorStop(.5,'rgba(6,18,17,.28)');lens.addColorStop(1,'rgba(4,11,12,.9)');this.out.fillStyle=lens;this.out.fillRect(0,0,W,H);}
  if(g.mode==='day'){const seen=Math.max(0,...g.npcs.filter(n=>!n.alert).map(n=>n.witness));if(seen>.08){const edge=this.out.createRadialGradient(W/2,H/2,H*.45,W/2,H/2,W*.62);edge.addColorStop(0,'rgba(200,30,20,0)');edge.addColorStop(1,`rgba(200,30,20,${(.15+seen*.4).toFixed(3)})`);this.out.fillStyle=edge;this.out.fillRect(0,0,W,H);}} // Red edge while someone is noticing.
  }

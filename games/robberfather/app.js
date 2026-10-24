@@ -1,10 +1,10 @@
-import {Game,TYPES,RULES,TUTORIAL,WIDTH,HEIGHT} from './engine.js?v=20261024-12';
-import {Pickpocket} from './pickpocket.js?v=20261024-12';
-import {Shell} from './shell.js?v=20261024-12';
-import {Renderer} from './scene.js?v=20261024-12';
-import {Soundscape} from './audio.js?v=20261024-12';
-import {t,setLocale,getLocale,DEFAULT_LOCALE} from './i18n.js?v=20261024-12';
-import {getMorningLines,storyText} from './story.js?v=20261024-12';
+import {Game,TYPES,RULES,TUTORIAL,WIDTH,HEIGHT} from './engine.js?v=20261024-13';
+import {Pickpocket} from './pickpocket.js?v=20261024-13';
+import {Shell} from './shell.js?v=20261024-13';
+import {Renderer} from './scene.js?v=20261024-13';
+import {Soundscape} from './audio.js?v=20261024-13';
+import {t,setLocale,getLocale,DEFAULT_LOCALE} from './i18n.js?v=20261024-13';
+import {getMorningLines,storyText} from './story.js?v=20261024-13';
 const $=id=>document.getElementById(id),SAVE='one-more-meal-v3',LANG='one-more-meal-language';
 function getSaved(){try{const s=JSON.parse(localStorage.getItem(SAVE));if(s?.version===3&&Number.isInteger(s.day)&&s.day>0&&s.day<1000000&&Array.isArray(s.inventory))return s;}catch{}return null;}
 let saved=getSaved(),game=new Game(),renderer=new Renderer($('game')),held=new Set(),pendingPresses=new Set(),modalOpen=false,transitioning=false,lastTime=0,visualTime=0,toastUntil=0,tutorialUntil=0,lastSignature='',sound=true,soundscape=new Soundscape(),modalSpec=null,previousFocus=null,toastSpec=null;
