@@ -1,5 +1,6 @@
-import {WIDTH as W,HEIGHT as H,WORLD,GROUND,TYPES,RULES,BOXES,BINS,SHOPS,INSIDE_DOOR,areaAt} from './engine.js?v=20261024-8';
-import {t,getLocale} from './i18n.js?v=20261024-8';
+import {WIDTH as W,HEIGHT as H,WORLD,GROUND,TYPES,RULES,BOXES,BINS,SHOPS,INSIDE_DOOR,COUNTER,areaAt} from './engine.js?v=20261024-9';
+const SHOP_NAMES=['bakery','market','cafe','hotel','pharmacy'],SELLS={0:'potato',1:'potato',4:'medicine'};
+import {t,getLocale} from './i18n.js?v=20261024-9';
 // Street view is drawn closer than the full canvas so characters read larger.
 const STREET_ZOOM=1.5;
 // Decorative doorways between the shop fronts.
@@ -19,7 +20,7 @@ function plant(c,x,y){rect(c,x,y,48,35,'#6e7350');rect(c,x-5,y-4,58,8,'#a09b6c')
 function building(c,x,w,kind){const colors=['#a3a484','#9a9a77','#87977c','#aea98a'];const y=kind%2?121:78;roof(c,x,y-65,w);bricks(c,x,y,w,GROUND-y-14,colors[kind%4],'#5e755642');rect(c,x+5,y+18,w-10,7,'#c2b995');rect(c,x+8,y+179,w-16,7,'#c3bd9a');rect(c,x,GROUND-18,w,16,'#506d50');
  for(let yy=y+52;yy<380;yy+=139)for(let xx=x+36;xx<x+w-40;xx+=106){pane(c,xx,yy,54,82,((xx+yy)|0)%3===0);rect(c,xx-13,yy-7,6,90,'#657e60');rect(c,xx+61,yy-7,6,90,'#657e60');}
  rect(c,x+17,422,w-34,209,'#446248');rect(c,x+29,456,79,175,'#293f32');rect(c,x+37,465,63,106,'#71876a');rect(c,x+91,559,5,8,'#d4bd7c');rect(c,x+124,458,w-151,146,'#294735');for(let xx=x+132;xx<x+w-29;xx+=44){rect(c,xx,467,36,115,'#91a078');rect(c,xx+3,471,13,71,'#b2b28a');rect(c,xx-3,460,4,143,'#5e7b57');}
- rect(c,x+19,390,w-38,40,'#4c5d40');rect(c,x+24,395,w-48,29,'#c4b993');label(c,t(['bakery','market','cafe','hotel'][kind%4]),x+w/2,415,kind%4===1?16:20,'#42583e');
+ rect(c,x+19,390,w-38,40,'#4c5d40');rect(c,x+24,395,w-48,29,'#c4b993');label(c,t(SHOP_NAMES[kind]),x+w/2,415,kind===1||kind===4?16:20,'#42583e');if(kind===4){rect(c,x+w/2-14,330,28,44,'#3f8a5a');rect(c,x+w/2-36,341,72,22,'#3f8a5a');}
  for(let i=0;i<(w-40)/29;i++){poly(c,[[x+20+i*29,430],[x+49+i*29,430],[x+56+i*29,469],[x+13+i*29,469]],i%2?'#beb58d':'#6c7e59');rect(c,x+13+i*29,469,30,12,i%2?'#b4ad83':'#5d7350');}rect(c,x+22,GROUND-17,w-44,7,'#b3b391');
  if(kind%2===0)plant(c,x+w-72,616);
 }
@@ -59,7 +60,7 @@ function nightBackground(){const el=canvas(),c=el.getContext('2d');seed=33;rect(
  const glow=c.createRadialGradient(1090,305,1,1090,305,100);glow.addColorStop(0,'#f0bf6466');glow.addColorStop(1,'#edb95c00');c.fillStyle=glow;c.fillRect(980,200,220,220);line(c,0,103,721,277,'#152e29',4);line(c,1175,277,1440,163,'#142e29',3);return el;
 }
 // One room per shop front. The exit door is on the left, where the player arrives.
-const ROOM_STYLE=[{wall:'#b39a72',stripe:'#a48a63',floor:'#6f5a3f',trim:'#5c4a33'},{wall:'#93a083',stripe:'#869476',floor:'#5f6650',trim:'#46523f'},{wall:'#a88f78',stripe:'#9a826c',floor:'#5b4a3c',trim:'#4a3b2f'},{wall:'#8c8a9a',stripe:'#7f7d8d',floor:'#4f4a44',trim:'#3d3934'}];
+const ROOM_STYLE=[{wall:'#b39a72',stripe:'#a48a63',floor:'#6f5a3f',trim:'#5c4a33'},{wall:'#93a083',stripe:'#869476',floor:'#5f6650',trim:'#46523f'},{wall:'#a88f78',stripe:'#9a826c',floor:'#5b4a3c',trim:'#4a3b2f'},{wall:'#8c8a9a',stripe:'#7f7d8d',floor:'#4f4a44',trim:'#3d3934'},{wall:'#c9d0bf',stripe:'#bcc4b1',floor:'#6b6f62',trim:'#3f5a48'}];
 function interiorBackground(shop){const el=canvas(),c=el.getContext('2d'),st=ROOM_STYLE[shop.kind];seed=200+shop.id*17;
  rect(c,0,0,W,GROUND,st.wall);for(let x=0;x<W;x+=48)rect(c,x,0,20,GROUND,st.stripe);rect(c,0,0,W,58,st.trim);rect(c,0,GROUND-60,W,60,st.trim);rect(c,0,GROUND-64,W,6,'#d2c39a');
  rect(c,0,GROUND,W,H-GROUND,st.floor);for(let y=GROUND;y<H;y+=26){line(c,0,y,W,y,'#00000030',2);for(let x=(y/26%2)*90;x<W;x+=180)line(c,x,y,x,y+26,'#00000025',2);}
@@ -68,12 +69,14 @@ function interiorBackground(shop){const el=canvas(),c=el.getContext('2d'),st=ROO
  for(const x of[430,1060])pane(c,x,120,150,170,true);
  // Hanging lamps.
  for(const x of[360,760,1160]){line(c,x,58,x,170,'#2a2a22',3);poly(c,[[x-30,200],[x+30,200],[x+16,170],[x-16,170]],'#3d3a2b');const g=c.createRadialGradient(x,215,4,x,215,260);g.addColorStop(0,'#ffd88a40');g.addColorStop(1,'#ffd88a00');c.fillStyle=g;c.fillRect(x-260,0,520,GROUND);}
- rect(c,W/2-210,74,420,62,'#2d4033');rect(c,W/2-200,82,400,46,'#d8c99a');label(c,t(['bakery','market','cafe','hotel'][shop.kind]),W/2,118,34,'#3a4a35');
+ rect(c,W/2-210,74,420,62,'#2d4033');rect(c,W/2-200,82,400,46,'#d8c99a');label(c,t(SHOP_NAMES[shop.kind]),W/2,118,34,'#3a4a35');
  const shelf=(x,y,w,items)=>{rect(c,x,y,w,12,'#4d3b28');for(let i=0;i<w/30-1;i++)items(x+12+i*30,y);};
  if(shop.kind===0){for(const y of[330,420,510])shelf(560,y,420,(x,y)=>{rect(c,x,y-20,24,20,'#b98a4c');rect(c,x+3,y-23,18,5,'#d3a865');});rect(c,1020,500,300,GROUND-500,'#5a4330');rect(c,1012,492,316,14,'#c8b48a');for(let i=0;i<6;i++)rect(c,1036+i*46,470,34,22,'#c79a58');}
  else if(shop.kind===1){for(const y of[300,390,480,570])shelf(420,y,560,(x,y)=>rect(c,x,y-26,20,26,['#a5463a','#4c7a8a','#c9b45a','#6c8a4c'][Math.floor(random()*4)]));rect(c,1060,520,260,GROUND-520,'#46523f');rect(c,1052,512,276,14,'#c3c09a');rect(c,1240,470,60,42,'#2f3a33');rect(c,1248,478,44,18,'#9fbf8f');}
  else if(shop.kind===2){for(const x of[520,860]){rect(c,x-60,560,120,10,'#3f3024');rect(c,x-6,570,12,GROUND-570,'#3f3024');rect(c,x-12,540,16,20,'#e8e0c8');rect(c,x+18,546,14,14,'#e8e0c8');}rect(c,1080,480,260,GROUND-480,'#4a3b2f');rect(c,1072,472,276,14,'#d1bc94');rect(c,1120,410,40,62,'#6d6a62');rect(c,1128,400,24,12,'#3d3a33');shelf(1090,330,240,(x,y)=>rect(c,x,y-22,14,22,'#7c5a3c'));}
+ else if(shop.kind===4){for(const y of[300,390,480])shelf(420,y,520,(x,y)=>{const col=['#e8e2cf','#c96a4a','#6a9ac0','#e2c26a'][Math.floor(random()*4)];rect(c,x+2,y-24,14,24,col);rect(c,x+4,y-30,10,6,'#ece6d4');});rect(c,1020,500,300,GROUND-500,'#3f5a48');rect(c,1012,492,316,14,'#dfe3d2');rect(c,1245,250,30,90,'#3f8a5a');rect(c,1215,280,90,30,'#3f8a5a');}
  else{rect(c,980,470,340,GROUND-470,'#3f3a36');rect(c,972,462,356,14,'#c8b48a');rect(c,1020,250,250,170,'#4a3b2f');for(let r=0;r<3;r++)for(let k=0;k<6;k++){rect(c,1040+k*38,272+r*50,6,6,'#d9bf7a');line(c,1043+k*38,278+r*50,1043+k*38,298+r*50,'#d9bf7a',2);}for(let i=0;i<8;i++)rect(c,420+i*48,GROUND-60-i*36,200,12,'#5a4a3a');rect(c,640,300,8,GROUND-300,'#5a4a3a');}
+ if(SELLS[shop.kind]){const x=COUNTER,str=t(SELLS[shop.kind]==='potato'?'potatoSign':'medicineSign');c.font='20px sans-serif';const w=c.measureText(str).width+28;line(c,x,58,x,392,'#2a2a22',2);rect(c,x-w/2-6,392,w+12,48,'#2d4033');rect(c,x-w/2,398,w,36,'#e8d9a6');label(c,str,x,424,20,'#3a4a35','sans-serif');}
  // Soft dark corners.
  const v=c.createRadialGradient(W/2,H/2,240,W/2,H/2,W*.75);v.addColorStop(0,'#00000000');v.addColorStop(1,'#00000066');c.fillStyle=v;c.fillRect(0,0,W,H);return el;}
 export class Renderer{

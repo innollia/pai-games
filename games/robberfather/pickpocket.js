@@ -1,9 +1,9 @@
 // The pocket window, seen over the victim's back. Each theft plays one minigame from GAMES.
 // The street keeps moving underneath, so suspicion and witnesses still count while you play.
 // When the victim starts to turn (look, set by app.js) press E to leave the pocket; reopening the same pocket picks up where you stopped.
-import {TYPES} from './engine.js?v=20261024-8';
-import {Trace} from './pick-trace.js?v=20261024-8';
-import {Timing} from './pick-timing.js?v=20261024-8';
+import {TYPES} from './engine.js?v=20261024-9';
+import {Trace} from './pick-trace.js?v=20261024-9';
+import {Timing} from './pick-timing.js?v=20261024-9';
 // Each theft picks one at random; the tutorial always uses the first. Delete a line to take that minigame out.
 const GAMES=[
  Trace,

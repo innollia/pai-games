@@ -39,3 +39,9 @@ html[lang=ko] h1{font-size:clamp(45px,5.6vw,83px);line-height:1.2;letter-spacing
 .tutorial.practice p{font-size:19px;color:#f3e7c4}
 .tutorial.practice .tutorial-arrow{font-size:20px;color:#1f2a1d;background:#e7c27a;border-color:#fff0c4}
 .pick-coach{margin:-2px 0 10px;padding:10px 12px;background:#e7c27a;color:#1f2a1d;font-size:17px;font-weight:600;line-height:1.5;border-radius:3px}
+
+/* Coins in the bag, and the counter prompt inside shops. */
+.food-slot.coin{border-color:#e8c45a;background:#c99a2a2e}
+.food-slot.coin svg{color:#f0cf6a;stroke-width:1.6}
+#attempts i.coin{background:transparent;border-color:#f0cf6a;box-shadow:0 0 10px #f0cf6a40;border-radius:50%;transform:none}
+.shop-prompt{bottom:205px;color:#ffe9a8;border-color:#f0cf6a}

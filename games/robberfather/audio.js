@@ -99,7 +99,7 @@ export class Soundscape {
    case'shout':this.shout();break;
    case'eat':this.tone(1750,.08,.027,0,1200,'triangle');this.noiseHit(.18,.07,700,.2);this.noiseHit(.16,.055,500,.48);this.noiseHit(.18,.04,650,.77);break;
    case'hidden':case'unhidden':case'enterShop':case'exitShop':this.noiseHit(.38,.2,530);this.tone(110,.16,.045,.03,50);break;
-   case'scavenged':case'discarded':this.noiseHit(.42,.18,1100);break;
+   case'bought':this.tone(660,.08,.03,0,660,'triangle');this.tone(990,.12,.025,.07,990,'triangle');break;case'medicine':this.tone(520,.14,.03,0,520);this.tone(780,.2,.025,.1,780);break;case'noMoney':case'notSick':this.tone(180,.14,.035,0,120);break;case'scavenged':case'discarded':this.noiseHit(.42,.18,1100);break;
    case'caught':this.noiseHit(.3,.22,470);break;
    case'save':this.tone(523,.16,.025);this.tone(659,.23,.02,.11);break;
    case'night':this.tone(196,1.6,.028);this.tone(294,1.8,.02,.2);break;

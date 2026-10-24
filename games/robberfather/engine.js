@@ -1,26 +1,28 @@
 // Pure simulation. Display text belongs to i18n.js and story.js.
 export const WIDTH=1440,HEIGHT=840,WORLD=4400,GROUND=650;
-export const RULES={capacity:3,maxCaught:2,daySeconds:150,stamina:42,sprintDrain:26,regen:8,walk:126,run:246,discardHold:1.4,hiddenEscape:1.2,recognizeCalm:3,lookTime:1.4};
+export const RULES={capacity:5,meal:3,potatoPrice:1,medicinePrice:2,maxCaught:2,daySeconds:150,stamina:42,sprintDrain:26,regen:8,walk:126,run:246,discardHold:1.4,hiddenEscape:1.2,recognizeCalm:3,lookTime:1.4};
 // behind: fixed suspicion per second while your hand is in the pocket (police fill it fast and only pay one portion). wait: seconds between the victim turning around. warn: seconds you get to press E.
 export const TYPES={civilian:{slots:1,hold:3.0,risk:.36,speed:40,wait:[2.4,4.6],warn:.75},wealthy:{slots:2,hold:3.9,risk:.48,speed:33,wait:[1.9,3.9],warn:.6},police:{slots:1,hold:4.0,risk:.62,speed:48,behind:.22,wait:[1.3,2.6],warn:.42}};
 // First-day practice, one step at a time. During it nobody notices you and the victim only turns once, waiting for your E.
 export const TUTORIAL={move:0,find:1,approach:2,pull:3,dodge:4,resume:5,done:6};
 // Every shop front on the street has its own room, laid out far beyond the street so distances never cross.
-export const SHOPS=[[596,330,0],[938,400,1],[1622,380,2],[2014,340,3],[2370,262,0],[2820,370,1],[3202,370,2],[3920,460,3]].map(([x,w,kind],id)=>({id,x,w,kind,door:x+68,x0:6000+id*2400,x1:6000+id*2400+WIDTH}));
+export const SHOPS=[[596,330,0],[938,400,1],[1622,380,4],[2014,340,3],[2370,262,0],[2820,370,1],[3202,370,2],[3920,460,3]].map(([x,w,kind],id)=>({id,x,w,kind,door:x+68,x0:6000+id*2400,x1:6000+id*2400+WIDTH}));
 export const INSIDE_DOOR=150;
 export const areaAt=x=>SHOPS.find(s=>x>=s.x0-300&&x<=s.x1+300)||null;
 const bounds=x=>{const s=areaAt(x);return s?[s.x0+90,s.x1-90]:[90,WORLD-90];};
 // Nothing to hide in or scavenge right outside home. Each shop has one storage crate.
 export const BOXES=[{id:1,x:1240},{id:2,x:1930},{id:3,x:2850},{id:4,x:3690},...SHOPS.map(s=>({id:10+s.id,x:s.x0+1240,inside:true}))];
 export const BINS=[{id:1,x:1710},{id:2,x:2580},{id:3,x:4140}];
-// Who is inside each kind of shop: bakery, corner store, café, rooms.
-const ROOM_PEOPLE=[[['civilian',560],['wealthy',860]],[['civilian',480],['civilian',780],['police',1040]],[['wealthy',520],['civilian',900]],[['wealthy',600],['police',940]]];
+// Who is inside each kind of shop: bakery, corner store, café, rooms, pharmacy.
+const ROOM_PEOPLE=[[['civilian',560],['wealthy',860]],[['civilian',480],['civilian',780],['police',1040]],[['wealthy',520],['civilian',900]],[['wealthy',600],['police',940]],[['civilian',560],['wealthy',900]]];
+// Bakery and corner store sell mashed potatoes, the pharmacy sells medicine for rotten-food sickness. Each has a counter inside.
+export const COUNTER=1110;const SELLS={0:'potato',1:'potato',4:'medicine'};
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const valid=(v,fallback=0)=>Number.isFinite(v)?v:fallback;
 const distance=(a,b)=>Math.abs(a.x-b.x);
 export class Game{
  constructor(save=null){this.day=clamp(Math.floor(valid(save?.day,1)),1,999999);this.hungerStreak=clamp(valid(save?.hungerStreak),0,2);this.rottenStreak=clamp(valid(save?.rottenStreak),0,2);this.lastMeal=['fresh','rotten','hungry','both'].includes(save?.lastMeal)?save.lastMeal:'fresh';this.stats={meals:Math.max(0,valid(save?.stats?.meals)),total:Math.max(0,valid(save?.stats?.total)),best:Math.max(0,valid(save?.stats?.best))};this.tutorialDone=!!save?.tutorialDone;this.time=0;this.events=[];this.resetDay();this.resumeMode='morning';if(save?.version===3)this.restore(save);this.mode='intro';}
- get filled(){return this.inventory.length;}get rottenCount(){return this.inventory.filter(x=>x==='rotten').length;}get quotaMet(){return this.filled===RULES.capacity;}
+ get filled(){return this.inventory.length;}get full(){return this.filled>=RULES.capacity;}get coins(){return this.inventory.filter(x=>x==='coin').length;}get food(){return this.filled-this.coins;}get rottenCount(){return this.inventory.filter(x=>x==='rotten').length;}get quotaMet(){return this.food>=RULES.meal;}
  get caughtCount(){return this.attempts.filter(x=>x==='caught').length;}get banned(){return this.caughtCount>=RULES.maxCaught;}get shop(){return areaAt(this.player.x);}
  emit(type,data={}){this.events.push({type,...data});}drainEvents(){return this.events.splice(0);}
  resetDay(){this.player={x:330,y:GROUND,face:1,walk:0,stamina:RULES.stamina,exhausted:false,hidden:false,boxId:null};this.mode='morning';this.inventory=[];this.attempts=[];this.earned=0;this.timeLeft=RULES.daySeconds;this.target=null;this.activeTarget=null;this.turn={phase:'wait',t:0,face:1};this.progress=0;this.suspicion=0;this.chasers=[];this.chaseTime=0;this.escape=0;this.cooldown=0;this.nightTime=0;this.returnReason='home';this.fed=false;this.ateRotten=false;this.eaten=0;this.ending=null;this.endingTime=0;this.morningIndex=0;this.discardProgress=0;this.discardLatch=false;this.previousInput={};this.tutorial=this.tutorialDone?TUTORIAL.done:TUTORIAL.move;this.travel=0;this.bins=BINS.map(b=>({...b,searched:false}));
@@ -28,7 +30,7 @@ export class Game{
  const person=(id,type,x,face,min,max)=>({id,type,x,y:GROUND+(id%2?4:-4),face,walk:id,stolen:false,alert:false,knows:false,calm:0,recognizing:false,witness:0,lookBack:0,faceBack:face,lastSeen:x,pause:(id*.7)%3,seed:(id*2.3+this.day)%9,min,max});
  this.npcs=specs.map(([type,x,face],id)=>person(id,type,x,face,Math.max(665,x-230),Math.min(WORLD-100,x+330)));
  for(const s of SHOPS)ROOM_PEOPLE[s.kind].forEach(([type,dx],i)=>this.npcs.push(person(this.npcs.length,type,s.x0+dx,i%2?-1:1,s.x0+330,s.x1-140)));}
- restore(s){this.resumeMode=['morning','day','night','ending'].includes(s.mode)?s.mode:'morning';this.inventory=Array.isArray(s.inventory)?s.inventory.filter(x=>x==='fresh'||x==='rotten').slice(0,3):[];this.timeLeft=clamp(valid(s.timeLeft,RULES.daySeconds),0,RULES.daySeconds);this.attempts=Array.isArray(s.attempts)?s.attempts.filter(x=>x==='success'||x==='caught').slice(0,200):[];this.earned=Math.max(0,valid(s.earned));this.morningIndex=clamp(valid(s.morningIndex),0,2);this.fed=!!s.fed;this.ateRotten=!!s.ateRotten;this.eaten=clamp(valid(s.eaten,this.fed?3:0),0,3);this.returnReason=s.returnReason==='timeout'?'timeout':'home';this.ending=['arrest','collapse'].includes(s.ending)?s.ending:null;this.endingTime=0;
+ restore(s){this.resumeMode=['morning','day','night','ending'].includes(s.mode)?s.mode:'morning';this.inventory=Array.isArray(s.inventory)?s.inventory.filter(x=>['coin','fresh','rotten'].includes(x)).slice(0,RULES.capacity):[];this.timeLeft=clamp(valid(s.timeLeft,RULES.daySeconds),0,RULES.daySeconds);this.attempts=Array.isArray(s.attempts)?s.attempts.filter(x=>x==='success'||x==='caught').slice(0,200):[];this.earned=Math.max(0,valid(s.earned));this.morningIndex=clamp(valid(s.morningIndex),0,2);this.fed=!!s.fed;this.ateRotten=!!s.ateRotten;this.eaten=clamp(valid(s.eaten,this.fed?3:0),0,3);this.returnReason=s.returnReason==='timeout'?'timeout':'home';this.ending=['arrest','collapse'].includes(s.ending)?s.ending:null;this.endingTime=0;
  if(s.player){const p=s.player,[lo,hi]=bounds(valid(p.x,330));this.player.x=clamp(valid(p.x,330),lo,hi);this.player.face=p.face===-1?-1:1;this.player.stamina=clamp(valid(p.stamina,RULES.stamina),0,RULES.stamina);this.player.exhausted=!!p.exhausted;const box=BOXES.find(b=>b.id===p.boxId);if(p.hidden&&box){this.player.hidden=true;this.player.boxId=box.id;this.player.x=box.x;}}
  if(Array.isArray(s.npcs))for(const n of this.npcs){const v=s.npcs.find(v=>v.id===n.id);if(!v)continue;const [lo,hi]=bounds(n.x);n.x=clamp(valid(v.x,n.x),lo-60,hi+60);n.face=v.face===-1?-1:1;n.pause=clamp(valid(v.pause),0,5);n.stolen=!!v.stolen;n.knows=!!v.knows;n.calm=clamp(valid(v.calm),0,RULES.recognizeCalm);n.witness=clamp(valid(v.witness),0,1);n.lastSeen=clamp(valid(v.lastSeen,n.x),lo-60,hi+60);}
  this.bins.forEach(b=>b.searched=Array.isArray(s.searchedBins)&&s.searchedBins.includes(b.id));this.chasers=Array.isArray(s.chasers)?[...new Set(s.chasers.filter(id=>this.npcs.some(n=>n.id===id)))]:[];this.chasers.forEach(id=>this.npcs.find(n=>n.id===id).alert=true);this.chaseTime=clamp(valid(s.chaseTime),0,1000);this.escape=clamp(valid(s.escape),0,3);}
@@ -37,15 +39,19 @@ export class Game{
  facingPlayer(n){return(this.player.x-n.x)*n.face>0;}
  isBehind(n){return!this.facingPlayer(n)&&distance(n,this.player)>=18;}
  isWatching(n){return(this.time+n.seed)%9<3.4;}
- nearest(){if(this.banned||this.chasers.length||this.player.x<630||this.player.hidden||this.quotaMet)return null;return this.npcs.filter(n=>!n.stolen&&distance(n,this.player)<67).sort((a,b)=>distance(a,this.player)-distance(b,this.player))[0]||null;}
+ nearest(){if(this.banned||this.chasers.length||this.player.x<630||this.player.hidden||this.full)return null;return this.npcs.filter(n=>!n.stolen&&distance(n,this.player)<67).sort((a,b)=>distance(a,this.player)-distance(b,this.player))[0]||null;}
+ // The shop counter the player is standing at, and what it sells.
+ nearbyCounter(){const s=this.shop;if(!s||!SELLS[s.kind]||this.player.hidden||this.chasers.length||Math.abs(this.player.x-(s.x0+COUNTER))>60)return null;const item=SELLS[s.kind];return{shop:s,item,price:item==='potato'?RULES.potatoPrice:RULES.medicinePrice};}
+ // A potato turns one coin into a fresh portion. Medicine takes one point off the rotten-food sickness, which never wears off by itself.
+ buy(){const c=this.nearbyCounter();if(!c)return false;if(c.item==='medicine'&&!this.rottenStreak){this.emit('notSick');return false;}if(this.coins<c.price){this.emit('noMoney',{price:c.price});return false;}for(let i=0;i<c.price;i++)this.inventory.splice(this.inventory.indexOf('coin'),1);if(c.item==='potato'){this.inventory.push('fresh');this.emit('bought');if(this.food===RULES.meal)this.emit('goal');}else{this.rottenStreak--;this.emit('medicine');}return true;}
  nearbyBox(){return BOXES.find(b=>distance(b,this.player)<53)||null;}
  nearbyBin(){if(this.player.hidden||this.chasers.length)return null;return this.bins.filter(b=>!b.searched&&distance(b,this.player)<60).sort((a,b)=>distance(a,this.player)-distance(b,this.player))[0]||null;}
  // The shop door the player is standing at: a street entrance, or the exit inside a shop.
  nearbyDoor(){if(this.player.hidden)return null;const inside=this.shop;if(inside)return Math.abs(this.player.x-(inside.x0+INSIDE_DOOR))<60?{shop:inside,exit:true}:null;const s=SHOPS.find(s=>Math.abs(s.door-this.player.x)<45);return s?{shop:s,exit:false}:null;}
  useDoor(){const d=this.nearbyDoor();if(!d)return false;if(this.chasers.length){this.emit('doorBlocked');return false;}this.clearHold();this.player.x=d.exit?d.shop.door:d.shop.x0+INSIDE_DOOR;this.player.face=1;this.emit(d.exit?'exitShop':'enterShop',{kind:d.shop.kind});return true;}
  clearHold(){this.activeTarget=null;this.progress=0;this.suspicion=0;this.turn={phase:'wait',t:0,face:1};}
- addFood(kind,count){const added=Math.min(count,RULES.capacity-this.filled);for(let i=0;i<added;i++)this.inventory.push(kind);return added;}
- takeBin(b){if(this.quotaMet){this.emit('bagFull');return false;}b.searched=true;this.addFood('rotten',1);this.emit('scavenged');if(this.quotaMet)this.emit('goal');return true;}
+ add(kind,count){const added=Math.min(count,RULES.capacity-this.filled);for(let i=0;i<added;i++)this.inventory.push(kind);return added;}
+ takeBin(b){if(this.full){this.emit('bagFull');return false;}b.searched=true;this.add('rotten',1);this.emit('scavenged');if(this.food===RULES.meal)this.emit('goal');return true;}
  discardRotten(){const i=this.inventory.lastIndexOf('rotten');if(i<0)return false;this.inventory.splice(i,1);this.emit('discarded');return true;}
  // A box always hides you: pursuers lose sight the moment you are inside.
  toggleHide(){if(this.player.hidden){this.player.hidden=false;this.player.boxId=null;this.emit('unhidden');return true;}const b=this.nearbyBox();if(!b)return false;this.clearHold();this.player.hidden=true;this.player.boxId=b.id;this.player.x=b.x;this.escape=0;this.emit('hidden');return true;}
@@ -71,7 +77,7 @@ export class Game{
  if(input.grab)this.suspicion+=dt*(kind.behind??kind.risk*.48*(watching?1.45:.9));
  if(practice)this.suspicion=Math.min(this.suspicion,.9);
  let detector=null;for(const w of this.npcs){if(practice||w.id===n.id)continue;const d=distance(w,p),range=w.type==='police'?420:310;if(d<range&&(this.facingPlayer(w)||d<100)){const close=d<150?1.8:1;w.witness=clamp(w.witness+dt*(w.type==='police'?4:.42*close*(this.isWatching(w)?1.4:.85)),0,1);if(w.witness>=1)detector=w;}}
- if(this.suspicion>=1||detector){this.detect(detector||n,n,!!detector);}else if(this.progress>=kind.hold){const amount=this.addFood('fresh',kind.slots);this.earned+=amount;this.stats.total+=amount;n.stolen=true;this.attempts.push('success');this.cooldown=.8;this.clearHold();this.finishTutorial();this.emit('stolen',{amount});if(this.quotaMet)this.emit('goal');}
+ if(this.suspicion>=1||detector){this.detect(detector||n,n,!!detector);}else if(this.progress>=kind.hold){const amount=this.add('coin',kind.slots);this.earned+=amount;this.stats.total+=amount;n.stolen=true;this.attempts.push('success');this.cooldown=.8;this.clearHold();this.finishTutorial();this.emit('stolen',{amount});}
  }else this.clearHold();
  this.recognize(dt);
  for(const n of this.npcs){if(this.activeTarget===null&&!n.recognizing)n.witness=Math.max(0,n.witness-dt*.12);if(n.lookBack>0){n.lookBack-=dt;if(n.lookBack<=0)n.face=n.faceBack;continue;}if(this.activeTarget===n.id||this.chasers.includes(n.id))continue;if(n.pause>0){n.pause-=dt;continue;}if(n.x<n.min)n.face=1;else if(n.x>n.max)n.face=-1;n.x+=n.face*TYPES[n.type].speed*dt;n.walk+=dt*5;if(Math.abs(n.x-n.min)<2||Math.abs(n.x-n.max)<2)n.pause=.8;}
@@ -91,8 +97,8 @@ export class Game{
  recover(){if(this.mode!=='caught')return;this.endChase();this.player.x=330;this.player.stamina=RULES.stamina;this.player.exhausted=false;this.player.hidden=false;this.player.boxId=null;this.mode='day';this.cooldown=1;this.previousInput={};}
  canHome(){return this.mode==='day'&&!this.chasers.length;}
  goHome(reason='home'){if(!this.canHome())return false;this.mode='return';this.returnReason=reason;this.player.hidden=false;this.player.boxId=null;this.clearHold();return true;}
- // After dusk the stalls are shut, so only rotten food can still be eaten. Fewer than three portions is still a hungry night.
- beginNight(){if(this.mode!=='return')return false;this.mode='night';const eaten=this.returnReason==='timeout'?this.inventory.filter(x=>x==='rotten'):[...this.inventory];this.eaten=eaten.length;this.fed=eaten.length===RULES.capacity;this.ateRotten=eaten.includes('rotten');this.lastMeal=this.fed?(this.ateRotten?'rotten':'fresh'):(this.ateRotten?'both':'hungry');this.hungerStreak=this.fed?0:this.hungerStreak+1;this.rottenStreak=this.ateRotten?this.rottenStreak+1:0;this.inventory=[];if(this.fed)this.stats.meals++;this.stats.best=Math.max(this.stats.best,this.day);this.nightTime=0;this.emit('night');return true;}
- nextDay(){if(this.mode!=='night')return false;this.day++;if(this.hungerStreak>=2||this.rottenStreak>=2){this.ending=this.hungerStreak>=2?'arrest':'collapse';this.endingTime=0;this.mode='ending';this.emit('ending',{kind:this.ending});return false;}this.resetDay();this.emit('morning');return true;}
+ // Dinner takes three food portions, fresh first. Coins and anything left over carry into tomorrow. Fewer than three is still a hungry night.
+ beginNight(){if(this.mode!=='return')return false;this.mode='night';const eaten=[...this.inventory.filter(x=>x==='fresh'),...this.inventory.filter(x=>x==='rotten')].slice(0,RULES.meal);for(const x of eaten)this.inventory.splice(this.inventory.indexOf(x),1);this.eaten=eaten.length;this.fed=eaten.length===RULES.meal;this.ateRotten=eaten.includes('rotten');this.lastMeal=this.fed?(this.ateRotten?'rotten':'fresh'):(this.ateRotten?'both':'hungry');this.hungerStreak=this.fed?0:this.hungerStreak+1;if(this.ateRotten)this.rottenStreak++;if(this.fed)this.stats.meals++;this.stats.best=Math.max(this.stats.best,this.day);this.nightTime=0;this.emit('night');return true;}
+ nextDay(){if(this.mode!=='night')return false;this.day++;if(this.hungerStreak>=2||this.rottenStreak>=2){this.ending=this.hungerStreak>=2?'arrest':'collapse';this.endingTime=0;this.mode='ending';this.emit('ending',{kind:this.ending});return false;}const carry=this.inventory;this.resetDay();this.inventory=carry;this.emit('morning');return true;}
  save(){return{version:3,day:this.day,mode:this.mode==='return'?'day':this.mode,inventory:[...this.inventory],hungerStreak:this.hungerStreak,rottenStreak:this.rottenStreak,lastMeal:this.lastMeal,stats:{...this.stats},tutorialDone:this.tutorialDone,timeLeft:this.timeLeft,attempts:[...this.attempts],earned:this.earned,player:{...this.player},npcs:this.npcs.map(n=>({...n})),chasers:[...this.chasers],chaseTime:this.chaseTime,escape:this.escape,searchedBins:this.bins.filter(b=>b.searched).map(b=>b.id),fed:this.fed,ateRotten:this.ateRotten,eaten:this.eaten,returnReason:this.returnReason,morningIndex:this.morningIndex,ending:this.ending};}
 }
