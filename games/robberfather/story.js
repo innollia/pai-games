@@ -81,5 +81,5 @@ export const MORNING_LINES={
   ['Please come back soon. I feel a little frightened.','빨리 돌아와 주세요. 조금 무서워요.'],
  ].map(pair),
 };
-export function getMorningLines(day,lastMeal){const mood=lastMeal==='hungry'?'hungry':lastMeal==='rotten'?'sick':'hopeful';const pool=MORNING_LINES[mood];const offset=Math.max(0,day-(mood==='hopeful'?1:2))*3;return [0,1,2].map(i=>pool[(offset+i)%pool.length]);}
+export function getMorningLines(day,lastMeal){const mood=lastMeal==='hungry'?'hungry':lastMeal==='rotten'?'sick':lastMeal==='both'?(day%2?'sick':'hungry'):'hopeful';const pool=MORNING_LINES[mood];const offset=Math.max(0,day-(mood==='hopeful'?1:2))*3;return [0,1,2].map(i=>pool[(offset+i)%pool.length]);}
 export function storyText(line,locale='en'){return line[locale]??line.en;}

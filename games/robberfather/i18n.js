@@ -56,4 +56,27 @@ Object.assign(MESSAGES.ko,{
  helpSteal:'사람 옆에 멈춰 E를 길게 누르세요. 행인은 1칸, 부유층은 2칸, 경찰은 3칸입니다. 식사는 정확히 세 칸이며 저장은 별도 버튼입니다.',helpRisk:'일반 행인도 정면에서 훔치면 끝내기 전에 눈치챕니다. 주변의 모든 사람이 소매치기를 발견하고 추격에 합류할 수 있습니다. 방향, 거리, 경계 상태가 중요합니다. 훔치는 동안 주머니 쪽으로 화면이 천천히 확대됩니다.',helpRun:'Shift로 약 1.6초간 달립니다. F로 길거리 박스에 숨거나 나옵니다. 가까운 추격자 앞에서 숨는 것을 들키면 잡힙니다.',helpHome:'추격 중이 아니면 언제든 M으로 돌아갈 수 있습니다. 2분 30초 안에 세 칸을 채워 귀가하세요. 할당량 미달 또는 시간 초과면 두 사람 모두 굶습니다.',helpSurvive:'이틀 연속 굶으면 아들이 소매치기를 시도하다 잡혀갑니다. 이틀 연속 초록 음식을 먹으면 뒷골목에 쓰러져 있습니다.',helpSave:'쓰레기통에서 E로 초록 음식을 챙기고 Q로 두고 갑니다. 챙긴 음식은 G를 길게 눌러 한 칸씩 버립니다. 저장은 칸, 시간, 스토리 상태를 보존하며 매일 아침 자동 저장도 합니다.',
  canvasLabel:'2D 생존 게임. 방향키 이동, E 소매치기 또는 썩은 음식 챙기기, Q 두고 가기, F 박스에 숨기, G 길게 썩은 음식 버리기, Shift 달리기, M 귀가.',
 });
-
+Object.assign(MESSAGES.en,{
+ attemptUsage:'Times spotted · {used} / {max}',insideLocation:'Inside · {name}',exitSign:'EXIT',enterShop:'↑ · Go into the {name}',exitShop:'↑ · Step back outside',enteredShop:'You step into the {name}.',leftShop:'Back on the street.',doorBlocked:'Not with them on your heels. Lose them first.',enterControl:'Enter / leave shop',
+ recognized:'“That is the thief!” Someone remembered your face.',lastStrike:'Spotted twice. After this, nobody will let you near their pockets today.',escapedBanned:'They lost you, but you have been spotted twice. No more stealing today. Bins still help.',caughtBanned:'You were caught and lost {lost} portion(s). You have been spotted twice. No more stealing today.',caughtCopy:'You were caught and lost {lost} portion(s). You can be spotted {left} more time(s) today.',
+ scrapsTitle:'Not enough, and not good.',scrapsCopy:'Only {count} portion(s), and some of it spoiled. You both stay hungry, and the green smell lingers.',lateScrapsCopy:'The stalls are shut. Only the {count} rotten portion(s) could be eaten. Still hungry, and it was spoiled.',lateRottenCopy:'The stalls are shut, but the rotten food is still in the bag. You warm it up and eat.',timeoutCopy:'You missed the last open stall. Fresh portions cannot become dinner now.',nightScraps:'Hungry, and ate rotten food',
+ helpShop:'↑ or W at a shop door · Go inside. Every shop is its own room with people to rob. ↑ at the EXIT door leaves. Doors are closed to you during a chase.',
+ helpSteal:'Stop beside someone and hold E. Passersby give 1 portion, wealthy people 2, police 3. Steal as often as you like, but if you are spotted twice in one day you cannot steal again until tomorrow.',
+ helpRisk:'Stealing face to face is noticed. Police take 6 seconds and, even from behind, their suspicion climbs to the very edge. Anyone who saw you will remember: if they see you again, a red gauge fills and they give chase.',
+ helpRun:'Shift runs for about 1.6 seconds. F enters or leaves a box. Inside a box you are safe at once; pursuers lose you after a moment.',
+ helpHome:'M returns home at any time outside a chase. Fill all 3 portions and return before the 2:30 clock runs out. After dusk only rotten food can still be eaten.',
+ helpSurvive:'Fewer than 3 portions is a hungry night. Eating rotten food counts as a rotten meal, even if you were still hungry. Two hungry nights in a row: the boy is taken away. Two rotten meals in a row: he collapses.',
+ canvasLabel:'2D survival game. Arrows walk. Up enters shops. E steals or takes rotten food. Q leaves food. F hides in boxes. Hold G discards rotten food. Shift runs. M returns home.',
+});
+Object.assign(MESSAGES.ko,{
+ attemptUsage:'들킨 횟수 · {used} / {max}',insideLocation:'가게 안 · {name}',exitSign:'출구',enterShop:'↑ · {name} 들어가기',exitShop:'↑ · 밖으로 나가기',enteredShop:'{name} 안으로 들어왔습니다.',leftShop:'다시 거리로 나왔습니다.',doorBlocked:'쫓기는 중에는 들어갈 수 없습니다. 먼저 따돌리세요.',enterControl:'가게 들어가기/나가기',
+ recognized:'"아까 그 소매치기다!" 누군가 얼굴을 알아봤습니다.',lastStrike:'두 번째로 들켰습니다. 오늘은 더 이상 소매치기를 할 수 없습니다.',escapedBanned:'따돌렸지만 오늘 두 번 들켰습니다. 소매치기는 내일 다시. 쓰레기통은 뒤질 수 있습니다.',caughtBanned:'붙잡혀 {lost}칸을 잃었습니다. 오늘 두 번 들켜서 더 이상 소매치기를 할 수 없습니다.',caughtCopy:'붙잡혀 {lost}칸을 잃었습니다. 오늘 {left}번 더 들키면 소매치기를 할 수 없습니다.',
+ scrapsTitle:'모자라고, 상한 저녁.',scrapsCopy:'겨우 {count}칸, 그마저 상한 음식이 섞였다. 배는 여전히 고프고 초록 냄새가 남는다.',lateScrapsCopy:'가게는 닫혔다. 주머니 속 썩은 음식 {count}칸만 먹을 수 있었다. 배도 고프고, 상한 음식이었다.',lateRottenCopy:'가게는 닫혔지만 주머니에 썩은 음식이 남아 있다. 데워서 나눠 먹는다.',timeoutCopy:'마지막 가게가 문을 닫았습니다. 멀쩡한 음식도 이제 저녁이 되지 못합니다.',nightScraps:'굶주렸고, 썩은 음식도 먹었다',
+ helpShop:'가게 문 앞에서 ↑ 또는 W · 안으로 들어갑니다. 가게마다 따로 방이 있고 훔칠 사람이 있습니다. 안쪽 "출구" 문에서 ↑로 나옵니다. 쫓기는 중에는 문을 쓸 수 없습니다.',
+ helpSteal:'사람 옆에 멈춰 E를 길게 누르세요. 행인 1칸, 부유층 2칸, 경찰 3칸. 몇 번이든 훔칠 수 있지만 하루에 두 번 들키면 그날은 더 훔칠 수 없습니다.',
+ helpRisk:'정면에서 훔치면 들킵니다. 경찰은 6초가 걸리고, 뒤에서 훔쳐도 의심이 끝까지 아슬아슬하게 차오릅니다. 당신을 본 사람은 얼굴을 기억합니다. 다시 마주치면 빨간 게이지가 차오르고, 가득 차면 다시 쫓아옵니다.',
+ helpRun:'Shift로 약 1.6초간 달립니다. F로 박스에 숨거나 나옵니다. 박스에 들어가면 바로 안전하고, 잠시 뒤 추격자가 포기합니다.',
+ helpHome:'추격 중이 아니면 언제든 M으로 돌아갈 수 있습니다. 2분 30초 안에 세 칸을 채워 귀가하세요. 시간이 지나면 썩은 음식만 먹을 수 있습니다.',
+ helpSurvive:'세 칸을 못 먹으면 굶은 밤입니다. 썩은 음식을 먹으면 배가 덜 찼어도 상한 식사로 칩니다. 이틀 연속 굶으면 아들이 잡혀가고, 이틀 연속 상한 음식을 먹으면 쓰러집니다.',
+ canvasLabel:'2D 생존 게임. 방향키 이동, ↑ 가게 들어가기, E 소매치기 또는 썩은 음식 챙기기, Q 두고 가기, F 박스에 숨기, G 길게 썩은 음식 버리기, Shift 달리기, M 귀가.',
+});

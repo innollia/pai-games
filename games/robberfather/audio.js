@@ -19,7 +19,7 @@ export class SoundDirector {
   }else this.beat=0;
   if(holding){this.rustle-=dt;if(this.rustle<=0){out.push({type:'rustle'});this.rustle=.43;}}else this.rustle=0;
   if(g.mode==='day'&&g.chasers.length&&this.shout===0){out.push({type:'shout'});this.shout=4.8;}
-  if(g.mode==='night'&&g.fed){this.bite-=dt;if(this.bite<=0){out.push({type:'eat',spoiled:g.ateRotten});this.bite=2.35;}}
+  if(g.mode==='night'&&(g.fed||g.ateRotten)){this.bite-=dt;if(this.bite<=0){out.push({type:'eat',spoiled:g.ateRotten});this.bite=2.35;}}
   return out;
  }
  alert(){this.shout=4.8;}
@@ -91,10 +91,10 @@ export class Soundscape {
    case'step':this.foot++;this.noiseHit(e.running?.12:.16,e.running?.19:.115,650+(this.foot%2)*260);this.tone(100+(this.foot%2)*15,.075,e.running?.07:.04,0,45);break;
    case'rustle':this.noiseHit(.22,.07,1700);this.noiseHit(.13,.035,2400,.13);break;
    case'stolen':this.noiseHit(.34,.19,1350);this.noiseHit(.18,.1,2400,.18);this.tone(780,.1,.017,.12,480,'triangle');break;
-   case'detected':case'witnessed':this.director.alert();this.shout();this.noiseHit(.23,.16,900);break;
+   case'detected':case'witnessed':case'recognized':this.director.alert();this.shout();this.noiseHit(.23,.16,900);break;
    case'shout':this.shout();break;
    case'eat':this.tone(1750,.08,.027,0,1200,'triangle');this.noiseHit(.18,.07,700,.2);this.noiseHit(.16,.055,500,.48);this.noiseHit(.18,.04,650,.77);break;
-   case'hidden':case'hideUnsafe':case'unhidden':this.noiseHit(.38,.2,530);this.tone(110,.16,.045,.03,50);break;
+   case'hidden':case'hideUnsafe':case'unhidden':case'enterShop':case'exitShop':this.noiseHit(.38,.2,530);this.tone(110,.16,.045,.03,50);break;
    case'scavenged':case'discarded':this.noiseHit(.42,.18,1100);break;
    case'caught':this.noiseHit(.3,.22,470);break;
    case'save':this.tone(523,.16,.025);this.tone(659,.23,.02,.11);break;

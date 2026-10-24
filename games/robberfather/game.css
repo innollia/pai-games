@@ -19,3 +19,5 @@ html[lang=ko] h1{font-size:clamp(45px,5.6vw,83px);line-height:1.2;letter-spacing
 #attempts i.fresh{background:#e0c589;border-color:#e0c589;box-shadow:0 0 12px #dfb76826}
 #attempts i.rotten{background:#8aaf60;border-color:#a1c776;box-shadow:0 0 12px #8aaf6038}
 #attempts i.empty{background:transparent}
+.door-prompt{bottom:150px;color:#f1dfae;border-color:#d8bf7a}
+#attemptHint.warning{color:#ec8a6a}
