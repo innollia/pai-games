@@ -1,6 +1,6 @@
-import {WIDTH as W,HEIGHT as H,WORLD,GROUND,TYPES,RULES,BOXES,BINS,SHOPS,INSIDE_DOOR,COUNTER,SELLS,areaAt} from './engine.js?v=20261024-10';
+import {WIDTH as W,HEIGHT as H,WORLD,GROUND,TYPES,RULES,BOXES,BINS,SHOPS,INSIDE_DOOR,COUNTER,SELLS,areaAt} from './engine.js?v=20261024-11';
 const SHOP_NAMES=['bakery','market','cafe','hotel','pharmacy'],SIGNS={bread:'breadSign',potato:'potatoSign',medicine:'medicineSign'};
-import {t,getLocale} from './i18n.js?v=20261024-10';
+import {t,getLocale} from './i18n.js?v=20261024-11';
 // Street view is drawn closer than the full canvas so characters read larger.
 const STREET_ZOOM=1.5;
 // Decorative doorways between the shop fronts.

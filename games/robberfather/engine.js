@@ -1,6 +1,8 @@
 // Pure simulation. Display text belongs to i18n.js and story.js.
 export const WIDTH=1440,HEIGHT=840,WORLD=4400,GROUND=650;
-export const RULES={foodCap:5,coinCap:5,meal:3,maxCaught:2,daySeconds:150,stamina:42,sprintDrain:26,regen:8,walk:126,run:246,discardHold:1.4,hiddenEscape:1.2,recognizeCalm:3,lookTime:1.4};
+export const RULES={foodCap:5,coinCap:5,meal:3,maxCaught:3,daySeconds:150,stamina:42,sprintDrain:26,regen:8,walk:126,run:246,discardHold:1.4,hiddenEscape:1.2,recognizeCalm:3,lookTime:1.4};
+// The street grows warier with every theft today: suspicion, turning around and witnesses all scale by this. Starts easy, caps out hard.
+export const WARY={start:.7,step:.13,max:1.6};
 // behind: fixed suspicion per second while your hand is in the pocket (police fill it fast and only pay one portion). wait: seconds between the victim turning around. warn: seconds you get to press E.
 export const TYPES={civilian:{slots:1,hold:3.0,risk:.36,speed:40,wait:[2.4,4.6],warn:.75},wealthy:{slots:2,hold:3.9,risk:.48,speed:33,wait:[1.9,3.9],warn:.6},police:{slots:1,hold:4.0,risk:.62,speed:48,behind:.22,wait:[1.3,2.6],warn:.42}};
 // First-day practice, one step at a time. The clock and the crowd stand still, nobody notices you, and the victim only turns once, waiting for your E.
@@ -13,8 +15,8 @@ const bounds=x=>{const s=areaAt(x);return s?[s.x0+90,s.x1-90]:[90,WORLD-90];};
 // Nothing to hide in or scavenge right outside home. Each shop has one storage crate.
 export const BOXES=[{id:1,x:1240},{id:2,x:1930},{id:3,x:2850},{id:4,x:3690},...SHOPS.map(s=>({id:10+s.id,x:s.x0+1240,inside:true}))];
 export const BINS=[{id:1,x:1710},{id:2,x:2580},{id:3,x:4140}];
-// Who is inside each kind of shop: bakery, corner store, café, rooms, pharmacy.
-const ROOM_PEOPLE=[[['civilian',560],['wealthy',860]],[['civilian',480],['civilian',780],['police',1040]],[['wealthy',520],['civilian',900]],[['wealthy',600],['police',940]],[['civilian',560],['wealthy',900]]];
+// Who is inside each kind of shop: bakery, corner store, café, rooms (always wealthy guests), pharmacy.
+const ROOM_PEOPLE=[[['civilian',560],['wealthy',860]],[['civilian',480],['civilian',780],['police',1040]],[['wealthy',520],['civilian',900]],[['wealthy',600],['wealthy',940]],[['civilian',560],['wealthy',900]]];
 // The bakery sells bread (2 coins for 2 portions), the corner store mashed potatoes (1 for 1), the pharmacy medicine for rotten-food sickness. Each has a counter inside.
 export const COUNTER=1110;export const SELLS={0:'bread',1:'potato',4:'medicine'};export const PRICES={bread:{price:2,food:2},potato:{price:1,food:1},medicine:{price:4,food:0}};
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -25,6 +27,7 @@ export class Game{
  // Coins and food fill separate rows of slots.
  get coins(){return this.inventory.filter(x=>x==='coin').length;}get food(){return this.inventory.length-this.coins;}get coinFull(){return this.coins>=RULES.coinCap;}get foodFull(){return this.food>=RULES.foodCap;}get rottenCount(){return this.inventory.filter(x=>x==='rotten').length;}get quotaMet(){return this.food>=RULES.meal;}
  get caughtCount(){return this.attempts.filter(x=>x==='caught').length;}get banned(){return this.caughtCount>=RULES.maxCaught;}get shop(){return areaAt(this.player.x);}
+ get wary(){return Math.min(WARY.max,WARY.start+WARY.step*this.attempts.filter(x=>x==='success').length);}
  emit(type,data={}){this.events.push({type,...data});}drainEvents(){return this.events.splice(0);}
  resetDay(){this.player={x:330,y:GROUND,face:1,walk:0,stamina:RULES.stamina,exhausted:false,hidden:false,boxId:null};this.mode='morning';this.inventory=[];this.attempts=[];this.earned=0;this.timeLeft=RULES.daySeconds;this.target=null;this.activeTarget=null;this.turn={phase:'wait',t:0,face:1};this.progress=0;this.suspicion=0;this.chasers=[];this.chaseTime=0;this.escape=0;this.cooldown=0;this.nightTime=0;this.returnReason='home';this.fed=false;this.ateRotten=false;this.eaten=0;this.ending=null;this.endingTime=0;this.morningIndex=0;this.discardProgress=0;this.discardLatch=false;this.previousInput={};this.tutorial=this.tutorialDone?TUTORIAL.done:TUTORIAL.move;this.travel=0;this.bins=BINS.map(b=>({...b,searched:false}));
  const specs=[['civilian',790,-1],['civilian',1110,1],['wealthy',1410,-1],['civilian',1770,1],['police',2100,-1],['wealthy',2470,1],['civilian',2910,-1],['police',3210,1],['wealthy',3570,-1],['civilian',4030,1]];
@@ -70,15 +73,15 @@ export class Game{
  if(binPriority&&edge('steal'))this.takeBin(bin);else if(binPriority&&edge('leave')){bin.searched=true;this.emit('binLeft');}
  if(input.discard&&this.rottenCount&&!this.discardLatch){this.discardProgress+=dt;if(this.discardProgress>=RULES.discardHold){this.discardRotten();this.discardLatch=true;this.discardProgress=0;}}else if(!input.discard){this.discardProgress=0;this.discardLatch=false;}
  if(this.target&&this.tutorial===TUTORIAL.find)this.tutorial=TUTORIAL.approach;
- if(input.pick&&this.target&&!dir&&!p.hidden&&!input.discard&&this.cooldown===0&&(this.activeTarget===this.target.id||this.isBehind(this.target))){const n=this.target,kind=TYPES[n.type],watching=this.isWatching(n),tn=this.turn,slip=valid(input.slip);if(this.activeTarget!==n.id){this.activeTarget=n.id;this.progress=0;this.suspicion=0;tn.phase='wait';tn.t=practice?Infinity:kind.wait[0]+Math.random()*(kind.wait[1]-kind.wait[0]);if(this.tutorial===TUTORIAL.approach||this.tutorial===TUTORIAL.dodge)this.tutorial=TUTORIAL.pull;}this.progress=clamp(valid(input.trace),0,1)*kind.hold;this.suspicion+=slip+valid(input.risk);
+ if(input.pick&&this.target&&!dir&&!p.hidden&&!input.discard&&this.cooldown===0&&(this.activeTarget===this.target.id||this.isBehind(this.target))){const n=this.target,kind=TYPES[n.type],watching=this.isWatching(n),tn=this.turn,slip=valid(input.slip);if(this.activeTarget!==n.id){this.activeTarget=n.id;this.progress=0;this.suspicion=0;tn.phase='wait';tn.t=practice?Infinity:(kind.wait[0]+Math.random()*(kind.wait[1]-kind.wait[0]))/this.wary;if(this.tutorial===TUTORIAL.approach||this.tutorial===TUTORIAL.dodge)this.tutorial=TUTORIAL.pull;}this.progress=clamp(valid(input.trace),0,1)*kind.hold;this.suspicion+=(slip+valid(input.risk))*(practice?1:this.wary);
  // A mistake makes the victim start to turn. In practice they turn once, part way through, and wait for your E.
  if(tn.phase==='wait'&&(slip>0||this.tutorial===TUTORIAL.pull&&this.progress>=kind.hold*.4))tn.t=0;
  // Leave the pocket (E) during the warning or be seen with your hand in their coat.
- tn.t-=dt;if(tn.phase==='wait'&&tn.t<=0){tn.phase='warn';tn.t=practice?Infinity:kind.warn;if(practice)this.tutorial=TUTORIAL.dodge;this.emit('turnWarn');}else if(tn.phase==='warn'&&tn.t<=0){tn.phase='look';tn.t=RULES.lookTime;tn.face=n.face;n.face=Math.sign(p.x-n.x)||-n.face;this.emit('turnLook');}else if(tn.phase==='look'&&tn.t<=0){tn.phase='wait';tn.t=kind.wait[0]+Math.random()*(kind.wait[1]-kind.wait[0]);n.face=tn.face;this.emit('turnAway');}
+ tn.t-=dt;if(tn.phase==='wait'&&tn.t<=0){tn.phase='warn';tn.t=practice?Infinity:kind.warn;if(practice)this.tutorial=TUTORIAL.dodge;this.emit('turnWarn');}else if(tn.phase==='warn'&&tn.t<=0){tn.phase='look';tn.t=RULES.lookTime;tn.face=n.face;n.face=Math.sign(p.x-n.x)||-n.face;this.emit('turnLook');}else if(tn.phase==='look'&&tn.t<=0){tn.phase='wait';tn.t=(kind.wait[0]+Math.random()*(kind.wait[1]-kind.wait[0]))/this.wary;n.face=tn.face;this.emit('turnAway');}
  if(tn.phase==='look'||this.facingPlayer(n)){this.detect(n,n,false);this.previousInput={...input};return;}
- if(input.grab)this.suspicion+=dt*(kind.behind??kind.risk*.48*(watching?1.45:.9));
+ if(input.grab)this.suspicion+=dt*this.wary*(kind.behind??kind.risk*.48*(watching?1.45:.9));
  if(practice)this.suspicion=Math.min(this.suspicion,.9);
- let detector=null;for(const w of this.npcs){if(practice||w.id===n.id)continue;const d=distance(w,p),range=w.type==='police'?420:310;if(d<range&&(this.facingPlayer(w)||d<100)){const close=d<150?1.8:1;w.witness=clamp(w.witness+dt*(w.type==='police'?4:.42*close*(this.isWatching(w)?1.4:.85)),0,1);if(w.witness>=1)detector=w;}}
+ let detector=null;for(const w of this.npcs){if(practice||w.id===n.id)continue;const d=distance(w,p),range=w.type==='police'?420:310;if(d<range&&(this.facingPlayer(w)||d<100)){const close=d<150?1.8:1;w.witness=clamp(w.witness+dt*this.wary*(w.type==='police'?4:.42*close*(this.isWatching(w)?1.4:.85)),0,1);if(w.witness>=1)detector=w;}}
  if(this.suspicion>=1||detector){this.detect(detector||n,n,!!detector);}else if(this.progress>=kind.hold){const amount=this.add('coin',kind.slots);this.earned+=amount;this.stats.total+=amount;n.stolen=true;this.attempts.push('success');this.cooldown=.8;this.clearHold();this.finishTutorial();this.emit('stolen',{amount});}
  }else this.clearHold();
  this.recognize(dt);
