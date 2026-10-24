@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="ko">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>클릭 테스트</title>
+<style>
+html,body{margin:0;height:100%;background:#111;color:#eee;font-family:system-ui,"Malgun Gothic",sans-serif;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer}
+#score{font-size:min(30vw,200px);font-weight:bold;transition:transform .08s}
+#score.pop{transform:scale(1.15)}
+p{opacity:.6}
+a{position:fixed;top:12px;left:12px;color:#7cf}
+</style>
+<a href="../../">← 목록</a>
+<div id="score">0</div>
+<p>화면 아무 데나 클릭!</p>
+<script>
+let score = 0;
+const el = document.getElementById('score');
+document.body.addEventListener('pointerdown', e => {
+  if (e.target.tagName === 'A') return;
+  score++;
+  el.textContent = score;
+  el.classList.add('pop');
+  setTimeout(() => el.classList.remove('pop'), 80);
+});
+</script>
+</html>
