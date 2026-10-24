@@ -1,8 +1,8 @@
 // Pure simulation. Display text belongs to i18n.js and story.js.
 export const WIDTH=1440,HEIGHT=840,WORLD=4400,GROUND=650;
 export const RULES={capacity:3,maxCaught:2,daySeconds:150,stamina:42,sprintDrain:26,regen:8,walk:126,run:246,discardHold:1.4,hiddenEscape:1.2,recognizeCalm:3,lookTime:1.4};
-// behind: fixed suspicion per second while your hand is in the pocket. wait: seconds between the victim turning around. warn: seconds you get to press E.
-export const TYPES={civilian:{slots:1,hold:3.0,risk:.36,speed:40,wait:[2.4,4.6],warn:.75},wealthy:{slots:2,hold:3.9,risk:.48,speed:33,wait:[1.9,3.9],warn:.6},police:{slots:3,hold:6.0,risk:.62,speed:48,behind:.155,wait:[1.7,3.3],warn:.48}};
+// behind: fixed suspicion per second while your hand is in the pocket (police fill it fast and only pay one portion). wait: seconds between the victim turning around. warn: seconds you get to press E.
+export const TYPES={civilian:{slots:1,hold:3.0,risk:.36,speed:40,wait:[2.4,4.6],warn:.75},wealthy:{slots:2,hold:3.9,risk:.48,speed:33,wait:[1.9,3.9],warn:.6},police:{slots:1,hold:4.0,risk:.62,speed:48,behind:.22,wait:[1.3,2.6],warn:.42}};
 // First-day practice, one step at a time. During it nobody notices you and the victim only turns once, waiting for your E.
 export const TUTORIAL={move:0,find:1,approach:2,pull:3,dodge:4,resume:5,done:6};
 // Every shop front on the street has its own room, laid out far beyond the street so distances never cross.
@@ -62,15 +62,15 @@ export class Game{
  if(input.discard&&this.rottenCount&&!this.discardLatch){this.discardProgress+=dt;if(this.discardProgress>=RULES.discardHold){this.discardRotten();this.discardLatch=true;this.discardProgress=0;}}else if(!input.discard){this.discardProgress=0;this.discardLatch=false;}
  if(this.target&&this.tutorial===TUTORIAL.find)this.tutorial=TUTORIAL.approach;
  const practice=this.tutorial<TUTORIAL.done;
- if(input.pick&&this.target&&!dir&&!p.hidden&&!input.discard&&this.cooldown===0&&(this.activeTarget===this.target.id||this.isBehind(this.target))){const n=this.target,kind=TYPES[n.type],watching=this.isWatching(n),tn=this.turn,slip=valid(input.slip);if(this.activeTarget!==n.id){this.activeTarget=n.id;this.progress=0;this.suspicion=0;tn.phase='wait';tn.t=practice?Infinity:kind.wait[0]+Math.random()*(kind.wait[1]-kind.wait[0]);if(this.tutorial===TUTORIAL.approach||this.tutorial===TUTORIAL.dodge)this.tutorial=TUTORIAL.pull;}this.progress=clamp(valid(input.trace),0,1)*kind.hold;this.suspicion+=slip;
+ if(input.pick&&this.target&&!dir&&!p.hidden&&!input.discard&&this.cooldown===0&&(this.activeTarget===this.target.id||this.isBehind(this.target))){const n=this.target,kind=TYPES[n.type],watching=this.isWatching(n),tn=this.turn,slip=valid(input.slip);if(this.activeTarget!==n.id){this.activeTarget=n.id;this.progress=0;this.suspicion=0;tn.phase='wait';tn.t=practice?Infinity:kind.wait[0]+Math.random()*(kind.wait[1]-kind.wait[0]);if(this.tutorial===TUTORIAL.approach||this.tutorial===TUTORIAL.dodge)this.tutorial=TUTORIAL.pull;}this.progress=clamp(valid(input.trace),0,1)*kind.hold;this.suspicion+=slip+valid(input.risk);
  // A mistake makes the victim start to turn. In practice they turn once, part way through, and wait for your E.
  if(tn.phase==='wait'&&(slip>0||this.tutorial===TUTORIAL.pull&&this.progress>=kind.hold*.4))tn.t=0;
  // Leave the pocket (E) during the warning or be seen with your hand in their coat.
  tn.t-=dt;if(tn.phase==='wait'&&tn.t<=0){tn.phase='warn';tn.t=practice?Infinity:kind.warn;if(practice)this.tutorial=TUTORIAL.dodge;this.emit('turnWarn');}else if(tn.phase==='warn'&&tn.t<=0){tn.phase='look';tn.t=RULES.lookTime;tn.face=n.face;n.face=Math.sign(p.x-n.x)||-n.face;this.emit('turnLook');}else if(tn.phase==='look'&&tn.t<=0){tn.phase='wait';tn.t=kind.wait[0]+Math.random()*(kind.wait[1]-kind.wait[0]);n.face=tn.face;this.emit('turnAway');}
- if(tn.phase==='look'){this.detect(n,n,false);this.previousInput={...input};return;}
+ if(tn.phase==='look'||this.facingPlayer(n)){this.detect(n,n,false);this.previousInput={...input};return;}
  if(input.grab)this.suspicion+=dt*(kind.behind??kind.risk*.48*(watching?1.45:.9));
  if(practice)this.suspicion=Math.min(this.suspicion,.9);
- let detector=null;for(const w of this.npcs){if(practice||w.id===n.id)continue;const d=distance(w,p),range=w.type==='police'?420:310;if(d<range&&(this.facingPlayer(w)||d<100)){const close=d<150?1.8:1;w.witness=clamp(w.witness+dt*(w.type==='police'?.62:.42)*close*(this.isWatching(w)?1.4:.85),0,1);if(w.witness>=1)detector=w;}}
+ let detector=null;for(const w of this.npcs){if(practice||w.id===n.id)continue;const d=distance(w,p),range=w.type==='police'?420:310;if(d<range&&(this.facingPlayer(w)||d<100)){const close=d<150?1.8:1;w.witness=clamp(w.witness+dt*(w.type==='police'?4:.42*close*(this.isWatching(w)?1.4:.85)),0,1);if(w.witness>=1)detector=w;}}
  if(this.suspicion>=1||detector){this.detect(detector||n,n,!!detector);}else if(this.progress>=kind.hold){const amount=this.addFood('fresh',kind.slots);this.earned+=amount;this.stats.total+=amount;n.stolen=true;this.attempts.push('success');this.cooldown=.8;this.clearHold();this.finishTutorial();this.emit('stolen',{amount});if(this.quotaMet)this.emit('goal');}
  }else this.clearHold();
  this.recognize(dt);

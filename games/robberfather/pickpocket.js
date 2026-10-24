@@ -1,17 +1,17 @@
 // The pocket window, seen over the victim's back. Each theft plays one minigame from GAMES.
 // The street keeps moving underneath, so suspicion and witnesses still count while you play.
 // When the victim starts to turn (look, set by app.js) press E to leave the pocket; reopening the same pocket picks up where you stopped.
-import {TYPES} from './engine.js?v=20261024-7';
-import {Trace} from './pick-trace.js?v=20261024-7';
-import {Timing} from './pick-timing.js?v=20261024-7';
+import {TYPES} from './engine.js?v=20261024-8';
+import {Trace} from './pick-trace.js?v=20261024-8';
+import {Timing} from './pick-timing.js?v=20261024-8';
 // Each theft picks one at random; the tutorial always uses the first. Delete a line to take that minigame out.
 const GAMES=[
  Trace,
  Timing, // Trial minigame. Delete this line (and its import above) to remove it.
 ];
-const W=640,H=400,START={x:206,y:252},HEAD={x:104,y:74};
+const RUSH=.7,W=640,H=400,START={x:206,y:252},HEAD={x:104,y:74};
 // How each victim looks from behind, and how much suspicion a mistake adds.
-const LOOK={civilian:{coat:'#6d5440',lining:'#3a2b20',hair:'#3b2a1e',slip:.14},wealthy:{coat:'#2c3550',lining:'#151a2a',hair:'#8d8a84',slip:.16},police:{coat:'#1d2c4a',lining:'#0d1526',hair:'#2a2420',slip:.18}};
+const LOOK={civilian:{coat:'#6d5440',lining:'#3a2b20',hair:'#3b2a1e',slip:.3},wealthy:{coat:'#2c3550',lining:'#151a2a',hair:'#8d8a84',slip:.36},police:{coat:'#1d2c4a',lining:'#0d1526',hair:'#2a2420',slip:.45}};
 export class Pickpocket{
  constructor(root,t){this.root=root;this.t=t;this.canvas=root.querySelector('canvas');this.c=this.canvas.getContext('2d');this.active=false;this.coachKey=null;
   const pos=e=>{const r=this.canvas.getBoundingClientRect();return{x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.top)*H/r.height};};
@@ -27,8 +27,8 @@ export class Pickpocket{
  tap(){if(this.active)this.game.tap();}
  // Tutorial line shown at the top of the window, or null.
  coach(key){this.coachKey=key;}
- // Returns the suspicion added this frame (a mistake), or 0.
- update(dt){if(!this.active)return 0;this.shake=Math.max(0,this.shake-dt);const slip=this.game.update(dt);if(slip)this.shake=.35;this.render();return slip?LOOK[this.type].slip:0;}
+ // Returns the suspicion added by a mistake this frame, or 0. risk: extra suspicion from pulling too fast (the wallet turns red).
+ update(dt){this.risk=0;if(!this.active)return 0;this.shake=Math.max(0,this.shake-dt);const slip=this.game.update(dt);if(this.game.warn)this.risk=dt*RUSH;if(slip)this.shake=.35;this.render();return slip?LOOK[this.type].slip:0;}
  render(){const c=this.c,s=LOOK[this.type],look=this.look;c.save();c.clearRect(0,0,W,H);if(this.shake>0)c.translate(Math.sin(this.shake*90)*6*this.shake/.35,0);
   // The street behind them, then their back filling the left of the view.
   c.fillStyle='#18211f';c.fillRect(0,0,W,H);c.fillStyle='#ffffff07';for(let x=20;x<W;x+=56)c.fillRect(x,0,3,H);

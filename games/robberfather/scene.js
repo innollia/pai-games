@@ -1,5 +1,5 @@
-import {WIDTH as W,HEIGHT as H,WORLD,GROUND,TYPES,RULES,BOXES,BINS,SHOPS,INSIDE_DOOR,areaAt} from './engine.js?v=20261024-7';
-import {t,getLocale} from './i18n.js?v=20261024-7';
+import {WIDTH as W,HEIGHT as H,WORLD,GROUND,TYPES,RULES,BOXES,BINS,SHOPS,INSIDE_DOOR,areaAt} from './engine.js?v=20261024-8';
+import {t,getLocale} from './i18n.js?v=20261024-8';
 // Street view is drawn closer than the full canvas so characters read larger.
 const STREET_ZOOM=1.5;
 // Decorative doorways between the shop fronts.
