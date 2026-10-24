@@ -6,7 +6,6 @@ function buildPath(type,seed,start,W,H){let r=seed;const rand=()=>{r=(r*16807)%2
  const dense=[];for(let i=0;i<pts.length-1;i++){const p0=pts[Math.max(0,i-1)],p1=pts[i],p2=pts[i+1],p3=pts[Math.min(pts.length-1,i+2)];for(let k=0;k<24;k++){const t=k/24,t2=t*t,t3=t2*t;dense.push({x:.5*(2*p1.x+(-p0.x+p2.x)*t+(2*p0.x-5*p1.x+4*p2.x-p3.x)*t2+(-p0.x+3*p1.x-3*p2.x+p3.x)*t3),y:.5*(2*p1.y+(-p0.y+p2.y)*t+(2*p0.y-5*p1.y+4*p2.y-p3.y)*t2+(-p0.y+3*p1.y-3*p2.y+p3.y)*t3)});}}dense.push(pts.at(-1));
  const path=[dense[0]];let acc=0;for(let i=1;i<dense.length;i++){const a=dense[i-1],b=dense[i],d=Math.hypot(b.x-a.x,b.y-a.y);acc+=d;while(acc>=3){acc-=3;const k=1-acc/d;path.push({x:a.x+(b.x-a.x)*k,y:a.y+(b.y-a.y)*k});}}path.push(dense.at(-1));return path;}
 export class Trace{
- static id='trace';static hint='pickHintTrace';
  // Speed cap keeps the quickest pull close to each type's hold time.
  constructor({type,hold,seed,start,W,H}){this.tol=STYLE[type].tol;this.path=buildPath(type,seed,start,W,H);this.speed=(this.path.length-1)*3/(hold*.8);this.index=0;this.carry=0;this.warn=false;this.grabbing=false;this.pointer=null;this.note='noteGrab';}
  get fraction(){return this.index/(this.path.length-1);}
@@ -16,7 +15,6 @@ export class Trace{
  down(p){this.pointer=p;const hand=this.path[this.index];if(Math.hypot(p.x-hand.x,p.y-hand.y)<46){this.grabbing=true;this.note='noteFollow';}else this.note='noteGrab';}
  move(p){this.pointer=p;}
  up(){if(this.grabbing){this.grabbing=false;this.note='noteRegrab';}}
- tap(){}
  // Returns true on a mistake: the wallet slides back into the pocket a little.
  update(dt){if(!this.grabbing||!this.pointer){this.warn=false;return false;}const p=this.pointer,path=this.path,tol=this.tol;let best=this.index,bestD=Infinity;const hi=Math.min(path.length-1,this.index+30);for(let i=Math.max(0,this.index-8);i<=hi;i++){const d=Math.hypot(p.x-path[i].x,p.y-path[i].y);if(d<bestD){bestD=d;best=i;}}
   const hand=path[this.index],lead=Math.hypot(p.x-hand.x,p.y-hand.y);

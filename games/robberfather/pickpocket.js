@@ -1,14 +1,11 @@
-// The pocket window, seen over the victim's back. Each theft plays one minigame from GAMES.
+// The pocket window, seen over the victim's back. Draw the wallet out along a line with the mouse while keeping the Space gauge in time.
 // The street keeps moving underneath, so suspicion and witnesses still count while you play.
 // When the victim starts to turn (look, set by app.js) press E to leave the pocket; reopening the same pocket picks up where you stopped.
-import {TYPES} from './engine.js?v=20261024-9';
-import {Trace} from './pick-trace.js?v=20261024-9';
-import {Timing} from './pick-timing.js?v=20261024-9';
-// Each theft picks one at random; the tutorial always uses the first. Delete a line to take that minigame out.
-const GAMES=[
- Trace,
- Timing, // Trial minigame. Delete this line (and its import above) to remove it.
-];
+import {TYPES} from './engine.js?v=20261024-10';
+import {Trace} from './pick-trace.js?v=20261024-10';
+import {Timing} from './pick-timing.js?v=20261024-10';
+// The Space gauge runs alongside the line everywhere but the tutorial. Set to false to go back to the mouse alone.
+const GAUGE=true;
 const RUSH=.7,W=640,H=400,START={x:206,y:252},HEAD={x:104,y:74};
 // How each victim looks from behind, and how much suspicion a mistake adds.
 const LOOK={civilian:{coat:'#6d5440',lining:'#3a2b20',hair:'#3b2a1e',slip:.3},wealthy:{coat:'#2c3550',lining:'#151a2a',hair:'#8d8a84',slip:.36},police:{coat:'#1d2c4a',lining:'#0d1526',hair:'#2a2420',slip:.45}};
@@ -19,16 +16,16 @@ export class Pickpocket{
   this.canvas.addEventListener('pointermove',e=>{if(this.active)this.game.move(pos(e));});
   const up=()=>{if(this.active)this.game.up();};this.canvas.addEventListener('pointerup',up);this.canvas.addEventListener('pointercancel',up);}
  open(target,seed,tutorial=false){const type=target.type,memo=this.memo?.id===target.id?this.memo:null;this.memo=null;this.type=type;this.targetId=target.id;this.look='wait';this.lastLook='wait';this.shake=0;
-  if(memo){this.game=memo.game;this.game.resume();}else{const s=Math.floor(seed*7919)%2147483646+1,Game=tutorial?GAMES[0]:GAMES[s%GAMES.length];this.game=new Game({type,hold:TYPES[type].hold,seed:s,start:START,W,H});}
-  this.active=true;this.root.hidden=false;this.root.querySelector('[data-pick-title]').textContent=this.t('pickTitle',{name:this.t(type)});this.root.querySelector('[data-pick-hint]').textContent=this.t(this.game.constructor.hint);this.render();}
- close(keep=false){this.memo=keep&&this.active?{id:this.targetId,game:this.game}:null;this.active=false;this.root.hidden=true;}
+  if(memo){this.game=memo.game;this.gauge=memo.gauge;this.game.resume();}else{const s=Math.floor(seed*7919)%2147483646+1;this.game=new Trace({type,hold:TYPES[type].hold,seed:s,start:START,W,H});this.gauge=GAUGE&&!tutorial?new Timing({type,seed:s}):null;}
+  this.active=true;this.root.hidden=false;this.root.querySelector('[data-pick-title]').textContent=this.t('pickTitle',{name:this.t(type)});this.root.querySelector('[data-pick-hint]').textContent=this.t(this.gauge?'pickHintDual':'pickHintTrace');this.render();}
+ close(keep=false){this.memo=keep&&this.active?{id:this.targetId,game:this.game,gauge:this.gauge}:null;this.active=false;this.root.hidden=true;}
  get fraction(){return this.active?this.game.fraction:0;}
  get touching(){return this.active&&this.game.touching;}
- tap(){if(this.active)this.game.tap();}
+ tap(){if(this.active)this.gauge?.tap();}
  // Tutorial line shown at the top of the window, or null.
  coach(key){this.coachKey=key;}
  // Returns the suspicion added by a mistake this frame, or 0. risk: extra suspicion from pulling too fast (the wallet turns red).
- update(dt){this.risk=0;if(!this.active)return 0;this.shake=Math.max(0,this.shake-dt);const slip=this.game.update(dt);if(this.game.warn)this.risk=dt*RUSH;if(slip)this.shake=.35;this.render();return slip?LOOK[this.type].slip:0;}
+ update(dt){this.risk=0;if(!this.active)return 0;this.shake=Math.max(0,this.shake-dt);let slip=this.game.update(dt);if(this.gauge?.update(dt,this.game.touching)&&!slip){slip=true;this.game.note='noteMiss';}if(this.game.warn)this.risk=dt*RUSH;if(slip)this.shake=.35;this.render();return slip?LOOK[this.type].slip:0;}
  render(){const c=this.c,s=LOOK[this.type],look=this.look;c.save();c.clearRect(0,0,W,H);if(this.shake>0)c.translate(Math.sin(this.shake*90)*6*this.shake/.35,0);
   // The street behind them, then their back filling the left of the view.
   c.fillStyle='#18211f';c.fillRect(0,0,W,H);c.fillStyle='#ffffff07';for(let x=20;x<W;x+=56)c.fillRect(x,0,3,H);
@@ -50,7 +47,7 @@ export class Pickpocket{
   // Pocket opening around the wallet.
   c.fillStyle=s.lining;c.beginPath();c.ellipse(START.x-6,START.y,40,56,0,0,Math.PI*2);c.fill();c.strokeStyle='#00000066';c.lineWidth=5;c.stroke();c.strokeStyle='#ffffff22';c.lineWidth=2;c.setLineDash([6,6]);c.beginPath();c.ellipse(START.x-6,START.y,46,62,0,0,Math.PI*2);c.stroke();c.setLineDash([]);
   // The minigame draws its own guide and says where the wallet is.
-  const w=this.game.draw(c,this.shake>0);
+  const w=this.game.draw(c,this.shake>0);this.gauge?.draw(c);
   c.save();c.translate(w.x,w.y);c.fillStyle=w.danger?'#a8432f':'#4a2e1e';c.fillRect(-24,-16,48,32);c.fillStyle=w.danger?'#d2654a':'#6e4630';c.fillRect(-24,-16,48,9);c.fillStyle='#e7c27a';c.fillRect(14,-3,6,6);
   if(w.ring){c.strokeStyle=w.grabbing?'#f4dc9e':'#f4dc9e88';c.lineWidth=w.grabbing?4:2;if(!w.grabbing){c.setLineDash([4,5]);c.lineDashOffset=-performance.now()/40;}c.beginPath();c.arc(0,0,38,0,Math.PI*2);c.stroke();c.setLineDash([]);}c.restore();
   c.restore();
