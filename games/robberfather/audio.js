@@ -90,6 +90,9 @@ export class Soundscape {
    }
    case'step':this.foot++;this.noiseHit(e.running?.12:.16,e.running?.19:.115,650+(this.foot%2)*260);this.tone(100+(this.foot%2)*15,.075,e.running?.07:.04,0,45);break;
    case'slip':this.noiseHit(.34,.14,620);this.tone(150,.14,.06,0,80);break;
+   case'turnWarn':this.tone(210,.09,.05,0,170);this.tone(230,.11,.05,.12,180);this.noiseHit(.08,.05,900,.05);break; // A throat clears.
+   case'turnLook':this.noiseHit(.2,.12,1300);this.tone(520,.18,.05,0,300,'triangle');break;
+   case'frontOnly':this.tone(180,.12,.04,0,150);break;
    case'rustle':this.noiseHit(.22,.07,1700);this.noiseHit(.13,.035,2400,.13);break;
    case'stolen':this.noiseHit(.34,.19,1350);this.noiseHit(.18,.1,2400,.18);this.tone(780,.1,.017,.12,480,'triangle');break;
    case'detected':case'witnessed':case'recognized':this.director.alert();this.shout();this.noiseHit(.23,.16,900);break;

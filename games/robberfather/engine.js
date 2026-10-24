@@ -1,8 +1,8 @@
 // Pure simulation. Display text belongs to i18n.js and story.js.
 export const WIDTH=1440,HEIGHT=840,WORLD=4400,GROUND=650;
-export const RULES={capacity:3,maxCaught:2,daySeconds:150,stamina:42,sprintDrain:26,regen:8,walk:126,run:246,discardHold:1.4,hiddenEscape:1.2,recognizeCalm:3};
-// behind: fixed suspicion per second from behind. glance: suspicion at which the victim may look back.
-export const TYPES={civilian:{slots:1,hold:3.0,risk:.36,speed:40},wealthy:{slots:2,hold:3.9,risk:.48,speed:33},police:{slots:3,hold:6.0,risk:.62,speed:48,behind:.155,glance:.97}};
+export const RULES={capacity:3,maxCaught:2,daySeconds:150,stamina:42,sprintDrain:26,regen:8,walk:126,run:246,discardHold:1.4,hiddenEscape:1.2,recognizeCalm:3,lookTime:1.4};
+// behind: fixed suspicion per second while your hand is in the pocket. wait: seconds between the victim turning around. warn: seconds you get to let go.
+export const TYPES={civilian:{slots:1,hold:3.0,risk:.36,speed:40,wait:[2.4,4.6],warn:.75},wealthy:{slots:2,hold:3.9,risk:.48,speed:33,wait:[1.9,3.9],warn:.6},police:{slots:3,hold:6.0,risk:.62,speed:48,behind:.155,wait:[1.7,3.3],warn:.48}};
 export const HIDING=[330,1530,2730,3830]; // Decorative doorways, retained for the street artwork.
 // Every shop front on the street has its own room, laid out far beyond the street so distances never cross.
 export const SHOPS=[[596,330,0],[938,400,1],[1622,380,2],[2014,340,3],[2370,262,0],[2820,370,1],[3202,370,2],[3920,460,3]].map(([x,w,kind],id)=>({id,x,w,kind,door:x+68,x0:6000+id*2400,x1:6000+id*2400+WIDTH}));
@@ -22,7 +22,7 @@ export class Game{
  get filled(){return this.inventory.length;}get rottenCount(){return this.inventory.filter(x=>x==='rotten').length;}get quotaMet(){return this.filled===RULES.capacity;}
  get caughtCount(){return this.attempts.filter(x=>x==='caught').length;}get banned(){return this.caughtCount>=RULES.maxCaught;}get shop(){return areaAt(this.player.x);}
  emit(type,data={}){this.events.push({type,...data});}drainEvents(){return this.events.splice(0);}
- resetDay(){this.player={x:330,y:GROUND,face:1,walk:0,stamina:RULES.stamina,exhausted:false,hidden:false,boxId:null};this.mode='morning';this.inventory=[];this.attempts=[];this.earned=0;this.timeLeft=RULES.daySeconds;this.target=null;this.activeTarget=null;this.progress=0;this.suspicion=0;this.chasers=[];this.chaseTime=0;this.escape=0;this.hiddenFor=0;this.hideCompromised=false;this.cooldown=0;this.nightTime=0;this.returnReason='home';this.fed=false;this.ateRotten=false;this.eaten=0;this.ending=null;this.endingTime=0;this.morningIndex=0;this.discardProgress=0;this.discardLatch=false;this.previousInput={};this.tutorial=this.tutorialDone?3:0;this.travel=0;this.bins=BINS.map(b=>({...b,searched:false}));
+ resetDay(){this.player={x:330,y:GROUND,face:1,walk:0,stamina:RULES.stamina,exhausted:false,hidden:false,boxId:null};this.mode='morning';this.inventory=[];this.attempts=[];this.earned=0;this.timeLeft=RULES.daySeconds;this.target=null;this.activeTarget=null;this.turn={phase:'wait',t:0,face:1};this.progress=0;this.suspicion=0;this.chasers=[];this.chaseTime=0;this.escape=0;this.hiddenFor=0;this.hideCompromised=false;this.cooldown=0;this.nightTime=0;this.returnReason='home';this.fed=false;this.ateRotten=false;this.eaten=0;this.ending=null;this.endingTime=0;this.morningIndex=0;this.discardProgress=0;this.discardLatch=false;this.previousInput={};this.tutorial=this.tutorialDone?3:0;this.travel=0;this.bins=BINS.map(b=>({...b,searched:false}));
  const specs=[['civilian',790,-1],['civilian',1110,1],['wealthy',1410,-1],['civilian',1770,1],['police',2100,-1],['wealthy',2470,1],['civilian',2910,-1],['police',3210,1],['wealthy',3570,-1],['civilian',4030,1]];
  const person=(id,type,x,face,min,max)=>({id,type,x,y:GROUND+(id%2?4:-4),face,walk:id,stolen:false,alert:false,knows:false,calm:0,recognizing:false,witness:0,lastSeen:x,pause:(id*.7)%3,seed:(id*2.3+this.day)%9,min,max});
  this.npcs=specs.map(([type,x,face],id)=>person(id,type,x,face,Math.max(665,x-230),Math.min(WORLD-100,x+330)));
@@ -34,6 +34,7 @@ export class Game{
  start(){if(this.mode==='intro')this.mode=this.resumeMode;}
  advanceMorning(){if(this.mode!=='morning')return false;this.morningIndex++;if(this.morningIndex>=3){this.mode='day';this.morningIndex=0;this.emit('dayStart');return true;}return false;}
  facingPlayer(n){return(this.player.x-n.x)*n.face>0;}
+ isBehind(n){return!this.facingPlayer(n)&&distance(n,this.player)>=18;}
  isWatching(n){return(this.time+n.seed)%9<3.4;}
  nearest(){if(this.banned||this.chasers.length||this.player.x<630||this.player.hidden||this.quotaMet)return null;return this.npcs.filter(n=>!n.stolen&&distance(n,this.player)<67).sort((a,b)=>distance(a,this.player)-distance(b,this.player))[0]||null;}
  nearbyBox(){return BOXES.find(b=>distance(b,this.player)<53)||null;}
@@ -41,7 +42,7 @@ export class Game{
  // The shop door the player is standing at: a street entrance, or the exit inside a shop.
  nearbyDoor(){if(this.player.hidden)return null;const inside=this.shop;if(inside)return Math.abs(this.player.x-(inside.x0+INSIDE_DOOR))<60?{shop:inside,exit:true}:null;const s=SHOPS.find(s=>Math.abs(s.door-this.player.x)<45);return s?{shop:s,exit:false}:null;}
  useDoor(){const d=this.nearbyDoor();if(!d)return false;if(this.chasers.length){this.emit('doorBlocked');return false;}this.clearHold();this.player.x=d.exit?d.shop.door:d.shop.x0+INSIDE_DOOR;this.player.face=1;this.emit(d.exit?'exitShop':'enterShop',{kind:d.shop.kind});return true;}
- clearHold(){this.activeTarget=null;this.progress=0;this.suspicion=0;}
+ clearHold(){this.activeTarget=null;this.progress=0;this.suspicion=0;this.turn={phase:'wait',t:0,face:1};}
  addFood(kind,count){const added=Math.min(count,RULES.capacity-this.filled);for(let i=0;i<added;i++)this.inventory.push(kind);return added;}
  takeBin(b){if(this.quotaMet){this.emit('bagFull');return false;}b.searched=true;this.addFood('rotten',1);this.emit('scavenged');if(this.quotaMet)this.emit('goal');return true;}
  discardRotten(){const i=this.inventory.lastIndexOf('rotten');if(i<0)return false;this.inventory.splice(i,1);this.emit('discarded');return true;}
@@ -59,11 +60,14 @@ export class Game{
  if(binPriority&&edge('steal'))this.takeBin(bin);else if(binPriority&&edge('leave')){bin.searched=true;this.emit('binLeft');}
  if(input.discard&&this.rottenCount&&!this.discardLatch){this.discardProgress+=dt;if(this.discardProgress>=RULES.discardHold){this.discardRotten();this.discardLatch=true;this.discardProgress=0;}}else if(!input.discard){this.discardProgress=0;this.discardLatch=false;}
  if(this.target&&this.tutorial===1){this.tutorial=2;this.emit('tutorialSteal');}
- if(input.pick&&this.target&&!dir&&!p.hidden&&!input.discard&&this.cooldown===0){const n=this.target,kind=TYPES[n.type],watching=this.isWatching(n);if(this.activeTarget!==n.id){this.activeTarget=n.id;this.progress=0;this.suspicion=0;this.emit('hold');}this.progress=clamp(valid(input.trace),0,1)*kind.hold;this.suspicion+=valid(input.slip);const facing=this.facingPlayer(n)||distance(n,p)<18;if(this.suspicion>(kind.glance??.45)&&watching)n.face=Math.sign(p.x-n.x)||n.face; // Victim glances back.
- this.suspicion+=dt*(facing?Math.max(kind.risk*2.2,.68)*(watching?1.45:.9):kind.behind??kind.risk*.48*(watching?1.45:.9));
+ if(input.pick&&this.target&&!dir&&!p.hidden&&!input.discard&&this.cooldown===0&&(this.activeTarget===this.target.id||this.isBehind(this.target))){const n=this.target,kind=TYPES[n.type],watching=this.isWatching(n),tn=this.turn,grab=!!input.grab;if(this.activeTarget!==n.id){this.activeTarget=n.id;this.progress=0;this.suspicion=0;tn.phase='wait';tn.t=kind.wait[0]+Math.random()*(kind.wait[1]-kind.wait[0]);this.emit('hold');}this.progress=clamp(valid(input.trace),0,1)*kind.hold;this.suspicion+=valid(input.slip);
+ // Now and then the victim turns around. Let go during the warning or be seen with your hand in their coat.
+ tn.t-=dt;if(tn.phase==='wait'&&tn.t<=0){tn.phase='warn';tn.t=kind.warn;this.emit('turnWarn');}else if(tn.phase==='warn'&&tn.t<=0){tn.phase='look';tn.t=RULES.lookTime;tn.face=n.face;n.face=Math.sign(p.x-n.x)||-n.face;this.emit('turnLook');}else if(tn.phase==='look'&&tn.t<=0){tn.phase='wait';tn.t=kind.wait[0]+Math.random()*(kind.wait[1]-kind.wait[0]);n.face=tn.face;this.emit('turnAway');}
+ if(tn.phase==='look'&&grab){this.detect(n,n,false);this.previousInput={...input};return;}
+ if(grab)this.suspicion+=dt*(kind.behind??kind.risk*.48*(watching?1.45:.9));
  let detector=null;for(const w of this.npcs){if(w.id===n.id)continue;const d=distance(w,p),range=w.type==='police'?420:310;if(d<range&&(this.facingPlayer(w)||d<100)){const close=d<150?1.8:1;w.witness=clamp(w.witness+dt*(w.type==='police'?.62:.42)*close*(this.isWatching(w)?1.4:.85),0,1);if(w.witness>=1)detector=w;}}
  if(this.suspicion>=1||detector){this.detect(detector||n,n,!!detector);}else if(this.progress>=kind.hold){const amount=this.addFood('fresh',kind.slots);this.earned+=amount;this.stats.total+=amount;n.stolen=true;this.attempts.push('success');this.cooldown=.8;this.clearHold();this.finishTutorial();this.emit('stolen',{amount});if(this.quotaMet)this.emit('goal');}
- }else this.clearHold();
+ }else{if(edge('pick')&&this.target&&!this.isBehind(this.target))this.emit('frontOnly');this.clearHold();}
  this.recognize(dt);
  for(const n of this.npcs){if(this.activeTarget===null&&!n.recognizing)n.witness=Math.max(0,n.witness-dt*.12);if(this.activeTarget===n.id||this.chasers.includes(n.id))continue;if(n.pause>0){n.pause-=dt;continue;}if(n.x<n.min)n.face=1;else if(n.x>n.max)n.face=-1;n.x+=n.face*TYPES[n.type].speed*dt;n.walk+=dt*5;if(Math.abs(n.x-n.min)<2||Math.abs(n.x-n.max)<2)n.pause=.8;}
  if(this.chasers.length)this.updateChase(dt);this.previousInput={...input};}

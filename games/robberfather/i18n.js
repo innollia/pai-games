@@ -93,3 +93,18 @@ Object.assign(MESSAGES.ko,{
  tutorialSteal:'옆에 사람이 있습니다. 멈춘 뒤 E를 누르거나 주머니를 클릭하고, 마우스로 선을 따라 지갑을 빼내세요.',
  helpSteal:'사람 옆에 멈춰 E를 누르거나 주머니를 클릭하세요. 마우스로 지갑을 잡고 선을 따라 끝까지 빼내면 성공입니다. 선을 벗어나거나 너무 빨리 움직이면 지갑이 미끄러지고 의심이 오릅니다. 행인 1칸, 부유층 2칸, 경찰 3칸이고, 부자일수록 선이 더 꼬불꼬불합니다. 하루에 두 번 들키면 그날은 더 훔칠 수 없습니다.',
 });
+// Turning around: steal only from behind, and let go when they turn.
+Object.assign(MESSAGES.en,{
+ front:'Only from behind. Get behind them.',frontOnly:'They can see you. Get behind them first.',
+ pickHint:'Grab the wallet and draw it out along the line. If they start to turn, LET GO of the mouse fast! ← / → gives up.',
+ noteTurn:'They are turning around! Let go NOW!',noteHush:'Hands off… stay still.',noteLooking:'They are looking. Do not touch the wallet.',noteBack:'They turned away. Grab the wallet again.',
+ tutorialSteal:'Get behind someone and stop. Press E or click their pocket, then trace the line with your mouse. If they turn, let go!',
+ helpSteal:'You can only steal from behind. Stop behind someone and press E or click their pocket. Hold the wallet with the mouse and draw it out along the line. Now and then they turn around: a ? appears over their head, and you must release the mouse before they finish turning or you are caught. Leave the line or move too fast and the wallet slips back. Passersby give 1 portion, wealthy people 2, police 3; police turn fastest. Spotted twice in one day and you cannot steal again until tomorrow.',
+});
+Object.assign(MESSAGES.ko,{
+ front:'뒤에서만 훔칠 수 있어요. 뒤로 가세요.',frontOnly:'상대가 당신을 보고 있어요. 먼저 등 뒤로 가세요.',
+ pickHint:'지갑을 잡고 선을 따라 빼내세요. 상대가 돌아보려 하면 빨리 마우스를 떼세요! ← / → 누르면 포기.',
+ noteTurn:'돌아본다! 지금 손을 떼!',noteHush:'손을 뺐다… 가만히.',noteLooking:'쳐다보고 있다. 지갑에 손대지 마.',noteBack:'다시 돌아섰다. 지갑을 다시 잡으세요.',
+ tutorialSteal:'사람 등 뒤에 멈춰 E를 누르거나 주머니를 클릭하고, 마우스로 선을 따라 지갑을 빼내세요. 상대가 돌아보면 손을 떼세요!',
+ helpSteal:'소매치기는 등 뒤에서만 할 수 있습니다. 사람 뒤에 멈춰 E를 누르거나 주머니를 클릭하세요. 마우스로 지갑을 잡고 선을 따라 끝까지 빼내면 성공입니다. 중간에 상대가 돌아보려고 머리 위에 ?가 뜨면, 다 돌아보기 전에 마우스를 떼야 합니다. 손을 대고 있으면 들킵니다. 선을 벗어나거나 너무 빨리 움직이면 지갑이 미끄러집니다. 행인 1칸, 부유층 2칸, 경찰 3칸이고 경찰이 가장 빨리 돌아봅니다. 하루에 두 번 들키면 그날은 더 훔칠 수 없습니다.',
+});
