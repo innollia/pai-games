@@ -1,8 +1,8 @@
-import {Game,TYPES,RULES,WIDTH} from './engine.js';
-import {Renderer} from './scene.js';
-import {Soundscape} from './audio.js';
-import {t,setLocale,getLocale,DEFAULT_LOCALE} from './i18n.js';
-import {getMorningLines,storyText} from './story.js';
+import {Game,TYPES,RULES,WIDTH} from './engine.js?v=20261024-3';
+import {Renderer} from './scene.js?v=20261024-3';
+import {Soundscape} from './audio.js?v=20261024-3';
+import {t,setLocale,getLocale,DEFAULT_LOCALE} from './i18n.js?v=20261024-3';
+import {getMorningLines,storyText} from './story.js?v=20261024-3';
 const $=id=>document.getElementById(id),SAVE='one-more-meal-v3',LANG='one-more-meal-language';
 function getSaved(){try{const s=JSON.parse(localStorage.getItem(SAVE));if(s?.version===3&&Number.isInteger(s.day)&&s.day>0&&s.day<1000000&&Array.isArray(s.inventory))return s;const old=JSON.parse(localStorage.getItem('one-more-meal-v2'));if(old?.version===2&&Number.isInteger(old.day)&&old.day>0)return{version:3,day:old.day,mode:'morning',inventory:[],tutorialDone:old.tutorialDone,stats:{meals:old.stats?.meals||0,best:old.stats?.best||0,total:0}};}catch{}return null;}
 let saved=getSaved(),game=new Game(),renderer=new Renderer($('game')),held=new Set(),pendingPresses=new Set(),modalOpen=false,transitioning=false,lastTime=0,visualTime=0,toastUntil=0,tutorialUntil=0,lastSignature='',sound=true,soundscape=new Soundscape(),modalSpec=null,previousFocus=null,toastSpec=null;

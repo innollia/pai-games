@@ -1,5 +1,5 @@
-import {WIDTH as W,HEIGHT as H,WORLD,GROUND,TYPES,RULES,HIDING,BOXES,BINS,SHOPS,INSIDE_DOOR,areaAt} from './engine.js';
-import {t,getLocale} from './i18n.js';
+import {WIDTH as W,HEIGHT as H,WORLD,GROUND,TYPES,RULES,HIDING,BOXES,BINS,SHOPS,INSIDE_DOOR,areaAt} from './engine.js?v=20261024-3';
+import {t,getLocale} from './i18n.js?v=20261024-3';
 // Street view is drawn closer than the full canvas so characters read larger.
 const STREET_ZOOM=1.5;
 const canvas=(w=W,h=H)=>{const el=document.createElement('canvas');el.width=w;el.height=h;return el;};
