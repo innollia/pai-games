@@ -3,7 +3,7 @@
 <head>
  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#16201e"><meta name="description" content="A story of a pickpocket, a waiting son, and one more meal. A 2D survival game."><title>One More Meal</title>
  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%2316201e'/%3E%3Cpath d='M12 32h40v8L42 50H22L12 40Z' fill='%23d6b77a'/%3E%3Cpath d='M22 25v-9m10 9V12m10 13v-9' stroke='%23d6b77a' stroke-width='4'/%3E%3C/svg%3E">
- <link rel="stylesheet" href="game.css?v=20261024-6">
+ <link rel="stylesheet" href="game.css?v=20261024-7">
 </head>
 <body id="top">
 <div class="shell">
@@ -23,14 +23,14 @@
    <div id="chaseTag" class="chase-tag" hidden><strong data-i18n="chase"></strong><small data-i18n="chaseHint"></small></div>
    <div id="toast" class="toast" role="status" aria-live="polite"></div>
    <div id="targetCard" class="target-card" hidden><div class="target-card-top"><kbd>E</kbd><div><strong id="targetName"></strong><small id="targetDetail"></small></div><b id="targetReward"></b></div><div class="steal-track"><i id="stealBar"></i></div><div class="suspicion-row"><span data-i18n="suspicion"></span><div><i id="suspicionBar"></i></div><span id="riskLabel"></span></div></div>
-   <div id="tutorial" class="tutorial" role="status"><span class="tutorial-arrow">↔</span><p id="tutorialText"></p></div>
+   <div id="tutorial" class="tutorial" role="status"><kbd class="tutorial-arrow" id="tutorialKey">↔</kbd><p id="tutorialText"></p></div>
    <div class="bottom-hud"><div class="attempt-hud"><span class="eyebrow" data-i18n="quotaTitle"></span><div class="attempt-row"><div id="attempts"></div><strong id="attemptCount"></strong></div><p id="attemptHint"></p></div><div class="goal-hud"><span class="eyebrow" data-i18n="quotaTitle"></span><p id="goalText"></p><div class="goal-track"><i id="goalBar"></i></div><small data-i18n="homeEarly"></small></div></div>
    <div class="stamina" id="staminaWrap" hidden><span id="staminaLabel"></span><div><i id="staminaBar"></i></div></div>
    <div id="cinema" class="cinema" hidden><div class="cinema-top"><span id="cinemaDay"></span><small data-i18n="nightKicker"></small></div><div class="cinema-copy"><i></i><h2 id="nightTitle"></h2><p id="mealCopy"></p><button id="nextDayBtn" class="primary-button"><span id="nextDayText"></span><b>→</b></button></div><div class="night-summary"><span><span data-i18n="nightEarned"></span> <b id="nightEarned"></b></span><span><span data-i18n="nightSpent"></span> <b id="nightSpent"></b></span></div></div>
    <div id="binCard" class="bin-card" hidden><span class="eyebrow" data-i18n="binTitle"></span><p data-i18n="binCopy"></p><div><span data-i18n="takeFood"></span><span data-i18n="leaveFood"></span></div></div>
    <div id="hidePrompt" class="hide-prompt" hidden></div>
    <div id="doorPrompt" class="hide-prompt door-prompt" hidden></div>
-   <div id="pickpocket" class="pickpocket" hidden><div class="pick-top"><strong data-pick-title></strong><small data-i18n="pickHint"></small></div><canvas width="640" height="400"></canvas><div class="pick-bottom"><span data-pick-note></span><div class="pick-track"><i data-pick-bar></i></div></div></div>
+   <div id="pickpocket" class="pickpocket" hidden><div class="pick-coach" data-pick-coach hidden></div><div class="pick-top"><strong data-pick-title></strong><small data-pick-hint></small></div><canvas width="640" height="400"></canvas><div class="pick-bottom"><span data-pick-note></span><div class="pick-track"><i data-pick-bar></i></div></div></div>
    <div id="focusTag" class="focus-tag" data-i18n="focus" hidden></div>
    <section id="dialogue" class="dialogue" role="dialog" aria-labelledby="sonSpeaker" hidden><div class="dialogue-top"><span id="sonSpeaker" data-i18n="son"></span><small id="dialogueCount"></small></div><p id="sonLine"></p><div class="dialogue-bottom"><small data-i18n="morningHint"></small><button id="dialogueNext" class="primary-button"><span></span><b>→</b></button></div></section>
    <div id="endingOverlay" class="ending-overlay" hidden><div class="cinema-top"><span data-i18n="endingLabel"></span></div><div class="ending-copy"><i></i><h2 id="endingTitle"></h2><p id="endingCaption"></p><button id="endingSkip" class="ending-skip" data-i18n="skipEnding"></button><button id="endingRestart" class="primary-button" disabled><span data-i18n="overAction"></span><b>→</b></button></div></div>
@@ -42,7 +42,7 @@
  <footer><span>ONE MORE MEAL <b>·</b> <span data-i18n="localTitle"></span></span><span data-i18n="footer"></span><span>✦</span></footer>
 </div>
 <div class="modal-backdrop" id="modal" hidden><section class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" tabindex="-1"><button id="closeModal" class="modal-close" aria-label="Close">×</button><span class="modal-kicker" id="modalKicker"></span><h2 id="modalTitle"></h2><div id="modalBody"></div><button id="modalAction" class="primary-button"><span></span><b>→</b></button></section></div>
-<script type="module" src="app.js?v=20261024-6"></script>
+<script type="module" src="app.js?v=20261024-7"></script>
 </body>
 </html>
 
