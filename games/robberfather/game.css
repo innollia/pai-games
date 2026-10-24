@@ -32,3 +32,4 @@ html[lang=ko] h1{font-size:clamp(45px,5.6vw,83px);line-height:1.2;letter-spacing
 .pick-bottom span.bad{color:#f08a6c}
 .pick-track{width:34%;height:6px;background:#ffffff1c}
 .pick-track i{display:block;height:100%;width:0;background:#e7c27a}
+.ending-copy .ending-skip{display:block;min-width:0;margin-top:18px;padding:7px 14px;font-size:14px;background:transparent;border:1px solid #c6ab7766;color:#d9c79f;cursor:pointer}.ending-copy .ending-skip:hover{border-color:#c6ab77}.ending-copy .ending-skip[hidden]{display:none}

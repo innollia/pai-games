@@ -108,3 +108,20 @@ Object.assign(MESSAGES.ko,{
  tutorialSteal:'사람 등 뒤에 멈춰 E를 누르거나 주머니를 클릭하고, 마우스로 선을 따라 지갑을 빼내세요. 상대가 돌아보면 손을 떼세요!',
  helpSteal:'소매치기는 등 뒤에서만 할 수 있습니다. 사람 뒤에 멈춰 E를 누르거나 주머니를 클릭하세요. 마우스로 지갑을 잡고 선을 따라 끝까지 빼내면 성공입니다. 중간에 상대가 돌아보려고 머리 위에 ?가 뜨면, 다 돌아보기 전에 마우스를 떼야 합니다. 손을 대고 있으면 들킵니다. 선을 벗어나거나 너무 빨리 움직이면 지갑이 미끄러집니다. 행인 1칸, 부유층 2칸, 경찰 3칸이고 경찰이 가장 빨리 돌아봅니다. 하루에 두 번 들키면 그날은 더 훔칠 수 없습니다.',
 });
+// Leaving the pocket with E when they turn, and skipping the bad ending.
+Object.assign(MESSAGES.en,{
+ pickHint:'Grab the wallet and draw it out along the line. If a ? appears over their head, press E fast to slip out of the pocket! ← / → gives up.',
+ noteTurn:'They are turning around! Press E NOW!',noteLooking:'They saw your hand in their coat!',noteResume:'Back at the pocket. Grab the wallet and carry on.',
+ dodged:'You slipped your hand out. They turned, saw nothing, and looked away again.',
+ tutorialSteal:'Get behind someone and stop. Press E or click their pocket, then trace the line with your mouse. If a ? appears, press E to get out!',
+ helpSteal:'You can only steal from behind. Stop behind someone and press E or click their pocket. Hold the wallet with the mouse and draw it out along the line. Now and then they turn around: a ? appears over their head, and you must press E to leave the pocket before they finish turning or you are caught. When they look away again, press E behind them to carry on from where you stopped. Leave the line or move too fast and the wallet slips back. Passersby give 1 portion, wealthy people 2, police 3; police turn fastest. Spotted twice in one day and you cannot steal again until tomorrow.',
+ skipEnding:'Skip ▸ (Space)',
+});
+Object.assign(MESSAGES.ko,{
+ pickHint:'지갑을 잡고 선을 따라 빼내세요. 머리 위에 ?가 뜨면 빨리 E를 눌러 주머니에서 손을 빼세요! ← / → 누르면 포기.',
+ noteTurn:'돌아본다! 지금 E를 눌러 손 빼!',noteLooking:'코트에 넣은 손을 들켰다!',noteResume:'다시 주머니 앞. 지갑을 잡고 이어서 빼내세요.',
+ dodged:'손을 뺐다. 상대가 돌아봤지만 아무것도 못 보고 다시 돌아섰어요.',
+ tutorialSteal:'사람 등 뒤에 멈춰 E를 누르거나 주머니를 클릭하고, 마우스로 선을 따라 지갑을 빼내세요. ?가 뜨면 E를 눌러 빠져나오세요!',
+ helpSteal:'소매치기는 등 뒤에서만 할 수 있습니다. 사람 뒤에 멈춰 E를 누르거나 주머니를 클릭하세요. 마우스로 지갑을 잡고 선을 따라 끝까지 빼내면 성공입니다. 중간에 상대가 돌아보려고 머리 위에 ?가 뜨면, 다 돌아보기 전에 E를 눌러 소매치기 창에서 나와야 합니다. 창이 열려 있으면 들킵니다. 상대가 다시 돌아서면 등 뒤에서 E를 눌러 하던 데서 이어 갈 수 있습니다. 선을 벗어나거나 너무 빨리 움직이면 지갑이 미끄러집니다. 행인 1칸, 부유층 2칸, 경찰 3칸이고 경찰이 가장 빨리 돌아봅니다. 하루에 두 번 들키면 그날은 더 훔칠 수 없습니다.',
+ skipEnding:'건너뛰기 ▸ (Space)',
+});

@@ -1,7 +1,7 @@
 // The pocket minigame, seen over the victim's back: grab the wallet and draw it out along the line.
 // The street keeps moving underneath, so suspicion and witnesses still count while you trace.
-// When the victim turns around (look, set by app.js) you must already have let go.
-import {TYPES} from './engine.js?v=20261024-5';
+// When the victim starts to turn (look, set by app.js) press E to leave the pocket; reopening the same pocket picks up where you stopped.
+import {TYPES} from './engine.js?v=20261024-6';
 const W=640,H=400;
 // tol: how far off the line the hand may wander. bends: how twisty the line is. Speed caps keep the minimum time close to each type's hold time.
 const STYLE={civilian:{tol:30,bends:3,swing:70,coat:'#6d5440',lining:'#3a2b20',hair:'#3b2a1e',slip:.14},wealthy:{tol:23,bends:5,swing:105,coat:'#2c3550',lining:'#151a2a',hair:'#8d8a84',slip:.16},police:{tol:17,bends:7,swing:125,coat:'#1d2c4a',lining:'#0d1526',hair:'#2a2420',slip:.18}};
@@ -16,8 +16,8 @@ export class Pickpocket{
   this.canvas.addEventListener('pointerdown',e=>{if(!this.active)return;e.preventDefault();this.canvas.setPointerCapture(e.pointerId);this.down=true;this.pointer=pos(e);const hand=this.path[this.index];if(Math.hypot(this.pointer.x-hand.x,this.pointer.y-hand.y)<46){this.grabbing=true;this.note='noteFollow';}else this.note='noteGrab';this.render();});
   this.canvas.addEventListener('pointermove',e=>{if(this.active)this.pointer=pos(e);});
   const up=()=>{this.down=false;if(this.grabbing){this.grabbing=false;this.note='noteRegrab';}};this.canvas.addEventListener('pointerup',up);this.canvas.addEventListener('pointercancel',up);}
- open(target,seed){const type=target.type,kind=TYPES[type];this.type=type;this.targetId=target.id;this.style=STYLE[type];this.path=buildPath(type,Math.floor(seed*7919)%2147483646+1);this.length=(this.path.length-1)*3;this.speed=this.length/(kind.hold*.8);this.index=0;this.carry=0;this.warn=false;this.grabbing=false;this.down=false;this.shake=0;this.note='noteGrab';this.slips=0;this.look='wait';this.active=true;this.root.hidden=false;this.root.querySelector('[data-pick-title]').textContent=this.t('pickTitle',{name:this.t(type)});this.render();}
- close(){this.active=false;this.grabbing=false;this.root.hidden=true;}
+ open(target,seed){const type=target.type,kind=TYPES[type],memo=this.memo?.id===target.id?this.memo:null;this.memo=null;this.type=type;this.targetId=target.id;this.style=STYLE[type];this.path=memo?memo.path:buildPath(type,Math.floor(seed*7919)%2147483646+1);this.length=(this.path.length-1)*3;this.speed=this.length/(kind.hold*.8);this.index=memo?memo.index:0;this.carry=0;this.warn=false;this.grabbing=false;this.down=false;this.shake=0;this.note=memo?'noteResume':'noteGrab';this.slips=0;this.look='wait';this.lastLook='wait';this.active=true;this.root.hidden=false;this.root.querySelector('[data-pick-title]').textContent=this.t('pickTitle',{name:this.t(type)});this.render();}
+ close(keep=false){this.memo=keep&&this.active?{id:this.targetId,path:this.path,index:this.index}:null;this.active=false;this.grabbing=false;this.root.hidden=true;}
  get fraction(){return this.active?this.index/(this.path.length-1):0;}
  // Returns the suspicion added this frame (a slip), or 0.
  update(dt){if(!this.active)return 0;this.shake=Math.max(0,this.shake-dt);let slip=0;
@@ -58,7 +58,7 @@ export class Pickpocket{
   c.strokeStyle=this.grabbing?'#f4dc9e':'#f4dc9e88';c.lineWidth=this.grabbing?4:2;if(!this.grabbing){c.setLineDash([4,5]);c.lineDashOffset=-performance.now()/40;}c.beginPath();c.arc(0,0,38,0,Math.PI*2);c.stroke();c.setLineDash([]);c.restore();
   c.restore();
   if(look==='look'){c.fillStyle='rgba(190,30,24,.2)';c.fillRect(0,0,W,H);c.fillStyle='#ff5a45';c.font='bold 64px sans-serif';c.textAlign='center';c.fillText('!',HEAD.x+86,HEAD.y+44);}
-  const note=look==='warn'?(this.grabbing?'noteTurn':'noteHush'):look==='look'?'noteLooking':this.note;
+  const note=look==='warn'?'noteTurn':look==='look'?'noteLooking':this.note;
   if(look==='wait'&&this.lastLook==='look'&&!this.grabbing)this.note='noteBack';this.lastLook=look;
   this.root.querySelector('[data-pick-note]').textContent=this.t(note);this.root.querySelector('[data-pick-note]').classList.toggle('bad',['noteOff','noteFast','noteTurn','noteLooking'].includes(note));this.root.querySelector('[data-pick-bar]').style.width=`${this.fraction*100}%`;}
 }

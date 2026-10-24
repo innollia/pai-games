@@ -3,7 +3,7 @@
 <head>
  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#16201e"><meta name="description" content="A story of a pickpocket, a waiting son, and one more meal. A 2D survival game."><title>One More Meal</title>
  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%2316201e'/%3E%3Cpath d='M12 32h40v8L42 50H22L12 40Z' fill='%23d6b77a'/%3E%3Cpath d='M22 25v-9m10 9V12m10 13v-9' stroke='%23d6b77a' stroke-width='4'/%3E%3C/svg%3E">
- <link rel="stylesheet" href="game.css?v=20261024-5">
+ <link rel="stylesheet" href="game.css?v=20261024-6">
 </head>
 <body id="top">
 <div class="shell">
@@ -33,7 +33,7 @@
    <div id="pickpocket" class="pickpocket" hidden><div class="pick-top"><strong data-pick-title></strong><small data-i18n="pickHint"></small></div><canvas width="640" height="400"></canvas><div class="pick-bottom"><span data-pick-note></span><div class="pick-track"><i data-pick-bar></i></div></div></div>
    <div id="focusTag" class="focus-tag" data-i18n="focus" hidden></div>
    <section id="dialogue" class="dialogue" role="dialog" aria-labelledby="sonSpeaker" hidden><div class="dialogue-top"><span id="sonSpeaker" data-i18n="son"></span><small id="dialogueCount"></small></div><p id="sonLine"></p><div class="dialogue-bottom"><small data-i18n="morningHint"></small><button id="dialogueNext" class="primary-button"><span></span><b>→</b></button></div></section>
-   <div id="endingOverlay" class="ending-overlay" hidden><div class="cinema-top"><span data-i18n="endingLabel"></span></div><div class="ending-copy"><i></i><h2 id="endingTitle"></h2><p id="endingCaption"></p><button id="endingRestart" class="primary-button" disabled><span data-i18n="overAction"></span><b>→</b></button></div></div>
+   <div id="endingOverlay" class="ending-overlay" hidden><div class="cinema-top"><span data-i18n="endingLabel"></span></div><div class="ending-copy"><i></i><h2 id="endingTitle"></h2><p id="endingCaption"></p><button id="endingSkip" class="ending-skip" data-i18n="skipEnding"></button><button id="endingRestart" class="primary-button" disabled><span data-i18n="overAction"></span><b>→</b></button></div></div>
    <div id="fade" class="fade"></div>
   </section>
   <section class="under-stage"><div class="controls"><span><kbd>←</kbd><kbd>→</kbd><span data-i18n="move"></span></span><i></i><span class="advanced-control"><kbd>SHIFT</kbd><span data-i18n="run"></span></span><i class="advanced-control"></i><span class="advanced-control"><kbd>E</kbd><span data-i18n="steal"></span></span><i class="advanced-control"></i><span class="advanced-control"><kbd>M</kbd><span data-i18n="returnControl"></span></span><i></i><span class="advanced-control"><kbd>F</kbd><span data-i18n="hideControl"></span></span><i class="advanced-control"></i><span class="advanced-control"><kbd>G</kbd><span data-i18n="discardControl"></span></span><i></i><span class="advanced-control"><kbd>↑</kbd><span data-i18n="enterControl"></span></span><i></i><span><kbd>ESC</kbd><span data-i18n="pauseControl"></span></span></div><div class="people-legend"><span><i class="person-dot common"></i><span data-i18n="civilian"></span></span><span><i class="person-dot rich"></i><span data-i18n="wealthy"></span></span><span><i class="person-dot police"></i><span data-i18n="police"></span></span></div></section>
@@ -42,7 +42,7 @@
  <footer><span>ONE MORE MEAL <b>·</b> <span data-i18n="localTitle"></span></span><span data-i18n="footer"></span><span>✦</span></footer>
 </div>
 <div class="modal-backdrop" id="modal" hidden><section class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" tabindex="-1"><button id="closeModal" class="modal-close" aria-label="Close">×</button><span class="modal-kicker" id="modalKicker"></span><h2 id="modalTitle"></h2><div id="modalBody"></div><button id="modalAction" class="primary-button"><span></span><b>→</b></button></section></div>
-<script type="module" src="app.js?v=20261024-5"></script>
+<script type="module" src="app.js?v=20261024-6"></script>
 </body>
 </html>
 
