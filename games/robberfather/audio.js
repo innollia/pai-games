@@ -101,6 +101,11 @@ export class Soundscape {
    case'hidden':case'unhidden':case'enterShop':case'exitShop':this.noiseHit(.38,.2,530);this.tone(110,.16,.045,.03,50);break;
    case'bought':this.tone(660,.08,.03,0,660,'triangle');this.tone(990,.12,.025,.07,990,'triangle');break;case'medicine':this.tone(520,.14,.03,0,520);this.tone(780,.2,.025,.1,780);break;case'noMoney':case'notSick':this.tone(180,.14,.035,0,120);break;case'scavenged':case'discarded':this.noiseHit(.42,.18,1100);break;
    case'caught':this.noiseHit(.3,.22,470);break;
+   case'betPlaced':this.tone(1320,.06,.03,0,1100,'triangle');this.tone(1760,.08,.02,.05,1500,'triangle');break;
+   case'cupMove':this.noiseHit(.09,.07,900);break;
+   case'betWon':this.tone(880,.08,.03,0,880,'triangle');this.tone(1320,.14,.025,.08,1320,'triangle');break;
+   case'betLost':this.tone(160,.25,.04,0,110);break;
+   case'beaten':for(let i=0;i<7;i++){this.noiseHit(.14,.24,260+(i%3)*90,i*.45);this.tone(70,.12,.08,i*.45,40);}break;
    case'save':this.tone(523,.16,.025);this.tone(659,.23,.02,.11);break;
    case'night':this.tone(196,1.6,.028);this.tone(294,1.8,.02,.2);break;
    case'start':this.tone(220,.8,.025);this.tone(330,1.1,.02,.2);break;
