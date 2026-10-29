@@ -7,6 +7,11 @@ const GAMES := [
 	["nerve", "도약 전도"],
 	["superhot", "내가 움직일 때만"],
 	["onlyfast", "나만 빠르다"],
+	["hotpack", "핫팩 몰래 넣기"],
+	["timedebt", "시간 빚"],
+	["runaway", "브레이크 고장"],
+	["slowbike", "느린 자전거 경주"],
+	["matchspeed", "속도 맞춰 건너기"],
 ]
 const INK := Color("3a2a1a")
 
@@ -40,9 +45,9 @@ func _ready() -> void:
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	menu.add_child(bg)
 	var list := VBoxContainer.new()
-	list.position = Vector2(60, 160)
-	list.size = Vector2(600, 1000)
-	list.add_theme_constant_override("separation", 24)
+	list.position = Vector2(60, 70)
+	list.size = Vector2(600, 1180)
+	list.add_theme_constant_override("separation", 12)
 	menu.add_child(list)
 	var title := Label.new()
 	title.text = "SPEED 두부"
@@ -53,7 +58,7 @@ func _ready() -> void:
 	for g in GAMES:
 		var b := Button.new()
 		b.text = g[1]
-		b.custom_minimum_size = Vector2(600, 120)
+		b.custom_minimum_size = Vector2(600, 92)
 		b.pressed.connect(_open.bind(g[0]))
 		list.add_child(b)
 

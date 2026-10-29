@@ -1,12 +1,17 @@
 extends Tofu
 ## 도약 전도: 틱 소리 박자에 맞춰 탭하면 전기 신호가 다음 마디로 번쩍 뛴다(딱 맞으면 두 칸, 엇박이면 한 칸 뒤로).
 ## 신경 끝(초록)에 시간 안에 닿으면 다음 신경은 더 길고 박자가 빠르다. 시간이 다 되면 끝.
+## 평소엔 납작한 2D 옆모습, 딱 맞힌 도약과 새 신경 때 잠깐 3D 추격 시점으로 휙 들어갔다 돌아온다.
 
 const SEG := 3.0
 const OK_WIN := 0.13
 const PERFECT_WIN := 0.05
 const NODE := Vector3(0.8, 0.8, 0.4)
 const GOAL := Vector3(2.2, 2.2, 1.0)
+const SIDE_W := 11.0  # 2D 옆모습에서 화면 가로에 보이는 길이
+const SIDE_D := 60.0  # 2D↔3D 사이를 잇는 먼 망원 카메라 거리
+const VIEW_IN := 0.22
+const VIEW_OUT := 0.3
 
 var lv := 0
 var period := 0.6
@@ -31,6 +36,8 @@ var leap_k := 1.0
 var fx := 0.0
 var hurt := 0.0
 var cam_z := 0.0
+var view_k := 0.0  # 0 = 2D 옆모습, 1 = 3D 추격
+var view_hold := 0.0
 
 
 func _reset() -> void:
@@ -43,6 +50,8 @@ func _reset() -> void:
 	fx = 0.0
 	hurt = 0.0
 	cam_z = 0.0
+	view_k = 0.0
+	view_hold = 0.0
 	nerve = null
 	old = null
 	sig = box(Vector3.ZERO, Vector3.ONE * 0.7, ME)
@@ -95,7 +104,7 @@ func _step(dt: float) -> void:
 	leap_k = minf(leap_k + dt / 0.09, 1.0)
 	var z := lerpf(from_z, to_z, 1.0 - pow(1.0 - leap_k, 3.0))
 	var shake := sin(beat_t * 90.0) * 0.5 * hurt
-	sig.position = Vector3(shake, 0, z)
+	sig.position = Vector3(shake, shake, z)
 	sig.scale = Vector3.ONE * (0.7 + 0.5 * pulse)
 	sig.material_override = mat(BAD if hurt > 0.0 else ME)
 	# 다음 결절이 박자에 맞춰 깜빡인다
@@ -118,11 +127,40 @@ func _step(dt: float) -> void:
 		flash.material_override = mat(WHITE if fx > 0.6 else D)
 		streak.scale = Vector3(0.5 * fx, 0.5 * fx, maxf(absf(to_z - from_z), 0.01))
 	cam_z = lerpf(cam_z, z, 1.0 - exp(-dt * 9.0))
-	cam.position = Vector3(0, 3.2, cam_z + 5.5)
-	cam.look_at(Vector3(0, 0, cam_z - 6.0))
-	cam.fov = 70.0 + 18.0 * fx
+	_view(dt)
 	var frac := nerve_t / nerve_max
 	gauge(frac, GOOD if frac > 0.3 else BAD)
+
+
+## 2D 옆모습(직교, 신경이 왼→오른쪽)과 3D 추격(원근, 뒤 위에서) 사이.
+## 옆모습 쪽 끝은 아주 먼 망원 원근이라 직교와 거의 같아서, 직교로 바꿔 끼워도 튀지 않는다.
+func _view(dt: float) -> void:
+	view_hold -= dt
+	if view_hold > 0.0:
+		view_k = minf(view_k + dt / VIEW_IN, 1.0)
+	else:
+		view_k = maxf(view_k - dt / VIEW_OUT, 0.0)
+	var k := view_k * view_k * (3.0 - 2.0 * view_k)
+	var w := SIDE_W * (1.0 - 0.1 * fx)
+	var side_c := cam_z - 2.5  # 신호는 화면 왼쪽 1/4쯤, 앞길이 보이게
+	var side_pos := Vector3(SIDE_D, 0, side_c)
+	var chase_pos := Vector3(0, 3.2, cam_z + 5.5)
+	cam.position = side_pos.lerp(chase_pos, k)
+	cam.look_at(Vector3(0, 0, lerpf(side_c, cam_z - 6.0, k)))
+	if view_k <= 0.0:
+		cam.projection = Camera3D.PROJECTION_ORTHOGONAL
+		cam.size = w
+	else:
+		cam.projection = Camera3D.PROJECTION_PERSPECTIVE
+		var side_fov := rad_to_deg(2.0 * atan(w * 0.5 / SIDE_D))
+		cam.fov = lerpf(side_fov, 70.0 + 18.0 * fx, k)
+
+
+## 3D로 휙 들어가서 hold 초 머문 뒤 2D로 돌아온다
+func _burst(hold: float) -> void:
+	if view_hold <= 0.0 and view_k < 0.5:
+		beep(300.0, 0.12, 900.0, 0.12)
+	view_hold = maxf(view_hold, hold)
 
 
 func _tap(_p: Vector2) -> void:
@@ -152,6 +190,7 @@ func _leap(step: int, perfect: bool) -> void:
 	beep(f, 0.1, f * 1.5, 0.28)
 	if perfect:
 		msg("번쩍!", 0.35)
+		_burst(0.45)
 	if ni == count:
 		_clear()
 
@@ -168,6 +207,7 @@ func _clear() -> void:
 	score += ceili(nerve_t)
 	play("win")
 	msg("도착!", 0.8)
+	_burst(0.9)
 	var off := beat_t - used_beat * period
 	base_z = to_z
 	lv += 1
