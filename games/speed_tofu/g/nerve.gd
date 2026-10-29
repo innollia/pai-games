@@ -40,6 +40,10 @@ var view_k := 0.0  # 0 = 2D 옆모습, 1 = 3D 추격
 var view_hold := 0.0
 
 
+func _setup() -> void:
+	howto = "틱 소리 박자에 맞춰 탭하면 신호가 앞으로 뛴다.\n딱 맞으면 두 칸, 엇박이면 한 칸 뒤로.\n시간 안에 초록 끝에 닿아야 한다. 시간이 다 되면 끝."
+
+
 func _reset() -> void:
 	lv = 0
 	idx = 0

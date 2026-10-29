@@ -36,6 +36,7 @@ var tr_i := 0
 
 
 func _setup() -> void:
+	howto = "사람(파랑)을 탭하면 순식간에 달려가 업는다(최대 3명).\n초록 구역을 탭하면 내려놓아 점수. 한 번에 많이 = 더 많이.\n사람이 잔해·차에 맞으면 실점, 3번이면 끝."
 	time_limit = 0.0
 	cam.fov = 34.0
 	cam.position = Vector3(0, 20, 7)

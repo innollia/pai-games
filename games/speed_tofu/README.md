@@ -24,6 +24,7 @@ slap jam #2 주제 **speed**의 코어 루프 시험판. 상자만 쓰는 Godot 
 ## 구조
 
 - `tofu.gd`: 공통(상자, 카메라, 점수·시간·최고점, 다시하기, 소리, 입력). 게임은 `g/<id>.gd` 하나로 `Tofu`를 extends 한다.
+- 액션 조작 키트(선택, 여러 손가락): `_setup`에서 `kit_stick()`(왼쪽 조이스틱 → `kit_move`), `kit_lookpad()`(오른쪽 끌기 → `kit_look`), `kit_button(이름, 글자, 자리, 반지름)`(→ `kit_held`/`kit_just`). 안 부르면 예전 입력 그대로. 예: `g/hot.gd`.
 - `main.gd`: 메뉴. 새 게임은 `GAMES`와 `tools/smoke.gd`의 `ALL`에 id를 더한다.
 
 ## 명령 (이 폴더에서)

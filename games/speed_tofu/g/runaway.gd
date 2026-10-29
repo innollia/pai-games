@@ -45,6 +45,7 @@ var m_post: Array[StandardMaterial3D] = []
 
 
 func _setup() -> void:
+	howto = "수레는 멈추지 않고 계속 빨라진다.\n화면 왼쪽/오른쪽을 탭해 다음 갈림길에서 갈 길을 고른다.\n빨간 막힘·끊긴 레일은 쾅. 노란 상자는 +2."
 	time_limit = 0.0
 	cam.fov = 62.0
 	m_tie = mat(A)

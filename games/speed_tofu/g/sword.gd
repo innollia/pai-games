@@ -31,6 +31,10 @@ var start := Vector2.ZERO
 var armed := false
 
 
+func _setup() -> void:
+	howto = "빨간 표시 쪽으로 밀어서 막는다(칭!).\n막으면 뜨는 초록 쪽으로 밀어서 벤다.\n틀리거나 늦으면 맞는다. 3번 맞으면 끝."
+
+
 func _reset() -> void:
 	cam.position = CAM_P
 	cam.look_at(Vector3(0, 0, 0))

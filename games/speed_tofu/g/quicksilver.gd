@@ -91,6 +91,7 @@ var opt_ic: Array[MeshInstance3D] = []
 
 
 func _setup() -> void:
+	howto = "탭한 곳으로 순식간에 달린다.\n사람(파랑)을 업어 아래 초록에 내려놓자. 잔해·차·소화전도 탭.\n시계가 끝날 때 초록 밖 사람은 잃는다. 3명 잃으면 끝."
 	time_limit = 1000.0
 	cam.fov = 34.0
 	cam.position = Vector3(0, 20, 7)

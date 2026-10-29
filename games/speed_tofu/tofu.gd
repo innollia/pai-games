@@ -3,6 +3,12 @@ extends Node3D
 ## 두부게임 공통 (3D). 상자만 쓴다. 판 시간·점수·최고점·다시하기·소리·입력을 맡는다.
 ## 게임은 이 클래스를 extends 하고 _setup / _reset / _step(dt) / _tap(p) / _drag(p) / _lift(p) 만 쓴다.
 ## p는 720x1280 화면 좌표. 판마다 만드는 상자는 box()로 만들면 다시 시작할 때 저절로 지워진다.
+## 액션 조작 키트(선택, _setup 에서 부른다. 안 부르면 예전 그대로): 여러 손가락 동시 터치.
+##   kit_stick() = 왼쪽 아래 떠다니는 조이스틱 -> kit_move (Vector2, -1..1, y 아래가 +)
+##   kit_lookpad() = 오른쪽 반(버튼 밖)을 끌면 둘러보기 -> kit_look (이번 프레임 픽셀 이동, _step 뒤 0으로)
+##   kit_button(이름, 글자, 가운데, 반지름, 색) -> kit_held(이름) 누르는 중, kit_just(이름) 이번 _step 에 막 눌림
+##   kit_stick·kit_lookpad 는 zone(Rect2)으로 자리를 바꿀 수 있다. 플레이 방법 상자·게임 끝 화면에서는 숨고 탭은 예전처럼 동작한다.
+##   키트에 닿은 손가락은 _tap/_drag/_lift 로 안 간다. 나머지 손가락 하나는 예전처럼 간다.
 
 signal back
 
@@ -20,6 +26,7 @@ const SAVE := "user://speed_tofu.json"
 
 var id := "x"
 var time_limit := 0.0  # 0이면 end()를 부를 때까지 계속
+var howto := ""  # 게임에 처음 들어갈 때 한 번 보여 줄 플레이 방법 (_setup 에서 정한다)
 var score := 0
 var best := 0
 var t := 0.0
@@ -35,12 +42,36 @@ var _over_l: Label
 var _bar_bg: ColorRect
 var _bar: ColorRect
 var _msg_t := 0.0
+var _howto_box: Control  # 보이는 동안 시간·_step 멈춤, 탭하면 사라진다
 var _font: Font = preload("res://fonts/Pretendard-Bold.otf")
 var _unit := BoxMesh.new()
 var _mats := {}
 var _tones := {}
 var _players: Array[AudioStreamPlayer] = []
 var _np := 0
+# 액션 조작 키트
+const _MOUSE_ID := -100  # 마우스(PC, smoke)는 이 손가락 번호로 친다
+const _STICK_R := 110.0
+var kit_move := Vector2.ZERO
+var kit_look := Vector2.ZERO
+var _kit := false
+var _pad: Control
+var _stick_zone := Rect2()
+var _stick_on := false
+var _st_home := Vector2.ZERO
+var _st_o := Vector2.ZERO
+var _look_zone := Rect2()
+var _btns := {}  # 이름 -> {label, pos, r, color, down}
+var _justs := {}
+var _own := {}  # 손가락 번호 -> "game" / "stick" / "look" / 버튼 이름
+var _last := {}
+
+
+class _Pad extends Control:
+	var k: Tofu
+
+	func _draw() -> void:
+		k._kit_draw(self)
 
 
 func _ready() -> void:
@@ -88,6 +119,8 @@ func _ready() -> void:
 	best = int(_load().get(id, 0))
 	_setup()
 	restart()
+	if howto != "":
+		_howto_box = _howto_card()
 
 
 func _label(parent: Node, size: int, y: float, h: float) -> Label:
@@ -107,6 +140,42 @@ func _label(parent: Node, size: int, y: float, h: float) -> Label:
 	return l
 
 
+## 가운데 흰 상자에 플레이 방법 (게임마다 다른 CanvasLayer 보다 위)
+func _howto_card() -> Control:
+	var top := CanvasLayer.new()
+	top.layer = 10
+	add_child(top)
+	var card := ColorRect.new()
+	card.color = WHITE
+	card.position = Vector2(30, 260)
+	card.size = Vector2(660, 780)
+	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	top.add_child(card)
+	var s := LabelSettings.new()
+	s.font = _font
+	s.font_size = 40
+	s.font_color = INK
+	s.line_spacing = 8
+	var l := Label.new()
+	l.label_settings = s
+	l.text = howto
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	l.position = Vector2(30, 30)
+	l.size = Vector2(600, 630)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card.add_child(l)
+	var go := l.duplicate() as Label
+	go.label_settings = s.duplicate()
+	go.label_settings.font_color = ME
+	go.text = "탭해서 시작"
+	go.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	go.position = Vector2(0, 680)
+	go.size = Vector2(660, 70)
+	card.add_child(go)
+	return card
+
+
 func restart() -> void:
 	if world:
 		world.queue_free()
@@ -119,6 +188,7 @@ func restart() -> void:
 	t = time_limit
 	_bar_bg.visible = false
 	_msg_t = 0.0
+	_kit_clear()
 	_reset()
 
 
@@ -127,6 +197,7 @@ func end() -> void:
 		return
 	over = true
 	wait = 0.7
+	_kit_clear()
 	if score > best:
 		best = score
 		var d := _load()
@@ -138,6 +209,12 @@ func end() -> void:
 
 
 func _process(dt: float) -> void:
+	if _howto_box and _howto_box.visible:
+		_score_l.text = str(score)
+		_time_l.visible = time_limit > 0.0
+		_time_l.text = str(ceili(t))
+		_kit_frame()
+		return
 	if over:
 		wait -= dt
 	else:
@@ -156,14 +233,22 @@ func _process(dt: float) -> void:
 	_over_l.visible = over
 	if over:
 		_over_l.text = "%d\n최고 %d%s" % [score, best, "\n탭해서 다시" if wait <= 0.0 else ""]
+	_kit_frame()
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if _kit:
+		_kit_input(event)
+		return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		var p: Vector2 = event.position
 		if event.pressed:
 			if p.x < 180.0 and p.y < 100.0:
 				back.emit()
+				return
+			if _howto_box and _howto_box.visible:
+				_howto_box.visible = false
+				play("tap")
 				return
 			if over:
 				if wait <= 0.0:
@@ -203,6 +288,170 @@ func _drag(_p: Vector2) -> void:
 
 func _lift(_p: Vector2) -> void:
 	pass
+
+
+# ---- 액션 조작 키트 (선택) ----
+## 떠다니는 조이스틱. zone 안 아무 데나 누르면 거기가 가운데가 된다.
+func kit_stick(zone := Rect2(0, 640, 360, 640)) -> void:
+	_kit_on()
+	_stick_zone = zone
+	_st_home = Vector2(zone.get_center().x, zone.end.y - 200.0)
+
+
+## zone 을 끌면 look 에 픽셀 이동이 쌓인다 (버튼·조이스틱이 먼저)
+func kit_lookpad(zone := Rect2(360, 100, 360, 1180)) -> void:
+	_kit_on()
+	_look_zone = zone
+
+
+func kit_button(name: String, label: String, pos: Vector2, radius := 80.0, color := A) -> void:
+	_kit_on()
+	_btns[name] = {"label": label, "pos": pos, "r": radius, "color": color, "down": false}
+
+
+func kit_held(name: String) -> bool:
+	return _btns.has(name) and _btns[name].down
+
+
+func kit_just(name: String) -> bool:
+	return _justs.has(name)
+
+
+func _kit_on() -> void:
+	if _kit:
+		return
+	_kit = true
+	var layer := CanvasLayer.new()
+	layer.layer = 5
+	add_child(layer)
+	var pad := _Pad.new()
+	pad.k = self
+	pad.size = Vector2(720, 1280)
+	pad.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(pad)
+	_pad = pad
+
+
+func _kit_clear() -> void:
+	_own.clear()
+	_last.clear()
+	_justs.clear()
+	_stick_on = false
+	kit_move = Vector2.ZERO
+	kit_look = Vector2.ZERO
+	for n in _btns:
+		_btns[n].down = false
+
+
+## 프레임 끝: look·just 비우고 다시 그린다
+func _kit_frame() -> void:
+	if not _kit:
+		return
+	kit_look = Vector2.ZERO
+	_justs.clear()
+	_pad.visible = not over and not (_howto_box and _howto_box.visible)
+	_pad.queue_redraw()
+
+
+func _kit_input(event: InputEvent) -> void:
+	if event is InputEventScreenTouch:
+		_finger(event.index, event.position, 1 if event.pressed and not event.canceled else -1)
+	elif event is InputEventScreenDrag:
+		_finger(event.index, event.position, 0)
+	elif event.device == InputEvent.DEVICE_ID_EMULATION:
+		return  # 터치가 흉내 낸 마우스는 위에서 이미 받았다
+	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		_finger(_MOUSE_ID, event.position, 1 if event.pressed else -1)
+	elif event is InputEventMouseMotion:
+		_finger(_MOUSE_ID, event.position, 0)
+
+
+## kind 1 누름, 0 끌기, -1 뗌
+func _finger(id: int, p: Vector2, kind: int) -> void:
+	if kind == 1:
+		if p.x < 180.0 and p.y < 100.0:
+			back.emit()
+			return
+		if _howto_box and _howto_box.visible:
+			_howto_box.visible = false
+			play("tap")
+			return
+		if over:
+			if wait <= 0.0:
+				restart()
+				play("tap")
+			return
+		var what := _kit_hit(p)
+		if what == "":
+			if held:
+				return
+			held = true
+			_own[id] = "game"
+			_tap(p)
+			return
+		_own[id] = what
+		_last[id] = p
+		if what == "stick":
+			_stick_on = true
+			_st_o = p
+			kit_move = Vector2.ZERO
+		elif what.begins_with("b:"):
+			var n := what.substr(2)
+			_btns[n].down = true
+			_justs[n] = true
+		return
+	if not _own.has(id):
+		return
+	var who: String = _own[id]
+	if kind == 0:
+		if who == "game":
+			if not over:
+				_drag(p)
+		elif who == "stick":
+			kit_move = (p - _st_o).limit_length(_STICK_R) / _STICK_R
+		elif who == "look":
+			kit_look += p - _last[id]
+		_last[id] = p
+		return
+	_own.erase(id)
+	_last.erase(id)
+	if who == "game":
+		held = false
+		if not over:
+			_lift(p)
+	elif who == "stick":
+		_stick_on = false
+		kit_move = Vector2.ZERO
+	elif who.begins_with("b:"):
+		_btns[who.substr(2)].down = false
+
+
+func _kit_hit(p: Vector2) -> String:
+	for n in _btns:
+		var b: Dictionary = _btns[n]
+		if p.distance_to(b.pos) < b.r * 1.15:
+			return "b:" + n
+	if _stick_zone.has_area() and _stick_zone.has_point(p) and not _stick_on:
+		return "stick"
+	if _look_zone.has_area() and _look_zone.has_point(p):
+		return "look"
+	return ""
+
+
+func _kit_draw(c: Control) -> void:
+	if _stick_zone.has_area():
+		var o := _st_o if _stick_on else _st_home
+		c.draw_circle(o, _STICK_R, Color(1, 1, 1, 0.45))
+		c.draw_arc(o, _STICK_R, 0.0, TAU, 48, ME, 6.0)
+		c.draw_circle(o + kit_move * _STICK_R, 48.0, ME)
+	for n in _btns:
+		var b: Dictionary = _btns[n]
+		var r: float = b.r * (0.92 if b.down else 1.0)
+		var col: Color = b.color
+		c.draw_circle(b.pos, r, col.lightened(0.35) if b.down else col)
+		c.draw_arc(b.pos, r, 0.0, TAU, 48, WHITE, 6.0)
+		var fs := int(clampf(b.r * 0.42, 22.0, 44.0))
+		c.draw_string(_font, b.pos + Vector2(-r, fs * 0.35), b.label, HORIZONTAL_ALIGNMENT_CENTER, r * 2.0, fs, WHITE)
 
 
 # ---- 도구 ----

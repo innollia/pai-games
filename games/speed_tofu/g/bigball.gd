@@ -60,6 +60,7 @@ var cut_l: Label
 
 
 func _setup() -> void:
+	howto = "코일은 저절로 굴러간다. 좌우로 끌어 방향을 튼다.\n나보다 작은 차를 깔면 몸에 붙고 커지고 빨라진다.\n큰 차에 부딪히면 붙은 차가 떨어지고 작아진다. 60초."
 	time_limit = 60.0
 	var layer := CanvasLayer.new()
 	add_child(layer)

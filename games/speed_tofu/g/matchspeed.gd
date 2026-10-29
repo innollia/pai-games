@@ -33,6 +33,7 @@ var sx := 0.0
 
 
 func _setup() -> void:
+	howto = "꾹 누르면 가속, 떼면 감속.\n오른쪽으로 밀면 옆 차선으로 건너간다.\n속도가 맞고(초록) 빈자리면 성공, 아니면 쾅."
 	time_limit = 60.0
 	cam.fov = 55.0
 	cam.position = Vector3(0, 13, 11)

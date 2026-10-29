@@ -78,6 +78,7 @@ var armed := false
 
 
 func _setup() -> void:
+	howto = "빨간 쪽으로 밀면 막고, 초록 쪽으로 밀면 벤다.\n끝까지 기다렸다 막으면 간파(세상이 느려짐).\n세 번 맞으면 그 도장 처음부터. 검객을 꺾으면 다음 도장으로."
 	time_limit = 0.0
 	stage = 0
 	has_counter = false

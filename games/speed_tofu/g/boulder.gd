@@ -96,6 +96,7 @@ var tick: ColorRect
 
 
 func _setup() -> void:
+	howto = "돌은 저절로 굴러간다. 좌우로 끌어 방향을 튼다.\n내리막에서 속도를 모아 오르막을 넘자. 깔수록 커지고 무거워진다.\n1.5초 넘게 느리거나 절벽에서 떨어지면 끝."
 	time_limit = 0.0
 	tick = ColorRect.new()
 	tick.color = INK
