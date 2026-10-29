@@ -2,6 +2,7 @@
 
 itch.io 브라우저에서 도는 720×1280 세로 터치 게임을 AI가 바로 만들 수 있게 한 최소 뼈대. 엔진·빌드 도구·npm 없음. 순수 HTML+JS(캔버스 2D).
 TIN의 Godot 앱·GameModule과 무관하다(AppRoot, `NORMAL_IDS`를 건드리지 않음). 이 폴더만 복사해 가도 된다.
+**Godot 4.7.2 웹 버전은 `../slapjam2_godot/`** (TINProject 흐름을 따르는 기본 후보). 이 HTML 키트는 Godot가 느리거나 소리가 안 날 때의 비상 대안이다.
 
 ## 폴더
 

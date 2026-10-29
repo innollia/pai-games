@@ -6,6 +6,8 @@
 
 ## 1. ZIP 만들기 (1분)
 
+기본은 Godot 키트(`jam_kits/slapjam2_godot`, `tools/build_godot.ps1` → `dist/slapjam2_godot.zip`). 아래 명령은 HTML 대안 키트용이다. 리허설은 **실제로 낼 키트로** 한다. Godot는 wasm이 커서 폰에서 로딩 시간을 꼭 잰다.
+
 ```bash
 node jam_kits/slapjam2/tools/smoke_test.js
 ```
@@ -38,7 +40,7 @@ powershell -ExecutionPolicy Bypass -File jam_kits/slapjam2/tools/build.ps1
 
 ## 4. 실제 제출 때 (마감 11/1 00:00 KST) 체크리스트
 
-- [ ] 마감 **최소 1시간 전**에 최종 ZIP 업로드 (11/1 00:00 에 몰리면 업로더 지연에 대응 못 한다. 서두르면 못 고친다.)
+- [ ] **토요일(10/31) 20~21시에 미리 제출** (마감 11/1 00:00 KST, 마감 뒤 수정 불가. 몰리면 업로더 지연에 대응 못 한다.) 이후엔 새 기능 말고 통과한 빌드를 지킨다
 - [ ] 프로젝트 **Public**, Mobile friendly, Portrait 다시 확인 (리허설 때 Draft였다면 반드시 바꿈)
 - [ ] 잼 페이지에서 **Submit your project** 로 이 프로젝트를 연결 (업로드만으로는 제출이 안 된다)
 - [ ] 제출 후 시크릿 창/다른 폰으로 공개 URL을 열어 다시 실행

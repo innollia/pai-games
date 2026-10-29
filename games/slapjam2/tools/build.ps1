@@ -67,7 +67,7 @@ try {
   foreach ($r in ($refs | Sort-Object -Unique)) {
     if ($r -match '^(https?:)?//') { $errors.Add("외부 주소는 쓰지 않는다 (오프라인·iframe 위험): $r"); continue }
     if ($r.StartsWith('/')) { $errors.Add("절대경로는 itch.io 에서 깨진다: $r"); continue }
-    if ($r -match '^(data|blob):') { continue }
+    if ($r -match '^(data|blob):' -or $r -match '[\$\{\}]') { continue }
     $p = $r; if ($p.StartsWith('./')) { $p = $p.Substring(2) }
     if ($names -cnotcontains $p) {
       $ci = $names | Where-Object { $_ -ieq $p }
