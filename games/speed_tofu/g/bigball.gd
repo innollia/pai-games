@@ -1,5 +1,14 @@
 extends Tofu
-## 큰 상자공이 도로를 저절로 굴러간다. 좌우로 끌어 방향을 튼다. 나보다 작은 차는 깔아서 점수·커짐(커질수록 빨라짐), 큰 차에 부딪히면 튕기고 작아짐. 60초.
+## 처음 한 번 글상자 컷씬(탭으로 넘김): 트럭에서 뛰어내린 강철코일이 공장으로 굴러 돌아간다.
+## 코일은 도로를 저절로 굴러간다. 좌우로 끌어 방향을 튼다. 나보다 작은 차는 깔면 몸에 붙고 점수·커짐(커질수록 빨라짐), 큰 차에 부딪히면 붙은 차가 떨어지고 작아짐. 60초.
+
+const CUT := [
+	"강철코일 공장.\n갓 감긴 코일 하나가\n트럭에 실린다.",
+	"떠나는 순간,\n공장 창문 너머로\n그녀를 봤다.",
+	"고속도로 위 트럭.\n코일은 결심했다.",
+	"뛰어내려!\n공장으로 돌아가자.\n길을 막는 건 전부 깔고 간다.",
+]
+const STUCK := 30
 
 const ROAD := Color("8d939c")
 const HALF := 12.0  # 도로 반폭
@@ -43,10 +52,40 @@ var hurt := 0.0
 var tier := 0
 var quarter := 0
 var last_x := 0.0
+var stuck: Array[MeshInstance3D] = []
+var nstuck := 0
+var cut := 0  # 보고 있는 컷씬 장, CUT.size()면 끝
+var cut_box: ColorRect
+var cut_l: Label
 
 
 func _setup() -> void:
 	time_limit = 60.0
+	var layer := CanvasLayer.new()
+	add_child(layer)
+	cut_box = ColorRect.new()
+	cut_box.color = WHITE
+	cut_box.position = Vector2(60, 400)
+	cut_box.size = Vector2(600, 440)
+	cut_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(cut_box)
+	cut_l = _label(layer, 50, 430, 380)
+	cut_l.position.x = 90
+	cut_l.size.x = 540
+	cut_l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	cut_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	var hint := _label(cut_box, 30, 380, 50)
+	hint.size.x = 600
+	hint.text = "탭 ▶"
+	_show_cut()
+
+
+func _show_cut() -> void:
+	var on := cut < CUT.size()
+	cut_box.visible = on
+	cut_l.visible = on
+	if on:
+		cut_l.text = CUT[cut]
 
 
 func _reset() -> void:
@@ -63,6 +102,13 @@ func _reset() -> void:
 	ball = box(Vector3(0, 1, 0), Vector3.ONE * s, ME)
 	box(Vector3.ZERO, Vector3(1.04, 1.04, 0.22), WHITE, ball)
 	box(Vector3.ZERO, Vector3(1.04, 0.22, 1.04), D, ball)
+	# 깐 차가 붙을 자리 (판 시작 때 만들어 돌려 쓴다)
+	stuck.clear()
+	nstuck = 0
+	for i in STUCK:
+		var m := box(Vector3.ZERO, Vector3.ONE, A, ball)
+		m.visible = false
+		stuck.append(m)
 	road = box(Vector3(0, -0.1, 0), Vector3(HALF * 2.0, 0.2, AHEAD * 2.0 + 100.0), ROAD)
 	side = box(Vector3(0, -0.3, 0), Vector3(400, 0.2, AHEAD * 2.0 + 100.0), SOFT)
 	dashes.clear()
@@ -116,6 +162,9 @@ func _spawn(c: Car, z: float) -> void:
 
 
 func _step(dt: float) -> void:
+	if cut < CUT.size():
+		t = time_limit
+		return
 	s = lerpf(s, s_goal, minf(1.0, dt * 4.0))
 	ball.scale = Vector3.ONE * s
 	var v := 12.0 + s * 2.6
@@ -175,9 +224,18 @@ func _step(dt: float) -> void:
 
 
 func _crush(c: Car, kd: Dictionary) -> void:
-	c.flat = true
-	c.n.scale.y = 0.15
-	c.n.position.y = 0.08
+	# 깐 차는 길에서 사라지고 코일 겉면 아무 데나 붙는다
+	var m := stuck[nstuck % STUCK]
+	nstuck += 1
+	var ax := randi() % 3
+	var lp := Vector3(randf_range(-0.4, 0.4), randf_range(-0.4, 0.4), randf_range(-0.4, 0.4))
+	lp[ax] = 0.5 * (1.0 if randf() < 0.5 else -1.0)
+	m.position = lp
+	m.rotation = Vector3(0, randf() * TAU, randf() * 0.6)
+	m.scale = kd.size * 0.5 / s
+	m.material_override = c.n.material_override
+	m.visible = true
+	_spawn(c, bz - AHEAD + randf_range(-40.0, 0.0))
 	score += int(kd.pts)
 	s_goal = minf(16.0, s_goal + float(kd.grow))
 	beep(520.0 - c.k * 100.0, 0.1, 120.0, 0.28)
@@ -189,6 +247,11 @@ func _crush(c: Car, kd: Dictionary) -> void:
 
 func _bonk(c: Car, sz: Vector3) -> void:
 	s_goal = maxf(2.0, s_goal - 0.8)
+	# 붙어 있던 차가 몇 대 떨어져 나간다
+	for i in 4:
+		if nstuck > 0:
+			nstuck -= 1
+			stuck[nstuck % STUCK].visible = false
 	kick = 30.0
 	hurt = 0.8
 	c.n.position.z = bz - (s + sz.z) * 0.5 - 0.5
@@ -200,9 +263,16 @@ func _bonk(c: Car, sz: Vector3) -> void:
 
 
 func _tap(p: Vector2) -> void:
+	if cut < CUT.size():
+		cut += 1
+		_show_cut()
+		play("good" if cut == CUT.size() else "tap")
+		return
 	last_x = p.x
 
 
 func _drag(p: Vector2) -> void:
+	if cut < CUT.size():
+		return
 	x_goal += (p.x - last_x) * 0.06
 	last_x = p.x

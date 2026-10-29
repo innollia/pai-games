@@ -6,7 +6,7 @@ const GAMES := [
 	["synapse", "★ 시냅스 특급"],
 	["blade", "★ 일격의 길"],
 	["boulder", "★ 굴러라 신전석"],
-	["bigball", "큰 공 굴리기"],
+	["bigball", "큰 공 굴리기 (강철코일)"],
 	["sword", "빠른 검술"],
 	["nerve", "도약 전도"],
 	["superhot", "내가 움직일 때만"],
