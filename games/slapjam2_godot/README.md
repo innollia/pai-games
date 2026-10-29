@@ -38,6 +38,9 @@ powershell -ExecutionPolicy Bypass -File tools/build_godot.ps1
 ## 검증 상태 (이 PC)
 
 - 헤드리스 import·export 성공, 120프레임 실행에서 스크립트 오류 없음, ZIP 검사 통과.
+- 10/29 재확인: 빌드·ZIP 검사 통과(wasm 37.7MB, ZIP 11MB). 로컬 서버 + 720×1280 화면에서 "탭해서 시작" → 탭 → 게임 화면(점수·시간·동그라미)까지 뜨고 콘솔 오류 없음. PC 로컬이라 로딩 시간은 의미 없음.
+
+사람이 폰으로 확인할 것 (리허설 표에 적기): itch.io 비공개 업로드·Mobile friendly·Portrait 설정 · iPhone 11급 wasm 로딩 시간 · 첫 탭 소리(무음 스위치 끄고) · 터치 한 번에 한 번 반응 · 핀치·스크롤 안 됨 · 30초 끊김 없음 · 탭 전환 후 복귀와 소리 복구 · 느리거나 소리 없으면 HTML 키트로 교체.
 - 실제 폰·브라우저에서의 터치, 소리, 로딩 시간은 **미확인**이다. 리허설(`../slapjam2/docs/SUBMISSION_REHEARSAL.md`)에서 반드시 확인한다. 특히 iPhone 11급에서 wasm 로딩 시간과 첫 탭 소리를 본다. 느리거나 소리가 없으면 HTML 키트로 갈아탄다.
 
 itch.io 설정과 제출 절차는 `../slapjam2/docs/`의 SUBMISSION_REHEARSAL.md, SUBMISSION_PAGE.md를 그대로 쓴다.

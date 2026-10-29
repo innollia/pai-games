@@ -27,7 +27,7 @@
 
 ## 2. 표지·스크린샷 자리
 
-파일은 `jam_kits/slapjam2/submission/`에 둔다(ZIP에는 안 들어간다. `game/` 밖). 이름 고정:
+파일은 `games/slapjam2/submission/`에 둔다(ZIP에는 안 들어간다. `game/` 밖). 이름 고정:
 
 | 파일 | 규격 | 내용 |
 | --- | --- | --- |

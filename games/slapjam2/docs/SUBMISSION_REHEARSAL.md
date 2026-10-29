@@ -6,17 +6,17 @@
 
 ## 1. ZIP 만들기 (1분)
 
-기본은 Godot 키트(`jam_kits/slapjam2_godot`, `tools/build_godot.ps1` → `dist/slapjam2_godot.zip`). 아래 명령은 HTML 대안 키트용이다. 리허설은 **실제로 낼 키트로** 한다. Godot는 wasm이 커서 폰에서 로딩 시간을 꼭 잰다.
+기본은 Godot 키트(`games/slapjam2_godot`, `tools/build_godot.ps1` → `dist/slapjam2_godot.zip`). 아래 명령은 HTML 대안 키트용이다. 리허설은 **실제로 낼 키트로** 한다. Godot는 wasm이 커서 폰에서 로딩 시간을 꼭 잰다.
 
 ```bash
-node jam_kits/slapjam2/tools/smoke_test.js
+node games/slapjam2/tools/smoke_test.js
 ```
 
 ```bash
-powershell -ExecutionPolicy Bypass -File jam_kits/slapjam2/tools/build.ps1
+powershell -ExecutionPolicy Bypass -File games/slapjam2/tools/build.ps1
 ```
 
-"검사 통과"가 나오고 `jam_kits/slapjam2/dist/slapjam2.zip`이 생기면 된다. 실패하면 출력된 오류를 고친다.
+"검사 통과"가 나오고 `games/slapjam2/dist/slapjam2.zip`이 생기면 된다. 실패하면 출력된 오류를 고친다.
 
 ## 2. 비공개로 올리기 (4분)
 
