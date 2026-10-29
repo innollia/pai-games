@@ -2,6 +2,10 @@ extends Node
 ## speed 두부게임 메뉴. 게임 하나 = g/<id>.gd (Tofu 를 extends).
 
 const GAMES := [
+	["quicksilver", "★ 퀵실버 시티"],
+	["synapse", "★ 시냅스 특급"],
+	["blade", "★ 일격의 길"],
+	["boulder", "★ 굴러라 신전석"],
 	["bigball", "큰 공 굴리기"],
 	["sword", "빠른 검술"],
 	["nerve", "도약 전도"],
@@ -44,11 +48,17 @@ func _ready() -> void:
 	bg.color = Color("fff4d6")
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	menu.add_child(bg)
+	# 게임이 많아 위아래로 끌어 넘긴다
+	var scroll := ScrollContainer.new()
+	scroll.position = Vector2(60, 40)
+	scroll.size = Vector2(600, 1220)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.scroll_deadzone = 12
+	menu.add_child(scroll)
 	var list := VBoxContainer.new()
-	list.position = Vector2(60, 70)
-	list.size = Vector2(600, 1180)
+	list.custom_minimum_size = Vector2(600, 0)
 	list.add_theme_constant_override("separation", 12)
-	menu.add_child(list)
+	scroll.add_child(list)
 	var title := Label.new()
 	title.text = "SPEED 두부"
 	title.add_theme_color_override("font_color", INK)
