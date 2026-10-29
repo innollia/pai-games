@@ -1,0 +1,2 @@
+cover.png  (표지, 630x500)
+shot1.png ~ shot5.png (스크린샷, 720x1280 세로)
