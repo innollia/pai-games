@@ -190,10 +190,8 @@ var gems: Array = []        # [거리, 높이(동굴 바닥 위), 노드]
 
 func _setup() -> void:
 	_lang()
-	howto = "굴러라 신전석\n끌어 조향. 항아리는 깔고 빨강은 피해!\n커지면 무거워진다. 1.5초 느리면 끝.\n\n버튼은 구역마다 열린다.\n뛰기 / 쪼개기 / 버티기 / 던지기\n초록 조준선 → 던져서 보라 수정 깨기\n흰 빗금 눈 = 성장 / 노랑 = 해빙\n수로에서 떨어지면 숨은 수정 동굴!\n쪼개면 1초 돌진: 집·얼음벽 관통\n파란 머리 탑은 공중 버티기로 쾅\n\n물살은 버티거나 뛰어 벗어나고,\n황금 발판은 버티기를 눌렀다 놓기!\n11구역 끝 신전에 도착하자.\n금 3분 / 은 4분 / 동 완주"
+	howto = "굴러라 신전석\n끌어 조향. 항아리는 깔고 빨강은 피해!\n커지면 무거워진다. 1.5초 느리면 끝.\n\n버튼은 구역마다 하나씩 열린다.\n쪼개기 = 1초 돌진 (집·얼음벽 관통)\n파란 머리 탑 = 공중에서 버티기로 쾅\n초록 조준선 = 던져서 보라 수정 깨기\n흰 눈 = 커짐 / 노란 길 = 녹음\n\n11구역 끝 바다 신전까지! 금 3분 · 은 4분"
 	time_limit = 0.0
-	howto = howto.replace("끝 신전", "끝 바다 신전")
-	howto += "\n발판 힘 40% 이상에서 손을 떼자.\n완주 시간과 최고 기록에 도전!"
 	if TranslationServer.get_locale() == "en":
 		howto = HOWTO_EN
 	_load_art()
@@ -2309,7 +2307,7 @@ func _lang() -> void:
 	TranslationServer.set_locale("en")
 
 
-const HOWTO_EN := "Roll, Temple Stone!\nDrag to steer. Crush pots, dodge red!\nBigger = heavier. Too slow for 1.5s = out.\n\nA new button opens in each region:\nJUMP / SPLIT / HOLD / THROW\nGreen aim line → THROW to break purple crystal\nWhite striped snow = grow / yellow = melt\nFall off the aqueduct → hidden crystal cave!\nSPLIT = 1s dash: smash houses & ice walls\nBlue-capped towers: HOLD in mid-air to SLAM\n\nCurrents: HOLD or JUMP out of them.\nGolden pad: hold HOLD, then let go!\nReach the sea temple after 11 regions.\nGold 3:00 / Silver 4:00 / Bronze finish"
+const HOWTO_EN := "Roll, Temple Stone!\nDrag to steer. Crush pots, dodge red!\nBigger = heavier. Too slow 1.5s = out.\n\nA new button opens in each region.\nSPLIT = 1s dash through houses & ice\nBlue caps = HOLD in mid-air to SLAM\nGreen line = THROW at purple crystal\nWhite snow = grow / yellow = melt\n\nReach the sea temple! Gold 3:00 · Silver 4:00"
 
 const EN := {
 	# tofu.gd (공통 화면)
