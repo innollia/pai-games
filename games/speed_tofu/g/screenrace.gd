@@ -18,6 +18,8 @@ const DASH_T := 0.25
 const HW := 0.4
 const HH := 1.2
 const STEP := 0.55
+const RAMP_RUN := 1.8  # 경사로 길이 = 높이 × 이만큼
+const RAMP_DRAG := 14.0  # 오르막에서 더 깎이는 속도 (경사·짐 무게에 비례)
 const COYOTE := 0.1
 const JBUF := 0.12
 const CAM_D := 22.0
@@ -66,10 +68,10 @@ const MODE_RULES := {"base": "짐을 지키거나 버려서 앞서라", "lantern
 const RECORDS := "user://screenrace_v7.cfg"
 const SEG_RULES := {
 	"flat": "짐은 느림과 목숨 · 빈손 결승은 실격",
-	"stairs": "계단: 점프를 아껴 달려 올라가라",
-	"wall": "빨간 벽: 점프로 넘겨라", "pit": "빨간 틈: 끝에서 점프",
+	"stairs": "언덕: 짐이 무거우면 오르막이 느리다",
+	"wall": "빨간 벽: 점프로 넘어야 안 느려진다", "pit": "빨간 틈: 끝에서 점프",
 	"awning": "노란 발판: 위 지름길 / 아래 상자",
-	"crates": "상자: 앞사람 뒤에서 길을 읽어라",
+	"crates": "상자 경사: 뛰어넘으면 빠르다",
 	"river": "흐르는 바닥: 무거우면 덜 밀린다",
 	"track": "위 승강장 / 아래는 기차가 온다",
 	"bridge": "짐 3개 이상: 밟은 판이 무너진다",
@@ -94,7 +96,7 @@ const LESSONS := [
 	["bridge", "slide", "dropfloor", "dropfloor_mix"],
 	["ballast", "ballast_mix", "bridge", "shutter", "shutter_mix"],
 	["updraft", "updraft_mix", "roofgap", "dropfloor", "dropfloor_mix"]]
-const POOL_N := 100  # 코스 상자를 그리는 풀 (화면 근처만)
+const POOL_N := 140  # 코스 상자를 그리는 풀 (화면 근처만)
 const BITS_N := 12
 const COURSES := [
 	{"name": "시장", "rule": "", "say": "벽을 넘어라",
@@ -135,6 +137,7 @@ class Courier:
 	var v := Vector2.ZERO
 	var grounded := false
 	var sup := -1  # 밟은 것: 0 바닥 1 발판 3 흐르는 바닥
+	var slope := 0.0  # 밟은 경사 (+ 오른쪽 오르막)
 	var alive := true
 	var ai := true
 	var nick := ""
@@ -180,7 +183,10 @@ var rt := 0.0  # 라운드 시간
 var cdef: Dictionary
 var stage: Node3D
 var rects: Array[Rect2] = []
-var kinds := PackedInt32Array()
+var kinds := PackedInt32Array()  # 0 바닥 1 점프대 3 흐름 4 판 5 얼음 6 짐 문 7 차단문 8 경사로
+var ramp_of := {}  # 경사로 상자 번호 -> 1 오른쪽 오르막 / -1 오른쪽 내리막
+var ramp_hit_y := 0.0
+var decor_n := 0
 var buckets: Array = []
 var spots: Array[Vector2] = []  # 코스에 놓인 짐 자리
 var parcels: Array = []  # 땅에 있는 짐 (돌려 쓴다)
@@ -657,6 +663,8 @@ func _build_course() -> void:
 	cdef = COURSES[ci]
 	rects.clear()
 	kinds = PackedInt32Array()
+	ramp_of.clear()
+	decor_n = 0
 	spots.clear()
 	flows.clear()
 	trains.clear()
@@ -794,8 +802,8 @@ func _seg(s: String) -> void:
 			if s == "ballast_mix":
 				_solid(Rect2(gx + 7.0, fy - 0.3, 16.0, 0.3), B, 3)
 			else:
-				_solid(Rect2(gx + 11.0, fy, 1.2, 1.5), BAD, 0)
-				_solid(Rect2(gx + 18.0, fy, 1.2, 1.5), BAD, 0)
+				_bump(gx + 11.0, fy, 1.2, 1.5, BAD, 4.0, 2.6)
+				_bump(gx + 18.0, fy, 1.2, 1.5, BAD, 3.0, 4.0)
 			gx += 26.0
 		"updraft", "updraft_mix":
 			_floor(gx, 28.0)
@@ -803,8 +811,8 @@ func _seg(s: String) -> void:
 			for k in 4:
 				_vbox(Vector3(gx + 3.5 + k, fy + 2.0, -0.8), Vector3(0.12, 4.0, 0.12), WIND_C)
 			_plat(gx + 9.0, fy + 5.0, 12.0, GOOD)
-			_solid(Rect2(gx + 12.0, fy, 1.2, 1.8), BAD, 0)
-			_solid(Rect2(gx + 19.0, fy, 1.2, 1.8), BAD, 0)
+			_bump(gx + 12.0, fy, 1.2, 1.8, BAD, 3.5, 2.5)
+			_bump(gx + 19.0, fy, 1.2, 1.8, BAD, 3.2, 2.5)
 			if s == "updraft_mix":
 				# 위층의 낮은 문은 상승풍 입구에서 떨어뜨려 둔다.
 				_solid(Rect2(gx + 15.0, fy + 6.6, 5.0, 2.0), BAD, 0)
@@ -836,8 +844,8 @@ func _seg(s: String) -> void:
 				boards.append(bd)
 				board_of[rects.size() - 1] = bd
 			_plat(gx + 10.0, fy, 14.0, cdef.top)
-			_solid(Rect2(gx + 13.0, fy, 1.0, 1.8), BAD, 0)
-			_solid(Rect2(gx + 19.0, fy, 1.0, 1.8), BAD, 0)
+			_bump(gx + 13.0, fy, 1.0, 1.8, BAD, 2.8, 2.4)
+			_bump(gx + 19.0, fy, 1.0, 1.8, BAD, 2.6, 3.0)
 			if s == "dropfloor_mix":
 				_solid(Rect2(gx + 4.0, low - 0.2, 20.0, 0.2), ICE, 5)
 			# lower route becomes the next segment's floor; no invisible fatal pit.
@@ -849,18 +857,28 @@ func _seg(s: String) -> void:
 			_floor(gx, w)
 			if gen.randf() < 0.4:
 				spots.append(Vector2(gx + w * 0.5, fy))
+			if (cdef.rule == "" or cdef.rule == "dark") and w > 8.0 and int(gx) % 3 == 0:
+				_decor("market_stall", Vector3(gx + w * 0.5, fy, -3.4), 3.0)
 			gx += w
-		"stairs":
+		"stairs":  # 긴 언덕 하나: 오르막은 짐이 무거울수록 느리고, 내리막은 빨라진다
 			var up := fy < -1.0 or (fy < 4.0 and gen.randf() < 0.55)
-			for k in 5:
-				_floor(gx, 1.3)
-				gx += 1.3
-				fy += 0.5 if up else -0.5
+			var rise := 2.5
+			var ln := 6.5
+			if up:
+				_floor(gx, ln)
+				_ramp(gx, fy, ln, rise, 1, cdef.top, cdef.gnd.darkened(0.06))
+				fy += rise
+			else:
+				fy -= rise
+				_floor(gx, ln)
+				_ramp(gx, fy, ln, rise, -1, cdef.top, cdef.gnd.darkened(0.06))
+			gx += ln
 			_floor(gx, 3.0)
 			gx += 3.0
 		"wall":
 			_floor(gx, 9.0)
-			_solid(Rect2(gx + 4.0, fy, 0.9, gen.randf_range(1.3, 2.2)), wallc, 0)
+			# 앞 경사로: 걸어 오르면 느려지고 점프로 넘으면 속도를 지킨다. 과속 모드는 맞부딪혀 튕기는 벽 그대로.
+			_bump(gx + 4.0, fy, 0.9, gen.randf_range(1.3, 2.2), wallc, 0.0 if mode == "over" else 4.0, 4.1)
 			gx += 9.0
 		"pit":
 			_floor(gx, 2.0)
@@ -875,15 +893,17 @@ func _seg(s: String) -> void:
 			_plat(gx + 5.0, fy + 6.5, 17.0, wallc)
 			spots.append(Vector2(gx + 12.0, fy + 6.5))
 			_floor(gx + 4.0, 18.0)
-			_solid(Rect2(gx + 9.0, fy, 1.2, 1.1), wallc, 0)
-			_solid(Rect2(gx + 15.0, fy, 1.2, 1.6), wallc, 0)
+			_bump(gx + 9.0, fy, 1.2, 1.1, wallc, 3.0, 1.8)
+			_bump(gx + 15.0, fy, 1.2, 1.6, wallc, 2.9, 2.6)
 			gx += 22.0
 		"crates":
 			_floor(gx, 12.0)
-			_solid(Rect2(gx + 3.0, fy, 1.2, 1.0), wallc, 0)
-			_solid(Rect2(gx + 8.0, fy, 1.2, 1.7), wallc, 0)
+			_bump(gx + 3.0, fy, 1.2, 1.0, wallc, 2.8, 0.0)
+			_bump(gx + 8.0, fy, 1.2, 1.7, wallc, 2.6, 2.8)
 			if gen.randf() < 0.5:
-				spots.append(Vector2(gx + 6.0, fy))
+				spots.append(Vector2(gx + 4.9, fy))
+			if int(gx) % 2 == 0:
+				_decor("crate", Vector3(gx + 10.6, fy, -1.9), 1.1)
 			gx += 12.0
 		"river":  # 뒤로 흐르는 바닥 조각들, 사이는 물
 			for k in 3:
@@ -927,7 +947,7 @@ func _seg(s: String) -> void:
 				_solid(Rect2(x, fy - 0.8, w, 0.8), cdef.gnd.darkened(0.04), 0)
 				_vbox(Vector3(x + w * 0.5, fy - 0.08, 0), Vector3(w, 0.16, 2.5), cdef.top)
 				if not first and w > 5.0 and gen.randf() < 0.6:
-					_solid(Rect2(x + w * 0.5, fy, 1.1, gen.randf_range(1.0, 1.6)), BAD, 0)
+					_bump(x + w * 0.5, fy, 1.1, gen.randf_range(1.0, 1.6), BAD, w * 0.5 - 0.2, w * 0.5 - 1.3)
 				elif gen.randf() < 0.4:
 					spots.append(Vector2(x + w * 0.5, fy))
 				first = false
@@ -1002,7 +1022,7 @@ func _seg(s: String) -> void:
 			var ln := gen.randf_range(18.0, 24.0)
 			_floor(gx, ln)
 			gusts.append(Vector2(gx, gx + ln))
-			_solid(Rect2(gx + ln * 0.5, fy, 1.2, 1.1), BAD, 0)
+			_bump(gx + ln * 0.5, fy, 1.2, 1.1, BAD)
 			var wx := gx + 1.5
 			while wx < gx + ln:
 				_vbox(Vector3(wx, fy + 1.6, -1.5), Vector3(0.14, 3.2, 0.14), INK)
@@ -1040,6 +1060,55 @@ func _floor(x: float, w: float) -> void:
 
 func _plat(x: float, top: float, w: float, c: Color) -> void:
 	_solid(Rect2(x, top - 0.5, w, 0.5), c, 0, 2.0)
+	_vbox(Vector3(x + w * 0.5, top - 0.05, 0), Vector3(w + 0.06, 0.1, 2.08), c.lightened(0.4))
+
+
+## 장애물 상자 (윗면 밝은 테 + 앞면 어두운 판으로 덩어리처럼 안 보이게)
+func _block(rc: Rect2, c: Color, depth := 2.4) -> void:
+	_solid(rc, c, 0, depth)
+	var m := rc.get_center()
+	_vbox(Vector3(m.x, rc.end.y - 0.07, 0), Vector3(rc.size.x + 0.1, 0.14, depth + 0.1), c.lightened(0.45))
+	if rc.size.x > 0.5 and rc.size.y > 0.6:
+		_vbox(Vector3(m.x, m.y - 0.05, depth * 0.5), Vector3(rc.size.x - 0.3, rc.size.y - 0.4, 0.06), c.darkened(0.2))
+
+
+## 장애물 + 앞뒤 경사로. 걸어 오르면 느려지고(가파를수록·짐이 많을수록) 뛰어넘으면 속도를 지킨다.
+## front/back = 경사로를 놓을 수 있는 길이 (0이면 그쪽은 맞부딪히는 벽)
+func _bump(x: float, y: float, w: float, h: float, c: Color, front := 9.0, back := 9.0) -> void:
+	var rl := h * RAMP_RUN
+	if front >= 1.0:
+		var fl := minf(rl, front)
+		_ramp(x - fl, y, fl, h, 1, BOARD, BOARD.darkened(0.3))
+	if back >= 1.2:
+		var bl := minf(rl, back)
+		_ramp(x + w, y, bl, h, -1, BOARD, BOARD.darkened(0.3))
+	_block(Rect2(x, y, w, h), c)
+
+
+## 경사로: 바닥 y에서 x0..x0+w 동안 h만큼. dir 1 = 오른쪽으로 오르막, -1 = 오른쪽으로 내리막
+## 보이는 것: 기울어진 판 하나 + 판 밑을 채우는 받침 1~2개
+func _ramp(x0: float, y: float, w: float, h: float, dir: int, c: Color, fill: Color) -> void:
+	rects.append(Rect2(x0, y, w, h))
+	kinds.append(8)
+	ramp_of[rects.size() - 1] = dir
+	var a := atan2(h, w) * dir
+	var t := 0.24
+	var mid := Vector2(x0 + w * 0.5, y + h * 0.5) - Vector2(-sin(a), cos(a)) * t * 0.5
+	_vbox(Vector3(mid.x, mid.y, 0), Vector3(sqrt(w * w + h * h) + 0.06, t, 2.3), c, a)
+	var n := 3 if w > 3.0 else 2
+	var cw := w / n
+	for k in range(1, n):
+		var cx := x0 + cw * (k + 0.5) if dir > 0 else x0 + w - cw * (k + 0.5)
+		var ch := h * k / n - 0.06
+		_vbox(Vector3(cx, y + ch * 0.5, -0.1), Vector3(cw, ch, 2.1), fill)
+
+
+## 그림 장식 (충돌 없음). 코스마다 몇 개까지만
+func _decor(asset: String, pos: Vector3, height: float) -> void:
+	if decor_n >= 6:
+		return
+	if _art_model(asset, stage, pos, height):
+		decor_n += 1
 
 
 func _solid(rc: Rect2, c: Color, kind: int, depth := 2.4) -> void:
@@ -1050,8 +1119,8 @@ func _solid(rc: Rect2, c: Color, kind: int, depth := 2.4) -> void:
 
 
 ## 코스 상자 명세 하나 (실제 상자는 화면 근처일 때만 풀에서 빌린다)
-func _vbox(pos: Vector3, size: Vector3, c: Color) -> void:
-	vspecs.append([pos, size, c])
+func _vbox(pos: Vector3, size: Vector3, c: Color, rot := 0.0) -> void:
+	vspecs.append([pos, size, c, rot])
 	vslot.resize(vspecs.size())
 	vslot[vspecs.size() - 1] = -1
 
@@ -1072,6 +1141,7 @@ func _vis() -> void:
 			vslot[i] = k
 			var m := vpool[k]
 			m.position = p
+			m.rotation.z = sp[3]
 			m.scale = s
 			m.material_override = mat(sp[2])
 			m.visible = true
@@ -1633,6 +1703,11 @@ func _runner(r: Courier, dt: float) -> void:
 	r.immune = maxf(r.immune - dt, 0.0)
 	r.drop_cd = maxf(r.drop_cd - dt, 0.0)
 	var top := _top(r)
+	var up := r.slope * signf(r.v.x)  # + 오르막, - 내리막
+	if r.grounded and up > 0.0:
+		top *= maxf(1.0 - up * (0.5 + 0.1 * _weight(r)), 0.35)
+	elif r.grounded and up < 0.0:
+		top *= 1.0 - up * 0.3
 	var mx := r.mx
 	if r.stun > 0.0:
 		r.stun -= dt
@@ -1672,6 +1747,8 @@ func _runner(r: Courier, dt: float) -> void:
 	if r.dash > 0.0:
 		r.dash -= dt
 		r.v.x = maxf(r.v.x, 32.0 if _overpowered(r) else DASH_V)
+	if r.grounded and up > 0.0:  # 오르막: 딱 멈추지 않고 경사·짐만큼 깎인다
+		r.v.x = move_toward(r.v.x, 0.0, RAMP_DRAG * up * (1.0 + 0.2 * _weight(r)) * dt)
 	r.v.y = maxf(r.v.y - GRAV * dt, -MAX_FALL)
 	# 흐르는 바닥: 짐이 무거울수록 덜 밀린다
 	if r.grounded and r.sup == 3:
@@ -1682,6 +1759,7 @@ func _runner(r: Courier, dt: float) -> void:
 		_mx(r, r.v.x * dt * 0.5)
 		_my(r, r.v.y * dt * 0.5)
 	_probe(r)
+	_on_ramp(r, was_g)
 	if r.grounded and not was_g and vy0 < -6.0:
 		r.sq = clampf(-vy0 / 40.0, 0.15, 0.5)
 		if vy0 < -15.0 and absf(r.p.x - camx) < hwv + 2.0:
@@ -1725,7 +1803,43 @@ func _hard(i: int, r: Courier) -> bool:
 		return mechanisms[shutter_of[i]].t < 0.75
 	if k == 6:
 		return r != null and r.cargo > GATE_MAX
-	return true
+	return k != 8  # 경사로는 상자로 막지 않고 _on_ramp가 윗면에 올린다
+
+
+## 경사로 i의 x 위 윗면 높이
+func _ramp_y(i: int, x: float) -> float:
+	var q: Rect2 = rects[i]
+	var t := clampf((x - q.position.x) / q.size.x, 0.0, 1.0)
+	if ramp_of[i] < 0:
+		t = 1.0 - t
+	return q.position.y + q.size.y * t
+
+
+## 경사로 윗면에 발을 붙인다 (오르막은 밀려 올라가고, 내리막은 떨어지지 않고 따라 내려간다)
+func _on_ramp(r: Courier, was_g: bool) -> void:
+	r.slope = 0.0
+	if r.v.y > 0.5:
+		return
+	var best := -1.0e9
+	var bi := -1
+	for i in buckets[_bi(r.p.x)]:
+		if kinds[i] != 8:
+			continue
+		var q: Rect2 = rects[i]
+		if r.p.x < q.position.x or r.p.x > q.end.x:
+			continue
+		var sy := _ramp_y(i, r.p.x)
+		if r.p.y <= sy + (0.35 if was_g else 0.02) and r.p.y >= sy - 0.9 and sy > best:
+			best = sy
+			bi = i
+	if bi < 0 or (r.grounded and best < r.p.y - 0.02):
+		return
+	r.p.y = best
+	r.v.y = 0.0
+	r.grounded = true
+	r.sup = 0
+	var q: Rect2 = rects[bi]
+	r.slope = ramp_of[bi] * q.size.y / q.size.x
 
 
 func _mx(r: Courier, dx: float) -> void:
@@ -1804,7 +1918,7 @@ func _probe(r: Courier) -> void:
 	var ice := false
 	for b in range(_bi(f.position.x), _bi(f.end.x) + 1):
 		for i in buckets[b]:
-			if kinds[i] < 0 or kinds[i] == 6 or kinds[i] == 7:
+			if kinds[i] < 0 or kinds[i] == 6 or kinds[i] == 7 or kinds[i] == 8:
 				continue
 			var q: Rect2 = rects[i]
 			if q.intersects(f) and q.end.y <= r.p.y + 0.02:
@@ -1825,8 +1939,9 @@ func _floor_top(x: float, ymax: float) -> float:
 		if kinds[i] < 0 or kinds[i] == 6 or kinds[i] == 7:
 			continue
 		var q: Rect2 = rects[i]
-		if x > q.position.x and x < q.end.x and q.end.y <= ymax:
-			best_y = maxf(best_y, q.end.y)
+		var top := _ramp_y(i, x) if kinds[i] == 8 else q.end.y
+		if x > q.position.x and x < q.end.x and top <= ymax:
+			best_y = maxf(best_y, top)
 	return best_y
 
 
