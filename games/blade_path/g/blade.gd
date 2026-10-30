@@ -27,6 +27,9 @@ const BODY := [A, C, B, ME, INK]
 const BOSS_AT := 8  # 이 번째(0부터)부터 끝판왕
 const BOSS_HP := 9999
 const SLOW := 0.3
+const FIELD := Color("b8b07a")
+const REED := Color("c9b98a")
+const PLUME := Color("efe6d0")
 const FILE := "user://blade_path.json"
 ## 검객 종류 > 단 > [쉼, 빈틈, 연속기 목록]. 연속기 = [보이는 쪽, 진짜 쪽, 예비 시간]의 줄. 보이는 쪽≠진짜 쪽이면 반쯤에 바뀌는 속임수.
 const PAT := [
@@ -378,13 +381,36 @@ func _scenery() -> void:
 		box(Vector3(s * 2.8, 0.2, -3.5), Vector3(0.35, 4.2, 0.35), BAD)
 	box(Vector3(0, 2.4, -3.5), Vector3(7.0, 0.35, 0.5), BAD)
 	box(Vector3(0, 1.8, -3.5), Vector3(6.0, 0.2, 0.3), INK)
-	box(Vector3(0, -5.1, 0), Vector3(24, 6, 24), GOOD)
-	for p: Vector3 in [Vector3(-5, 0, -2), Vector3(5.5, 0, -3), Vector3(-6, 0, 2), Vector3(-4, 0, -9), Vector3(6, 0, -10)]:
-		box(p + Vector3(0, -1.3, 0), Vector3(0.35, 1.6, 0.35), INK)
-		box(p + Vector3(0, 0.3, 0), Vector3(1.4, 1.8, 1.4), GOOD)
+	box(Vector3(0, -5.1, 0), Vector3(24, 6, 24), FIELD)
+	_reeds()
 	for m: Vector3 in [Vector3(-12, 6, -45), Vector3(6, 10, -52), Vector3(20, 4, -42)]:
 		box(m, Vector3(16, m.y * 2.0 + 6.0, 4), B)
 		box(m + Vector3(0, m.y + 3.0, 0.2), Vector3(6, 2, 4), WHITE)
+
+
+## 갈대밭: 가운데 싸우는 자리는 비우고, 옅은 색 가는 줄기 + 이삭만. 칼 상자(빨강·초록)보다 눈에 안 띄게.
+func _reeds() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	# 외곽선 없는 재질: 가는 줄기에 검은 테두리가 붙으면 오히려 어지럽다
+	var stalk := StandardMaterial3D.new()
+	stalk.albedo_color = REED
+	var plume := StandardMaterial3D.new()
+	plume.albedo_color = PLUME
+	var placed := 0
+	while placed < 110:
+		var x := rng.randf_range(-11.0, 11.0)
+		var z := rng.randf_range(-14.0, 1.5)
+		if absf(x) < 3.4 and z > -5.0:
+			continue
+		placed += 1
+		var h := rng.randf_range(1.2, 2.4)
+		var r := Node3D.new()
+		r.position = Vector3(x, -2.1, z)
+		r.rotation.z = rng.randf_range(-0.18, 0.18)
+		world.add_child(r)
+		box(Vector3(0, h * 0.5, 0), Vector3(0.06, h, 0.06), REED, r).material_override = stalk
+		box(Vector3(0, h + 0.2, 0), Vector3(0.14, 0.4, 0.14), PLUME, r).material_override = plume
 
 
 ## n번째 검객을 만든다. 종류는 번갈아, 뒤로 갈수록 몸이 어둡고 머리 위 금장식이 늘어난다.
