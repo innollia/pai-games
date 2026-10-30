@@ -69,9 +69,12 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" && GIT_TERMINAL_PROMPT=
 - screenrace 원작 뼈대는 유지(장르 문법). deepsword는 별 3 규칙으로 수정.
 - **일격의 길(blade)과 파생작(blade_1p·blade_fp·blade_run)은 파이가 직접 한다** → speed_tofu 메뉴·smoke에서 뺐다. 다시 넣지 않는다. `games/blade_path`도 손대지 않는다.
 
-## 현재 적합도 상위 (FEEDBACK 19:35 기준)
+## 현재 상태 (6세대 끝, 10/31 새벽)
 
-별 5: boulder(v4), screenrace_over(v3). 별 4: overpower(v3), rain_slow(v3), scale_prison(v2), screenrace(v4). 4세대 자식: wheel_down, bounce_race, phase_runner, echo_bat, counterweight, lantern_race, tooslow_rpg. 다음 세대는 이들의 새 별점부터 본다.
+- 제출준비작(● 묶음, 각자 전담 세션 — 사용자가 직접 대화, 오케스트레이터는 손대지 않음): boulder v6(`ready-boulder`, 단독판 `games/shrine_stone`, 메뉴는 STANDALONE으로 넘김), screenrace v6(`ready-screenrace`).
+- 6세대 결과는 GA.md "6세대 적합도"·"유전 알고리즘 자체 수정". 다음 세대는 이들의 새 별점부터: overpower v5(다음 제출준비작 후보), phase_runner v2, tinyplanet v3, compress v2, quicksilver_fp v3, stretch_roll v3, counterweight v2, bombcrawl v2, deepsword v2, speed_snake v1, climb_race v1.
+- 퍼즐 방은 퍼즐 전담(Agent model fable, effort high)이 `PUZZLE_DESIGN.md`를 읽고 짠다. 큰 파일을 한 번에 쓰면 64k 출력 한도에 걸리니 "Edit 여러 번, 한 번에 300줄 이하"를 브리프에 넣는다.
+- smoke가 Godot 머리말만 찍고 멈추는 일이 두 번 있었다(다른 Godot 프로세스와 겹칠 때로 보임). 다시 돌리면 된다. 빌드 전 `Get-CimInstance Win32_Process`로 Godot이 안 도는지 본다(제출준비작 세션도 같은 web/을 빌드).
 
 ## 저장소 메모
 
