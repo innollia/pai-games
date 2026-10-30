@@ -28,6 +28,9 @@ const SHAKE_DUR := 0.28
 ## 본체가 바꿀 수 있는 것
 var base_fov := 60.0
 var own_fov := true  # false면 fov 를 안 건드림 (escape 당김도 꺼짐)
+## 폰 웹이면 가볍게: 속도선·조각·구름·꼬리·별 줄무늬를 반으로 (setup 전에 바꾸면 그 값으로)
+## (웹 폰은 "mobile" 대신 web_android/web_ios 만 켜지는 판도 있어 셋 다 본다)
+var low: bool = OS.has_feature("web") and (OS.has_feature("mobile") or OS.has_feature("web_android") or OS.has_feature("web_ios"))
 
 var game: Node
 var cam: Camera3D
@@ -71,7 +74,14 @@ var _q1 := PackedVector2Array([Vector2.ZERO, Vector2.ZERO, Vector2.ZERO, Vector2
 var _q2 := PackedVector2Array([Vector2.ZERO, Vector2.ZERO, Vector2.ZERO, Vector2.ZERO])
 var _q3 := PackedVector2Array([Vector2.ZERO, Vector2.ZERO, Vector2.ZERO, Vector2.ZERO])
 var _qc := PackedColorArray([Color.WHITE, Color.WHITE, Color.WHITE, Color.WHITE])
+var _no_uv := PackedVector2Array()
 var _drew := false
+# 품질에 따라 정해지는 개수 (setup 에서)
+var _n_lines := N_LINES
+var _n_trail := N_TRAIL
+var _n_stars := N_STARS
+var _tr_gap := 0.03  # 꼬리 점 사이 시간 (점이 반이면 두 배 → 꼬리 길이 같음)
+var _aa := true  # 속도선 안티에일리어스: 웹에선 선마다 폴리곤 버퍼를 새로 만들어 끈다
 
 # ---- 대표 장면 (escape) ----
 var _esc_t := -1.0
@@ -108,6 +118,13 @@ var _pf_c := PackedInt32Array()
 var _pf_o := PackedVector3Array()
 var _pf_s := PackedFloat32Array()
 var _pf_v := PackedFloat32Array()
+var _cl_p0 := PackedInt32Array()  # 구름마다 첫 조각 번호
+var _cl_pn := PackedInt32Array()  # 구름마다 조각 수
+var _cl_s := PackedFloat32Array()  # 구름마다 큰 조각 크기 (통째 가림 검사용)
+var _cl_groups := 2  # 구름을 몇 무리로 나눠 한 프레임에 한 무리만 고치나
+var _cl_frame := 0
+var _cl_clock := 0.0
+var _cl_last := PackedFloat32Array()
 
 
 func setup(g: Node) -> void:
@@ -115,6 +132,13 @@ func setup(g: Node) -> void:
 	cam = g.get("cam") as Camera3D
 	_fov_cur = base_fov
 	_rng.seed = 51207
+	_aa = not OS.has_feature("web")
+	if low:
+		_n_lines = int(N_LINES * 0.5)
+		_n_trail = int(N_TRAIL * 0.5)
+		_n_stars = int(N_STARS * 0.5)
+		_tr_gap = 0.06
+		_cl_groups = 3
 	_root = Node3D.new()
 	_root.name = "FxRoot"
 	add_child(_root)
@@ -154,12 +178,17 @@ func set_bodies(centers: PackedVector3Array, radii: PackedFloat32Array) -> void:
 	_pf_o.clear()
 	_pf_s.clear()
 	_pf_v.clear()
+	_cl_p0.clear()
+	_cl_pn.clear()
+	_cl_s.clear()
 	var n := mini(_bc.size(), _br.size())
 	for b in n:
 		var r: float = _br[b]
 		if r <= 0.0:
 			continue
 		var nc := 3 if r < 5.0 else (4 if r < 9.0 else 5)
+		if low:
+			nc = 2 if r < 9.0 else 3
 		var sgn := 1.0 if _rng.randf() < 0.5 else -1.0
 		for k in nc:
 			var ax := _rand_unit()
@@ -175,11 +204,14 @@ func set_bodies(centers: PackedVector3Array, radii: PackedFloat32Array) -> void:
 			_cl_w.append(sgn * _rng.randf_range(0.04, 0.09))
 			_cl_ang.append(_rng.randf() * TAU)
 			var s := clampf(r * 0.2, 0.8, 2.6)
+			_cl_p0.append(_pf_c.size())
+			_cl_s.append(s)
 			_add_puff(ci, Vector3.ZERO, s)
 			_add_puff(ci, Vector3(s * 1.05, -s * 0.18, _rng.randf_range(-0.3, 0.3) * s), s * 0.74)
 			_add_puff(ci, Vector3(-s * 0.95, -s * 0.22, _rng.randf_range(-0.3, 0.3) * s), s * 0.68)
-			if r >= 6.0:
+			if r >= 6.0 and not low:
 				_add_puff(ci, Vector3(s * 0.35, s * 0.5, 0.0), s * 0.62)
+			_cl_pn.append(_pf_c.size() - _cl_p0[ci])
 	if _clouds:
 		_clouds.queue_free()
 		_clouds = null
@@ -187,18 +219,22 @@ func set_bodies(centers: PackedVector3Array, radii: PackedFloat32Array) -> void:
 		return
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
-	mm.mesh = _lowpoly(9, 5, 1.0)
+	mm.mesh = _lowpoly(7, 4, 1.0) if low else _lowpoly(9, 5, 1.0)
 	mm.instance_count = _pf_c.size()
 	_clouds = MultiMeshInstance3D.new()
 	_clouds.multimesh = mm
 	var m := _toon(CREAM)
 	m.emission_enabled = true
 	m.emission = SKY * 0.22
+	if low:
+		m.disable_receive_shadows = true
 	# 외곽선은 뺀다: 멀티메시 + 늘린 기저에서 외곽선 껍질이 부풀어 웹에서 검은 덩어리로 보였다
 	_clouds.material_override = m
 	_clouds.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_root.add_child(_clouds)
-	_clouds_step(0.0)
+	_cl_last.resize(_cl_groups)
+	_cl_last.fill(_cl_clock)
+	_clouds_update(0, 1, 0.0)  # 처음엔 전부 한 번
 
 
 func _add_puff(ci: int, o: Vector3, s: float) -> void:
@@ -265,29 +301,6 @@ func _flat(col: Color) -> StandardMaterial3D:
 	return m
 
 
-## 잉크 외곽선 (tofu.gd 외곽선과 같은 굵기 규칙, 둥근 모양이라 가운데에서 바깥으로 민다)
-func _outline_mat() -> ShaderMaterial:
-	var sh := Shader.new()
-	sh.code = """
-shader_type spatial;
-render_mode unshaded, cull_front, shadows_disabled;
-uniform vec4 ink : source_color = vec4(0.169, 0.176, 0.259, 1.0);
-void vertex() {
-	vec3 sc = vec3(length(MODEL_MATRIX[0].xyz), length(MODEL_MATRIX[1].xyz), length(MODEL_MATRIX[2].xyz));
-	vec3 wp = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
-	float d = distance(wp, (INV_VIEW_MATRIX * vec4(0.0, 0.0, 0.0, 1.0)).xyz);
-	float th = clamp(d * 0.006, 0.015, 0.6);
-	VERTEX += normalize(VERTEX + vec3(0.0001)) * th / max(sc, vec3(0.0001));
-}
-void fragment() {
-	ALBEDO = ink.rgb;
-}
-"""
-	var m := ShaderMaterial.new()
-	m.shader = sh
-	return m
-
-
 func _scale_curve() -> Curve:
 	var c := Curve.new()
 	c.add_point(Vector2(0.0, 1.0))
@@ -308,7 +321,7 @@ func _parts(mesh: Mesh, m: Material, amount: int, life: float) -> CPUParticles3D
 	var p := CPUParticles3D.new()
 	p.mesh = mesh
 	p.material_override = m
-	p.amount = amount
+	p.amount = maxi(4, int(amount * 0.5)) if low else amount
 	p.lifetime = life
 	p.local_coords = false
 	p.scale_amount_curve = _scale_curve()
@@ -322,6 +335,7 @@ func _make_particles() -> void:
 	var chunk := _lowpoly(4, 2, 0.5)
 	var vm := _toon(Color.WHITE)
 	vm.vertex_color_use_as_albedo = true
+	vm.disable_receive_shadows = true  # 작은 조각엔 그림자 받기 필요 없음 (조각마다 그림자 샘플 아낌)
 	# 발 먼지: 땅에서 빠를 때 발뒤로 크림색 조각
 	_dust = _parts(chunk, vm, 26, 0.5)
 	_dust.direction = Vector3(0.0, 0.7, 1.0)
@@ -376,9 +390,9 @@ func _make_trail() -> void:
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	mm.use_colors = true
 	mm.mesh = _lowpoly(6, 3, 1.0)
-	mm.instance_count = N_TRAIL
-	for i in N_TRAIL:
-		mm.set_instance_color(i, YEL.lerp(CREAM, float(i) / float(N_TRAIL)))
+	mm.instance_count = _n_trail
+	for i in _n_trail:
+		mm.set_instance_color(i, YEL.lerp(CREAM, float(i) / float(_n_trail)))
 	_trail = MultiMeshInstance3D.new()
 	_trail.multimesh = mm
 	var m := _flat(Color.WHITE)
@@ -387,7 +401,7 @@ func _make_trail() -> void:
 	_trail.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_trail.visible = false
 	_root.add_child(_trail)
-	_tr.resize(N_TRAIL)
+	_tr.resize(_n_trail)
 
 
 func _make_stars() -> void:
@@ -397,8 +411,8 @@ func _make_stars() -> void:
 	var bm := BoxMesh.new()
 	bm.size = Vector3(0.12, 0.12, 1.0)
 	mm.mesh = bm
-	mm.instance_count = N_STARS
-	for i in N_STARS:
+	mm.instance_count = _n_stars
+	for i in _n_stars:
 		mm.set_instance_color(i, YEL if i % 3 == 0 else CREAM)
 	_stars = MultiMeshInstance3D.new()
 	_stars.multimesh = mm
@@ -408,7 +422,7 @@ func _make_stars() -> void:
 	_stars.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_stars.visible = false
 	_root.add_child(_stars)
-	_st_p.resize(N_STARS)
+	_st_p.resize(_n_stars)
 
 
 # ---- 매 프레임 ----
@@ -461,7 +475,9 @@ func _cam_step(rdt: float) -> void:
 		if _have and not _paused:
 			tgt += FOV_LIFT * clampf(_lift, 0.0, 1.0)
 		_fov_cur = lerpf(_fov_cur, tgt, minf(1.0, rdt * 3.0))
-		cam.fov = minf(FOV_MAX, _fov_cur + _esc_fov)
+		var fv := minf(FOV_MAX, _fov_cur + _esc_fov)
+		if absf(cam.fov - fv) > 0.005:  # 그대로면 투영 다시 계산 안 함
+			cam.fov = fv
 	if _shake > 0.0:
 		_shake -= rdt
 		var k := maxf(_shake, 0.0) / SHAKE_DUR
@@ -501,7 +517,7 @@ func _dust_step() -> void:
 
 func _trail_fill() -> void:
 	var hp := _pos + _up * 0.7
-	for i in N_TRAIL:
+	for i in _n_trail:
 		_tr[i] = hp
 
 
@@ -515,30 +531,32 @@ func _trail_step(dt: float) -> void:
 	if not _trail.visible:
 		_trail.visible = true
 	_tr_clock += dt
-	if want > 0.0 and _tr_clock >= 0.03:
+	if want > 0.0 and _tr_clock >= _tr_gap:
 		_tr_clock = 0.0
-		_tr_head = (_tr_head + 1) % N_TRAIL
+		_tr_head = (_tr_head + 1) % _n_trail
 		_tr[_tr_head] = _pos + _up * 0.7
 	var cp := cam.global_position if cam else Vector3(0, 9999, 0)
 	var mm := _trail.multimesh
-	for i in N_TRAIL:
-		var idx := (_tr_head - i + N_TRAIL) % N_TRAIL
-		var wp: Vector3 = _tr[idx]
-		var sz := 0.24 * (1.0 - float(i) / float(N_TRAIL)) * _trail_k
-		if wp.distance_to(cp) < 2.5:
+	var nt := _n_trail
+	var inv := 1.0 / float(nt)
+	var k0 := 0.24 * _trail_k
+	for i in nt:
+		var wp: Vector3 = _tr[(_tr_head - i + nt) % nt]
+		var sz := k0 * (1.0 - float(i) * inv)
+		if wp.distance_squared_to(cp) < 6.25:
 			sz = 0.0
 		mm.set_instance_transform(i, Transform3D(Basis.from_scale(Vector3.ONE * maxf(sz, 0.001)), wp))
 
 
 ## 영향권 밖을 날 때: 멀리 작은 별이 속도 반대로 길게 (나를 둘러싼 상자 안에서 감아 돈다)
 func _stars_step(dt: float) -> void:
-	var far := 99.0
-	for b in mini(_bc.size(), _br.size()):
-		var r: float = _br[b]
-		if r > 0.0:
-			far = minf(far, _pos.distance_to(_bc[b]) / r)
 	var want := 0.0
-	if _flying and not _grounded and not _paused:
+	if _flying and not _grounded and not _paused:  # 별까지 거리는 날 때만 잰다
+		var far := 99.0
+		for b in mini(_bc.size(), _br.size()):
+			var r: float = _br[b]
+			if r > 0.0:
+				far = minf(far, _pos.distance_to(_bc[b]) / r)
 		want = clampf((far - 2.1) / 0.8, 0.0, 1.0) * clampf(_speed / _top, 0.3, 1.0)
 	_streak_k = move_toward(_streak_k, want, dt * 2.0)
 	if _streak_k <= 0.01:
@@ -547,7 +565,7 @@ func _stars_step(dt: float) -> void:
 		return
 	if not _stars.visible:
 		_stars.visible = true
-		for i in N_STARS:
+		for i in _n_stars:
 			_st_p[i] = _pos + Vector3(_rng.randf_range(-1, 1), _rng.randf_range(-1, 1), _rng.randf_range(-1, 1)) * STAR_BOX
 	var vd := _vel.normalized() if _speed > 0.5 else _fwd.normalized()
 	if vd.length() < 0.5:
@@ -561,53 +579,86 @@ func _stars_step(dt: float) -> void:
 	var cp := cam.global_position if cam else _pos
 	var mm := _stars.multimesh
 	var bx := STAR_BOX * 2.0
-	for i in N_STARS:
+	# 보이는 별/숨긴 별 기저 두 개만 미리 만든다
+	var b_on := Basis(bas.x * maxf(w, 0.001), bas.y * maxf(w, 0.001), bas.z * maxf(ln, 0.001))
+	var b_off := Basis.from_scale(Vector3.ONE * 0.001)
+	for i in _n_stars:
 		var rel: Vector3 = _st_p[i] - _pos
 		rel = Vector3(fposmod(rel.x + STAR_BOX, bx) - STAR_BOX, fposmod(rel.y + STAR_BOX, bx) - STAR_BOX, fposmod(rel.z + STAR_BOX, bx) - STAR_BOX)
 		var wp := _pos + rel
 		_st_p[i] = wp
-		var k := w
-		if rel.length() < 12.0 or wp.distance_to(cp) < 9.0:
-			k = 0.0
-		mm.set_instance_transform(i, Transform3D(Basis(bas.x * maxf(k, 0.001), bas.y * maxf(k, 0.001), bas.z * maxf(ln * k / maxf(w, 0.01), 0.001)), wp))
+		var off := rel.length_squared() < 144.0 or wp.distance_squared_to(cp) < 81.0
+		mm.set_instance_transform(i, Transform3D(b_off if off else b_on, wp))
 
 
 ## 별마다 큰 흰 로우폴리 구름이 천천히 돈다. 카메라와 나 사이를 막거나 카메라에 너무 가까우면 쏙 줄어든다
+## 구름은 아주 천천히 돌아서(초당 0.04~0.09 rad) 매 프레임 다 고칠 필요가 없다:
+## _cl_groups 무리로 나눠 한 프레임에 한 무리만, 그 무리가 쉰 시간만큼 한꺼번에 돌린다 (튀는 프레임 없이 고르게)
 func _clouds_step(dt: float) -> void:
 	if _clouds == null:
 		return
-	for ci in _cl_ang.size():
-		_cl_ang[ci] += _cl_w[ci] * dt
+	_cl_clock += dt
+	var g := _cl_frame % _cl_groups
+	_cl_frame += 1
+	var gdt: float = _cl_clock - _cl_last[g]
+	_cl_last[g] = _cl_clock
+	_clouds_update(g, _cl_groups, gdt)
+
+
+func _clouds_update(first: int, stride: int, dt: float) -> void:
 	var has_cam := cam != null and is_instance_valid(cam)
 	var cp := cam.global_position if has_cam else Vector3(0, 9999, 0)
 	var seg := _pos - cp
 	var sl2 := maxf(seg.length_squared(), 0.0001)
+	var test_seg := has_cam and _have
+	var fade := dt * 3.0
 	var mm := _clouds.multimesh
-	for pi in _pf_c.size():
-		var ci: int = _pf_c[pi]
+	var nc := _cl_ang.size()
+	var ci := first
+	while ci < nc:
+		var ang: float = _cl_ang[ci] + _cl_w[ci] * dt
+		_cl_ang[ci] = ang
 		var ax: Vector3 = _cl_ax[ci]
-		var dir: Vector3 = _cl_ref[ci].rotated(ax, _cl_ang[ci])
+		var dir: Vector3 = _cl_ref[ci].rotated(ax, ang)
 		var tg := ax.cross(dir)
-		var o: Vector3 = _pf_o[pi]
 		var ctr: Vector3 = _bc[_cl_b[ci]]
-		var wp := ctr + dir * _cl_r[ci] + tg * o.x + dir * o.y + ax * o.z
-		var sz: float = _pf_s[pi]
-		var want := 1.0
+		var cc := ctr + dir * _cl_r[ci]
+		# 구름 통째로 카메라·시선에서 멀면 조각마다 가림 검사를 안 한다
+		# (조각은 구름 가운데서 1.12s 안, 조각 크기 <= s 라 2.2s 여유면 안전)
+		var near := false
 		if has_cam:
-			if wp.distance_to(cp) < sz + 3.5:
-				want = 0.0
-			elif _have:
-				var tt := clampf((wp - cp).dot(seg) / sl2, 0.0, 1.0)
-				if wp.distance_to(cp + seg * tt) < sz * 1.3 + 1.8:
+			var s0: float = _cl_s[ci]
+			var rb := s0 * 2.2
+			if cc.distance_to(cp) < rb + s0 + 3.5:
+				near = true
+			elif test_seg:
+				var t0 := clampf((cc - cp).dot(seg) / sl2, 0.0, 1.0)
+				near = cc.distance_to(cp + seg * t0) < rb + s0 * 1.3 + 1.8
+		var p0: int = _cl_p0[ci]
+		for pi in range(p0, p0 + _cl_pn[ci]):
+			var o: Vector3 = _pf_o[pi]
+			var wp := cc + tg * o.x + dir * o.y + ax * o.z
+			var sz: float = _pf_s[pi]
+			var want := 1.0
+			if near:
+				if wp.distance_to(cp) < sz + 3.5:
 					want = 0.0
-		var vv := move_toward(_pf_v[pi], want, dt * 3.0)
-		_pf_v[pi] = vv
-		var e := vv * vv * (3.0 - 2.0 * vv)
-		if e < 0.02:
-			mm.set_instance_transform(pi, Transform3D(Basis.from_scale(Vector3.ONE * 0.001), ctr))
-			continue
-		var sc := sz * e
-		mm.set_instance_transform(pi, Transform3D(Basis(tg * sc * 1.3, dir * sc * 0.82, ax * sc * 1.1), wp))
+				elif test_seg:
+					var tt := clampf((wp - cp).dot(seg) / sl2, 0.0, 1.0)
+					if wp.distance_to(cp + seg * tt) < sz * 1.3 + 1.8:
+						want = 0.0
+			var v0: float = _pf_v[pi]
+			var vv := move_toward(v0, want, fade)
+			if vv == 0.0 and v0 == 0.0:
+				continue  # 이미 숨겨 둔 조각은 그대로 (버퍼도 안 건드림)
+			_pf_v[pi] = vv
+			var e := vv * vv * (3.0 - 2.0 * vv)
+			if e < 0.02:
+				mm.set_instance_transform(pi, Transform3D(Basis.from_scale(Vector3.ONE * 0.001), ctr))
+				continue
+			var sc := sz * e
+			mm.set_instance_transform(pi, Transform3D(Basis(tg * sc * 1.3, dir * sc * 0.82, ax * sc * 1.1), wp))
+		ci += stride
 
 
 # ---- 화면 겹 그림 ----
@@ -625,7 +676,7 @@ func _overlay_step(rdt: float) -> void:
 	var kk := maxf(_lines_k, _burst_k)
 	if kk > 0.01:
 		var adv := rdt * (0.9 + 2.4 * kk)
-		for i in N_LINES:
+		for i in _n_lines:
 			var tt: float = _ln_t[i] + adv * _ln_v[i]
 			if tt >= 1.0:
 				tt -= 1.0
@@ -688,10 +739,11 @@ func _edge(sz: Vector2, col: Color, a: float, w0: float) -> void:
 	_q3[1] = Vector2(0, 0)
 	_q3[2] = Vector2(w, w)
 	_q3[3] = Vector2(w, H - w)
-	_ov.draw_polygon(_q0, _qc)
-	_ov.draw_polygon(_q1, _qc)
-	_ov.draw_polygon(_q2, _qc)
-	_ov.draw_polygon(_q3, _qc)
+	# draw_polygon 은 그릴 때마다 GL 버퍼를 새로 만든다(호환 렌더러) → 4점 primitive 는 배치로 묶여 싸다
+	_ov.draw_primitive(_q0, _qc, _no_uv)
+	_ov.draw_primitive(_q1, _qc, _no_uv)
+	_ov.draw_primitive(_q2, _qc, _no_uv)
+	_ov.draw_primitive(_q3, _qc, _no_uv)
 
 
 ## 속도선: 화면 가장자리에서 가운데로 모이지만 가운데 타원(점선·나)은 늘 비워 둔다
@@ -702,17 +754,21 @@ func _draw_lines(sz: Vector2) -> void:
 	var c := sz * 0.5
 	var inner := lerpf(0.8, 0.6, k)
 	var lenk := (0.1 + 0.22 * k) * (1.35 if _flying else 1.0)
-	for i in N_LINES:
+	var wk := 0.6 + 0.7 * k
+	var ak := k * 0.6
+	for i in _n_lines:
 		var tt: float = _ln_t[i]
 		var ro := 1.3 - tt * (1.3 - inner)
 		var ri := maxf(inner, ro - lenk)
 		if ro - ri < 0.01:
 			continue
-		var a := sin(tt * PI) * k * 0.6
+		var a := sin(tt * PI) * ak
+		if a < 0.02:
+			continue  # 안 보일 만큼 옅은 선은 건너뜀
 		var ang: float = _ln_a[i]
 		var d := Vector2(cos(ang) * c.x, sin(ang) * c.y)
-		var wd: float = _ln_w[i]
-		_ov.draw_line(c + d * ro, c + d * ri, Color(CREAM, a), wd * (0.6 + 0.7 * k), true)
+		# 안티에일리어스 선은 선마다 폴리곤(GL 버퍼)을 만든다 → 웹에선 끄고 배치되는 사각형으로
+		_ov.draw_line(c + d * ro, c + d * ri, Color(CREAM, a), _ln_w[i] * wk, _aa)
 
 
 # ---- 일 ----

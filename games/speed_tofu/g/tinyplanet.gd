@@ -3,7 +3,9 @@ extends Tofu
 ## 나는 [작은 별들 사이를 맨몸으로 건너는 여행자]로서 [달린 속도와 점프 순간이 곧 비행 궤도가 되는 몸] 속에서 [별 주민들의 부탁을 별과 별 사이로 날라 주]지만 [느리면 못 떠나고, 각도가 틀리면 우주로 떠내려가고, 쿵 내려앉으면 유리가 깨지는 것]을 감수한다.
 ## 별: 1 풍차(바람 달리기 → 돛, 노란 줄로 첫 비행) → 2 우편(소포를 굴뚝 달의 담 친 집에 공중에서 놓기) → 3 유리꽃(꽃을 들고 친구 달로, 빙 돌다 살살 착지) → 4 노을(얼음 위 속도 맞추기 → 유리 덮개) → 5 장미(빨간 바위 띠를 불 별 중력 새총으로 돌아 덮개를 살살).
 ## v5 겉모습: 상자 대신 로우폴리. 별은 각진 공(icosphere), 사람·소품은 art/tinyplanet/<이름>.glb+png(없으면 코드가 만든 로우폴리).
-## 대사는 DL(Gemini가 쓴 dialogue.json을 박아 넣음), 소리는 art/tinyplanet_sfx/*.wav(nkido), 기기 언어가 한국어가 아니면 영어.
+## 대사는 DL(Gemini가 쓴 dialogue.json을 박아 넣음), 소리는 art/tinyplanet_sfx/*.wav(nkido).
+## v6 "어린 배달부 / The Little Courier": 영어가 기본(?lang=ko 또는 시작 화면 전환 → set_lang). 캡슐 막대, 작은 말풍선(아래쪽, 3~4초),
+## 튜토리얼 없음(첫 판 안내 한 줄), 첫 별 바위 없음, 값싼 동그란 그림자, 하트는 잃을 때만, 다른 별 가기 쉽게(끌어당김·탈출 도움), 높이 날면 순항 속도.
 
 const TOP := 12.5  # 땅에서 낼 수 있는 최고 속도
 const ACC := 7.0
@@ -12,7 +14,13 @@ const AIRJUMP := 4.5
 const LAND_K := 0.55  # 착지 때 남는 접선 속도 비율
 const GREY := Color("c9ccd1")
 const NM := 4  # 운석 칸
-const ND := 18  # 앞길 점선 칸
+const ND := 24  # 앞길 점선 칸 (v6: 18 → 24, 5.5초 앞까지)
+const CRUISE := 9.5  # v6: 높이 떠서 날 때 이 빠르기 밑으로는 안 느려진다
+const HOME_A := 1.8  # v6: 앞으로 가장 가까이 지나갈 별 쪽으로 살짝 끄는 힘 (속도 크기는 그대로, 방향만)
+const HEART_T := 2.0  # 하트가 보이는 시간
+const BUB_BOTTOM := 940.0  # 말풍선 아래 끝 (조작 키트 바로 위)
+const RESTART_TXT := ["< 처음부터", "< Restart", "< Start over"]  # 단독판 tofu 의 왼쪽 위 버튼 (v6: 숨김)
+const CFG_BODY := "user://tinyplanet_body.cfg"  # 첫 판 안내를 봤나
 const START := Vector3(1, 0, 0)
 const NPC_D := Vector3(1, 0.12, -0.35)
 const HOME_D := Vector3(1, -0.2, -0.22)  # 맡길 물건이 놓인 곳
@@ -114,7 +122,6 @@ var shake := 0.0
 var clock := 0.0
 var fly_t := 0.0
 var atm_t := 0.0
-var trip_cd := 0.0
 var bump_cd := 0.0
 var tower_cd := 0.0
 var rng := RandomNumberGenerator.new()
@@ -149,8 +156,7 @@ var fall_v := 0.0
 # 별마다 다른 것
 var blades: Node3D  # 풍차
 var wind_t := 0.0
-var rocks: Array = []  # [방향, 상자] (풍차의 별)
-var rings := {}  # 별 번호 -> {c, r, gap, e1, e2, walls}
+var rings := {}  # 별 번호 -> {c, r, gap, e1, e2, mm(담 MultiMesh), n, h}
 var ring_in := false
 var gap_a := 0.0
 var band_a := 0.6  # 노을 띠 경도
@@ -166,13 +172,47 @@ var msh: Array[MeshInstance3D] = []
 var spawn_t := 0.0
 # 말풍선·부탁 막대
 var hud2: CanvasLayer
-var bub: Control
+var bub: Control  # v6: 작은 크림 말풍선 (아래쪽, 글 크기에 맞춤)
+var bub_bg: Panel
+var bub_sh: Panel
+var bub_n: Label  # 말하는 사람 (작게, 색)
 var bub_l: Label
 var bub_t := 0.0
 var bub_s := ""
-var pbar_bg: ColorRect
-var pbar: ColorRect
+var bub_who := ""
+var bub_age := 0.0
+var nag := {}  # 상황 말 번호 -> 다시 해도 되는 시각 (같은 잔소리 반복 없음)
+var pbar_bg: Panel
+var pbar: Panel
+var pbar_sb: StyleBoxFlat
 var sim_pts := PackedVector3Array()
+# v6: 캡슐 에너지 막대, 하트, 그림자, 점선(MultiMesh), 단독판 왼쪽 위 버튼
+var gauge_bg: Panel
+var gauge_fill: Panel
+var gauge_sb: StyleBoxFlat
+var _g_col := Color(0, 0, 0, 0)
+var heart_t := 0.0
+var heart_lost := -1
+var shadow_me: MeshInstance3D
+var _shv := PackedVector3Array()  # 움직이지 않는 그림자 (한 메시로 합친다)
+var _shu := PackedVector2Array()
+var _shi := PackedInt32Array()
+var _sf_n := Vector3.UP  # _srn 이 찾은 면 방향
+var dots_mm: MultiMesh
+var _dot_mesh: Mesh
+var sim_cd := 0
+var sim_res := -1
+var sim_show := false
+var _back_l: Label
+var _back_hid := false
+var _st := {}  # _state 가 매 프레임 다시 쓰는 사전 (새로 만들지 않는다)
+var ob_k := -1  # 이번 프레임 갈 곳 (_obj)
+var ob_d := Vector3.ZERO
+var _band_last := -99.0
+var _band_on := false
+var _item_key := ""
+var _item_q := -1.0
+static var _lang_pick := ""  # set_lang 으로 고른 언어 ("ko"/"en"), 이 탭이 열려 있는 동안
 # v5 도우미: 시작 화면·튜토리얼·끝 화면(ui), 속도감·연출(fx). submit/tinyplanet/MODULES.md 약속
 const UI_GD := preload("res://g/tinyplanet_ui.gd")
 const FX_GD := preload("res://g/tinyplanet_fx.gd")
@@ -181,12 +221,13 @@ var fx: FX_GD
 var _bodies_on := false  # fx.set_bodies 는 한 번
 var _stepped := false  # 이번 프레임 _step 이 돌았나 (안 돌면 _process 가 대신 tick)
 var _title_was := false
+var bfire := PackedByteArray()  # 별마다 불 별인가 (비행 도움이 매 단계 사전을 안 읽게)
 
 
 func _setup() -> void:
 	_lang()
 	time_limit = 0.0
-	howto = ""  # 옛 설명 카드 대신 ui 튜토리얼
+	howto = ""  # 설명 카드·튜토리얼 없음 (v6: 첫 판에만 말풍선 안내 한 줄)
 	ui = UI_GD.new()
 	add_child(ui)
 	ui.setup(self)
@@ -216,48 +257,83 @@ func _setup() -> void:
 		w.loop_end = int(w.get_length() * w.mix_rate) - 1
 		wind_pl.stream = w
 	wind_pl.volume_db = -60.0
-	# 말풍선: 화면 위 흰 상자 (이름: 대사)
+	# 단독판의 "< 처음부터"는 숨긴다 (메뉴판 "< 메뉴"·목록에서 온 "< 목록"은 그대로). 글자는 번역 전 키라 한국어로 찾힌다
+	_back_l = _find_back(self)
 	hud2 = CanvasLayer.new()
 	hud2.layer = 4
 	add_child(hud2)
+	# 에너지 막대: 양 끝이 둥근 캡슐 (크림 바탕·잉크 테두리·아래 그림자), 채움도 캡슐. tofu 의 네모 막대는 안 쓴다
+	gauge_bg = _capsule(hud2, Rect2(60, 190, 600, 40), CREAM, 5, NAVY)
+	var gsh := _capsule(gauge_bg, Rect2(0, 6, 600, 40), Color(NAVY, 0.4), 0, NAVY)
+	gsh.show_behind_parent = true
+	gauge_fill = _capsule(gauge_bg, Rect2(8, 8, 26, 24), Color("ffd166"), 0, NAVY)
+	gauge_sb = gauge_fill.get_theme_stylebox("panel") as StyleBoxFlat
+	gauge_bg.visible = false
+	# 부탁 막대 (풍차 바람·노을 띠·유리 금): 막대 아래 가는 캡슐
+	pbar_bg = _capsule(hud2, Rect2(110, 242, 500, 20), CREAM, 3, NAVY)
+	pbar = _capsule(pbar_bg, Rect2(4, 4, 12, 12), Color("ffd166"), 0, NAVY)
+	pbar_sb = pbar.get_theme_stylebox("panel") as StyleBoxFlat
+	pbar_bg.visible = false
+	_bub_build()
+
+
+## 둥근 판 (모서리 = 높이/2 → 캡슐). bw > 0 이면 잉크 테두리
+func _capsule(parent: Node, rc: Rect2, fill: Color, bw: int, line: Color, rad := -1) -> Panel:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = fill
+	sb.set_corner_radius_all(int(rc.size.y * 0.5) if rad < 0 else rad)
+	sb.corner_detail = 10
+	sb.anti_aliasing = true
+	if bw > 0:
+		sb.set_border_width_all(bw)
+		sb.border_color = line
+	var pn := Panel.new()
+	pn.add_theme_stylebox_override("panel", sb)
+	pn.position = rc.position
+	pn.size = rc.size
+	pn.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(pn)
+	return pn
+
+
+## 말풍선: 크림 판(모서리 22, 잉크 테두리 4, 아래 5px 잉크 40% 그림자) + 이름(작게, 색) + 말. 크기는 글에 맞춰 _bub_layout 이 정한다
+func _bub_build() -> void:
 	bub = Control.new()
 	bub.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bub.visible = false
 	hud2.add_child(bub)
-	var edge := ColorRect.new()
-	edge.color = NAVY
-	edge.position = Vector2(30, 262)
-	edge.size = Vector2(660, 176)
-	edge.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	bub.add_child(edge)
-	var inner := ColorRect.new()
-	inner.color = WHITE
-	inner.position = Vector2(36, 268)
-	inner.size = Vector2(648, 164)
-	inner.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	bub.add_child(inner)
-	var tail := ColorRect.new()
-	tail.color = WHITE
-	tail.position = Vector2(330, 430)
-	tail.size = Vector2(36, 26)
-	tail.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	bub.add_child(tail)
-	bub_l = _label(bub, 34, 276, 150)
-	bub_l.label_settings.outline_size = 0
-	bub_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	bub_l.position.x = 54
-	bub_l.size.x = 612
-	bub_l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	pbar_bg = ColorRect.new()
-	pbar_bg.color = NAVY
-	pbar_bg.position = Vector2(60, 236)
-	pbar_bg.size = Vector2(600, 18)
-	pbar_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hud2.add_child(pbar_bg)
-	pbar = ColorRect.new()
-	pbar.position = Vector2(3, 3)
-	pbar.size = Vector2(0, 12)
-	pbar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	pbar_bg.add_child(pbar)
+	bub_sh = _capsule(bub, Rect2(0, 5, 100, 60), Color(NAVY, 0.4), 0, NAVY, 22)
+	bub_bg = _capsule(bub, Rect2(0, 0, 100, 60), CREAM, 4, NAVY, 22)
+	bub_n = _bub_label(22, NAVY)
+	bub_l = _bub_label(28, NAVY)
+	bub_l.autowrap_mode = TextServer.AUTOWRAP_WORD
+
+
+func _bub_label(fs: int, col: Color) -> Label:
+	var s := LabelSettings.new()
+	s.font = _font
+	s.font_size = fs
+	s.font_color = col
+	s.line_spacing = 2.0
+	var l := Label.new()
+	l.label_settings = s
+	l.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED  # 이미 번역한 글
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bub.add_child(l)
+	return l
+
+
+func _find_back(n: Node) -> Label:
+	for c in n.get_children():
+		if c is Label:
+			var tx := (c as Label).text
+			if tx in RESTART_TXT or tx == "< 메뉴":
+				return c as Label
+		if c is CanvasLayer:
+			var r := _find_back(c)
+			if r:
+				return r
+	return null
 
 
 func _basis(up: Vector3) -> Basis:
@@ -335,6 +411,7 @@ func _reset() -> void:
 	bmu.clear()
 	bsoi.clear()
 	batm.clear()
+	bfire.clear()
 	for k in BD.size():
 		var d: Dictionary = BD[k]
 		var r: float = d.r
@@ -342,8 +419,10 @@ func _reset() -> void:
 		br.append(r)
 		bg.append(d.g)
 		bmu.append(float(d.g) * r * r)
-		bsoi.append(16.0 if d.kind == "fire" else maxf(2.2 * r, 12.0))
-		batm.append(0.0 if d.kind == "fire" else maxf(1.6 * r, r + 4.0))
+		# v6: 작은 별·달의 끄는 둘레 12 → 13.5, 대기 1.6R → 1.75R (스치기만 해도 잡히게)
+		bsoi.append(16.0 if d.kind == "fire" else maxf(2.2 * r, 13.5))
+		batm.append(0.0 if d.kind == "fire" else maxf(1.75 * r, r + 4.5))
+		bfire.append(1 if d.kind == "fire" else 0)
 	here = Node3D.new()
 	world.add_child(here)
 	# 나: 여행자 모델(망토·목도리), 목숨 3, 든 물건, 돛, 우편 가방
@@ -353,10 +432,29 @@ func _reset() -> void:
 	me.add_child(me_body)
 	_art("traveler", Callable(), me_body)
 	hearts.clear()
+	heart_t = 0.0
+	heart_lost = -1
 	for i in 3:
 		var h := _proc("heart", Callable(self, "_shape_heart"), me)
 		h.position = Vector3(-0.32 + 0.32 * i, 1.95, 0)
+		h.visible = false  # v6: 목숨을 잃을 때·다시 설 때만 잠깐
 		hearts.append(h)
+	# v6 값싼 그림자: 흐린 잉크색 원판 (빛 없음, 반투명). 나는 발밑 별 면에 비추고, 높이 뜰수록 작고 옅게
+	shadow_me = MeshInstance3D.new()
+	var pm := PlaneMesh.new()
+	pm.size = Vector2(1, 1)
+	shadow_me.mesh = pm
+	shadow_me.material_override = _shadow_mat()
+	shadow_me.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	world.add_child(shadow_me)
+	if gauge_bg:
+		gauge_bg.visible = false
+	_g_col = Color(0, 0, 0, 0)
+	_item_key = ""
+	_band_last = -99.0
+	_band_on = false
+	nag.clear()
+	bub_who = ""
 	item_b = _art("parcel", Callable(), me_body)
 	item_b.position = Vector3(0, 2.2, 0)
 	item_b.scale = Vector3.ONE * 1.25
@@ -369,11 +467,20 @@ func _reset() -> void:
 	bag_b.visible = false
 	mark_b = _ushape("disc", D, here)
 	mark_b.visible = false
+	# 앞길 점선: 점 24개를 MultiMesh 하나로 (그리기 2번: 점 + 구운 외곽선)
 	dots.clear()
-	for i in ND:
-		var m := _ushape("dot", WHITE)
-		m.visible = false
-		dots.append(m)
+	dots_mm = MultiMesh.new()
+	dots_mm.transform_format = MultiMesh.TRANSFORM_3D
+	dots_mm.use_colors = true
+	dots_mm.mesh = _dots_mesh()
+	dots_mm.instance_count = ND
+	dots_mm.visible_instance_count = 0
+	var dmi := MultiMeshInstance3D.new()
+	dmi.multimesh = dots_mm
+	dmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	world.add_child(dmi)
+	sim_cd = 0
+	sim_show = false
 	# 운석 칸 (발밑 별에 붙는다)
 	mph.resize(NM)
 	mdir.resize(NM)
@@ -418,9 +525,13 @@ func _reset() -> void:
 	_switch(0)
 	_start_job(0)
 	_respawn()
+	heart_t = 0.0  # 첫 시작엔 하트를 안 띄운다
 	cam_up = START
 	lookd = Vector3.FORWARD
 	msg(_tx("msg.start", {"planet": tr(BD[0].name)}), 2.0)
+	if DisplayServer.get_name() == "headless" and not _counted:
+		_counted = true
+		_count_draws.call_deferred()
 
 
 ## 별 여덟 개를 한 하늘에 짓는다. 별마다 각진 공 하나 + 겉에 뿌린 작은 장식(달릴 때 속도가 읽히는 표지).
@@ -428,8 +539,10 @@ func _build() -> void:
 	nodes.clear()
 	fnorm.clear()
 	fdist.clear()
-	rocks.clear()
 	rings.clear()
+	_shv = PackedVector3Array()
+	_shu = PackedVector2Array()
+	_shi = PackedInt32Array()
 	band_bs.clear()
 	npcs.clear()
 	marks.clear()
@@ -448,20 +561,16 @@ func _build() -> void:
 		if k <= 3:
 			npcs[k] = _person(NPC_D, d.body, d.hat)
 			marks[k] = npc_mark
+			_shadow_q(k, NPC_D, 0.75)
 		match k:
 			0:
-				# 북극의 큰 풍차, 적도의 바위
+				# 북극의 큰 풍차 (v6: 적도의 바위 일곱은 뺐다 — 걸려 느려지는 게 불쾌)
 				_stand("windmill_tower", Vector3.UP, 1.0)
+				_shadow_q(0, Vector3.UP, 2.2)
 				blades = Node3D.new()
 				n.add_child(blades)
 				blades.position = Vector3(0, _sr(0, Vector3.UP) + 8.2, 0.7)
 				_art("windmill_blades", Callable(), blades)
-				for j in 7:
-					var a := 0.6 + j * TAU / 7.0
-					var rd := Vector3(cos(a), 0, -sin(a))
-					var rm := _stand("rock", rd, 1.3)
-					rm.rotate_object_local(Vector3.UP, a * 2.3)
-					rocks.append([rd, rm])
 			3:
 				# 노을 아이의 의자와 노을 띠
 				_stand("stool", NPC_D + Vector3(0, 0, 0.12), 1.0)
@@ -481,29 +590,49 @@ func _build() -> void:
 				mk.scale = Vector3(0.45, 0.95, 0.45)
 				marks[4] = mk
 				_ring(4, c, 2.2, true, 1.6)
+				_shadow_q(4, c, 0.6)
 				_stand("tower", tower_d, TOWER_H / 2.5)
+				_shadow_q(4, tower_d, 1.0)
 			5:
 				# 굴뚝 집과 높은 담
 				var c: Vector3 = (JOB[1].tdir as Vector3).normalized()
 				_stand("chimney_house", c, 1.0)
+				_shadow_q(5, c, 1.5)
 				_ring(5, c, 1.8, false, 2.6)
 			6:
 				# 꽃 친구
 				npcs[6] = _person(JOB[2].tdir, Color("f783ac"), C)
 				npc_mark.visible = false
+				_shadow_q(6, JOB[2].tdir, 0.7)
 		_deco(k, n)
-	# 빨간 바위 띠: 노을 별에서 장미 별로 곧게 가는 길을 막는다 (가운데 y=0 이 가장 굵다)
+	# 빨간 바위 띠: 노을 별에서 장미 별로 곧게 가는 길을 막는다 (가운데 y=0 이 가장 굵다). v6: 12개를 MultiMesh 하나로
 	var r2 := RandomNumberGenerator.new()
 	r2.seed = 991
+	var bmm := _mm("red_rock", 12, world)
+	var bi := 0
 	for j in 6:
 		var q := BELT_A.lerp(BELT_B, (j + 0.5) / 6.0)
 		for flip in [false, true]:
-			var m := _art("red_rock", Callable())
 			var bs := Basis(Vector3.UP, r2.randf() * TAU).scaled(Vector3(1.45, r2.randf_range(0.8, 1.05), 1.45))
 			if flip:
 				bs = Basis(Vector3.RIGHT, PI) * bs
-			m.transform = Transform3D(bs, q)
+			bmm.set_instance_transform(bi, Transform3D(bs, q))
+			bi += 1
 		belt.append(q)
+	# 움직이지 않는 그림자 (주민·풍차·집·탑·나무) 를 한 메시로
+	if _shv.size() > 0:
+		var arr := []
+		arr.resize(Mesh.ARRAY_MAX)
+		arr[Mesh.ARRAY_VERTEX] = _shv
+		arr[Mesh.ARRAY_TEX_UV] = _shu
+		arr[Mesh.ARRAY_INDEX] = _shi
+		var am := ArrayMesh.new()
+		am.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
+		var sm := MeshInstance3D.new()
+		sm.mesh = am
+		sm.material_override = _shadow_mat()
+		sm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		world.add_child(sm)
 	pl = nodes[0]
 	R = br[0]
 
@@ -538,12 +667,25 @@ func _switch(k: int) -> void:
 
 func _ring(k: int, c: Vector3, rr: float, gap: bool, h: float) -> void:
 	var bs := _basis(c)
-	var walls: Array = []
 	var cnt := NW - 1 if gap else NW + 2
-	for j in cnt:
-		walls.append(_art("wall", Callable(), pl))
-	rings[k] = {"c": c, "r": rr, "gap": gap, "e1": bs.x, "e2": bs.z, "walls": walls, "h": h}
+	# v6: 담 조각을 MultiMesh 하나로 (별의 자식이라 별 기준 좌표)
+	rings[k] = {"c": c, "r": rr, "gap": gap, "e1": bs.x, "e2": bs.z, "mm": _mm("wall", cnt, pl), "n": cnt, "h": h}
 	_place_walls(k)
+
+
+## 같은 모델 n 개를 MultiMesh 하나로 (그림 재질 + 외곽선 next_pass 그대로)
+func _mm(nm: String, n: int, parent: Node3D) -> MultiMesh:
+	var e := _art_entry(nm, Callable())
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.mesh = e[0]
+	mm.instance_count = n
+	var mi := MultiMeshInstance3D.new()
+	mi.multimesh = mm
+	mi.material_override = _art_mat(nm, Color.WHITE)
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(mi)
+	return mm
 
 
 func _ring_pt(rg: Dictionary, rk: float, th: float) -> Vector3:
@@ -557,8 +699,8 @@ func _ring_pt(rg: Dictionary, rk: float, th: float) -> Vector3:
 func _place_walls(k: int) -> void:
 	var rg: Dictionary = rings[k]
 	var rk := br[k]
-	var walls: Array = rg.walls
-	var cnt := walls.size()
+	var mm: MultiMesh = rg.mm
+	var cnt: int = rg.n
 	var step := TAU / (NW if rg.gap else cnt)
 	var h: float = rg.h
 	var e1: Vector3 = rg.e1
@@ -571,7 +713,7 @@ func _place_walls(k: int) -> void:
 		var side := tang.cross(d)
 		var ln: float = float(rg.r) * step * 1.05
 		# 담 조각 모델은 바닥 가운데가 원점, 1 x 1 x 0.5 (각진 땅에 묻히게 살짝 내린다)
-		(walls[j] as MeshInstance3D).transform = Transform3D(Basis(tang * ln, d * h, side), d * (rk - 0.12))
+		mm.set_instance_transform(j, Transform3D(Basis(tang * ln, d * h, side), d * (rk - 0.12)))
 
 
 ## 마지막으로 내려앉은 별·자리에서 다시
@@ -587,10 +729,8 @@ func _respawn() -> void:
 	ring_in = false
 	if rings.has(cur):
 		ring_in = home_d.angle_to(rings[cur].c) * R < float(rings[cur].r)
-	for i in 3:
-		hearts[i].visible = i < lives
-	for d in dots:
-		d.visible = false
+	_hearts_show(-1)
+	_dots_off()
 	_place_me()
 	_emit("respawn")
 
@@ -603,9 +743,85 @@ func _flat(v: Vector3, up: Vector3) -> Vector3:
 	return f.normalized()
 
 
+## 말풍선 하나 (who 가 "" 이면 이름 없는 안내). v6: 3~4초만 (글 길이에 맞춰), 놀이는 안 멈춘다
 func _say(who: String, s: String, dur: float) -> void:
-	bub_s = "%s: %s" % [tr(who), tr(s)]
-	bub_t = dur
+	if s == "":
+		return
+	bub_who = who
+	bub_s = tr(s)
+	bub_t = clampf(2.2 + bub_s.length() * 0.03, 2.6, clampf(dur, 2.6, 4.2))
+	bub_age = 0.0
+	_bub_layout()
+	sfx("talk", -7.0, 0.8 + float(bub_s.unicode_at(0) % 7) * 0.09)
+
+
+## 상황 말: 같은 번호는 cd 초 안에 다시 안 한다 (잔소리 반복 없음)
+func _nag(id: int, cd: float, who: String, s: String) -> bool:
+	if s == "" or clock < float(nag.get(id, -1.0)):
+		return false
+	nag[id] = clock + cd
+	_say(who, s, 4.0)
+	return true
+
+
+## 말하는 사람 색: 주민은 옷 색(조금 진하게), 나는 잉크, 안내는 없음
+func _who_col(who: String) -> Color:
+	for d: Dictionary in BD:
+		if str(d.who) == who and who != "":
+			return (d.body as Color).darkened(0.3) if d.body != WHITE else NAVY
+	if who == BD[5].who:
+		return Color("8a6d3b")
+	return Color("6a4fc9")
+
+
+## 글 크기에 맞춰 말풍선을 짓고, 아래쪽(조작 키트 바로 위)에 둔다. '놓기' 버튼이 있으면 왼쪽으로 비킨다
+func _bub_layout() -> void:
+	var nm := tr(bub_who) if bub_who != "" else ""
+	var narrow := _btns.has("drop")
+	var maxw := 440.0 if narrow else 560.0
+	var padx := 22.0
+	var pady := 12.0
+	bub_l.size = Vector2(maxw - padx * 2.0, 10)
+	bub_l.text = bub_s
+	var tw := _font.get_multiline_string_size(bub_s, HORIZONTAL_ALIGNMENT_LEFT, maxw - padx * 2.0, 28)
+	var nw := _font.get_string_size(nm, HORIZONTAL_ALIGNMENT_LEFT, -1, 22).x if nm != "" else 0.0
+	var w := clampf(maxf(tw.x + 6.0, nw) + padx * 2.0, 150.0, maxw)
+	var lines := maxi(bub_l.get_line_count(), 1)
+	var th := lines * bub_l.get_line_height() + (lines - 1) * 2.0
+	var nh := 28.0 if nm != "" else 0.0
+	var h := th + nh + pady * 2.0
+	bub_n.visible = nm != ""
+	bub_n.text = nm
+	bub_n.label_settings.font_color = _who_col(bub_who)
+	bub_n.position = Vector2(padx, pady - 2.0)
+	bub_n.size = Vector2(w - padx * 2.0, 28)
+	bub_l.position = Vector2(padx, pady + nh)
+	bub_l.size = Vector2(w - padx * 2.0, th)
+	bub_bg.size = Vector2(w, h)
+	bub_sh.size = Vector2(w, h)
+	bub.size = Vector2(w, h)
+	bub.position = Vector2(24.0 if narrow else 360.0 - w * 0.5, BUB_BOTTOM - h)
+	bub.pivot_offset = Vector2(w * 0.5, h)
+
+
+## 말풍선 뜨고 지기: 0.15초에 살짝 커지며 나타나고, 끝 0.25초에 옅어진다
+func _bub_anim(dt: float) -> void:
+	if bub_t <= 0.0:
+		bub.visible = false
+		return
+	bub.visible = true
+	bub_age += dt
+	var k := clampf(bub_age / 0.15, 0.0, 1.0)
+	bub.modulate.a = minf(k, clampf(bub_t / 0.25, 0.0, 1.0))
+	var sc := 0.88 + 0.12 * _bo(k)
+	bub.scale = Vector2(sc, sc)
+
+
+## 튀어나오는 곡선 (0→1, 살짝 넘쳤다 돌아옴)
+func _bo(t: float) -> float:
+	var c1 := 1.70158
+	var u := t - 1.0
+	return 1.0 + (c1 + 1.0) * u * u * u + c1 * u * u
 
 
 ## 지금 말이 끝나면 이어서
@@ -625,7 +841,7 @@ func _react(key: String, once := false, force := false) -> void:
 	if not force and (react_cd > 0.0 or bub_t > 0.5 or not bub_q.is_empty()):
 		return
 	said[key] = true
-	react_cd = 7.0
+	react_cd = 9.0
 	_say(_tx("who.me"), _tx("react." + key), 2.8)
 
 
@@ -676,10 +892,53 @@ func _air_drag(v: Vector3, k: int, rel: Vector3, at: float, h: float) -> Vector3
 
 ## 지금 위치·속도로 날면 어떻게 되나: 닿는 별 번호, -1 아직 날고 있음, -2 위험(불 별·바위 띠·떠내려감).
 ## out 에 점 위치를 넣는다.
-func _sim(w: Vector3, v: Vector3, k: int, at: float, secs: float, h: float, out: PackedVector3Array) -> int:
+## v6 비행 도움 (날기와 점선 계산이 같이 쓴다). dm = 지금 가장 세게 끄는 별(-1 없음), src = 이번 비행을 띄운 별.
+## 1) 순항: 어느 별에도 안 끌리거나, 발밑 별을 벗어날 힘이 있고 대기 위면 CRUISE 까지 앞으로 밀어 준다 (높이 떠서 느릿느릿 없음)
+## 2) 끌어당김: 떠난 별 둘레를 벗어나면, 이대로 가면 가장 가까이 지나갈 별(불 별 빼고) 쪽으로 방향만 살짝 튼다 (빗나감에 너그럽게)
+func _assist(w: Vector3, v: Vector3, dm: int, src: int, h: float) -> Vector3:
+	var spd := v.length()
+	if spd < 0.5:
+		return v
+	var vh := v / spd
+	var free := dm < 0
+	if not free:
+		var r := (w - bc[dm]).length()
+		free = r > maxf(batm[dm], br[dm] + 3.0) and 0.5 * spd * spd - bmu[dm] / r > -bmu[dm] / bsoi[dm]
+	if free and spd < CRUISE:
+		spd = minf(spd + 6.0 * h, CRUISE)
+		v = vh * spd
+	if dm == src:
+		return v
+	var best := -1
+	var bm := 1.0
+	var bmv := Vector3.ZERO
+	for j in bc.size():
+		if bfire[j] == 1:
+			continue
+		var rel := bc[j] - w
+		var t := rel.dot(vh)
+		if t <= 0.0:
+			continue
+		var m := rel - vh * t
+		var q := m.length() / (bsoi[j] * 1.6 + 6.0)
+		if q < bm:
+			bm = q
+			best = j
+			bmv = m
+	if best >= 0:
+		var ml := bmv.length()
+		if ml > br[best] * 0.6:
+			v += bmv / ml * (HOME_A * clampf((1.0 - bm) * 2.0, 0.0, 1.0) * h)
+			v = v.normalized() * spd
+	return v
+
+
+func _sim(w: Vector3, v: Vector3, k: int, at: float, secs: float, h: float, out: PackedVector3Array, src := -1) -> int:
 	var n := int(secs / h)
 	var every := maxi(1, n / ND)
 	out.clear()
+	if src < 0:
+		src = k
 	for i in n:
 		v += _gacc(w) * h
 		var dm := _dominant(w)
@@ -689,6 +948,7 @@ func _sim(w: Vector3, v: Vector3, k: int, at: float, secs: float, h: float, out:
 		if batm[k] > 0.0 and rel.length() < batm[k] and v.dot(rel) < 0.5 * rel.length():
 			at += h
 		v = _air_drag(v, k, rel, at, h)
+		v = _assist(w, v, dm, src, h)
 		w += v * h
 		if i % every == every - 1 and out.size() < ND:
 			out.append(w)
@@ -702,29 +962,62 @@ func _sim(w: Vector3, v: Vector3, k: int, at: float, secs: float, h: float, out:
 
 
 ## 앞길 점선: 땅에선 "지금 점프하면", 날 땐 지금 길. 다른 별 초록, 위험 빨강.
+## v6: 계산은 3프레임에 한 번 (날기↔땅이 바뀌면 바로), 점 24개는 MultiMesh 하나. 다른 별에 닿으면 끝 점이 크다.
 func _dots_update(up: Vector3, lift: float) -> void:
 	var show := false
-	var res := -1
-	var w := bc[cur] + p
 	if die_t <= 0.0 and fin_t <= 0.0:
-		if grounded and vel.length() > lift * 0.6:
-			show = true
-			res = _sim(w + up * 0.1, vel + up * JUMP, cur, 0.0, 4.0, 1.0 / 30.0, sim_pts)
-		elif not grounded:
-			show = true
-			res = _sim(w, vel, cur, atm_t, 4.0, 1.0 / 30.0, sim_pts)
+		show = (grounded and vel.length() > lift * 0.6) or not grounded
+	if not show:
+		_dots_off()
+		return
+	sim_cd -= 1
+	if sim_show and sim_cd > 0:
+		return
+	sim_cd = 3
+	sim_show = true
+	var w := bc[cur] + p
+	if grounded:
+		sim_res = _sim(w + up * 0.1, _jump_v(up, vel + up * JUMP), cur, 0.0, 5.5, 1.0 / 30.0, sim_pts, cur)
+	else:
+		sim_res = _sim(w, vel, cur, atm_t, 5.5, 1.0 / 30.0, sim_pts, from_b)
 	var lb := cur if grounded else from_b
 	var col := WHITE
-	if res == -2:
+	if sim_res == -2:
 		col = BAD
-	elif res >= 0 and res != lb:
+	elif sim_res >= 0 and sim_res != lb:
 		col = GOOD
-	for i in ND:
-		var on := show and i < sim_pts.size()
-		dots[i].visible = on
-		if on:
-			dots[i].position = sim_pts[i]
-			dots[i].material_override = _pm(col)
+	var n := mini(sim_pts.size(), ND)
+	dots_mm.visible_instance_count = n
+	for i in n:
+		var sc := 1.0
+		if i == n - 1 and col == GOOD:
+			sc = 1.9
+		dots_mm.set_instance_transform(i, Transform3D(Basis.IDENTITY.scaled(Vector3(sc, sc, sc)), sim_pts[i]))
+		dots_mm.set_instance_color(i, col)
+
+
+func _dots_off() -> void:
+	sim_show = false
+	sim_cd = 0
+	if dots_mm:
+		dots_mm.visible_instance_count = 0
+
+
+## 점 하나: 각진 공 + 구운 외곽선 (MultiMesh 가 점마다 색을 곱한다)
+func _dots_mesh() -> Mesh:
+	if _dot_mesh:
+		return _dot_mesh
+	_begin()
+	_rs.seed = 17
+	_ico(Vector3.ZERO, Vector3.ONE * 0.27, 0, WHITE, WHITE, _rs)
+	_hull(0, Vector3.ZERO, 0.07)
+	var am := _end_mesh()
+	var sm := StandardMaterial3D.new()
+	sm.vertex_color_use_as_albedo = true
+	sm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	am.surface_set_material(0, sm)
+	_dot_mesh = am
+	return am
 
 
 ## 첫 비행 연습: 풍차의 별 적도에서 힘껏 달려 점프하면 우편의 별에 닿는 곳을 찾아 노란 줄을 깐다
@@ -750,12 +1043,6 @@ func _lane() -> void:
 		var a := a0 - sg0 * (5 - j) * 0.13
 		var d := Vector3(cos(a), 0, -sin(a))
 		_sbox(d, 0.2, Vector3(1.6, 0.2, 1.6), GOOD if j == 5 else D)
-	# 줄 위 바위는 치운다
-	for rk in rocks:
-		var rd: Vector3 = rk[0]
-		var ra := atan2(-rd.z, rd.x)
-		if absf(wrapf(ra - (a0 - sg0 * 0.35), -PI, PI)) < 0.55:
-			(rk[1] as MeshInstance3D).visible = false
 	pl = nodes[cur]
 	R = br[cur]
 
@@ -795,13 +1082,23 @@ func _title_cam(_dt: float) -> void:
 func _state() -> Dictionary:
 	var up := p.normalized() if p.length() > 0.01 else Vector3.UP
 	var lf := sqrt(maxf(gp + float(P.get("grip", 1.19)), 0.5) * R)
-	var sk: Color = P.get("sky", Color("d6ecff"))
-	return {
-		"speed": vel.length(), "top": TOP, "lift": vel.length() / maxf(lf, 0.1), "esc": _esc_frac(up),
-		"grounded": grounded, "flying": not grounded, "pos": bc[cur] + p if cur < bc.size() else p,
-		"vel": vel, "up": up, "fwd": fwd, "me": me, "sky": sk, "planet": cur,
-		"paused": ui.title_visible() or _rating or over,
-	}
+	var spd := vel.length()
+	# v6: 매 프레임 새 사전을 만들지 않고 같은 사전의 값만 바꾼다
+	_st["speed"] = spd
+	_st["top"] = TOP
+	_st["lift"] = spd / maxf(lf, 0.1)
+	_st["esc"] = _esc_show(up)
+	_st["grounded"] = grounded
+	_st["flying"] = not grounded
+	_st["pos"] = bc[cur] + p if cur < bc.size() else p
+	_st["vel"] = vel
+	_st["up"] = up
+	_st["fwd"] = fwd
+	_st["me"] = me
+	_st["sky"] = P.get("sky", Color("d6ecff"))
+	_st["planet"] = cur
+	_st["paused"] = ui.title_visible() or _rating or over
+	return _st
 
 
 ## 두 도우미에게 같은 일을 알린다
@@ -812,11 +1109,37 @@ func _emit(nm: String, d := {}) -> void:
 		fx.event(nm, d)
 
 
-## 시작(또는 튜토리얼 다시)을 눌러 시작 화면이 닫혔다
+## 시작을 눌러 시작 화면이 닫혔다. v6: 튜토리얼 없음 — 첫 판에만 안내 한 줄 (말풍선, 4초)
 func _on_title_start() -> void:
 	if not over:
 		hud2.visible = true
 	msg(_tx("msg.start", {"planet": tr(BD[0].name)}), 2.0)
+	var cf := ConfigFile.new()
+	cf.load(CFG_BODY)
+	if not bool(cf.get_value("hint", "first", false)):
+		cf.set_value("hint", "first", true)
+		cf.save(CFG_BODY)
+		_say("", _tx("hint.first"), 4.2)
+
+
+## 시작 화면의 언어 전환이 부른다 (ui: game.set_lang(ko)). 번역을 바꾸고 본체가 그린 글(점프·놓기 버튼, 말풍선)을 고친다.
+## Label.text 가 한국어 키인 글(tofu 의 "< 메뉴"·"평가")은 Godot 가 저절로 다시 번역한다. ui 글은 ui.refresh_text 가 고친다.
+func set_lang(ko: bool) -> void:
+	_lang_pick = "ko" if ko else "en"
+	_lang()
+	if _btns.has("jump"):
+		_btns["jump"].label = _tx("ui.jump")
+	if _btns.has("drop"):
+		_btns["drop"].label = _tx("ui.drop")
+	if bub and bub_t > 0.0:
+		bub_t = 0.0
+	if ui and ui.has_method("refresh_text"):
+		ui.call("refresh_text")
+
+
+## 지금 한국어인가
+func is_korean() -> bool:
+	return not _en
 
 
 func _play(dt: float) -> void:
@@ -845,7 +1168,6 @@ func _play(dt: float) -> void:
 				_respawn()
 		return
 	tower_cd -= dt
-	trip_cd -= dt
 	bump_cd -= dt
 	if grounded:
 		_ground(dt, p.normalized())
@@ -911,7 +1233,7 @@ func _ground(dt: float, up: Vector3) -> void:
 		sfx("liftoff")
 	elif kit_just("jump"):
 		_liftoff()
-		vel += up * JUMP
+		vel = _jump_v(up, vel + up * JUMP)
 		if 0.5 * vel.length_squared() - mu / R > -mu / bsoi[cur]:
 			sfx("escape")
 			_emit("escape", {"from": cur})  # 대표 장면: fx 가 느려지며 하늘을 넓게 보여 준다
@@ -933,6 +1255,24 @@ func _liftoff() -> void:
 	passed = {}
 	in_atm = false
 	drift_said = false
+	sim_cd = 0  # 점선을 바로 다시 계산
+
+
+## v6 탈출 도움: 점프 순간 에너지가 탈출선의 _esc_need() 를 넘었으면 모자란 만큼 앞으로 밀어 탈출선 바로 위(1.03)로.
+## 땅의 점선 계산도 같은 것을 쓴다.
+func _jump_v(up: Vector3, v: Vector3) -> Vector3:
+	var e0 := -mu / R
+	var e1 := -mu / bsoi[cur]
+	var ef := (0.5 * v.length_squared() - mu / R - e0) / maxf(e1 - e0, 0.01)
+	if ef >= _esc_need() and ef < 1.03 and v.length() > 0.1:
+		var v2 := 2.0 * (e0 + 1.03 * (e1 - e0) + mu / R)
+		return v.normalized() * sqrt(maxf(v2, 0.0))
+	return v
+
+
+## 탈출선의 몇 %면 떠날 수 있게 도와주나: 첫 부탁 둘(풍차·우편)은 82%, 그 뒤 92%
+func _esc_need() -> float:
+	return 0.82 if mi <= 1 else 0.92
 
 
 ## 날기: 모든 별이 끈다. 대기에서 내려가면 빙 돌다 내려앉는다. 죽으면 true.
@@ -950,6 +1290,7 @@ func _fly(dt: float) -> bool:
 			_emit("atmo", {"k": cur})
 	in_atm = ia
 	vel = _air_drag(vel, cur, p, atm_t, dt)
+	vel = _assist(bc[cur] + p, vel, _dominant(bc[cur] + p), from_b, dt)  # v6: 순항 속도·끌어당김 (점선과 같은 계산)
 	if ia and kit_move.length() > 0.05:
 		# 대기 안에선 스틱으로 살짝 옆으로 (빨라지진 않는다)
 		var vr2 := vel.dot(up)
@@ -1057,9 +1398,9 @@ func _land(up: Vector3) -> void:
 		if not visited.has(cur):
 			visited[cur] = true
 			score += 5
-			lives = 3
-			for i in 3:
-				hearts[i].visible = true
+			if lives < 3:
+				lives = 3
+				_hearts_show(-1)  # 새 별: 목숨이 차는 걸 잠깐 보여 준다
 			sfx("deliver", -6.0, 1.25)
 			_emit("new_planet", {"k": cur})
 			_emit("score", {"n": 5, "pos": mp + p.normalized() * 1.5})
@@ -1070,17 +1411,8 @@ func _land(up: Vector3) -> void:
 			_react(rk, rk == "first_landing")
 
 
-## 땅 위 부딪힘: 바위(걸리면 감속), 담(막힘, 틈만 통과)
+## 땅 위 부딪힘: 담(막힘, 틈만 통과). v6: 풍차의 별 바위는 없앴다
 func _collide(up: Vector3) -> void:
-	if cur == 0:
-		for rk in rocks:
-			var rd: Vector3 = rk[0]
-			if trip_cd <= 0.0 and (rk[1] as MeshInstance3D).visible and p.distance_to(rd * R) < 1.15:
-				vel *= 0.2
-				trip_cd = 0.8
-				shake = 0.25
-				msg(_tx("msg.rock_snag"), 0.8)
-				sfx("land_hard", -4.0, 1.4)
 	if not rings.has(cur):
 		return
 	var rg: Dictionary = rings[cur]
@@ -1125,13 +1457,34 @@ func _esc_frac(up: Vector3) -> float:
 	return (e - e0) / maxf(e1 - e0, 0.01)
 
 
-## 막대: 땅에선 "지금 점프하면 탈출선까지"(넘으면 초록), 날 땐 발밑 별 탈출선 대비
-func _gauge_now(up: Vector3) -> void:
+## 막대에 보이는 값: 땅에선 "지금 점프하면" 을 탈출 도움 문턱(_esc_need) 대비로, 날 땐 탈출선 대비 그대로
+func _esc_show(up: Vector3) -> float:
 	var f := _esc_frac(up)
+	return f / _esc_need() if grounded else f
+
+
+## 막대: 노랑(강조색), 땅에서 차면 = 지금 뛰면 떠난다 → 초록. 날 때 탈출선 위면 민트
+func _gauge_now(up: Vector3) -> void:
+	var f := _esc_show(up)
 	if grounded:
-		gauge(f, GOOD if f >= 1.0 else D)
+		gauge(f, Color("37b24d") if f >= 1.0 else Color("ffd166"))
 	else:
-		gauge(f, B if f >= 1.0 else A)
+		gauge(f, Color("8fe3c2") if f >= 1.0 else Color("ffd166"))
+
+
+## tofu 의 네모 막대 대신 캡슐 막대 (tofu 막대는 늘 숨김)
+func gauge(frac: float, color: Color) -> void:
+	_bar_bg.visible = false
+	if gauge_bg == null:
+		return
+	gauge_bg.visible = true
+	var iw := 600.0 - 16.0
+	var fw := iw * clampf(frac, 0.0, 1.0)
+	gauge_fill.visible = fw > 2.0
+	gauge_fill.size.x = maxf(fw, 24.0)
+	if color != _g_col:
+		_g_col = color
+		gauge_sb.bg_color = color
 
 
 ## 부탁 k 시작: 물건이 있으면 받는 별에 놓는다
@@ -1146,6 +1499,8 @@ func _start_job(k: int) -> void:
 		ig_b.visible = true
 		_set_item(ig_b, str(J.item), 0.0)
 		_set_item(item_b, str(J.item), 0.0)
+		_item_key = str(J.item)
+		_item_q = 0.0
 	else:
 		ig_on = false
 		ig_b.visible = false
@@ -1181,7 +1536,11 @@ func _items(dt: float, up: Vector3) -> void:
 			msg(_tx("msg.picked", {"target": tr(BD[int(J.tgt)].name)}), 1.2)
 			_drop_btn(true)
 	if item != "":
-		_set_item(item_b, item, floorf(clampf(crack, 0.0, 1.0) * 8.0) / 8.0)
+		var q := floorf(clampf(crack, 0.0, 1.0) * 8.0) / 8.0
+		if item != _item_key or q != _item_q:  # v6: 바뀔 때만 (매 프레임 재질 이름 글자를 만들지 않게)
+			_item_key = item
+			_item_q = q
+			_set_item(item_b, item, q)
 		if crack >= 1.0:
 			_break()
 			return
@@ -1336,6 +1695,9 @@ func _tick(dt: float, up: Vector3, lf: float) -> void:
 				req = 1
 				_emit("job_start", {"job": mi})
 				_say(P.who, _line(cur, "ask"), 6.0)
+				if mi == 0 or mi == 3:
+					nag[300 + mi] = clock + 40.0
+					_sayq(P.who, _line(cur, "hint"), 4.0)
 			elif mi == 4 and not rose_said:
 				rose_said = true
 				_say(P.who, _line(cur, "ask"), 6.0)
@@ -1360,11 +1722,17 @@ func _tick(dt: float, up: Vector3, lf: float) -> void:
 		var lon := atan2(-up.z, up.x)
 		var lat := asin(clampf(up.y, -1.0, 1.0))
 		inb = absf(wrapf(lon - band_a, -PI, PI)) < 0.24 and absf(lat) < 0.5
-	for j in band_bs.size():
-		var l := -0.4 + 0.2 * j
-		var d := Vector3(cos(band_a) * cos(l), sin(l), -sin(band_a) * cos(l))
-		_orient(band_bs[j], d * (_sr(3, d) + 0.2), d, Vector3(2.2, 0.25, 1.6))
-		band_bs[j].material_override = _pm(D if inb else A)
+	# v6: 띠가 움직일 때만 다시 놓고(각진 면 거리 계산이 무겁다), 색은 바뀔 때만
+	if band_a != _band_last:
+		_band_last = band_a
+		for j in band_bs.size():
+			var l := -0.4 + 0.2 * j
+			var d := Vector3(cos(band_a) * cos(l), sin(l), -sin(band_a) * cos(l))
+			_orient(band_bs[j], d * (_sr(3, d) + 0.2), d, Vector3(2.2, 0.25, 1.6))
+	if inb != _band_on:
+		_band_on = inb
+		for bb in band_bs:
+			bb.material_override = _pm(D if inb else A)
 	if mi == 3 and req == 1 and cur == 3:
 		prog = clampf(prog + (dt / 14.0 if inb else -0.04 * dt), 0.0, 1.0)
 		if inb:
@@ -1378,84 +1746,93 @@ func _tick(dt: float, up: Vector3, lf: float) -> void:
 	gap_a += 0.8 * dt
 	_place_walls(4)
 	# 갈 곳 빛기둥 (다른 별 위에서도 보이게 길게)
-	var ob := _objective()
-	beacon.visible = not ob.is_empty() and fin_t <= 0.0
+	_obj()
+	beacon.visible = ob_k >= 0 and fin_t <= 0.0
 	if beacon.visible:
-		var ob_k: int = ob[0]
-		var bd: Vector3 = ob[1]
-		_orient(beacon, bc[ob_k] + bd * (br[ob_k] + 7.0), bd, Vector3(0.6, 14.0, 0.6))
+		_orient(beacon, bc[ob_k] + ob_d * (br[ob_k] + 7.0), ob_d, Vector3(0.6, 14.0, 0.6))
 
 
-## [별 번호, 방향] 또는 []
-func _objective() -> Array:
+## 갈 곳: ob_k(별 번호, 없으면 -1)·ob_d(방향). v6: 매 프레임 새 배열을 만들지 않게 멤버에 쓴다
+func _obj() -> void:
+	ob_k = -1
 	var J: Dictionary = JOB[mi]
 	if req == 0 and mi <= 3:
-		return [mi, NPC_D.normalized()]
-	if J.has("item"):
+		ob_k = mi
+		ob_d = NPC_D.normalized()
+	elif J.has("item"):
 		if item != "":
-			return [int(J.tgt), (J.tdir as Vector3).normalized()]
-		if ig_on:
-			return [ig_pl, ig_dir]
-		return []
-	if mi == 3:
-		return [3, Vector3(cos(band_a), 0, -sin(band_a))]
-	return []
+			ob_k = int(J.tgt)
+			ob_d = (J.tdir as Vector3).normalized()
+		elif ig_on:
+			ob_k = ig_pl
+			ob_d = ig_dir
+	elif mi == 3:
+		ob_k = 3
+		ob_d = Vector3(cos(band_a), 0, -sin(band_a))
 
 
-## 말풍선과 부탁 막대
+## 말풍선과 부탁 막대. v6: 늘 떠 있는 말 없음 — 상황 말은 한 번씩, 같은 말은 한참 쉬었다가 (_nag)
 func _hud(dt: float) -> void:
 	bub_t -= dt
 	if bub_t <= 0.0 and not bub_q.is_empty():
 		var q: Array = bub_q.pop_front()
 		_say(str(q[0]), str(q[1]), float(q[2]))
-	var s := ""
-	var near := grounded and cur <= 4 and npcs.has(cur) and p.distance_to((npcs[cur] as Node3D).position) < 6.0
-	var ob := _objective()
-	if bub_t > 0.0:
-		s = bub_s
-	elif near:
-		var part := "hint"
-		if cur < mi:
-			# 끝낸 별: 막 끝낸 주민은 고마움·다음 안내, 그 전 주민은 혼잣말
-			if cur == mi - 1:
-				part = "thanks" if fmod(clock, 12.0) < 6.0 or not DL.has(str(P.id) + ".thanks2") else "thanks2"
-			else:
-				part = "idle1" if fmod(clock, 12.0) < 6.0 else "idle2"
-		elif req == 0 or cur > mi:
-			part = "ask"
-		s = "%s: %s" % [tr(P.who), _line(cur, part)]
-	elif req == 1 and (mi == 0 or mi == 3) and cur == mi and prog < 0.15:
-		s = "%s: %s" % [tr(BD[mi].who), _line(mi, "hint")]
-	elif item != "" and mi == 4 and fmod(clock, 24.0) < 4.0:
-		s = "%s: %s" % [tr(BD[3].who), _line(3, "thanks2")]  # 불 별 새총 안내
-	elif item != "" and fmod(clock, 12.0) < 4.0:
-		s = "%s: %s" % [tr(BD[mi].who), _line(mi, "hint")]
-	elif grounded and not ob.is_empty() and int(ob[0]) != cur and die_t <= 0.0 and fmod(clock, 14.0) < 5.0:
-		s = _tx("hud.next_hint", {"planet": tr(BD[int(ob[0])].name)})
-	bub.visible = s != ""
-	bub_l.text = s
-	if s != bub_last:
-		bub_last = s
-		if s != "":
-			sfx("talk", -7.0, 0.8 + float(s.unicode_at(0) % 7) * 0.09)
+	if bub_t <= 0.0 and die_t <= 0.0 and fin_t <= 0.0:
+		_situation()
+	_bub_anim(dt)
 	var show := false
 	if req == 1 and (mi == 0 or mi == 3):
 		show = true
-		pbar.color = A
-		pbar.size.x = 594.0 * prog
+		_pbar_set(Color("ffd166"), prog)
 	elif item != "" and bool((JOB[mi] as Dictionary).get("frag", false)):
 		show = true
-		pbar.color = BAD
-		pbar.size.x = 594.0 * clampf(crack, 0.0, 1.0)
+		_pbar_set(DANGER, clampf(crack, 0.0, 1.0))
 	pbar_bg.visible = show
+
+
+func _pbar_set(col: Color, f: float) -> void:
+	pbar.visible = f > 0.01
+	pbar.size.x = maxf(492.0 * f, 12.0)
+	if pbar_sb.bg_color != col:
+		pbar_sb.bg_color = col
+
+
+## 지금 할 만한 말 하나 (번호 = 종류*100 + 별·부탁). 끝낸 주민의 혼잣말은 드물게(60초), 안내는 40초에 한 번까지
+func _situation() -> void:
+	var near := grounded and cur <= 4 and npcs.has(cur) and p.distance_to((npcs[cur] as Node3D).position) < 6.0
+	if near:
+		if cur < mi:
+			if cur != mi - 1 and _can(100 + cur):
+				_nag(100 + cur, 60.0, P.who, _line(cur, "idle1" if randf() < 0.5 else "idle2"))
+			return
+		if cur > mi:
+			if _can(200 + cur):
+				_nag(200 + cur, 40.0, P.who, _line(cur, "ask"))
+			return
+	# 글자는 쉬는 시간이 끝났을 때만 만든다 (매 프레임 글자·사전을 만들지 않게)
+	if req == 1 and (mi == 0 or mi == 3) and cur == mi and prog < 0.15:
+		if _can(300 + mi):
+			_nag(300 + mi, 40.0, BD[mi].who, _line(mi, "hint"))
+	elif item != "" and mi == 4:
+		if _can(400):
+			_nag(400, 45.0, BD[3].who, _line(3, "thanks2"))  # 불 별 새총 안내
+	elif item != "":
+		if _can(500 + mi):
+			_nag(500 + mi, 45.0, BD[mi].who, _line(mi, "hint"))
+	elif grounded and ob_k >= 0 and ob_k != cur:
+		if _can(600 + mi * 10 + cur):
+			_nag(600 + mi * 10 + cur, 50.0, "", _tx("hud.next_hint", {"planet": tr(BD[ob_k].name)}))
+
+
+func _can(id: int) -> bool:
+	return clock >= float(nag.get(id, -1.0))
 
 
 func _die(why: String) -> void:
 	if die_t > 0.0:
 		return
 	lives -= 1
-	for i in 3:
-		hearts[i].visible = i < lives
+	_hearts_show(lives)  # v6: 잃은 하트가 줄어들며 사라지는 걸 2초 보여 준다
 	die_t = 1.3
 	shake = 0.4
 	play("bad")
@@ -1477,8 +1854,7 @@ func _die(why: String) -> void:
 	if req == 1 and (mi == 0 or mi == 3):
 		prog = 0.0
 		band_a = 0.6
-	for d in dots:
-		d.visible = false
+	_dots_off()
 
 
 ## 운석: 유리꽃을 들고 유리꽃의 별 위에 있으면 나를 노린다
@@ -1533,9 +1909,20 @@ func _place_me() -> void:
 	var f := _flat(fwd, up)
 	var x := up.cross(-f).normalized()
 	# 발을 각진 땅 면 위에 (날 때는 땅 아래로 안 묻히게만)
-	var sr := _sr(cur, up)
+	var sr := _srn(cur, up)
 	var h := sr if grounded else maxf(p.length(), sr)
 	me.transform = Transform3D(Basis(x, up, -f), bc[cur] + up * h)
+	# v6 그림자: 발밑 별의 각진 면 위에 (면 방향으로 눕힌다), 높이 뜰수록 작고 옅게, 10 넘게 뜨면 없음
+	if shadow_me:
+		var alt := h - sr
+		shadow_me.visible = alt < 10.0 and bfire[cur] == 0
+		if shadow_me.visible:
+			var k := clampf(alt / 10.0, 0.0, 1.0)
+			var s := lerpf(1.3, 0.5, k)
+			var n := _sf_n
+			var bs := _basis(n)
+			shadow_me.transform = Transform3D(Basis(bs.x * s, bs.y, bs.z * s), bc[cur] + up * sr + n * 0.04)
+			shadow_me.transparency = k * 0.85
 
 
 ## 땅에선 등 뒤, 날 땐 속도 방향 뒤에서 (갈 곳이 화면 앞)
@@ -1581,8 +1968,7 @@ func _vis(dt: float) -> void:
 		me_body.position.y = lerpf(me_body.position.y, 0.0, minf(1.0, dt * 6.0))
 		me_body.rotation = me_body.rotation.lerp(Vector3(-0.55, 0.0, 0.0), minf(1.0, dt * 4.0))
 		sail_b.scale = sail_b.scale.lerp(Vector3.ONE * 1.35, minf(1.0, dt * 5.0))
-	for h in hearts:
-		h.rotation.y = clock * 2.0
+	_hearts_anim(dt)
 	for mk in marks:
 		(marks[mk] as MeshInstance3D).rotation.y = clock * 2.5
 	if spin:
@@ -1610,6 +1996,94 @@ func _set_item(m: MeshInstance3D, kind: String, q: float) -> void:
 	var e := _art_entry(nm, Callable())
 	m.mesh = e[0]
 	m.material_override = _art_mat(nm, WHITE.lerp(DANGER, q) if q > 0.0 else Color.WHITE)
+
+
+## 하트를 HEART_T 초 보여 준다. lost = 방금 잃은 하트 번호 (줄어들며 사라짐), -1 이면 남은 것만 톡 튀어나옴
+func _hearts_show(lost: int) -> void:
+	heart_t = HEART_T
+	heart_lost = lost
+
+
+func _hearts_anim(dt: float) -> void:
+	if heart_t <= 0.0:
+		return
+	heart_t -= dt
+	var age := HEART_T - heart_t
+	var out := clampf(heart_t / 0.3, 0.0, 1.0)  # 끝 0.3초에 다 같이 작아진다
+	for i in hearts.size():
+		var h := hearts[i]
+		var sc := 0.0
+		if i < lives:
+			sc = _bo(clampf((age - i * 0.06) / 0.25, 0.0, 1.0)) * out
+		elif i == heart_lost:
+			# 크게 튀었다가 0.7초에 걸쳐 줄어 사라진다
+			sc = (1.0 + 0.35 * sin(clampf(age / 0.2, 0.0, 1.0) * PI)) * (1.0 - clampf((age - 0.2) / 0.7, 0.0, 1.0))
+		h.visible = sc > 0.02 and heart_t > 0.0
+		h.scale = Vector3.ONE * maxf(sc, 0.02)
+		h.rotation.y = clock * 2.0
+
+
+## _sr 과 같고, 찾은 면의 방향을 _sf_n 에 남긴다 (그림자를 면에 눕힐 때)
+func _srn(k: int, d: Vector3) -> float:
+	_sf_n = d
+	if k >= fnorm.size():
+		return br[k]
+	var nr: PackedVector3Array = fnorm[k]
+	var ds: PackedFloat32Array = fdist[k]
+	var best := 1e9
+	for i in nr.size():
+		var c := nr[i].dot(d)
+		if c > 0.5:
+			var v := ds[i] / c
+			if v < best:
+				best = v
+				_sf_n = nr[i]
+	return best if best < 1e8 else br[k]
+
+
+## 움직이지 않는 그림자 하나를 모은다 (별 k 의 d 방향 땅 위, 반지름 rad). _build 끝에 한 메시로 합친다
+func _shadow_q(k: int, d: Vector3, rad: float) -> void:
+	d = d.normalized()
+	var sr := _srn(k, d)
+	var n := _sf_n
+	var c := bc[k] + d * sr + n * 0.035
+	var x := n.cross(Vector3.FORWARD if absf(n.z) < 0.9 else Vector3.RIGHT).normalized() * rad
+	var z := n.cross(x)
+	var i0 := _shv.size()
+	_shv.append(c - x - z)
+	_shv.append(c + x - z)
+	_shv.append(c + x + z)
+	_shv.append(c - x + z)
+	_shu.append(Vector2(0, 0))
+	_shu.append(Vector2(1, 0))
+	_shu.append(Vector2(1, 1))
+	_shu.append(Vector2(0, 1))
+	for j: int in [0, 1, 2, 0, 2, 3]:
+		_shi.append(i0 + j)
+
+
+## 그림자 재질: 가운데 잉크 35% → 가장자리 0 (둥근 그라데이션), 빛 없음, 양면
+func _shadow_mat() -> StandardMaterial3D:
+	if _mats3.has("shadow"):
+		return _mats3["shadow"]
+	var g := Gradient.new()
+	g.set_color(0, Color(NAVY, 0.36))
+	g.set_color(1, Color(NAVY, 0.0))
+	g.add_point(0.6, Color(NAVY, 0.24))
+	var gt := GradientTexture2D.new()
+	gt.gradient = g
+	gt.fill = GradientTexture2D.FILL_RADIAL
+	gt.fill_from = Vector2(0.5, 0.5)
+	gt.fill_to = Vector2(1.0, 0.5)
+	gt.width = 64
+	gt.height = 64
+	var sm := StandardMaterial3D.new()
+	sm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	sm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	sm.albedo_texture = gt
+	sm.cull_mode = BaseMaterial3D.CULL_DISABLED
+	_mats3["shadow"] = sm
+	return sm
 
 
 ## 별 k 의 각진 겉면까지 거리 (d 방향, 정규화). 볼록 다면체라 면마다 거리/cos 중 가장 작은 것
@@ -1674,19 +2148,28 @@ func _art_file_mesh(nm: String) -> Mesh:
 	if sc == null:
 		return null
 	var inst := sc.instantiate()
-	var mesh := _find_mesh(inst)
+	# 부품(머리·몸·팔·다리…)이 여럿인 모델도 있어 전부 제자리 그대로 한 메시로 합친다
+	var st := SurfaceTool.new()
+	var n := _merge_meshes(inst, Transform3D.IDENTITY, st)
 	inst.free()
-	return mesh
+	if n == 0:
+		return null
+	return st.commit()
 
 
-func _find_mesh(node: Node) -> Mesh:
-	if node is MeshInstance3D:
-		return (node as MeshInstance3D).mesh
+func _merge_meshes(node: Node, xf: Transform3D, st: SurfaceTool) -> int:
+	var here_xf := xf
+	if node is Node3D:
+		here_xf = xf * (node as Node3D).transform
+	var n := 0
+	if node is MeshInstance3D and (node as MeshInstance3D).mesh:
+		var mesh: Mesh = (node as MeshInstance3D).mesh
+		for s in mesh.get_surface_count():
+			st.append_from(mesh, s, here_xf)
+			n += 1
 	for ch in node.get_children():
-		var m := _find_mesh(ch)
-		if m:
-			return m
-	return null
+		n += _merge_meshes(ch, here_xf, st)
+	return n
 
 
 ## 모델 재질: 그림이면 칠한 그림(빛 없음, 밉맵), 아니면 꼭짓점 색(약한 빛). 둘 다 진한 외곽선.
@@ -2107,6 +2590,7 @@ func _deco(k: int, n: Node3D) -> void:
 		if kind == "tree" and tree_art:
 			xf.origin = dir * (_sr(k, dir) - 0.1)
 			trees.append(xf)
+			_shadow_q(k, dir, 1.0 * sc)  # 나무 그림자 (별 그림자 메시 하나에 합쳐진다)
 			continue
 		var s0 := _tv.size()
 		var cy := 0.2
@@ -2518,7 +3002,65 @@ func _process(dt: float) -> void:
 		wind_pl.stop()
 	if _en and over:
 		_over_l.text = "%d\nBest %d%s" % [score, best, "\nTap to play again" if wait <= 0.0 else ""]
+	# v6: 단독판 "< 처음부터"는 숨긴다. 단독판이 목록에서 왔으면 나중에 "< 목록"으로 바뀌니 그때 다시 보인다 (내가 숨긴 것만 되돌린다)
+	if _back_l:
+		if _back_l.text in RESTART_TXT:
+			if _back_l.visible:
+				_back_l.visible = false
+				_back_hid = true
+		elif _back_hid:
+			_back_hid = false
+			_back_l.visible = true
 
+
+## 숨긴 "< 처음부터" 자리(왼쪽 위)를 눌러도 처음부터 다시가 되지 않게 그 누름만 버린다
+func _unhandled_input(event: InputEvent) -> void:
+	if _back_l and _back_l.text in RESTART_TXT:
+		var at := Vector2(-1, -1)
+		if event is InputEventScreenTouch and (event as InputEventScreenTouch).pressed:
+			at = (event as InputEventScreenTouch).position
+		elif event is InputEventMouseButton and (event as InputEventMouseButton).pressed:
+			at = (event as InputEventMouseButton).position
+		if at.x >= 0.0 and at.x < 180.0 and at.y >= 0.0 and at.y < 100.0:
+			return
+	super(event)
+
+
+## smoke(화면 없음)에서 한 번: 그리는 것 수를 센다 (MeshInstance3D·MultiMesh, 재질의 next_pass 외곽선까지 = 대략 그리기 수)
+var _counted := false
+
+
+func _count_draws() -> void:
+	var c := [0, 0, 0, 0]  # 메시 노드, MultiMesh 노드, 그리기(전부), 그리기(지금 보이는 것)
+	_count_in(self, c)
+	print("tinyplanet v6 count: MeshInstance3D %d, MultiMeshInstance3D %d, draw passes all %d, visible now %d" % c)
+
+
+func _count_in(n: Node, c: Array) -> void:
+	for ch in n.get_children():
+		if ch is MeshInstance3D or ch is MultiMeshInstance3D:
+			var gi := ch as GeometryInstance3D
+			var mesh: Mesh = null
+			if ch is MeshInstance3D:
+				mesh = (ch as MeshInstance3D).mesh
+				c[0] += 1
+			else:
+				var mmi := ch as MultiMeshInstance3D
+				if mmi.multimesh:
+					mesh = mmi.multimesh.mesh
+				c[1] += 1
+			if mesh:
+				var dr := 0
+				for si in mesh.get_surface_count():
+					var m: Material = gi.material_override if gi.material_override else mesh.surface_get_material(si)
+					dr += 1
+					while m and m.next_pass:
+						dr += 1
+						m = m.next_pass
+				c[2] += dr
+				if gi.is_visible_in_tree():
+					c[3] += dr
+		_count_in(ch, c)
 
 # ---- 말 (dialogue.json 을 박아 넣은 DL) ----
 func _tx(key: String, args := {}) -> String:
@@ -2543,17 +3085,17 @@ static var _tl_n := 0
 var _tl_on := false
 
 
-## 폰·브라우저 언어가 한국어가 아니면(또는 주소에 ?lang=en) 영어. JS 값은 글자로 비교한다(bool 비교는 웹에서 멈춘다).
+## v6: 영어가 기본. 웹 주소에 lang=ko 가 있으면 한국어. 시작 화면 전환(set_lang)이 고른 게 있으면 그것. JS 값은 글자로 비교한다(bool 비교는 웹에서 멈춘다).
 func _lang() -> void:
-	var en := OS.get_locale_language() != "ko"
-	if OS.has_feature("web"):
-		if str(JavaScriptBridge.eval("location.search.indexOf('lang=en')>=0?'y':'n'", true)) == "y":
-			en = true
-		elif str(JavaScriptBridge.eval("location.search.indexOf('lang=ko')>=0?'y':'n'", true)) == "y":
+	var en := true
+	if _lang_pick != "":
+		en = _lang_pick == "en"
+	elif OS.has_feature("web"):
+		if str(JavaScriptBridge.eval("location.search.indexOf('lang=ko')>=0?'y':'n'", true)) == "y":
 			en = false
 	_en = en
 	if not en:
-		TranslationServer.set_locale("ko")
+		TranslationServer.set_locale("ko")  # 영어 번역이 올라가 있어도 ko 에선 안 쓰인다
 		return
 	if _tl == null:
 		var tl := Translation.new()
@@ -2613,7 +3155,7 @@ const DL := {
 	"who.friend": ["꽃 친구", "Flower Friend"],
 	"who.me": ["나", "Me"],
 	"p1.ask": ["바람이 멎어 풍차가 잠들었네. 별 둘레를 힘껏 달려 바람을 깨워 주겠나?", "The wind died and the mill sleeps. Run hard around to wake my friend?"],
-	"p1.hint": ["뜨기 직전이 제일 센 바람이지. 발이 뜨면 끊기니 바위는 살짝 넘게나.", "Fastest before liftoff is best. Keep feet down; hop over rocks."],
+	"p1.hint": ["뜨기 직전이 제일 센 바람이지. 발이 뜨면 바람이 끊기니 땅에 붙어 달리게나.", "Fastest just before liftoff is best. Keep your feet on the ground!"],
 	"p1.thanks": ["고마우이, 돛을 받게나. 보라 별이 우편의 별이니 노란 줄을 힘껏 달리게.", "Thank you! Take the sail. Purple is Post Planet; run the yellow lane."],
 	"p1.thanks2": ["초록 칸에서 점프하게. 날다 스틱 밀며 뛰면 돛으로 방향을 한 번 튼다네.", "Jump at the green cell! In flight, jump and push stick to turn once."],
 	"p2.ask": ["이 소포, 저 하얀 굴뚝 달 집에 전해 줘! 담이 높아 걸어선 못 들어가.", "Take this parcel to Chimney Moon! The walls are too high to walk in."],
@@ -2678,7 +3220,8 @@ const DL := {
 	"ending.2": ["작고 외롭던 별들이 하늘 한가운데서 서로 웃는다.", "Small, lonely worlds now smile together across the sky."],
 	"ending.3": ["차가운 유리 너머로 전해진 온기가 마음을 데운다.", "Warmth shared through glass softly warms my heart."],
 	"ending.4": ["언젠가 또 바람이 불면, 다시 달려 날아가야지.", "When the wind rises again, I will run and take flight."],
-	"ui.title": ["작은 행성", "Tiny Planet"],
+	"ui.title": ["어린 배달부", "The Little Courier"],
+	"hint.first": ["스틱으로 달리기 · 막대가 차면 점프!", "Hold the stick to run · Jump when the bar fills"],
 	"ui.jump": ["점프", "Jump"],
 	"ui.drop": ["놓기", "Drop"],
 	"howto": ["별 여러 개가 한 하늘에 떠 있다. 왼쪽 스틱으로 달린다(밀수록 빠름). 빨리 달리면 발이 뜬다.\n아주 빨리 달려 점프하면 중력을 벗어난다. 다른 별에 끌려 돌다 내리고, 빗나가면 떠내려간다.\n발 앞 점선: 지금 뛰면 갈 길(초록 도달, 빨강 위험). 위 막대 초록이면 점프 가능. 노란 빛기둥이 갈 곳.\n날다 점프: 돛으로 스틱 쪽 방향 전환. '놓기'는 발밑 노란 점에. 유리는 세게 내리면 깨짐. 목숨 3(새 별서 회복).", "Tiny planets share one sky. Run with left stick (push more for speed); fast running lifts feet.\nSprint and jump to escape gravity and fly. Nearby planets pull you into orbit; miss and you drift off.\nDotted line shows path (green reaches, red is danger). Green top bar = escape ready. Yellow pillar is goal.\nJump mid-flight to turn toward stick with sail. 'Drop' lands on yellow dot. Glass breaks if slammed. 3 lives (refill on new planet)."],
