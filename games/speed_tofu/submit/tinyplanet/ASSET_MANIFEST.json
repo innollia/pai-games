@@ -1,0 +1,122 @@
+[
+  {
+    "path": "chimney_house.glb",
+    "bytes": 4656
+  },
+  {
+    "path": "chimney_house.png",
+    "bytes": 78528
+  },
+  {
+    "path": "glass_dome.glb",
+    "bytes": 8076
+  },
+  {
+    "path": "glass_dome.png",
+    "bytes": 64516
+  },
+  {
+    "path": "glass_flower.glb",
+    "bytes": 8288
+  },
+  {
+    "path": "glass_flower.png",
+    "bytes": 68906
+  },
+  {
+    "path": "meteor.glb",
+    "bytes": 4456
+  },
+  {
+    "path": "meteor.png",
+    "bytes": 114874
+  },
+  {
+    "path": "parcel.glb",
+    "bytes": 3916
+  },
+  {
+    "path": "parcel.png",
+    "bytes": 70030
+  },
+  {
+    "path": "red_rock.glb",
+    "bytes": 5896
+  },
+  {
+    "path": "red_rock.png",
+    "bytes": 102942
+  },
+  {
+    "path": "rock.glb",
+    "bytes": 4420
+  },
+  {
+    "path": "rock.png",
+    "bytes": 46602
+  },
+  {
+    "path": "rose.glb",
+    "bytes": 8336
+  },
+  {
+    "path": "rose.png",
+    "bytes": 72873
+  },
+  {
+    "path": "tower.glb",
+    "bytes": 6628
+  },
+  {
+    "path": "tower.png",
+    "bytes": 71337
+  },
+  {
+    "path": "traveler.glb",
+    "bytes": 12836
+  },
+  {
+    "path": "traveler.png",
+    "bytes": 68490
+  },
+  {
+    "path": "tree.glb",
+    "bytes": 8244
+  },
+  {
+    "path": "tree.png",
+    "bytes": 70932
+  },
+  {
+    "path": "villager.glb",
+    "bytes": 13392
+  },
+  {
+    "path": "villager.png",
+    "bytes": 79620
+  },
+  {
+    "path": "wall.glb",
+    "bytes": 4272
+  },
+  {
+    "path": "wall.png",
+    "bytes": 51090
+  },
+  {
+    "path": "windmill_blades.glb",
+    "bytes": 9456
+  },
+  {
+    "path": "windmill_blades.png",
+    "bytes": 56955
+  },
+  {
+    "path": "windmill_tower.glb",
+    "bytes": 4924
+  },
+  {
+    "path": "windmill_tower.png",
+    "bytes": 88988
+  }
+]

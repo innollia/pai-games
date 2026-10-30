@@ -1,0 +1,346 @@
+{
+  "name.windmill": {
+    "ko": "풍차의 별",
+    "en": "Windmill Planet"
+  },
+  "name.post": {
+    "ko": "우편의 별",
+    "en": "Post Planet"
+  },
+  "name.glass": {
+    "ko": "유리꽃의 별",
+    "en": "Glass Flower Planet"
+  },
+  "name.sunset": {
+    "ko": "노을의 별",
+    "en": "Sunset Planet"
+  },
+  "name.rose": {
+    "ko": "장미의 별",
+    "en": "Rose Planet"
+  },
+  "name.chimney_moon": {
+    "ko": "굴뚝 달",
+    "en": "Chimney Moon"
+  },
+  "name.friend_moon": {
+    "ko": "친구 달",
+    "en": "Friend Moon"
+  },
+  "name.fire": {
+    "ko": "불 별",
+    "en": "Fire Star"
+  },
+  "who.windmill": {
+    "ko": "풍차지기",
+    "en": "Windmill Keeper"
+  },
+  "who.post": {
+    "ko": "우체부",
+    "en": "Mail Carrier"
+  },
+  "who.glass": {
+    "ko": "정원사",
+    "en": "Gardener"
+  },
+  "who.sunset": {
+    "ko": "노을 아이",
+    "en": "Sunset Child"
+  },
+  "who.rose": {
+    "ko": "장미",
+    "en": "Rose"
+  },
+  "who.chimney": {
+    "ko": "굴뚝 집",
+    "en": "Chimney House"
+  },
+  "who.friend": {
+    "ko": "꽃 친구",
+    "en": "Flower Friend"
+  },
+  "who.me": {
+    "ko": "나",
+    "en": "Me"
+  },
+  "p1.ask": {
+    "ko": "바람이 멎어 풍차가 잠들었네. 별 둘레를 힘껏 달려 바람을 깨워 주겠나?",
+    "en": "The wind died and the mill sleeps. Run hard around to wake my friend?"
+  },
+  "p1.hint": {
+    "ko": "뜨기 직전이 제일 센 바람이지. 발이 뜨면 끊기니 바위는 살짝 넘게나.",
+    "en": "Fastest before liftoff is best. Keep feet down; hop over rocks."
+  },
+  "p1.thanks": {
+    "ko": "고마우이, 돛을 받게나. 보라 별이 우편의 별이니 노란 줄을 힘껏 달리게.",
+    "en": "Thank you! Take the sail. Purple is Post Planet; run the yellow lane."
+  },
+  "p1.thanks2": {
+    "ko": "초록 칸에서 점프하게. 날다 스틱 밀며 뛰면 돛으로 방향을 한 번 튼다네.",
+    "en": "Jump at the green cell! In flight, jump and push stick to turn once."
+  },
+  "p2.ask": {
+    "ko": "이 소포, 저 하얀 굴뚝 달 집에 전해 줘! 담이 높아 걸어선 못 들어가.",
+    "en": "Take this parcel to Chimney Moon! The walls are too high to walk in."
+  },
+  "p2.hint": {
+    "ko": "달은 작아 금방 떠! 굴뚝 위 지날 때 '놓기'. 발밑 노란 점에 떨어져!",
+    "en": "The moon lifts fast! Press 'Drop' over chimney onto the yellow dot."
+  },
+  "p2.thanks": {
+    "ko": "잘 도착했대, 고마워! 다음은 초록 유리꽃의 별로 힘차게 날아가 봐.",
+    "en": "Delivered safely! Next, fly out to the green Glass Flower Planet."
+  },
+  "p3.ask": {
+    "ko": "유리꽃을 저 민트 친구 달에 전해 줘요… 세게 내려앉으면 깨져 버려요.",
+    "en": "Carry the glass flower to Friend Moon... A hard landing will break it."
+  },
+  "p3.hint": {
+    "ko": "곧장 말고 빙 돌아 살살 앉아요. 빨간 그림자는 운석 자리니 미리 피해요!",
+    "en": "Don't dive straight; circle to land softly. Red shadows are meteors!"
+  },
+  "p3.thanks": {
+    "ko": "꽃이 무사하대요… 정말 다행이에요. 이제 하늘색 노을의 별로 가 보세요.",
+    "en": "The flower is safe... thank you! Now visit the sky-blue Sunset Planet."
+  },
+  "p4.ask": {
+    "ko": "내 별은 너무 작아서 노을이 자꾸 달아나. 저 주황 띠랑 같이 달려 줘!",
+    "en": "My planet is small and the sunset runs away. Run with the orange band!"
+  },
+  "p4.hint": {
+    "ko": "얼음이라 미끄러워! 빠르면 뜨고 느리면 놓쳐. 띠랑 같은 빠르기로 뛰어!",
+    "en": "Slick ice! Too fast you float, too slow you lose it. Match its speed!"
+  },
+  "p4.thanks": {
+    "ko": "고마워! 분홍 장미 별에 유리 덮개를 줘. 곧장 가면 빨간 바위 띠야.",
+    "en": "Bring this dome to Rose Planet! A red rock belt blocks the direct way."
+  },
+  "p4.thanks2": {
+    "ko": "빨간 불 별 옆을 스치면 휘어 돌아가. 불 별에 닿으면 끝이니까 닿지 마!",
+    "en": "Skim beside the red fire star to whip around. Touching it is death!"
+  },
+  "p5.ask": {
+    "ko": "바람이 차가워… 유리 덮개를 씌워 줘. 담이 천천히 돌고 틈은 하나야.",
+    "en": "It's cold... Put the dome over me. The wall turns; there is one gap."
+  },
+  "p5.hint": {
+    "ko": "담 틈 맞춰 들어오거나 탑에서 날아 위에서 놓아 줘. 세게 내리면 깨져.",
+    "en": "Walk in with the wall gap, or drop from tower. Land hard, it breaks."
+  },
+  "p5.thanks": {
+    "ko": "…따뜻해. 고마워. 네 빠른 발 덕분에 우리 다섯 별이 다 웃고 있어.",
+    "en": "...Warm now. Thank you. Your fast feet made all five planets smile."
+  },
+  "p1.idle1": {
+    "ko": "바람결을 느끼며 달리면 하늘도 그 발소리를 듣는다네.",
+    "en": "When you run with the wind, the sky listens to your steps."
+  },
+  "p1.idle2": {
+    "ko": "서두르지 말게. 별은 언제나 제자리에서 자네를 기다리니.",
+    "en": "No need to hurry. The stars always wait patiently in place."
+  },
+  "p2.idle1": {
+    "ko": "하늘에 띄운 편지는 길을 잃지 않아. 언제나 닿을 곳으로 가지!",
+    "en": "Letters sent across the sky never get lost. They always arrive!"
+  },
+  "p2.idle2": {
+    "ko": "오늘도 우편 가방이 든든하네! 다음 행선지는 어디야?",
+    "en": "My mailbag is nice and full today! Where are you flying next?"
+  },
+  "p3.idle1": {
+    "ko": "유리꽃은 아주 여려요… 가만히 숨소리를 들으면 맑게 울리지요.",
+    "en": "Glass flowers are fragile... listen close and they ring softly."
+  },
+  "p3.idle2": {
+    "ko": "별들 사이를 날아갈 땐 마음도 깃털처럼 가볍게 가져 보세요.",
+    "en": "When soaring between stars, let your heart be light as a feather."
+  },
+  "p4.idle1": {
+    "ko": "노을빛이 주황색으로 번질 때 별을 달리면 마음이 몽글몽글해.",
+    "en": "Running as the sunset spreads orange makes my heart flutter."
+  },
+  "p4.idle2": {
+    "ko": "혼자 달릴 땐 외로웠는데, 같이 뛰니까 노을이 안 무서워!",
+    "en": "I was lonely running alone, but with you I do not fear sunset!"
+  },
+  "p5.idle1": {
+    "ko": "…뭘 그렇게 봐? 유리 덮개가 마음에 들어서 가만있는 것뿐이야.",
+    "en": "...What are you looking at? I just happen to like this glass dome."
+  },
+  "p5.idle2": {
+    "ko": "별빛이 덮개에 닿아 반짝이는 건… 조금 예쁜 것 같네.",
+    "en": "The starlight sparkling against the glass... looks rather nice."
+  },
+  "moon.chimney.got": {
+    "ko": "굴뚝 속으로 소포가 쏙 들어왔어! 따뜻한 온기가 번지네.",
+    "en": "The parcel dropped right down the chimney! Cozy warmth spreads inside."
+  },
+  "moon.friend.got": {
+    "ko": "정원사의 맑은 꽃이 깨지지 않고 닿았어… 달이 환해졌네!",
+    "en": "The gardener's clear flower arrived unbroken... the moon glows!"
+  },
+  "msg.start": {
+    "ko": "1. {planet}",
+    "en": "1. {planet}"
+  },
+  "msg.tower_jump": {
+    "ko": "탑에서 뛰어내린다",
+    "en": "Leaping from the tower"
+  },
+  "msg.liftoff": {
+    "ko": "중력을 벗어난다!",
+    "en": "Escaping gravity!"
+  },
+  "msg.float": {
+    "ko": "발이 떴다",
+    "en": "Floating"
+  },
+  "msg.sail": {
+    "ko": "돛으로 방향을 튼다",
+    "en": "Turning with the sail"
+  },
+  "msg.drift_warn": {
+    "ko": "우주로 떠내려간다… 돛으로 돌려!",
+    "en": "Drifting away! Turn with sail!"
+  },
+  "msg.flower_crack": {
+    "ko": "착지가 세서 금이 갔다",
+    "en": "Landed hard, glass cracked"
+  },
+  "msg.slingshot": {
+    "ko": "중력을 타고 휘어 돈다",
+    "en": "Curving past with gravity"
+  },
+  "msg.rock_snag": {
+    "ko": "바위에 걸렸다",
+    "en": "Caught on a rock"
+  },
+  "msg.wall_gap": {
+    "ko": "담 — 틈으로",
+    "en": "Wall — find the gap"
+  },
+  "msg.wall_high": {
+    "ko": "담이 높다 — 공중에서 놓기",
+    "en": "High wall — drop from above"
+  },
+  "msg.picked": {
+    "ko": "들었다 → {target}",
+    "en": "Picked up → {target}"
+  },
+  "msg.missed_drop": {
+    "ko": "빗나갔다 — 다시 줍기",
+    "en": "Missed — pick it up again"
+  },
+  "msg.glass_broken": {
+    "ko": "깨졌다… {src}에서 다시 받기",
+    "en": "Broken... get another at {src}"
+  },
+  "msg.rose_smiles": {
+    "ko": "장미가 환하게 웃는다",
+    "en": "The rose smiles brightly"
+  },
+  "msg.next": {
+    "ko": "다음: {planet}",
+    "en": "Next: {planet}"
+  },
+  "hud.next_hint": {
+    "ko": "다음: {planet} (노란 빛기둥). 달려 점프! 초록 점선이면 닿아.",
+    "en": "Next: {planet} (yellow pillar). Run and jump! Green dots will reach."
+  },
+  "die.fire": {
+    "ko": "뜨거운 불 별에 닿았다",
+    "en": "Touched the burning star"
+  },
+  "die.rocks": {
+    "ko": "빨간 바위 띠에 부딪혔다",
+    "en": "Hit the red rock belt"
+  },
+  "die.drift": {
+    "ko": "깊은 우주로 떠내려갔다",
+    "en": "Drifted into deep space"
+  },
+  "die.meteor": {
+    "ko": "떨어지는 운석에 맞았다",
+    "en": "Struck by a falling meteor"
+  },
+  "react.first_liftoff": {
+    "ko": "별을 떠나 날아오른다",
+    "en": "Leaving gravity behind..."
+  },
+  "react.first_landing": {
+    "ko": "새로운 별에 내려앉았다",
+    "en": "Stepped onto a new world"
+  },
+  "react.slingshot": {
+    "ko": "별의 곁을 스쳐 가속한다",
+    "en": "Whipping past the planet"
+  },
+  "react.orbit_landing": {
+    "ko": "궤도를 돌아 살포시 앉았다",
+    "en": "A gentle orbit touchdown"
+  },
+  "react.flower_cracked": {
+    "ko": "금이 갔다… 더 살살 앉자",
+    "en": "Cracked... land gentler!"
+  },
+  "react.flower_broken": {
+    "ko": "깨져 버렸다… 다시 가자",
+    "en": "Shattered... start again"
+  },
+  "react.drift_warning": {
+    "ko": "멀어진다… 돛으로 돌리자!",
+    "en": "Drifting! Turn with sail!"
+  },
+  "react.die_fire": {
+    "ko": "스치기만 하고 닿지 말자",
+    "en": "Skim beside, do not touch!"
+  },
+  "react.die_rocks": {
+    "ko": "불 별 쪽으로 돌아가자",
+    "en": "Go around via the fire star!"
+  },
+  "react.die_drift": {
+    "ko": "초록 점선을 보고 뛰자",
+    "en": "Jump only on green dots!"
+  },
+  "react.die_meteor": {
+    "ko": "빨간 그림자를 미리 피하자",
+    "en": "Step off red shadows early!"
+  },
+  "react.new_planet": {
+    "ko": "새 별에 닿아 힘이 난다",
+    "en": "New planet! Life restored"
+  },
+  "ending.1": {
+    "ko": "발끝으로 건넌 별마다 다정한 빛이 켜졌다.",
+    "en": "A gentle light now glows on every star I crossed."
+  },
+  "ending.2": {
+    "ko": "작고 외롭던 별들이 하늘 한가운데서 서로 웃는다.",
+    "en": "Small, lonely worlds now smile together across the sky."
+  },
+  "ending.3": {
+    "ko": "차가운 유리 너머로 전해진 온기가 마음을 데운다.",
+    "en": "Warmth shared through glass softly warms my heart."
+  },
+  "ending.4": {
+    "ko": "언젠가 또 바람이 불면, 다시 달려 날아가야지.",
+    "en": "When the wind rises again, I will run and take flight."
+  },
+  "ui.title": {
+    "ko": "작은 행성",
+    "en": "Tiny Planet"
+  },
+  "ui.jump": {
+    "ko": "점프",
+    "en": "Jump"
+  },
+  "ui.drop": {
+    "ko": "놓기",
+    "en": "Drop"
+  },
+  "howto": {
+    "ko": "별 여러 개가 한 하늘에 떠 있다. 왼쪽 스틱으로 달린다(밀수록 빠름). 빨리 달리면 발이 뜬다.\n아주 빨리 달려 점프하면 중력을 벗어난다. 다른 별에 끌려 돌다 내리고, 빗나가면 떠내려간다.\n발 앞 점선: 지금 뛰면 갈 길(초록 도달, 빨강 위험). 위 막대 초록이면 점프 가능. 노란 빛기둥이 갈 곳.\n날다 점프: 돛으로 스틱 쪽 방향 전환. '놓기'는 발밑 노란 점에. 유리는 세게 내리면 깨짐. 목숨 3(새 별서 회복).",
+    "en": "Tiny planets share one sky. Run with left stick (push more for speed); fast running lifts feet.\nSprint and jump to escape gravity and fly. Nearby planets pull you into orbit; miss and you drift off.\nDotted line shows path (green reaches, red is danger). Green top bar = escape ready. Yellow pillar is goal.\nJump mid-flight to turn toward stick with sail. 'Drop' lands on yellow dot. Glass breaks if slammed. 3 lives (refill on new planet)."
+  }
+}

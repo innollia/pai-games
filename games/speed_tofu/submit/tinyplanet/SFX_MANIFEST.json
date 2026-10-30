@@ -1,0 +1,162 @@
+{
+ "tool": "nkido (MIT) 원재료 + numpy/scipy 다듬기, --no-default-bank",
+ "samples": "none",
+ "rate": 24000,
+ "dir": "art/tinyplanet_sfx",
+ "sounds": [
+  {
+   "file": "step.wav",
+   "seconds": 0.09,
+   "peak": 0.891,
+   "rms": 0.243,
+   "note": "작은 행성 위 부드러운 발걸음(짧은 저음 톡 + 자갈 사각), 빠르게 연타용"
+  },
+  {
+   "file": "liftoff.wav",
+   "seconds": 0.36,
+   "peak": 0.89,
+   "rms": 0.232,
+   "note": "발이 땅을 떠남: 짧은 밀기 + 위로 올라가는 바람"
+  },
+  {
+   "file": "escape.wav",
+   "seconds": 2.26,
+   "peak": 0.89,
+   "rms": 0.18,
+   "note": "탈출선 넘는 도약: 큰 북 + 크게 솟구치는 바람 + 밝은 상승음 + 우주 메아리"
+  },
+  {
+   "file": "atmo.wav",
+   "seconds": 1.78,
+   "peak": 0.89,
+   "rms": 0.149,
+   "note": "다른 행성 대기권 진입: 낮고 펄럭이는 공기 쉬익"
+  },
+  {
+   "file": "slingshot.wav",
+   "seconds": 1.63,
+   "peak": 0.888,
+   "rms": 0.111,
+   "note": "새총 성공: 줄 퉁 + 밝은 두 음 차임"
+  },
+  {
+   "file": "land.wav",
+   "seconds": 0.62,
+   "peak": 0.872,
+   "rms": 0.184,
+   "note": "부드러운 착지 쿵"
+  },
+  {
+   "file": "land_hard.wav",
+   "seconds": 1.3,
+   "peak": 0.89,
+   "rms": 0.198,
+   "note": "세게 착지: 묵직한 쿵 + 흙먼지"
+  },
+  {
+   "file": "sail.wav",
+   "seconds": 0.28,
+   "peak": 0.891,
+   "rms": 0.136,
+   "note": "돛 방향 바꿈: 천이 두 번 탁 펴짐"
+  },
+  {
+   "file": "drift_warn.wav",
+   "seconds": 0.97,
+   "peak": 0.89,
+   "rms": 0.173,
+   "note": "허공 표류 경고: 부드러운 두 번 울림(반복 재생용)"
+  },
+  {
+   "file": "die.wav",
+   "seconds": 1.82,
+   "peak": 0.892,
+   "rms": 0.13,
+   "note": "떨어지는 바람 + 퐁 사라짐 + 작은 반짝"
+  },
+  {
+   "file": "meteor_warn.wav",
+   "seconds": 1.1,
+   "peak": 0.88,
+   "rms": 0.257,
+   "note": "다가오는 운석 휘파람(내려가는 음 + 커지는 굉음)"
+  },
+  {
+   "file": "meteor_hit.wav",
+   "seconds": 1.78,
+   "peak": 0.89,
+   "rms": 0.173,
+   "note": "운석 충돌: 깊은 쿵 + 바위 부서짐 + 파편"
+  },
+  {
+   "file": "pickup.wav",
+   "seconds": 0.66,
+   "peak": 0.886,
+   "rms": 0.089,
+   "note": "물건 집기: 톡 + 위로 두 음 반짝"
+  },
+  {
+   "file": "drop.wav",
+   "seconds": 0.66,
+   "peak": 0.888,
+   "rms": 0.119,
+   "note": "물건 놓기: 톡 + 아래로 두 음"
+  },
+  {
+   "file": "deliver.wav",
+   "seconds": 2.35,
+   "peak": 0.89,
+   "rms": 0.123,
+   "note": "일 해결: 따뜻한 도-미-솔 종 차임 + 메아리"
+  },
+  {
+   "file": "crack.wav",
+   "seconds": 0.65,
+   "peak": 0.703,
+   "rms": 0.031,
+   "note": "유리 금 감: 날카로운 틱 두 번 + 가는 울림"
+  },
+  {
+   "file": "shatter.wav",
+   "seconds": 1.6,
+   "peak": 0.59,
+   "rms": 0.046,
+   "note": "유리 깨짐: 파삭 + 유리 울림 + 조각 짤랑"
+  },
+  {
+   "file": "wind.wav",
+   "seconds": 1.5,
+   "peak": 0.88,
+   "rms": 0.141,
+   "note": "풍차 바람 한 줄기, 양끝 0이라 이어 붙여 반복 가능"
+  },
+  {
+   "file": "windmill_wake.wav",
+   "seconds": 2.27,
+   "peak": 0.89,
+   "rms": 0.137,
+   "note": "풍차 깨어남: 나무 삐걱 + 돌아가는 바람 + 솔-레-솔 차임"
+  },
+  {
+   "file": "talk.wav",
+   "seconds": 0.12,
+   "peak": 0.888,
+   "rms": 0.196,
+   "note": "NPC 말 소리: 짧고 부드러운 모음 '뽀'(pitch_scale로 높낮이)"
+  },
+  {
+   "file": "ui_tap.wav",
+   "seconds": 0.08,
+   "peak": 0.897,
+   "rms": 0.164,
+   "note": "버튼 톡"
+  },
+  {
+   "file": "win.wav",
+   "seconds": 4.64,
+   "peak": 0.89,
+   "rms": 0.146,
+   "note": "엔딩: 따뜻한 C장조 화음 패드 + 올라가는 종 아르페지오"
+  }
+ ]
+}
