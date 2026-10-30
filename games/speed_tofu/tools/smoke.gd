@@ -3,7 +3,7 @@ extends SceneTree
 ## godot --headless --path . --fixed-fps 60 -s tools/smoke.gd -- bigball sword   (이름을 안 주면 전부)
 ## 출력에 SCRIPT ERROR 가 없고 마지막 줄이 "smoke done" 이면 통과.
 
-const ALL := ["quicksilver", "synapse", "blade", "boulder", "hot", "hot_side", "quicksilver_tp", "blade_fp", "boulder_fp", "coil_side", "speedcop", "speedthief", "trafficwizard", "screenrace", "kitchen", "coaster", "pitcrew", "overpower", "overpower_3d", "piton", "predict", "onedot", "icecream", "lickghost", "wombat_fast", "wombat_dial", "rain_slow", "rain_flee", "coming_top", "coming_fp", "deepsword", "deepsword_3d", "bigball", "sword", "nerve", "superhot", "onlyfast", "hotpack", "timedebt", "runaway", "slowbike", "matchspeed"]
+const ALL := ["quicksilver", "synapse", "blade", "boulder", "hot", "hot_side", "quicksilver_tp", "blade_fp", "boulder_fp", "coil_side", "speedcop", "speedthief", "trafficwizard", "screenrace", "kitchen", "coaster", "pitcrew", "overpower", "overpower_3d", "piton", "predict", "onedot", "icecream", "lickghost", "wombat_fast", "wombat_dial", "rain_slow", "rain_flee", "coming_top", "coming_fp", "deepsword", "deepsword_3d", "shockwave", "glider", "ice_courier", "runaway_train", "molten", "blade_1p", "quicksilver_fp", "rain_fp", "deepsword_fp", "boulder_race", "screenrace_over", "rain_coming", "overpower_rain", "coming_boulder", "blade_run", "bigball", "sword", "nerve", "superhot", "onlyfast", "hotpack", "timedebt", "runaway", "slowbike", "matchspeed"]
 
 
 func _initialize() -> void:
