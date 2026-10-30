@@ -3,6 +3,7 @@ extends CanvasLayer
 ## 경주 중 보이는 것은 셋뿐: (1) 맨 위 얇은 진행 막대 하나 (코스 진행 + 경쟁자 핀 순서 + 결승 깃발을 한 줄에),
 ## (2) 땅 위에 떠 있는 조작 버튼 (스틱·점프·짐), (3) 왼쪽 찢긴 종이 끝 (screenrace 의 _fx_draw_edge).
 ## 짐은 배달부 등에 실린 상자와 짐 버튼 얼굴의 상자 더미가 보여 준다 (숫자 없음). 이긴 판은 머리 위 표시가 맡는다.
+## v12: 핀 안의 숫자 = 이번 판 배달한 짐 (배달 1등 핀은 금 테), 막대 아래 작은 우체통 표 (빨강 = 빈 곳, 골판지 = 찬 곳).
 ## 쓰는 법 (screenrace.gd):
 ##   const SR_HUD = preload("res://g/sr_hud.gd")
 ##   _setup() 끝: sr_hud = SR_HUD.new(); add_child(sr_hud); sr_hud.setup(self)
@@ -46,6 +47,10 @@ var _back_on := true
 # 막대 상태
 var _pins := PackedFloat32Array()  # 0..1, 죽으면 -1
 var _pin_cols: Array[Color] = []
+var _got := PackedInt32Array([0, 0, 0, 0])
+var _top_i := -1  # 배달 1등 (같으면 없음)
+var _mb_sig := ""
+var _mbs: Array = []
 var _bear := -1
 var _cargo := 0
 var _lost_t := 0.0
@@ -186,8 +191,11 @@ func _read_rail() -> bool:
 		if i >= 4:
 			break
 		var f := -1.0
-		if r.alive:
+		if r.alive or float(r.back_t) > 0.0:
 			f = clampf((float(r.p.x) - x0) / span, 0.0, 1.0)
+		if int(r.got) != _got[i]:
+			_got[i] = int(r.got)
+			changed = true
 		if absf(f - _pins[i]) * (RAIL_X1 - RAIL_X0) >= 1.0:
 			_pins[i] = f
 			changed = true
@@ -198,6 +206,28 @@ func _read_rail() -> bool:
 		if bear != null and r == bear:
 			bi = i
 		i += 1
+	# 배달 1등 (혼자일 때만 금 테)
+	var ti := -1
+	var best := 0
+	for k in 4:
+		if _got[k] > best:
+			best = _got[k]
+			ti = k
+		elif _got[k] == best and best > 0:
+			ti = -2
+	ti = maxi(ti, -1)
+	if ti != _top_i:
+		_top_i = ti
+		changed = true
+	if game.has_method("mailbox_marks"):
+		var mk: Array = game.mailbox_marks()
+		var sig := ""
+		for m in mk:
+			sig += "%d%d," % [int(m.x * 1000.0), int(m.y)]
+		if sig != _mb_sig:
+			_mb_sig = sig
+			_mbs = mk
+			changed = true
 	if bi != _bear:
 		_bear = bi
 		changed = true
@@ -250,6 +280,14 @@ func _draw_rail(c: Control) -> void:
 	var me := maxf(_pins[0], 0.0)
 	if me > 0.0:
 		c.draw_rect(Rect2(tr.position + Vector2(4, 3), Vector2((tr.size.x - 8.0) * me, tr.size.y - 6.0)), Color(T.RED, 0.85))
+	# 우체통 표: 막대 아래에 매달린 작은 우체통 (빨강 = 빈 곳, 골판지 = 찬 곳) — 뒤에서 보고 계획한다
+	for m in _mbs:
+		var mx := RAIL_X0 + (RAIL_X1 - RAIL_X0) * float(m.x)
+		var full := float(m.y) > 0.5
+		var mr := Rect2(Vector2(mx - 5.0, y + 9.0), Vector2(10.0, 9.0))
+		c.draw_rect(mr.grow(1.5), T.WHITE)
+		c.draw_rect(mr, T.KRAFT_SH if full else T.RED)
+		c.draw_line(Vector2(mx, y + 18.0), Vector2(mx, y + 23.0), T.NAVY, 2.0)
 	# 결승 깃발 (이긴 판은 머리 위 표시와 판 끝 도장이 맡는다: 막대는 진행·순서만)
 	var fx := RAIL_X1 + 22.0
 	var fl := T.tex("icon_flag")
@@ -274,10 +312,11 @@ func _draw_rail(c: Control) -> void:
 		drawn.append(px)
 		var at := Vector2(px, y - PIN_STEP * float(mini(lv, 2)))
 		if _bear == k:
-			c.draw_circle(at, 14.0, Color(T.AMBER, 0.6), true, -1.0, true)
-		c.draw_circle(at + Vector2(0, 2), 9.0, T.SHADOW, true, -1.0, true)
-		c.draw_circle(at, 9.0, T.WHITE, true, -1.0, true)
-		c.draw_circle(at, 7.0, _pin_cols[k], true, -1.0, true)
+			c.draw_circle(at, 15.0, Color(T.AMBER, 0.6), true, -1.0, true)
+		c.draw_circle(at + Vector2(0, 2), 11.0, T.SHADOW, true, -1.0, true)
+		c.draw_circle(at, 11.0, T.GOLD if _top_i == k else T.WHITE, true, -1.0, true)
+		c.draw_circle(at, 8.5, _pin_cols[k], true, -1.0, true)
+		_pin_num(c, at, _got[k], 15)
 	_draw_me(c, y)
 
 
@@ -294,11 +333,23 @@ func _draw_me(c: Control, y: float) -> void:
 	c.draw_circle(at + Vector2(0, 3), 14.0, T.SHADOW, true, -1.0, true)
 	c.draw_circle(at, 14.0, rim, true, -1.0, true)
 	var face := T.EMPTY_SLOT if dead else T.BLUE
+	if _top_i == 0 and _lost_t <= 0.0:
+		c.draw_circle(at, 14.0, T.GOLD, true, -1.0, true)  # 내가 배달 1등
 	c.draw_circle(at, 11.0, face, true, -1.0, true)
+	_pin_num(c, at, _got[0], 18)
 	# 짐 수는 짐 버튼의 상자 더미와 등의 상자가 맡는다 (마지막 한 개는 빨간 더미 + LAST PARCEL 도장).
 
 
 var _rail_cache := {}
+
+
+## 핀 안의 배달 수 (흰 글 + 남색 테)
+func _pin_num(c: Control, at: Vector2, n: int, fs: int) -> void:
+	var s := str(n)
+	var w := T.FONT.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+	var base := Vector2(at.x - w * 0.5, at.y + T.FONT.get_ascent(fs) * 0.5 - 2.0)
+	c.draw_string_outline(T.FONT, base, s, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 4, T.NAVY)
+	c.draw_string(T.FONT, base, s, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, T.WHITE)
 
 
 func _rail_sb(face: Color, border: Color, bw: int) -> StyleBoxFlat:

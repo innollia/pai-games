@@ -15,14 +15,14 @@ signal lang_pressed
 signal tutorial_done(first_run: bool)
 
 const LAYER := 20
-const STEP_N := 4  # 점으로 세는 연습 단계 (마지막 "출발!" 은 세지 않는다)
+const STEP_N := 5  # 점으로 세는 연습 단계 (마지막 "출발!" 은 세지 않는다). v12: 달리기·점프·배달·던지기·왼쪽 끝
 const RUN_GOAL := 3.5  # 오른쪽으로 이만큼(m) 달리면 1단계 통과
-const EDGE_T := 3.0  # 4단계: 짐을 먹힌 뒤 이만큼 보여 주고 넘어간다 (안 닿으면 EDGE_T + 2 초에 넘어간다)
-const EDGE_V := 4.0  # 4단계: 찢긴 끝이 다가오는 가장 느린 속도 (m/s)
-const EDGE_REACH := 2.0  # 4단계: 찢긴 끝이 배달부에게 닿기까지 걸리는 시간 (초)
+const EDGE_T := 3.0  # 5단계: 짐을 먹힌 뒤 이만큼 보여 주고 넘어간다 (안 닿으면 EDGE_T + 2 초에 넘어간다)
+const EDGE_V := 4.0  # 5단계: 찢긴 끝이 다가오는 가장 느린 속도 (m/s)
+const EDGE_REACH := 2.0  # 5단계: 찢긴 끝이 배달부에게 닿기까지 걸리는 시간 (초)
 const GO_T := 1.4  # "출발!" 카드 시간
 const BETWEEN_T := 0.55  # 단계 사이 "좋아!" 도장 시간
-const REC_PATH := "user://screenrace_v7.cfg"  # game.RECORDS 를 못 읽을 때만
+const REC_PATH := "user://screenrace_v12.cfg"  # game.RECORDS 를 못 읽을 때만
 
 ## true = 처음 하는 사람이 PLAY 를 누르면 연습부터 (끝나면 바로 기본 경주)
 var auto_tutorial_on_play := true
@@ -62,12 +62,13 @@ var _tt := 0.0
 var _between := 0.0
 var _x0 := 0.0
 var _cargo0 := 0
+var _got0 := 0
 var _was_g := true
 var _jumped := false
-var _edge_x := 0.0  # 4단계: 찢긴 끝(화면 왼쪽 끝)의 세계 x, 초당 EDGE_V 로 다가온다
+var _edge_x := 0.0  # 5단계: 찢긴 끝(화면 왼쪽 끝)의 세계 x, 초당 EDGE_V 로 다가온다
 var _eaten := false
-var _edge_v := EDGE_V  # 4단계: 이번 끝 속도 (EDGE_REACH 초 안에 닿게)
-var _pin_x := 0.0  # 4단계: 먹히기 전까지 배달부가 이보다 앞으로 못 간다
+var _edge_v := EDGE_V  # 5단계: 이번 끝 속도 (EDGE_REACH 초 안에 닿게)
+var _pin_x := 0.0  # 5단계: 먹히기 전까지 배달부가 이보다 앞으로 못 간다
 ## 헤드리스(smoke)에서는 제목·연습을 저절로 넘겨 경주까지 가게 한다
 var auto_headless := true
 var _auto_t := 0.0
@@ -375,11 +376,12 @@ func _enter(i: int) -> void:
 	_tt = 0.0
 	_between = 0.0
 	var pl = game.pl
-	# 3단계 전에 짐을 다 던졌으면 다시 채운다 (연습 마당: 상대·점수 없음) — 안 그러면 3단계를 못 넘긴다
-	if i == 2 and int(pl.cargo) < 2:
+	# 배달·던지기 단계 전에 짐이 모자라면 다시 채운다 (연습 마당: 상대·점수 없음) — 안 그러면 못 넘긴다
+	if (i == 2 or i == 3) and int(pl.cargo) < 2:
 		pl.cargo = 3
 	_x0 = float(pl.p.x)
 	_cargo0 = int(pl.cargo)
+	_got0 = int(pl.got)
 	_edge_x = float(game.camx) - float(game.hwv)
 	_eaten = false
 	_pin_x = float(pl.p.x)
@@ -407,13 +409,16 @@ func _fill_bubble() -> void:
 			_bubble.text = "점프로 상자를 넘어!" if ko else "Jump the crate!"
 			_bubble.icon = "icon_jump"
 		2:
-			_bubble.text = "짐 하나 던지고 대시!" if ko else "Throw a box to DASH!"
-			_bubble.icon = "icon_drop"
+			_bubble.text = "우체통 앞에 서서 [짐] = 배달!" if ko else "Stop at the mailbox, tap BOX to deliver!"
+			_bubble.icon = "icon_parcel"
 		3:
-			_bubble.text = "뒤처지면 찢긴 끝이 짐을 먹어!" if ko else "Fall behind and the torn edge eats a box!"
+			_bubble.text = "다른 곳에서 [짐] = 던지고 대시!" if ko else "Tap BOX elsewhere: throw one and DASH!"
+			_bubble.icon = "icon_drop"
+		4:
+			_bubble.text = "왼쪽 끝에 밀리면 짐 하나를 잃어!" if ko else "Fall off the left edge = lose a box!"
 			_bubble.icon = "icon_parcel"
 		_:
-			_bubble.text = "깃발까지 1등으로!" if ko else "Beat 3 rivals to the flag!"
+			_bubble.text = "배달 많이 한 사람이 이긴다!" if ko else "Most deliveries wins!"
 			_bubble.icon = "icon_flag"
 	_bubble.queue_redraw()
 
@@ -441,7 +446,7 @@ func _process(dt: float) -> void:
 			_on_skip()
 			return
 	_tut_tick(dt)
-	var kinds: Array[String] = ["stick", "jump", "drop", "edge", ""]
+	var kinds: Array[String] = ["stick", "jump", "drop", "drop", "edge", ""]
 	_guide.kind = kinds[mini(step, STEP_N)]
 	if _between > 0.0:
 		_guide.kind = ""
@@ -451,8 +456,8 @@ func _process(dt: float) -> void:
 	_guide.queue_redraw()
 	# 말풍선 꼬리는 가리키는 곳으로
 	_bubble.tail_x = clampf(_guide.target.x - _bubble.position.x, 60.0, _bubble.size.x - 60.0)
-	_bubble.tail_down = step == 1 or step == 2 or step == 0
-	_bubble.tail_left = step == 3
+	_bubble.tail_down = step >= 0 and step <= 3
+	_bubble.tail_left = step == 4
 
 
 func _tut_tick(dt: float) -> void:
@@ -478,9 +483,14 @@ func _tut_tick(dt: float) -> void:
 			if _jumped and (cx < 0.0 or float(pl.p.x) > cx + 1.3):
 				_ok()
 		2:
-			if int(pl.cargo) < _cargo0:
+			if int(pl.got) > _got0:
 				_ok()
+			elif int(pl.cargo) <= 0:
+				pl.cargo = 2  # 우체통 밖에서 다 던졌다: 다시 채워 준다
 		3:
+			if int(pl.cargo) < _cargo0 and int(pl.got) == _got0:
+				_ok()  # 던졌다 (연습 우체통은 이미 찼으니 짐이 준 건 던진 것)
+		4:
 			_edge_tick(dt)
 		_:
 			if _tt > GO_T:
@@ -488,7 +498,7 @@ func _tut_tick(dt: float) -> void:
 	_was_g = g
 
 
-## 4단계: 화면이 앞으로 밀려 찢긴 끝(왼쪽 끝)이 배달부에게 다가오고, 닿으면 짐 하나를 먹는다.
+## 5단계: 화면이 앞으로 밀려 찢긴 끝(왼쪽 끝)이 배달부에게 다가오고, 닿으면 짐 하나를 먹는다.
 ## 경주와 같은 규칙: 끝 = camx - hwv, 먹힐 때는 screenrace._shove 를 쓴다.
 func _edge_tick(dt: float) -> void:
 	var pl = game.pl
@@ -525,7 +535,7 @@ func _edge_tick(dt: float) -> void:
 func _ok() -> void:
 	_between = BETWEEN_T
 	T.pop_out(_bubble)
-	if step == 3:
+	if step == 4:
 		return  # 짐을 잃은 걸 '좋아!'로 칭찬하지 않는다
 	_nice.visible = true
 	T.stamp_slam(_nice)
@@ -544,11 +554,11 @@ func _target_pos() -> Vector2:
 			if btns.has("jump"):
 				return btns["jump"].pos
 			return Vector2(590, 1070)
-		2:
+		2, 3:
 			if btns.has("drop"):
 				return btns["drop"].pos
 			return Vector2(440, 1150)
-		3:
+		4:
 			return Vector2(0, 560)
 	return Vector2(360, 640)
 
@@ -562,7 +572,7 @@ func _target_r() -> float:
 			if btns.has("jump"):
 				return maxf(float(btns["jump"].r), 40.0)
 			return 76.0
-		2:
+		2, 3:
 			if btns.has("drop"):
 				return maxf(float(btns["drop"].r), 36.0)
 			return 54.0

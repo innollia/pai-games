@@ -22,8 +22,8 @@ const MODE_IDS := ["base", "lantern", "over"]
 const MODE_ART := {"base": "mode_classic", "lantern": "mode_lantern", "over": "mode_rush"}
 const MODE_ICON := {"base": "icon_parcel", "lantern": "icon_lantern", "over": "icon_flag"}
 ## 카드에는 한 줄 규칙만 (좁은 카드에서 줄이 넘치지 않게)
-const MODE_SHORT := {"base": ["짐을 던져 앞서기", "Drop boxes to get ahead"],
-	"lantern": ["빛 안에 머물기", "Stay in the light"],
+const MODE_SHORT := {"base": ["우체통에 배달하기", "Post boxes in mailboxes"],
+	"lantern": ["빛 안의 우체통 찾기", "Find mailboxes in the light"],
 	"over": ["짐 2개 이하: 천장 부스트", "2 boxes or less: ceiling boost"]}
 const MODE_GLYPH := {"base": "parcel", "lantern": "lantern", "over": "rush"}
 const PERK_ICON := {"신발": "icon_shoe", "끈": "icon_strap", "용수철": "icon_spring", "바람": "icon_wind",
@@ -446,7 +446,7 @@ func show_results(data: Dictionary) -> void:
 	_title_btn.disabled = true
 	var won := bool(data.get("won", false))
 	var place := int(data.get("placement", 1 if won else 2))
-	var txt := (_L("%d위 · 배달 완료", "#%d · DELIVERED") if won else _L("%d위 · 반송", "#%d · RETURNED")) % place
+	var txt := (_L("%d위 · 배달 완료", "#%d · DELIVERED") if won else _L("%d위 · 마감", "#%d · CLOSED")) % place
 	_set_stamp(_rc_stamp, _rc_stamp_d, txt, T.GREEN if won else T.RED, 50, -8.0, Vector2(310, RC_STAMP_Y))
 	_rc_stamp.hide()
 	_receipt.queue_redraw()

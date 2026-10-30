@@ -61,6 +61,9 @@ func _run() -> void:
 	await _wait(25)
 	await _shot("02_tutorial_step1")
 	_finger(1, Vector2(250, 1100), -1)
+	g.pl.p = Vector2(19.0, g.pl.p.y)  # 상자를 넘은 자리: 연습 우체통(25)이 보인다
+	g.pl.v = Vector2.ZERO
+	g._cam_snap()
 	g.front._enter(2)
 	await _wait(30)
 	await _shot("03_tutorial_step3")
@@ -94,6 +97,27 @@ func _run() -> void:
 	await _wait(5)
 	await _shot("07_dash")
 	await _wait(40)
+	# v12: 빈 우체통 앞에 세우고 짐 버튼 = 배달 (깃발이 서고 DELIVERED 도장)
+	var mbi := -1
+	for i in g.mailboxes.size():
+		var mb: Dictionary = g.mailboxes[i]
+		if not mb.full and float(mb.x) > g.pl.p.x + 2.0:
+			mbi = i
+			break
+	if mbi >= 0:
+		var mb: Dictionary = g.mailboxes[mbi]
+		g.pl.p = Vector2(float(mb.x) - 0.4, float(mb.y))
+		g.pl.v = Vector2.ZERO
+		g.pl.immune = 0.0
+		g._cam_snap()
+		await _wait(3)
+		_finger(2, g._btns["drop"].pos, 1)
+		await _wait(2)
+		_finger(2, g._btns["drop"].pos, -1)
+		await _wait(12)
+		print("deliver got ", g.pl.got, " cargo ", g.pl.cargo)
+		await _shot("07b_deliver")
+	await _wait(20)
 	# 내 배달부를 왼쪽 끝 밖으로 (진짜 처리: 짐 하나 잃고 찢긴 끝이 번쩍, 슬로모션)
 	g.pl.immune = 0.0
 	g.rt = 11.0  # past the safe first 10 s of course 1
@@ -104,6 +128,17 @@ func _run() -> void:
 	print("edge after ", g.phase, " cargo ", g.pl.cargo, " x ", g.pl.p.x, " left ", g.camx - g.hwv)
 	await _shot("08_edge_moment")
 	g.ci = 0
+	await _wait(50)
+	print("reentered ", g.pl.alive, " cargo ", g.pl.cargo, " vis ", g.pl.node.visible, " pos ", g.pl.node.position, " scale ", g.pl.node.scale, " p ", g.pl.p, " cam ", g.camx, " hwv ", g.hwv, " imm ", g.pl.immune)
+	await _shot("08a_reenter")
+	# 첫 도착 -> 3초 마감 임박
+	g.pl.p = Vector2(g.goal_x + 0.5, g._floor_top(g.goal_x + 0.5, 60.0) + 0.05)
+	g._cam_snap()
+	await _wait(20)
+	g.pl.immune = 0.0  # 다시 들어온 뒤 깜빡임이 끝난 모습
+	await _wait(1)
+	print("last call ", g.last_call, " vis ", g.pl.node.visible, " pos ", g.pl.node.position, " scale ", g.pl.node.scale, " p ", g.pl.p, " cam ", g.camx)
+	await _shot("08b_last_call")
 	_finger(1, Vector2(270, 1100), -1)
 	await _wait(30)
 	g.pl.wins = 99  # 이긴 걸로 치고 진짜 판 끝 처리 -> 특전 고르기

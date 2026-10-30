@@ -29,7 +29,7 @@ const BX0 := -60.0
 const BK := 6.0
 const WIDE := 12.5  # 짐이 다 있을 때 화면 반폭
 const NARROW := 5.5  # 짐이 다 없어지면 이만큼
-const LOAD0 := 3  # 출발 짐
+const LOAD0 := 4  # 판마다 출발 짐 (v12: 배달할 짐이 넉넉해야 우체통 다툼이 생긴다)
 const LOAD_MAX := 5
 const LOAD_SLOW := 0.06  # 짐 하나당 최고 속도 감소
 const LOAD_JUMP := 0.035  # 짐 하나당 점프 감소
@@ -71,10 +71,10 @@ const ZF := 1.5  # 안개 막
 const FOG_N := 6
 const EDGE_N := 8
 const MODES := {"base": "기본", "lantern": "밤 등불", "over": "과속 배달"}
-const MODE_RULES := {"base": "짐을 지키거나 버려서 앞서라", "lantern": "선두의 빛에 붙어라 · 빠르면 빛이 뒤로", "over": "짐 2개 이하: 천장 가속 / 벽 반동"}
+const MODE_RULES := {"base": "우체통에 짐을 넣어라 · 1등은 앞이 안 보인다", "lantern": "빛 안의 우체통만 보인다 · 빛에 붙어라", "over": "짐 2개 이하: 천장 가속 / 벽 반동"}
 const MODES_EN := {"base": "Classic", "lantern": "Lantern", "over": "Rush"}
-const MODE_RULES_EN := {"base": "keep or drop boxes to get ahead", "lantern": "stay in the light · speed swings it back", "over": "≤2 boxes: ceiling boost / wall bounce"}
-const RECORDS := "user://screenrace_v7.cfg"
+const MODE_RULES_EN := {"base": "post boxes in mailboxes · the leader can't see ahead", "lantern": "mailboxes show only in the light", "over": "≤2 boxes: ceiling boost / wall bounce"}
+const RECORDS := "user://screenrace_v12.cfg"  # v12: 배달 규칙이 바뀌어 기록·연습 완료를 새로 센다
 const SrFront = preload("res://g/sr_front.gd")
 const SrMenus = preload("res://g/sr_menus.gd")
 const SR_HUD = preload("res://g/sr_hud.gd")
@@ -83,7 +83,7 @@ const KIT_PHASES := ["count", "race", "roundend", "tutorial"]  # the stick and b
 const BACK_ARM_PHASES := ["race", "count", "perk", "route", "roundend"]
 const MARKER_PHASES := ["count", "tutorial"]  # the "you" pointer only finds you at the start; the blue courier does the rest
 const SEG_RULES := {
-	"flat": "짐은 느림과 목숨 · 빈손 결승은 실격",
+	"flat": "우체통 앞에서 짐 버튼 = 배달",
 	"stairs": "언덕: 짐이 무거우면 오르막이 느리다",
 	"wall": "빨간 벽: 점프로 넘어야 안 느려진다", "pit": "빨간 틈: 끝에서 점프",
 	"awning": "노란 발판: 위 지름길 / 아래 상자",
@@ -105,7 +105,7 @@ const SEG_RULES := {
 	"shutter_mix": "응용: 맞바람 속 차단문은 뒤에 붙기",
 	"dropfloor_mix": "응용: 무겁게 마루를 뚫고 얼음 질주"}
 const SEG_RULES_EN := {
-	"flat": "Boxes = weight + lives · no empty finish",
+	"flat": "Box at a mailbox = delivered",
 	"stairs": "Hills: heavy loads climb slowly",
 	"wall": "Red wall: jump it to keep speed", "pit": "Red gap: jump at the edge",
 	"awning": "Yellow ledge: shortcut up / boxes below",
@@ -207,6 +207,17 @@ const TOSS_N := 5
 const TEAR_N := 44
 const SLOWMO := 0.35
 const SLOWMO_MS := 400
+# v12 배달 규칙: 우체통에 짐을 넣은 수로 이긴다 (살아남기 X)
+const MB_R := 1.3  # 우체통에서 이만큼 안이면 짐 버튼 = 배달
+const BACK_T := 0.6  # 왼쪽 끝 밖으로 밀리면 이만큼 뒤 왼쪽 끝에서 다시 들어온다
+const BACK_IMM := 1.0  # 다시 들어온 뒤 무적 (깜빡임)
+const LAST_CALL := 3.0  # 첫 도착 뒤 마감까지
+const WALL_W := 34.0  # 화면 양옆 짐 벽 두께 (px). 벽 안쪽 면 = 진짜 떨어지는 끝
+const BRICK_H := 60.0
+const BRICK_GAP := 5.0
+const WALL_POPS := 10
+const MB_FREE := Color("E85244")
+const MB_FULL := Color("6E7391")  # 찬 우체통: 잿빛 남색 (골판지 땅·건물과 섞이지 않게)
 
 
 ## One screen-space overlay for speed lines, the torn page edge and floating numbers.
@@ -315,6 +326,12 @@ class Courier:
 	var i_jump := false
 	var i_jheld := false
 	var i_drop := false
+	# v12 배달
+	var got := 0  # 이번 판 배달한 짐
+	var back_t := 0.0  # > 0: 화면 밖에 반송돼 다시 들어오기를 기다린다
+	var fin := -1  # 결승 도착 순서 (0 = 처음)
+	var mb_seen := -1  # 경쟁자: 마지막으로 판단한 우체통
+	var mb_go := false
 
 
 var ci := 0  # 코스
@@ -467,6 +484,14 @@ var front  # sr_front.gd: title + tutorial (CanvasLayer 20)
 var menus  # sr_menus.gd: mode / perk / route cards, countdown, receipt (CanvasLayer 15)
 var sr_hud: CanvasLayer  # sr_hud.gd: race ribbon, control deck, hint chip (CanvasLayer 10)
 var tut_crate_x := -1.0  # > 0: the opening flat gets one practice crate at this x (tutorial only)
+var mailboxes: Array = []  # {x, y, full, owner, node, body, top, flag, parcel, t}
+var last_call := -1.0  # >= 0: 마감 임박 남은 시간
+var fin_n := 0
+var course_got := 0  # 이번 코스에서 내가 배달한 짐 (메달)
+var wall_lv := PackedFloat32Array([0, 0, 0, 0])  # 짐 벽: 주자별 벽돌 수 (부드럽게)
+var wall_n := PackedInt32Array([0, 0, 0, 0])
+var wall_add := PackedFloat32Array([0, 0, 0, 0])  # 새 벽돌 튀어 들어오기 남은 시간
+var wall_pops: Array[Dictionary] = []  # 빠져나가는 벽돌 {on, p, v, rot, col, age}
 var kit_live := true  # stick + jump/box answer touches (false on title and menus)
 
 
@@ -690,8 +715,8 @@ func _set_lang(l: String) -> void:
 
 
 func _howto_text() -> String:
-	return L("왼쪽 스틱으로 달리고 [점프]로 넘는다.\n짐은 느리지만 목숨이다. [짐]은 하나 버리고 가속.\n여섯 동네를 지나 마지막 배달까지!",
-		"Left stick to run, [Jump] to hop.\nBoxes slow you down but are your lives.\n[Box] drops one for a dash.\nCross six towns to the final delivery!")
+	return L("왼쪽 스틱으로 달리고 [점프]로 넘는다.\n우체통 앞에서 [짐] = 배달. 다른 곳에서 [짐] = 던지고 대시.\n왼쪽 끝에 밀리면 짐 하나를 잃는다. 배달 많이 한 사람이 이긴다!",
+		"Left stick to run, [Jump] to hop.\n[Box] at a mailbox delivers. [Box] elsewhere throws one for a dash.\nFall off the left edge: lose a box. Most deliveries wins!")
 
 
 ## The stick and the two buttons only answer touches in KIT_PHASES; on the title and the
@@ -845,7 +870,7 @@ func _update_content_hud() -> void:
 		route_l.text = "%s\n%s: %s\n%s: %s" % [L("특전 고르기", "Pick a perk"), _perk(perk_offer[0]), _perk_say(perk_offer[0]), _perk(perk_offer[1]), _perk_say(perk_offer[1])]
 		return
 	if phase == "route":
-		route_l.text = "%s\n%s: %s\n%s: %s" % [L("다음 길? 내 짐 %d", "Next road? You carry %d") % maxi(pl.cargo, 1), _tw(route_offer[0], 0), _tw(route_offer[0], 1), _tw(route_offer[1], 0), _tw(route_offer[1], 1)]
+		route_l.text = "%s\n%s: %s\n%s: %s" % [L("다음 길? 내 짐 %d", "Next road? You carry %d") % (LOAD0 + load_bonus), _tw(route_offer[0], 0), _tw(route_offer[0], 1), _tw(route_offer[1], 0), _tw(route_offer[1], 1)]
 		return
 	if _opening():
 		# no text in the race: a skipper is taught by the torn edge itself (forced warning pulse, _fx_tick)
@@ -868,13 +893,14 @@ func _update_content_hud() -> void:
 
 
 func _record_course() -> void:
-	var medal := 3 if rnd <= 2 and pl.cargo >= 3 else (2 if rnd <= 3 else 1)
-	var row := {"ci": ci, "medal": medal, "time": course_time, "cargo": pl.cargo}
+	# 메달 = 배달: 금 = 2판 안에 이기고 이 코스에서 4개 이상 배달, 은 = 3판 안, 동 = 코스 통과
+	var medal := 3 if rnd <= 2 and course_got >= 4 else (2 if rnd <= 3 else 1)
+	var row := {"ci": ci, "medal": medal, "time": course_time, "cargo": course_got}
 	course_results.append(row)
 	var key := "%s_%d" % [mode, ci]
 	records.set_value(key, "medal", maxi(medal, int(records.get_value(key, "medal", 0))))
 	records.set_value(key, "time", minf(course_time, float(records.get_value(key, "time", 1.0e9))))
-	records.set_value(key, "cargo", maxi(pl.cargo, int(records.get_value(key, "cargo", 0))))
+	records.set_value(key, "delivered", maxi(course_got, int(records.get_value(key, "delivered", 0))))
 	records.save(RECORDS)
 
 
@@ -894,8 +920,7 @@ func _finish(won: bool) -> void:
 		return
 	var placement := 1 if won else maxi(2, grid.find(pl) + 1)
 	if won:
-		delivered += pl.cargo
-		score += 100 + pl.cargo * 20
+		score += 100  # 배달 점수는 우체통마다 이미 더했다 (delivered = 진짜 넣은 짐 수)
 	var previous := int(records.get_value(mode, "delivered", 0))
 	var best_delivery := maxi(delivered, previous)
 	records.set_value(mode, "delivered", best_delivery)
@@ -928,8 +953,8 @@ func _finish(won: bool) -> void:
 	var names := []
 	for i in COURSES.size():
 		names.append(_cname(i))
-	var res_f := L("%s · %d위\n배달한 짐 %d개 · 달린 시간 %.1f초\n최고 코스: %s\n%s\n로컬 최다 배달 %d개%s\n완주 최고 %s\n%s\n금: 2판 안에 승리 + 남은 짐 3개\n은: 3판 안 / 동: 코스 완주\n별점 아래 빈 곳을 탭하면 다시 배달",
-		"%s · #%d\nDelivered %d · Time %.1fs\nBest course: %s\n%s\nMost delivered here: %d%s\nBest finish: %s\n%s\nGold: win in 2 rounds + 3 boxes left\nSilver: in 3 rounds / Bronze: finish\nTap the empty space below the stars to go again")
+	var res_f := L("%s · %d위\n배달한 짐 %d개 · 달린 시간 %.1f초\n최고 코스: %s\n%s\n로컬 최다 배달 %d개%s\n완주 최고 %s\n%s\n금: 2판 안에 승리 + 배달 4개\n은: 3판 안 / 동: 코스 완주\n별점 아래 빈 곳을 탭하면 다시 배달",
+		"%s · #%d\nDelivered %d · Time %.1fs\nBest course: %s\n%s\nMost delivered here: %d%s\nBest finish: %s\n%s\nGold: win in 2 rounds + 4 delivered\nSilver: in 3 rounds / Bronze: finish\nTap the empty space below the stars to go again")
 	var best_s := (L("%.1f초", "%.1fs") % best_time) if best_time > 0.0 else L("도전 중", "not yet")
 	result_l.text = res_f % [L("여섯 동네 배달 완료!", "All six towns delivered!") if won else L("오늘 배달은 여기까지", "That's it for today"), placement, delivered, journey_time, strongest, rows, best_delivery, L(" · 새 기록!", " · New record!") if delivered > previous else "", best_s, hint]
 	if not saved:
@@ -1335,6 +1360,9 @@ func _build_course() -> void:
 	mechanisms.clear()
 	shutter_of.clear()
 	signs.clear()
+	mailboxes.clear()  # 우체통 노드는 stage 와 함께 사라진다
+	if rnd == 0:
+		course_got = 0
 	backdrop = null
 	vspecs.clear()
 	vslot.clear()
@@ -1393,7 +1421,7 @@ func _build_course() -> void:
 		_seg(s)
 	goal_x = gx + (24.0 if finale else 2.0)
 	if finale:
-		_sign(gx + 7.0, fy + 3.0, "마지막 집. 짐 하나는 남겨라", "Last house. Keep at least one box")
+		_sign(gx + 7.0, fy + 3.0, "마지막 집. 첫 도착 뒤 3초면 마감", "Last house. 3 s after the first arrival, post closes")
 		_vbox(Vector3(goal_x + 6.0, fy + 3.0, -3.0), Vector3(7, 6, 3), SOFT)
 		_vbox(Vector3(goal_x + 6.0, fy + 6.3, -3.0), Vector3(8, 0.6, 4), cdef.top)
 		_vbox(Vector3(goal_x + 4.0, fy + 1.4, -1.4), Vector3(1.6, 2.8, 0.2), GOOD)
@@ -1412,6 +1440,7 @@ func _build_course() -> void:
 		var rc := rects[i]
 		for b in range(_bi(rc.position.x), _bi(rc.end.x) + 1):
 			buckets[b].append(i)
+	_place_mailboxes()
 	_build_backdrop()
 	# 뒤 건물 (원근 때문에 느리게 지나간다)
 	var bx := -40.0
@@ -1815,6 +1844,199 @@ func _bi(x: float) -> int:
 	return clampi(int(floor((x - BX0) / BK)), 0, buckets.size() - 1)
 
 
+# ---- 우체통 (v12 배달 규칙) ----
+## 코스를 다 지은 뒤 평평한 땅(위험 구간 밖)에 우체통 7~9개를 고르게 놓는다. 연습 마당은 연습용 하나만.
+func _place_mailboxes() -> void:
+	if tut_crate_x > 0.0:
+		var ty := _floor_top(tut_crate_x + 9.0, 60.0)
+		_add_mailbox(tut_crate_x + 9.0, ty)
+		return
+	var x0 := 24.0
+	var x1 := goal_x - 8.0
+	var want := gen.randi_range(7, 9)
+	var step := (x1 - x0) / float(want)
+	var offs := [0.0, 2.0, -2.0, 4.0, -4.0, 6.0, -6.0, 8.0, -8.0, 11.0, -11.0, 14.0]
+	for k in want:
+		var cx := x0 + step * (float(k) + 0.5) + gen.randf_range(-0.2, 0.2) * step
+		for o in offs:
+			var x: float = cx + o
+			var y := _mb_spot(x)
+			if y > -1.0e8:
+				_add_mailbox(x, y)
+				break
+	# 평평한 곳이 모자란 코스: 앞에서부터 더 찾아 6개는 채운다
+	var sx := x0
+	while mailboxes.size() < 6 and sx < x1:
+		var sy := _mb_spot(sx)
+		if sy > -1.0e8:
+			_add_mailbox(sx, sy)
+		sx += 3.0
+	mailboxes.sort_custom(func(a, b): return a.x < b.x)
+
+
+## 우체통을 놓을 수 있으면 땅 높이, 아니면 아주 낮은 수. 평평한 맨 바닥(종류 0)이고 머리 위가 비어 있어야 한다.
+func _mb_spot(x: float) -> float:
+	var no := -1.0e9
+	if x < 20.0 or x > goal_x - 6.0:
+		return no
+	var y := _floor_top(x, 60.0)
+	if y < -50.0 or _floor_top(x, y - 0.3) > -50.0:
+		return no  # 구덩이, 또는 땅 위에 뜬 발판 (지름길 위에는 안 놓는다)
+	for dx in [-1.6, -0.8, 0.8, 1.6]:
+		if absf(_floor_top(x + dx, y + 0.3) - y) > 0.05:
+			return no
+	var plain := false
+	for i in buckets[_bi(x)]:
+		var q: Rect2 = rects[i]
+		if x > q.position.x - 1.6 and x < q.end.x + 1.6 and absf(q.end.y - y) < 0.05:
+			if kinds[i] != 0:
+				return no  # 점프대·흐르는 바닥·다리 판·얼음·문 옆
+			plain = true
+	if not plain or _solid_in(Rect2(x - 0.7, y + 0.05, 1.4, 2.4)):
+		return no
+	if not _track_at(x).is_empty():
+		return no
+	for gp in gates:
+		if absf(float(gp) - x) < 4.0:
+			return no
+	for m in mechanisms:
+		if x > float(m.x0) - 3.0 and x < float(m.x1) + 3.0:
+			return no
+	for mb in mailboxes:
+		if absf(float(mb.x) - x) < 12.0:
+			return no
+	return y
+
+
+## 종이 우체통: 남색 기둥 + 빨간 몸통 + 둥근 지붕 띠 + 투입구 + 옆 깃발 (배달되면 깃발이 서고 몸통이 골판지색).
+func _add_mailbox(x: float, y: float) -> void:
+	if y < -50.0:
+		return
+	var n := Node3D.new()
+	stage.add_child(n)
+	n.position = Vector3(x, y, -0.75)
+	n.scale = Vector3.ONE * 1.25  # 폰 화면에서 배달부만큼 크게
+	box(Vector3(0, 0.5, 0), Vector3(0.16, 1.0, 0.16), P_NAVY, n)
+	var body := box(Vector3(0, 1.42, 0), Vector3(1.1, 0.86, 0.7), MB_FREE, n)
+	var top := box(Vector3(0, 1.9, 0), Vector3(1.18, 0.16, 0.76), MB_FREE.lightened(0.3), n)
+	box(Vector3(0, 1.6, 0.36), Vector3(0.62, 0.1, 0.02), P_NAVY, n)
+	box(Vector3(0, 1.28, 0.36), Vector3(0.5, 0.26, 0.02), P_CREAM, n)  # 흰 주소 딱지
+	var flag := Node3D.new()
+	n.add_child(flag)
+	flag.position = Vector3(0.6, 1.2, 0.15)
+	box(Vector3(0, 0.32, 0), Vector3(0.07, 0.64, 0.07), P_NAVY, flag)
+	var cloth := box(Vector3(0.15, 0.55, 0), Vector3(0.3, 0.2, 0.05), P_GOLD, flag)
+	flag.rotation.z = -PI * 0.5  # 내려 있음 = 빈 우체통
+	var pc := box(Vector3(0, 2.18, 0), Vector3(0.5, 0.4, 0.5), PARCEL, n)  # 배달되면 지붕 위에 꽂히는 짐
+	if _art_model("parcel", pc, Vector3(0, -0.5, 0), 1.0):
+		pc.mesh = null
+	pc.visible = false
+	mailboxes.append({"x": x, "y": y, "full": false, "owner": null, "node": n, "body": body, "top": top,
+		"flag": flag, "cloth": cloth, "parcel": pc, "t": 0.0})
+
+
+func _mb_reset() -> void:
+	for mb in mailboxes:
+		mb.full = false
+		mb.owner = null
+		mb.t = 0.0
+		(mb.body as MeshInstance3D).material_override = mat(MB_FREE)
+		(mb.top as MeshInstance3D).material_override = mat(MB_FREE.lightened(0.3))
+		(mb.cloth as MeshInstance3D).material_override = mat(P_GOLD)
+		(mb.flag as Node3D).rotation.z = -PI * 0.5
+		(mb.parcel as Node3D).visible = false
+
+
+## 빈 우체통 번호 (r 바로 옆, MB_R 안). 없으면 -1.
+func _mb_at(r: Courier) -> int:
+	for i in mailboxes.size():
+		var mb: Dictionary = mailboxes[i]
+		if not mb.full and absf(float(mb.x) - r.p.x) < MB_R and r.p.y - float(mb.y) > -0.6 and r.p.y - float(mb.y) < 2.2:
+			return i
+	return -1
+
+
+## 짐 버튼: 빈 우체통 옆이면 배달 (대시 없음). 아니면 false (던지고 대시로 넘어간다).
+func _deliver(r: Courier) -> bool:
+	var i := _mb_at(r)
+	if i < 0:
+		return false
+	var mb: Dictionary = mailboxes[i]
+	r.cargo -= 1
+	r.got += 1
+	r.drop_cd = 0.35
+	mb.full = true
+	mb.owner = r
+	mb.t = 0.45  # 깃발이 서는 시간
+	(mb.body as MeshInstance3D).material_override = mat(MB_FULL)
+	(mb.top as MeshInstance3D).material_override = mat(MB_FULL.lightened(0.2))
+	(mb.cloth as MeshInstance3D).material_override = mat(r.col)
+	var pc: Node3D = mb.parcel
+	pc.visible = true
+	pc.scale = Vector3.ONE * 0.2
+	_burst(Vector3(float(mb.x), float(mb.y) + 2.0, 0.4), 4, P_GREEN)
+	r.sq = 0.25
+	if r == pl:
+		delivered += 1
+		course_got += 1
+		score += 20
+		_stamp("배달 완료", "DELIVERED", ST_GOOD, pl)
+		pop_num(r, "+1", P_GREEN)
+		_sfx("delivered", null, -4.0)
+		_sfx("stamp", null, -6.0)
+	elif absf(r.p.x - camx) < hwv:
+		pop_num(r, "+1", P_GREEN)
+		_stamp("%s 배달" % r.nick, "%s DELIVERED" % r.nick_en.to_upper(), ST_INK, r, 0.6)
+		_sfx("stamp", r, -4.0)
+	return true
+
+
+## 우체통 깃발·짐 꽂기 애니메이션 (배달된 순간만)
+func _mb_tick(dt: float) -> void:
+	for mb in mailboxes:
+		var t: float = mb.t
+		if t <= 0.0:
+			continue
+		t = maxf(t - dt, 0.0)
+		mb.t = t
+		var u := 1.0 - t / 0.45
+		var ov := 1.0 + sin(u * PI) * 0.35  # 지나쳐 서고 돌아온다
+		(mb.flag as Node3D).rotation.z = lerpf(-PI * 0.5, 0.0, minf(u * ov, 1.2))
+		var pc: Node3D = mb.parcel
+		pc.scale = Vector3.ONE * lerpf(0.2, 1.0, minf(u * 1.6, 1.0))
+		if t <= 0.0:
+			(mb.flag as Node3D).rotation.z = 0.0
+			pc.scale = Vector3.ONE
+
+
+## HUD 막대용: 우체통 위치 (0..1 진행) 와 찼는지. sr_hud 가 읽는다.
+func mailbox_marks() -> Array:
+	var out := []
+	var x0 := -2.0
+	var span := maxf(goal_x - x0, 1.0)
+	for mb in mailboxes:
+		out.append(Vector2(clampf((float(mb.x) - x0) / span, 0.0, 1.0), 1.0 if mb.full else 0.0))
+	return out
+
+
+## 배달 순위 (이번 판 배달 수, 같으면 도착 순서, 그다음 앞선 쪽)
+func _deliv_order() -> Array:
+	var o: Array = runners.duplicate()
+	o.sort_custom(func(a, b):
+		if a.got != b.got:
+			return a.got > b.got
+		var fa: int = a.fin if a.fin >= 0 else 99
+		var fb: int = b.fin if b.fin >= 0 else 99
+		if fa != fb:
+			return fa < fb
+		return a.p.x > b.p.x)
+	return o
+
+
+func _in_play(r: Courier) -> bool:
+	return r.alive or r.back_t > 0.0
+
+
 # ---- 라운드 ----
 func _start_round() -> void:
 	rnd += 1
@@ -1829,11 +2051,13 @@ func _start_round() -> void:
 		r.p = Vector2(xs[i], 0.0)
 		r.v = Vector2.ZERO
 		r.alive = true
-		var cap := LOAD_MAX + (0 if r.ai else load_bonus)
-		if fresh:
-			r.cargo = LOAD0 + (0 if r.ai else load_bonus)
-		else:
-			r.cargo = clampi(r.cargo, 1, cap)  # 지난 판 끝의 짐을 그대로 들고 출발
+		# v12: 판마다 짐을 새로 받는다 (배달할 짐이 넉넉해야 우체통 다툼이 생긴다)
+		r.cargo = LOAD0 + (0 if r.ai else load_bonus)
+		r.got = 0
+		r.back_t = 0.0
+		r.fin = -1
+		r.mb_seen = -1
+		r.mb_go = false
 		r.stun = 0.0
 		r.dash = 0.0
 		r.drop_cd = 0.0
@@ -1889,6 +2113,15 @@ func _start_round() -> void:
 		(pc.node as Node3D).visible = false
 	for i in mini(spots.size(), parcels.size() - 6):
 		_put_parcel(spots[i], null)
+	_mb_reset()
+	last_call = -1.0
+	fin_n = 0
+	for i in 4:
+		wall_n[i] = runners[i].cargo if _in_play(runners[i]) else 0
+		wall_lv[i] = float(wall_n[i])
+		wall_add[i] = 0.0
+	for wp in wall_pops:
+		wp.on = false
 	rt = 0.0
 	lead_t = 0.0
 	lead_said = false
@@ -1968,6 +2201,7 @@ func _step(dt: float) -> void:
 		"perk", "mode", "route":
 			pass  # the paper cards (sr_menus) emit the choice
 	_update_parcels(dt)
+	_mb_tick(dt)
 	if mode == "lantern" and phase != "mode" and phase != "title" and phase != "tutorial":
 		_pass_lantern()
 		_lantern(dt)
@@ -2003,47 +2237,53 @@ func _race(dt: float) -> void:
 		_boards(dt)
 	if phase != "race":
 		return
-	# 화면 왼쪽 끝: 짐이 있으면 하나 내주고 버틴다, 없으면 탈락
+	# 화면 왼쪽 끝 (v12): 탈락이 아니다. 짐 하나를 땅에 흘리고(남이 주울 수 있다) 0.6초 뒤 왼쪽 끝에서 다시 들어온다.
 	var left := camx - hwv
 	# fall-out line kept on the old framing (leader + 2 - vhv - 1), not the feet-at-FEET_Y camera
 	var fall_y := camy - (vhv * _feet_k() - 2.0) - vhv - 1.0
 	for r in runners:
 		if not r.alive:
+			if r.back_t > 0.0:
+				r.back_t -= dt
+				if r.back_t <= 0.0:
+					_reenter(r)
 			continue
 		if r.p.y < kill_y or r.p.y < fall_y:
-			_out(r, "분실", "MISSING")
-		elif _opening() and r.p.x + HW < left + 0.15:
-			r.p.x = left + 0.16 - HW  # soft wall: no teleport
+			_send_back(r, "분실", "MISSING", false)
+		elif r.p.x + HW < left + 0.15 and (_opening() or r.immune > 0.0):
+			r.p.x = left + 0.16 - HW  # soft wall: no teleport (opening, and the blink right after re-entry)
 			r.v.x = maxf(r.v.x, 0.0)
 			if r == pl:
 				edge_flap = maxf(edge_flap, 0.3)
 		elif r.p.x + HW < left + 0.15:
-			if r.immune > 0.0 and r.p.x + HW > left - 2.0:
-				pass
-			elif r.cargo > 0 and r.immune <= 0.0:
-				_edge_moment(r, r == pl)
-				_shove(r, left)
-			else:
-				_edge_moment(r, r == pl or _leader() == pl)
-				_out(r, "반송", "RETURN TO SENDER")
-				r.out_v = Vector3(-8.0, 8.0, 5.0)  # tumbles out of the page, past the edge
+			_edge_moment(r, r == pl)  # 반송은 이제 자주 일어난다: 슬로모션은 내 차례만
+			_send_back(r, "반송", "RETURNED", true)
 	if mode == "lantern":
 		_fog_check(dt)
 	if phase != "race":
 		return
+	# 결승: 처음 도착하면 3초 마감 임박, 그 뒤 판 끝. 이긴 사람 = 이번 판 배달 최다 (같으면 먼저 도착)
 	for r in runners:
-		if r.alive and r.p.x > goal_x:
-			if r.cargo > 0:
-				_round_over(r)
-				return
-			_out(r, "빈손 실격", "EMPTY HANDED")
-	if not pl.alive:
-		var w: Courier = null
-		for r in runners:
-			if r.alive and (w == null or r.p.x > w.p.x):
-				w = r
-		_round_over(w)
-		return
+		if r.alive and r.fin < 0 and r.p.x > goal_x:
+			r.fin = fin_n
+			fin_n += 1
+			if r == pl:
+				_sfx("bell", null, -4.0)
+		if r.fin >= 0 and r.p.x > goal_x + 26.0:
+			r.p.x = goal_x + 26.0  # 결승 뒤 마당 끝에서 멈춘다
+			r.v.x = minf(r.v.x, 0.0)
+	if last_call < 0.0 and (fin_n > 0 or rt > 240.0):
+		last_call = LAST_CALL
+		_stamp("마감 임박", "LAST CALL", ST_BAD, null, 1.2)
+		_sfx("bell")
+	elif last_call >= 0.0:
+		var before := last_call
+		last_call -= dt
+		if floorf(before) != floorf(maxf(last_call, 0.0)) and last_call > 0.0:
+			beep(880.0, 0.06, 0.0, 0.16)  # 남은 초마다 똑
+		if last_call <= 0.0:
+			_round_over(_deliv_order()[0])
+			return
 	# 마지막 생존자도 짐을 들고 결승까지 배달해야 한다. 응용 구간을 건너뛰지 않는다.
 	# 1등이면 빠를수록 화면이 쏠린다: 앞이 안 보이니 벽·구덩이는 소리로만
 	radar_t -= dt
@@ -2072,13 +2312,13 @@ func _race(dt: float) -> void:
 		gauge(safe, A if safe > 0.4 else BAD)
 	else:
 		gauge(ed / (hwv * 2.0), GOOD if ed > hwv * 0.6 else (A if ed > 2.5 else BAD))
-	if ed < 1.6:
+	if ed < 1.6 and pl.alive and pl.immune <= 0.0:
 		danger = true
 	elif danger and ed > 4.0:
 		danger = false
 		_close(pl)
 	tick -= dt
-	if ed < 3.5 and tick <= 0.0:
+	if ed < 3.5 and tick <= 0.0 and pl.alive:
 		tick = 0.08 + ed * 0.07
 		beep(1200.0 - ed * 150.0, 0.04, 0.0, 0.14)
 	gate_said = maxf(gate_said - dt, 0.0)
@@ -2175,8 +2415,7 @@ func _train_hit(r: Courier) -> void:
 		r.cargo -= 1
 		if r == pl:
 			_stamp("운송 사고", "LOST IN TRANSIT", ST_BAD)
-	else:
-		_out(r, "운송 사고", "LOST IN TRANSIT")
+	# v12: 빈손이면 튕겨 나가기만 한다 (탈락 없음)
 
 
 ## 흔들다리: 무게 BREAK_W 이상으로 밟은 판은 금이 가고 BREAK_T 뒤 떨어진다
@@ -2270,13 +2509,75 @@ func _out(r: Courier, ko: String, en: String) -> void:
 		shk = maxf(shk, 0.25)  # poof + burst + sound say it; no rival stamp over the player's own
 
 
+## 반송 (v12): 탈락 대신 짐 하나를 땅에 흘리고 (lose_box), 몸은 종이 밖으로 굴러 나갔다가 BACK_T 뒤 왼쪽 끝에서 다시 들어온다.
+func _send_back(r: Courier, ko: String, en: String, edge: bool) -> void:
+	var had := r.cargo > 0
+	if had:
+		r.cargo -= 1
+		# 흘린 짐: 화면 왼쪽 끝 조금 안쪽 땅에 놓인다 (뒤따르던 사람이 주울 수 있다, 본인은 잠깐 못 줍는다)
+		var px := camx - hwv + 2.6
+		var py := _floor_top(px, camy + vhv)
+		if py > kill_y:
+			_put_parcel(Vector2(px, py), r)
+			if not last_put.is_empty():
+				last_put.cd = 2.5
+				last_put.fly = 0.32
+				last_put.from = Vector3(r.p.x, r.p.y + 1.0, 0.0)
+				(last_put.node as Node3D).position = last_put.from
+	_out(r, "%s -1" % ko if had else ko, "%s -1" % en if had else en)
+	if edge:
+		r.out_v = Vector3(-8.0, 8.0, 5.0)  # tumbles out of the page, past the edge
+	r.back_t = BACK_T
+
+
+## 왼쪽 끝(짐 벽 안쪽 면)에서 다시 들어온다: 바로 앞 땅을 찾아 세우고 BACK_IMM 동안 깜빡이며 무적.
+func _reenter(r: Courier) -> void:
+	var x := camx - hwv + 1.0
+	var y := -1.0e9
+	for k in 20:
+		y = _floor_top(x, camy + vhv)
+		if y > kill_y:
+			break
+		x += 0.7
+	if y <= kill_y:
+		var ld := _leader()
+		if ld != null:
+			x = ld.p.x - 2.0
+			y = ld.p.y
+		else:
+			y = camy
+	r.alive = true
+	r.back_t = 0.0
+	r.p = Vector2(x, y + 0.05)
+	r.v = Vector2(7.0, 4.0)
+	r.stun = 0.0
+	r.dash = 0.0
+	r.immune = BACK_IMM
+	r.out_t = 0.0
+	r.lost = 0.0
+	r.node.visible = true
+	r.node.rotation = Vector3.ZERO
+	r.node.scale = Vector3.ONE
+	r.vis_dx = -1.2  # slides in from behind the parcel wall
+	r.mb_seen = -1
+	_probe(r)
+	_dust_emit(Vector3(x - 0.4, y + 1.0, 0.6), Vector3(2.5, 2.0, 1.0), P_CREAM)
+	_dust_emit(Vector3(x - 0.4, y + 0.4, 0.6), Vector3(3.0, 1.2, 1.0), P_PARCEL)
+	if r == pl:
+		edge_flap = maxf(edge_flap, 0.5)
+		_sfx("land", null, -6.0)
+
+
 func _round_over(w: Courier) -> void:
 	phase = "roundend"
 	pt = 1.8
+	last_call = -1.0
 	curtain.visible = false
-	# 순위를 기억해 다음 판 출발 줄로 쓴다 (살아남은 쪽, 앞선 쪽이 앞)
-	grid = runners.duplicate()
-	grid.sort_custom(func(a, b): return (a.alive and not b.alive) or (a.alive == b.alive and a.p.x > b.p.x))
+	for r in runners:
+		if not r.alive and r.back_t > 0.0:
+			r.back_t = 0.0  # 판이 끝났다: 반송 중이던 사람은 다음 판에 다시 선다
+	# 순위를 기억해 다음 판 출발 줄로 쓴다 (배달 많은 쪽, 같으면 먼저 도착한 쪽이 앞)
+	grid = _deliv_order()
 	if w != null:
 		grid.erase(w)
 		grid.push_front(w)
@@ -2288,16 +2589,15 @@ func _round_over(w: Courier) -> void:
 		return
 	w.wins += 1
 	if w == pl:
-		delivered += pl.cargo
-		score += 10 + 5 * pl.cargo
+		score += 10
 		play("win")
-		_stamp("배달 완료 · %d" % pl.cargo, "DELIVERED · %d" % pl.cargo, ST_GOOD, null, 1.4)
+		_stamp("최다 배달 · %d" % pl.got, "MOST DELIVERED · %d" % pl.got, ST_GOOD, null, 1.4)
 		_burst(Vector3(pl.p.x, pl.p.y + 1.2, 0.6), 8, P_GREEN)
-		_burst(Vector3(goal_x, pl.p.y + 3.0, 0.6), 6, P_GOLD)
+		_burst(Vector3(pl.p.x, pl.p.y + 3.0, 0.6), 6, P_GOLD)
 		shk = maxf(shk, 0.15)
 	else:
 		_sfx("lost")
-		_stamp("%s 먼저 도착" % w.nick, "%s ARRIVED FIRST" % w.nick_en.to_upper(), ST_BAD, w, 1.4)
+		_stamp("%s 최다 배달 · %d" % [w.nick, w.got], "%s DELIVERED MOST · %d" % [w.nick_en.to_upper(), w.got], ST_BAD, w, 1.4)
 
 
 func _after_round() -> void:
@@ -2329,7 +2629,7 @@ func _after_round() -> void:
 	routes.shuffle()
 	route_offer = routes.slice(0, 2)
 	phase = "route"
-	menus.show_routes(route_offer, pl.cargo)
+	menus.show_routes(route_offer, LOAD0 + load_bonus)  # v12: 다음 판은 짐을 새로 받는다
 
 
 func _pick_route(n: String) -> void:
@@ -2412,7 +2712,8 @@ func _runner(r: Courier, dt: float) -> void:
 		r.i_jump = false
 		r.i_drop = false
 	if r.i_drop and r.cargo > 0 and r.drop_cd <= 0.0:
-		_drop(r)
+		if not _deliver(r):  # 빈 우체통 옆이면 배달, 아니면 던지고 대시
+			_drop(r)
 	r.coyote = COYOTE if r.grounded else maxf(r.coyote - dt, 0.0)
 	r.jbuf = JBUF if r.i_jump else maxf(r.jbuf - dt, 0.0)
 	if r.jbuf > 0.0 and r.coyote > 0.0:
@@ -2777,6 +3078,39 @@ func _ai(r: Courier, dt: float) -> void:
 	r.i_jump = false
 	r.i_drop = false
 	r.i_jheld = true
+	# v12 배달: 앞에 빈 우체통이 보이면 한 번 정한다 (보면 속도를 줄여 맞추고 짐 버튼).
+	# 같은 '앞이 안 보인다' 규칙: 빠른 1등·화면 가운데보다 한참 앞선 사람·안개 속은 자주 놓친다.
+	var aim := false
+	if r.cargo > 0 and r.fin < 0:
+		var mi := -1
+		for i in mailboxes.size():
+			var mb: Dictionary = mailboxes[i]
+			var d: float = float(mb.x) - r.p.x
+			if not mb.full and d > -MB_R and d < 6.0:
+				mi = i
+				break
+		if mi >= 0:
+			var mb: Dictionary = mailboxes[mi]
+			if r.mb_seen != mi:
+				r.mb_seen = mi
+				var p := 0.55 + 2.0 * (r.skill - 0.93)  # 기술만큼 (0.5 ~ 0.75)
+				var fast := clampf((absf(r.v.x) - RUN_MAX * 0.7) / (RUN_MAX * 0.4), 0.0, 1.0)
+				if _leader() == r:
+					p -= 0.35 * fast + 0.1
+				if r.p.x - camx > hwv * 0.35:
+					p -= 0.25  # 화면 오른쪽 끝: 우체통이 화면에 늦게 들어온다
+				if mode == "lantern" and not _lit(float(mb.x)):
+					p = 0.12  # 안개 속 우체통은 거의 못 본다
+				if dark_on:
+					p -= 0.25
+				r.mb_go = randf() < clampf(p, 0.05, 0.9)
+			if r.mb_go:
+				aim = true
+				var dx: float = float(mb.x) - r.p.x
+				if dx > 0.4:
+					r.mx = minf(r.mx, clampf(dx / 4.5, 0.3, 1.0))  # 다가가며 늦춘다
+				if absf(dx) < MB_R * 0.8 and r.drop_cd <= 0.0:
+					r.i_drop = true  # 배달 (_runner -> _deliver)
 	r.think -= dt
 	if r.think > 0.0:
 		return
@@ -2820,20 +3154,20 @@ func _ai(r: Courier, dt: float) -> void:
 			if d > -0.2 and d < 3.5 and (d < 0.4 or randf() > miss):
 				r.i_drop = true
 				break
-	# 짐 버리기: 먼 틈 앞, 또는 화면 끝에 몰렸을 때
-	if r.cargo >= 2 and r.drop_cd <= 0.0:
+	# 짐 버리기: 먼 틈 앞, 또는 화면 끝에 몰렸을 때 (v12: 짐은 배달할 몫이라 끝에 몰려도 덜 던진다)
+	if r.cargo >= 2 and r.drop_cd <= 0.0 and not aim:
 		var far: bool = r.grounded and _gap_len(r) > _reach(r) * 0.95
 		var behind := r.p.x - (camx - hwv) < 3.0
-		if far or (behind and randf() < 0.25):
+		if far or (behind and randf() < 0.12):
 			r.i_drop = true
 
 
 # ---- 카메라와 그리기 ----
-## 화면 반폭 = 살아 있는 모두가 든 짐의 합 (출발 짐 12개 기준, 판 사이에 이어진다)
+## 화면 반폭 = 경주 중인 모두가 든 짐의 합 (출발 짐 LOAD0 x 4 기준). 반송 중인 사람의 짐도 센다.
 func _want_w() -> float:
 	var all := 0
 	for r in runners:
-		if r.alive:
+		if _in_play(r):
 			all += r.cargo
 	return lerpf(NARROW, WIDE, clampf(float(all) / float(LOAD0 * 4), 0.0, 1.0))
 
@@ -2844,7 +3178,7 @@ func _camera(dt: float) -> void:
 	if phase == "race":
 		# 화면 폭 = 모두가 든 짐의 합
 		hwv = lerpf(hwv, _want_w(), 1.0 - exp(-1.5 * dt))
-	vhv = hwv * asp
+	vhv = hwv * asp * _wall_k()
 	var lead := _leader()
 	if lead and phase != "perk":
 		var k := 1.0 - exp(-9.0 * dt)
@@ -2864,6 +3198,12 @@ func _camera(dt: float) -> void:
 	_cam_apply()
 
 
+## 짐 벽 (v12 B): 화면 양옆 WALL_W px 는 짐 벽이 덮는다. 카메라는 그만큼 넓게 찍어
+## 벽 안쪽 면이 정확히 camx -/+ hwv (떨어지는 끝) 에 오게 한다.
+func _wall_k() -> float:
+	return 720.0 / (720.0 - 2.0 * WALL_W)
+
+
 ## Camera vertical offset (in half-heights) that puts the leader's feet at FEET_Y.
 func _feet_k() -> float:
 	var h := get_viewport().get_visible_rect().size.y * 0.5
@@ -2873,7 +3213,7 @@ func _feet_k() -> float:
 ## FOV kick only widens the view and the nudge only moves the lens: the kill line is still
 ## camx - hwv, and the torn edge is drawn at its projected screen x (edge_screen_x), so it stays honest.
 func _cam_apply() -> void:
-	cam.fov = rad_to_deg(2.0 * atan(hwv * (1.0 + fov_kick) / CAM_D))
+	cam.fov = rad_to_deg(2.0 * atan(hwv * (1.0 + fov_kick) * _wall_k() / CAM_D))
 	cam.rotation = Vector3.ZERO
 	cam.position = Vector3(camx + cam_nudge + randf_range(-1.0, 1.0) * shk * 0.4, camy + randf_range(-1.0, 1.0) * shk * 0.4, CAM_D)
 
@@ -2881,7 +3221,7 @@ func _cam_apply() -> void:
 ## Put the camera on the start grid right away (no lerp): used at round start and on reset.
 func _cam_snap() -> void:
 	var vs := get_viewport().get_visible_rect().size
-	vhv = hwv * vs.y / maxf(vs.x, 1.0)
+	vhv = hwv * vs.y / maxf(vs.x, 1.0) * _wall_k()
 	fov_kick = 0.0
 	cam_nudge = 0.0
 	lean = 0.0
@@ -3118,7 +3458,7 @@ func _fz(x: float, y: float, z := 0.0) -> Vector3:
 	return Vector3(camx + (x - camx) * k, camy + (y - camy) * k, ZR)
 
 
-## 맨 앞 주자가 0.5m 넘게 앞지르면 등불이 넘어간다. 든 사람이 탈락하면 다음 1등에게.
+## 맨 앞 주자가 0.5m 넘게 앞지르면 등불이 넘어간다. 든 사람이 반송되면 다음 1등에게.
 func _pass_lantern() -> void:
 	var lead := _leader()
 	if lead == null:
@@ -3166,7 +3506,7 @@ func _lit(x: float) -> bool:
 	return false
 
 
-## 빛 밖 안개에 LOST_T 있으면 짐 하나를 안개에 떨군다. 짐이 없으면 길을 잃고 탈락 (등불 든 사람은 빼고)
+## 빛 밖 안개에 LOST_T 있으면 짐 하나를 안개에 떨군다. 짐이 없으면 길을 잃고 왼쪽 끝으로 반송 (등불 든 사람은 빼고)
 func _fog_check(dt: float) -> void:
 	if rt < 2.0 or _opening():
 		return  # 출발 직후는 줄이 길어 봐 준다
@@ -3190,7 +3530,7 @@ func _fog_check(dt: float) -> void:
 				shk = maxf(shk, 0.3)
 				_stamp("분실", "MISPLACED", ST_BAD)
 		else:
-			_out(r, "주소 불명", "ADDRESS UNKNOWN")
+			_send_back(r, "주소 불명", "ADDRESS UNKNOWN", false)  # v12: 탈락 대신 왼쪽 끝에서 다시
 
 
 func _lantern_hud(dt: float) -> void:
@@ -3326,6 +3666,9 @@ func _fx_setup() -> void:
 		var ln := {"x": 0.0, "y": 0.0, "len": 0.0, "sp": 1.0, "w": 4.0}
 		_fx_line_respawn(ln, randf_range(0.0, 900.0))
 		fx_lines.append(ln)
+	wall_pops.clear()
+	for i in WALL_POPS:
+		wall_pops.append({"on": false, "kind": 0, "p": Vector2.ZERO, "v": Vector2.ZERO, "from": Vector2.ZERO, "to": Vector2.ZERO, "rot": 0.0, "col": P_BLUE, "age": 0.0})
 	pops.clear()
 	for i in FX_POPS:
 		pops.append({"on": false, "r": null, "at": Vector2.ZERO, "text": "", "col": Color.WHITE, "age": 0.0, "w": 0.0})
@@ -3393,6 +3736,7 @@ func _fx_tick(dt: float) -> void:
 			p.age = age + dt
 			if age + dt >= 0.7:
 				p.on = false
+	_wall_tick(dt)
 	fx.queue_redraw()
 
 
@@ -3532,8 +3876,9 @@ func _fx_draw(c: Control) -> void:
 			var r0 := 50.0 + (1.0 - t) * 90.0
 			var r1 := r0 + 30.0 + 60.0 * t
 			c.draw_line(ps2 + d * r0, ps2 + d * r1, Color(WHITE, t * 0.9), 2.0 + 5.0 * t)
-	# 3. the torn page edge = the kill line
+	# 3. the parcel walls (v12 B) + the torn page edge on the left wall's inner face = the kill line
 	if racing:
+		_fx_draw_walls(c)
 		_fx_draw_edge(c, tm)
 	# 4. floating numbers
 	for p in pops:
@@ -3560,9 +3905,7 @@ func _fx_draw_edge(c: Control, tm: float) -> void:
 	var ex := edge_screen_x()
 	var top := -10.0
 	var bot := 1290.0
-	# off the page: bare cardboard shows where the page has pulled back (FOV kick / nudge)
-	if ex > 0.5:
-		c.draw_rect(Rect2(-2.0, top, ex + 2.0, bot - top), P_KRAFT_SH)
+	# off the page: the parcel wall (_fx_draw_walls) fills 0..ex
 	# danger tint + white chevrons pulse faster as the player nears the edge
 	var warn := edge_warn
 	if warn > 0.02 and pl.alive:
@@ -3584,7 +3927,7 @@ func _fx_draw_edge(c: Control, tm: float) -> void:
 		c.draw_rect(Rect2(ex + 70.0, PF_TOP, 70.0, PF_BOT - PF_TOP), Color(P_RED, edge_hit * 0.22))
 	# torn white paper strip with a soft offset shadow; ripples (flaps) after a knock-off
 	var flap := edge_flap
-	var left := ex - 34.0
+	var left := ex - 6.0  # the torn strip sits on the parcel wall's inner face
 	_tear[0] = Vector2(left, top)
 	_tear_sh[0] = Vector2(left, top)
 	for i in TEAR_N:
@@ -3600,3 +3943,168 @@ func _fx_draw_edge(c: Control, tm: float) -> void:
 	c.draw_colored_polygon(_tear, WHITE.lerp(P_RED, edge_hit * 0.5))
 	# the torn edge is the danger line: always a thin red rule, stronger as the player nears it
 	c.draw_polyline(_tear_ln, Color(P_RED, 0.6 + 0.35 * edge_warn), 4.0)
+
+
+# ---- 짐 벽 (v12 B): 화면 테두리 = 지금 모두가 든 짐 ----
+# 왼쪽 벽 = 나(파랑) 아래 + 빨강 위, 오른쪽 벽 = 민트 아래 + 노랑 위. 벽돌 하나 = 든 짐 하나, 테이프 색 = 주인.
+# 짐이 줄면 벽돌이 튀어 나가고 (화면 폭도 함께 좁아진다), 주우면 날아 들어온다. Control 하나의 _draw, 노드 할당 없음.
+
+## Screen x of the right edge of the playfield (camx + hwv). About 720 - WALL_W.
+func right_screen_x() -> float:
+	if cam == null:
+		return 720.0
+	var wp := Vector3(camx + hwv, camy, 0.0)
+	if cam.is_position_behind(wp):
+		return 720.0
+	return cam.unproject_position(wp).x
+
+
+func _wall_side(i: int) -> int:
+	return -1 if i < 2 else 1  # -1 왼쪽 벽, 1 오른쪽 벽
+
+
+## 벽돌 칸의 화면 사각형 (side 벽에서 아래부터 slot 번째)
+func _brick_rect(side: int, slot: float, n_side: int) -> Rect2:
+	var y0 := PF_BOT - 6.0
+	var st := minf(BRICK_H + BRICK_GAP, (y0 - PF_TOP - 20.0) / float(maxi(n_side, 1)))
+	var bh := st - BRICK_GAP
+	var ex := edge_screen_x() if side < 0 else right_screen_x()
+	var w := clampf((ex if side < 0 else 720.0 - ex) - 9.0, 16.0, 40.0)
+	var x := 3.0 if side < 0 else 720.0 - 3.0 - w
+	return Rect2(x, y0 - (slot + 1.0) * st, w, bh)
+
+
+func _wall_tick(dt: float) -> void:
+	if runners.size() < 4:
+		return
+	var live := phase == "race" or phase == "roundend" or phase == "tutorial"
+	var beeped := false
+	for i in 4:
+		var r: Courier = runners[i]
+		var want := r.cargo if _in_play(r) else 0
+		var have := wall_n[i]
+		if want != have and live and _in_play(r):
+			var side := _wall_side(i)
+			var below := 0.0
+			var n_side := 0
+			for k in 4:
+				if _wall_side(k) == side:
+					n_side += maxi(wall_n[k], 0)
+					if k < i:
+						below += wall_lv[k]
+			if want < have:
+				for d in have - want:  # 벽돌이 안쪽으로 톡 튀어 나가며 흐려진다
+					var br := _brick_rect(side, below + float(have - 1 - d), n_side)
+					_wall_pop(0, br.get_center(), Vector2(-side * randf_range(140.0, 240.0), -randf_range(260.0, 400.0)), r.col)
+				if not beeped:
+					beeped = true
+					beep(640.0, 0.04, 380.0, 0.06)
+			else:
+				for d in want - have:  # 주운 짐: 배달부에게서 벽으로 날아 들어온다
+					var br := _brick_rect(side, below + float(have + d), n_side + d + 1)
+					var fe := _wall_pop(1, courier_screen(r, HH), Vector2.ZERO, r.col)
+					if not fe.is_empty():
+						fe.to = br.get_center()
+				wall_add[i] = 0.32
+		wall_n[i] = want
+		if live and _in_play(r):
+			wall_lv[i] = lerpf(wall_lv[i], float(want), 1.0 - exp(-12.0 * dt))
+		else:
+			wall_lv[i] = float(want)
+		wall_add[i] = maxf(wall_add[i] - dt, 0.0)
+	for e in wall_pops:
+		if not e.on:
+			continue
+		e.age = float(e.age) + dt
+		if int(e.kind) == 0:
+			var v: Vector2 = e.v
+			v.y += 1500.0 * dt
+			e.v = v
+			var pp: Vector2 = e.p
+			e.p = pp + v * dt
+			e.rot = float(e.rot) + dt * 9.0 * signf(v.x)
+			if float(e.age) > 0.55:
+				e.on = false
+		elif float(e.age) > 0.3:
+			e.on = false
+
+
+func _wall_pop(kind: int, at: Vector2, v: Vector2, col: Color) -> Dictionary:
+	var slot: Dictionary = {}
+	for e in wall_pops:
+		if not e.on:
+			slot = e
+			break
+	if slot.is_empty():
+		return {}
+	slot.on = true
+	slot.kind = kind
+	slot.p = at
+	slot.from = at
+	slot.to = at
+	slot.v = v
+	slot.rot = 0.0
+	slot.col = col
+	slot.age = 0.0
+	return slot
+
+
+## 종이 소포 벽돌 하나: 그림자 + 흰 테두리 + 골판지 몸 + 오른쪽 그늘 + 주인 색 테이프 가로띠
+func _draw_brick(c: Control, br: Rect2, col: Color, a: float) -> void:
+	c.draw_rect(Rect2(br.position + Vector2(2, 3), br.size), Color(P_NAVY, 0.25 * a))
+	c.draw_rect(br.grow(1.5), Color(P_CREAM, a))
+	c.draw_rect(br, Color(P_PARCEL, a))
+	c.draw_rect(Rect2(br.end.x - 5.0, br.position.y, 5.0, br.size.y), Color(P_KRAFT_SH, a))
+	var th := clampf(br.size.y * 0.24, 6.0, 13.0)
+	c.draw_rect(Rect2(br.position.x, br.get_center().y - th * 0.5, br.size.x, th), Color(col, a))
+	c.draw_rect(Rect2(br.get_center().x - 1.5, br.position.y, 3.0, br.size.y), Color(P_KRAFT_SH.darkened(0.15), a * 0.7))
+
+
+func _fx_draw_walls(c: Control) -> void:
+	if runners.size() < 4:
+		return
+	var ex := edge_screen_x()
+	var rx := right_screen_x()
+	# 벽 바탕: 맨 골판지 (종이 밖)
+	c.draw_rect(Rect2(-2.0, -10.0, ex + 2.0, 1300.0), P_KRAFT_SH)
+	c.draw_rect(Rect2(rx, -10.0, 722.0 - rx, 1300.0), P_KRAFT_SH)
+	for side in [-1, 1]:
+		var n_side := 0
+		for k in 4:
+			if _wall_side(k) == side:
+				n_side += wall_n[k]
+		var below := 0.0
+		for i in 4:
+			if _wall_side(i) != side:
+				continue
+			var col: Color = runners[i].col
+			for k in wall_n[i]:
+				var br := _brick_rect(side, below + float(k), n_side)
+				if k == wall_n[i] - 1 and wall_add[i] > 0.0:  # 막 들어온 벽돌: 작게 시작해 톡 부푼다
+					var u := 1.0 - wall_add[i] / 0.32
+					var s := lerpf(0.3, 1.0, u) + sin(u * PI) * 0.18
+					var ctr := br.get_center() + Vector2(0, -sin(u * PI) * 14.0)
+					br = Rect2(ctr - br.size * s * 0.5, br.size * s)
+				_draw_brick(c, br, col, 1.0)
+			below += wall_lv[i]
+	# 오른쪽 벽 안쪽 면: 얇은 크림 띠 + 그림자 (왼쪽은 찢긴 종이 끝이 덮는다)
+	c.draw_rect(Rect2(rx - 7.0, -10.0, 6.0, 1300.0), Color(P_NAVY, 0.16))
+	c.draw_rect(Rect2(rx - 3.0, -10.0, 4.0, 1300.0), P_CREAM)
+	for e in wall_pops:
+		if not e.on:
+			continue
+		var bw := 26.0
+		var bh := BRICK_H * 0.7
+		if int(e.kind) == 0:
+			var a := 1.0 - clampf((float(e.age) - 0.25) / 0.3, 0.0, 1.0)
+			c.draw_set_transform(e.p, float(e.rot), Vector2.ONE)
+			_draw_brick(c, Rect2(-bw * 0.5, -bh * 0.5, bw, bh), e.col, a)
+		else:
+			var u := clampf(float(e.age) / 0.3, 0.0, 1.0)
+			var fr: Vector2 = e.from
+			var to: Vector2 = e.to
+			var at: Vector2 = fr.lerp(to, u) + Vector2(0, -sin(u * PI) * 80.0)
+			var s := lerpf(0.6, 0.9, u)
+			c.draw_set_transform(at, u * TAU * 0.5, Vector2(s, s))
+			_draw_brick(c, Rect2(-bw * 0.5, -bh * 0.5, bw, bh), e.col, 1.0)
+	c.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
