@@ -6,3 +6,4 @@
 *.json
 cleanroom/
 pipeline/out/
+sfx_build/

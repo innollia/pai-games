@@ -1,0 +1,92 @@
+{
+  "tool": "nkido (MIT) raw sources + numpy/scipy shaping",
+  "samples": "none",
+  "rate": 22050,
+  "tracks": [
+    {
+      "file": "jump.wav",
+      "seconds": 0.2,
+      "sha256": "cc36e2dc146bf8ef770be9ebfaa49abd226988947fe81523e22e1cf81efc65de"
+    },
+    {
+      "file": "land.wav",
+      "seconds": 0.18,
+      "sha256": "650a668b2ed573971524220be35ed15521a1aa172ec885227aa33923d64a4aca"
+    },
+    {
+      "file": "express.wav",
+      "seconds": 0.32,
+      "sha256": "dc955a8f536f0fa9991df9c1bf9af54c5e5bc24fbe6bd32fb8df7f4d2b8783c8"
+    },
+    {
+      "file": "damaged.wav",
+      "seconds": 0.7,
+      "sha256": "4ee35e83791d63b3ef68eb31947959232d1aabc6826b3b6a6a89c8f902823eff"
+    },
+    {
+      "file": "returned.wav",
+      "seconds": 1.0,
+      "sha256": "1c6ce7a30136b7d5f4c03b5fb2c6c0597591e30b0abb90519630020f4d6b11c6"
+    },
+    {
+      "file": "stamp.wav",
+      "seconds": 0.22,
+      "sha256": "d2f5bbf0ad34d89967d719ba98b13d48cd62f591a650ba1fc83e6773bc2cc9b5"
+    },
+    {
+      "file": "bump.wav",
+      "seconds": 0.25,
+      "sha256": "6eff16e5c1d000828ff340519396b6cb590d16cca342b5f28a137daa27576f2b"
+    },
+    {
+      "file": "spring.wav",
+      "seconds": 0.45,
+      "sha256": "cb26f58c07f553354a1c632777cb7fdd0dee3739cafb5bfd67948e4eaedd2336"
+    },
+    {
+      "file": "bell.wav",
+      "seconds": 0.87,
+      "sha256": "15f7796626668b2b5e3f8fe806a5b41cd87995cbdea40d93dc1378b92837e5ef"
+    },
+    {
+      "file": "crack.wav",
+      "seconds": 0.75,
+      "sha256": "c5b0f218d5ad31922147cb8b45cf34de36e9ca7f4b13bd7a520684b9031571c3"
+    },
+    {
+      "file": "pickup.wav",
+      "seconds": 0.48,
+      "sha256": "4f7ea0bb83519564205875a9647afc70271dca1282e28cf39fe62feea20076b9"
+    },
+    {
+      "file": "gate.wav",
+      "seconds": 0.27,
+      "sha256": "755fc7c6c97cf5bd19337759f785639e8e724b854c26564bcba197c54b0a642a"
+    },
+    {
+      "file": "go.wav",
+      "seconds": 0.5,
+      "sha256": "2950623030bdf85b73958c184fa5202a3572eb23d9dabad5755eeb724f56d212"
+    },
+    {
+      "file": "train.wav",
+      "seconds": 0.9,
+      "sha256": "2aa48fdea084f753ca156f29ea0addfc1c1d8b61a1aa8c355ec16a15cb712d29"
+    },
+    {
+      "file": "delivered.wav",
+      "seconds": 1.31,
+      "sha256": "aaeee02ea2e3d551c2070fce5ffdf773e708dc0a4d6f43471399222ceb1efbc2"
+    },
+    {
+      "file": "lost.wav",
+      "seconds": 1.56,
+      "sha256": "92ec4dfa2f29f52a5b80f561525998671a2bc4f5328eb9c93ac55383239188ce"
+    },
+    {
+      "file": "champion.wav",
+      "seconds": 2.34,
+      "sha256": "92c8437c14ca8818fe902772753162ebae90f20d4a5301309b6f0494117d7842"
+    }
+  ]
+}

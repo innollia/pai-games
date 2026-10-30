@@ -324,3 +324,144 @@ Use case: illustration-story. Asset type: wide 2:1 landscape parallax backdrop, 
 ```
 
 결과: **미생성** — 위와 같은 이유. 대신 bg_night_market 사용
+
+## 2026-10-31 paper-craft delivery — cover attempt 1
+Tool: image_gen.imagegen (built-in); model: tool-managed, undisclosed.
+Status: submitted; result recorded below.
+
+```text
+[IMAGE] Illustrated game cover, landscape 1.26:1, final crop 630x500. Pocket Parcel Town pushed toward PAPER-CRAFT DIORAMA.
+[SCENE] Four paper-toy delivery couriers race RIGHT across a layered paper market street with two cardboard ramps and crates. Exactly four couriers: coral player largest in front at lower right, blue and mint rivals running behind, gold rival tumbling backward off the LEFT edge of a cream paper screen frame, partially clipped at left. Each carries a stack of two or three taped cardboard parcels on their back, behind their head. Low side view, dynamic running legs and swinging mitten hands. Match reference 1 market palette and reference 2 courier identity: rectangular folded-paper cap and peach head, one dark dot eye in profile, little forward nose, short jacket, navy trousers, chunky brown running shoes. Reinterpret as lively cut-paper illustration; no grey studio background. Coral cap/jacket #E86758, blue #508CC8, mint #62AD91, gold #E8B34B. Warm top-left daylight.
+[RENDERING] Cut colored paper and cardboard layers, visible thin white paper edges, shallow soft contact shadows, matte watercolor washes and a few broad gouache brush marks. Handmade folded silhouettes with readable overlaps.
+[EMPTY] Upper third is uncluttered warm cream sky reserved for title; market shapes simplified behind the runners.
+[PALETTE] Warm paper #FFF0D5, dusty coral, sage, muted apricot, cardboard #DDA56A, dark ink #34334B. Bright cheerful daylight.
+[TEXT] Only text: "Off the Screen!" in very large bold dark ink cut-paper lettering across the upper third, readable at thumbnail size. Keep all title letters inside margins.
+[NEGATIVE]
+No over-rendering: no painted texture on every surface, no object-by-object drawing of foliage, rocks, water, sky or background.
+No hyper-detailed fur, bark, stone, or leaf rendering; a few confident marks stand for each.
+No sky gradients, no cloud detail, no glow around the sun, moon, or lights.
+No glossy digital painting, no airbrushed smooth gradients, no plastic or waxy skin.
+No bloom, lens flare, god rays, or haze unless the subject asks for them.
+No shallow depth of field, bokeh, or photographic blur.
+No 3D render look, no subsurface skin sheen, no CGI lighting.
+No evenly spread detail; detail sits in one or two places only.
+No perfectly symmetrical faces, poses, or compositions.
+No generic fantasy decoration: floating particles, sparkles, magic circles, random runes or glyphs.
+No extra eyes, mouths, faces, limbs, or tentacles; no melted or fused anatomy; hands have the correct number of fingers.
+No characters, animals, or props that the subject did not ask for.
+No oversaturated or neon color unless the style card asks for it.
+No muddy, smeared, or noisy surface texture.
+No other text, letters, captions, signature, monogram, watermark or logo.
+```
+Result: REJECTED / no image. Attempt 1 failed: image generation failed: connection failed: error sending request. Attempts 2 and 3 will use the identical prompt above verbatim.
+
+### Cover attempts 2–3: attachment-free recovery
+Tool: image_gen.imagegen (built-in); model: tool-managed, undisclosed. Oracle recommended omitting attachments after connection failure. Revised prompt below used verbatim for retry.
+```text
+[IMAGE] Illustrated game cover, landscape 1.26:1, final crop 630x500. Pocket Parcel Town pushed toward PAPER-CRAFT DIORAMA.
+[SCENE] Four paper-toy delivery couriers race RIGHT across a layered paper market street with two cardboard ramps and crates. Exactly four couriers: coral player largest in front at lower right, blue and mint rivals running behind, gold rival tumbling backward off the LEFT edge of a cream paper screen frame, partially clipped at left. Each carries a stack of two or three taped cardboard parcels on their back, behind their head. Low side view, dynamic running legs and swinging mitten hands. Market palette: cream sky, apricot shopfronts, sage striped awnings, dusty coral tiled roofs. Courier identity: rectangular folded-paper cap and peach head, one dark dot eye in profile, little forward nose, short jacket, navy trousers, chunky brown running shoes. Reinterpret as lively cut-paper illustration; no grey studio background. Coral cap/jacket #E86758, blue #508CC8, mint #62AD91, gold #E8B34B. Warm top-left daylight.
+[RENDERING] Cut colored paper and cardboard layers, visible thin white paper edges, shallow soft contact shadows, matte watercolor washes and a few broad gouache brush marks. Handmade folded silhouettes with readable overlaps.
+[EMPTY] Upper third is uncluttered warm cream sky reserved for title; market shapes simplified behind the runners.
+[PALETTE] Warm paper #FFF0D5, dusty coral, sage, muted apricot, cardboard #DDA56A, dark ink #34334B. Bright cheerful daylight.
+[TEXT] Only text: "Off the Screen!" in very large bold dark ink cut-paper lettering across the upper third, readable at thumbnail size. Keep all title letters inside margins.
+[NEGATIVE]
+No over-rendering: no painted texture on every surface, no object-by-object drawing of foliage, rocks, water, sky or background.
+No hyper-detailed fur, bark, stone, or leaf rendering; a few confident marks stand for each.
+No sky gradients, no cloud detail, no glow around the sun, moon, or lights.
+No glossy digital painting, no airbrushed smooth gradients, no plastic or waxy skin.
+No bloom, lens flare, god rays, or haze unless the subject asks for them.
+No shallow depth of field, bokeh, or photographic blur.
+No 3D render look, no subsurface skin sheen, no CGI lighting.
+No evenly spread detail; detail sits in one or two places only.
+No perfectly symmetrical faces, poses, or compositions.
+No generic fantasy decoration: floating particles, sparkles, magic circles, random runes or glyphs.
+No extra eyes, mouths, faces, limbs, or tentacles; no melted or fused anatomy; hands have the correct number of fingers.
+No characters, animals, or props that the subject did not ask for.
+No oversaturated or neon color unless the style card asks for it.
+No muddy, smeared, or noisy surface texture.
+No other text, letters, captions, signature, monogram, watermark or logo.
+```
+Result: KEPT, attempt 2. Four correctly colored couriers, gold tumbling at left, legible exact title. Resized with Pillow LANCZOS to 630x500; title retained from generation. Attempt 3 not needed.
+
+### Bridge attempt 1
+Tool: image_gen.imagegen (built-in); model: tool-managed, undisclosed. Text-only generation after successful cover recovery.
+```text
+[IMAGE] Wide 2:1 landscape game backdrop, final 1024x512, Pocket Parcel Town PAPER-CRAFT DIORAMA.
+[SCENE] Eye-level distant side view of two slender rope suspension bridges across a wooded valley, scenery concentrated in middle third. Layered wooded gorge in pale mint, moss and blue-green. Bridge boards and ropes are small distant scenery, with no strong foreground platform edges. Warm top-left daylight.
+[RENDERING] Cut colored paper and cardboard landscape layers, thin white paper edges, subtle shallow contact shadows, soft watercolor washes, a few broad matte gouache marks. Broad simple silhouettes. Bright, muted and low contrast throughout for runners overlaid in front.
+[EMPTY] Upper half is open pale mint sky with two plain paper cloud cutouts. Lower quarter is a quiet nearly flat pale sage band. Large uncluttered spaces between scenery.
+[PALETTE] Pale mint, soft moss green, blue-green, warm cream paper, muted cardboard. Light phone-readable values.
+[NEGATIVE]
+No over-rendering: no painted texture on every surface, no object-by-object drawing of foliage, rocks, water, sky or background.
+No hyper-detailed fur, bark, stone, or leaf rendering; a few confident marks stand for each.
+No sky gradients, no cloud detail, no glow around the sun, moon, or lights.
+No glossy digital painting, no airbrushed smooth gradients, no plastic or waxy skin.
+No bloom, lens flare, god rays, or haze unless the subject asks for them.
+No shallow depth of field, bokeh, or photographic blur.
+No 3D render look, no subsurface skin sheen, no CGI lighting.
+No evenly spread detail; detail sits in one or two places only.
+No perfectly symmetrical faces, poses, or compositions.
+No generic fantasy decoration: floating particles, sparkles, magic circles, random runes or glyphs.
+No extra eyes, mouths, faces, limbs, or tentacles; no melted or fused anatomy; hands have the correct number of fingers.
+No characters, animals, or props that the subject did not ask for.
+No oversaturated or neon color unless the style card asks for it.
+No muddy, smeared, or noisy surface texture.
+No characters, no UI, no lettering. No text, letters, captions, title, signature, monogram, watermark, logo, frame, or border.
+```
+Result: KEPT, bridge attempt 1. Pillow LANCZOS resize to 1024x512, saturation x0.82, 15% warm-paper veil to lower contrast, WebP quality 85 method 6.
+
+### Rooftops attempt 1
+Tool: image_gen.imagegen (built-in); model: tool-managed, undisclosed.
+```text
+[IMAGE] Wide 2:1 landscape game backdrop, final 1024x512, Pocket Parcel Town PAPER-CRAFT DIORAMA.
+[SCENE] Eye-level distant side view across a small town's overlapping ceramic rooftops. Three broad roof groups at different heights in the middle third, a few squat chimneys and two laundry lines with a few simple folded-paper clothes between roof groups. Warm top-left daylight. All roofs are distant scenery.
+[RENDERING] Cut colored paper and cardboard architectural layers, thin white paper edges, subtle shallow contact shadows, soft watercolor washes, a few broad matte gouache marks. Broad simple silhouettes. Bright, muted and low contrast throughout for runners overlaid in front.
+[EMPTY] Upper half is open pale lavender sky with two plain paper cloud cutouts. Lower quarter is a quiet nearly flat pale peach band without edges or platforms. Large uncluttered spaces between scenery.
+[PALETTE] Light lavender sky, peach roofs, desaturated indigo shadows, warm cream paper. Light phone-readable values.
+[NEGATIVE]
+No over-rendering: no painted texture on every surface, no object-by-object drawing of foliage, rocks, water, sky or background.
+No hyper-detailed fur, bark, stone, or leaf rendering; a few confident marks stand for each.
+No sky gradients, no cloud detail, no glow around the sun, moon, or lights.
+No glossy digital painting, no airbrushed smooth gradients, no plastic or waxy skin.
+No bloom, lens flare, god rays, or haze unless the subject asks for them.
+No shallow depth of field, bokeh, or photographic blur.
+No 3D render look, no subsurface skin sheen, no CGI lighting.
+No evenly spread detail; detail sits in one or two places only.
+No perfectly symmetrical faces, poses, or compositions.
+No generic fantasy decoration: floating particles, sparkles, magic circles, random runes or glyphs.
+No extra eyes, mouths, faces, limbs, or tentacles; no melted or fused anatomy; hands have the correct number of fingers.
+No characters, animals, or props that the subject did not ask for.
+No oversaturated or neon color unless the style card asks for it.
+No muddy, smeared, or noisy surface texture.
+No characters, no UI, no lettering. No text, letters, captions, title, signature, monogram, watermark, logo, frame, or border.
+```
+Result: KEPT, rooftops attempt 1. Pillow LANCZOS resize to 1024x512, saturation x0.82, 15% warm-paper veil to lower contrast, WebP quality 85 method 6.
+
+### Night attempt 1
+Tool: image_gen.imagegen (built-in); model: tool-managed, undisclosed. User's light lantern-night request supersedes old deep-indigo/unlit prompt.
+```text
+[IMAGE] Wide 2:1 landscape game backdrop, final 1024x512, Pocket Parcel Town PAPER-CRAFT DIORAMA.
+[SCENE] Eye-level distant side view of a quiet village street at early night, lit by two hanging strings of warm amber paper lanterns over closed market shopfronts. Roofs and lanterns sit in the middle third. A small pale paper moon high above. Keep this night scene FAIRLY LIGHT, welcoming and phone-readable, with broad pale lavender sky and light mauve pavement.
+[RENDERING] Cut colored paper and cardboard architectural layers, thin white paper edges, subtle shallow contact shadows, soft watercolor washes, a few broad matte gouache marks. Broad simple silhouettes. Low contrast throughout for runners overlaid in front. Lanterns are flat painted cream and amber shapes with no bloom halos; broad warm washes on nearby walls.
+[EMPTY] Upper half is open light slate-lavender sky. Lower quarter is a quiet nearly flat light dusty mauve street band without platform edges. Large uncluttered spaces between scenery.
+[PALETTE] Light slate violet and dusty mauve, muted teal silhouettes, warm cream paper, pale amber lanterns. The picture is mostly light midtones with very few dark accents. No black sky.
+[NEGATIVE]
+No over-rendering: no painted texture on every surface, no object-by-object drawing of foliage, rocks, water, sky or background.
+No hyper-detailed fur, bark, stone, or leaf rendering; a few confident marks stand for each.
+No sky gradients, no cloud detail, no glow around the sun, moon, or lights.
+No glossy digital painting, no airbrushed smooth gradients, no plastic or waxy skin.
+No bloom, lens flare, god rays, or haze unless the subject asks for them.
+No shallow depth of field, bokeh, or photographic blur.
+No 3D render look, no subsurface skin sheen, no CGI lighting.
+No evenly spread detail; detail sits in one or two places only.
+No perfectly symmetrical faces, poses, or compositions.
+No generic fantasy decoration: floating particles, sparkles, magic circles, random runes or glyphs.
+No extra eyes, mouths, faces, limbs, or tentacles; no melted or fused anatomy; hands have the correct number of fingers.
+No characters, animals, or props that the subject did not ask for.
+No oversaturated or neon color unless the style card asks for it.
+No muddy, smeared, or noisy surface texture.
+No characters, no UI, no lettering. No text, letters, captions, title, signature, monogram, watermark, logo, frame, or border.
+```
+Result: KEPT, night attempt 1. Pillow LANCZOS resize to 1024x512, saturation x0.82, 20% warm-paper veil to brighten night and lower contrast, WebP quality 85 method 6.
+
+Delivery result: cover and all three backdrops kept. Only image-generation failure: cover attempt 1 connection failed; attachment-free attempt 2 succeeded. No skipped items. No prompt was submitted for cover attempt 3. Logging transport initially failed with JSONDecodeError before writing; native Add-Content succeeded. All generation prompts actually submitted are preserved verbatim above, including the rejected attempt.
