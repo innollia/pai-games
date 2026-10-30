@@ -314,6 +314,9 @@ func _rate_hit(p: Vector2) -> bool:
 	return false
 
 
+var _rate_sent_ms := 0
+
+
 func _rate_send() -> void:
 	for i in 5:
 		_stars[i].label_settings.font_color = D if i < _rated else SOFT
@@ -322,8 +325,10 @@ func _rate_send() -> void:
 		return
 	var js := "window.tofuRate && window.tofuRate(%s, %s, %d, %s, %d)" % [
 		JSON.stringify(id), JSON.stringify(("v%d %s" % [gver, VER]).left(40)), _rated, JSON.stringify(_rate_text), score]
+	JavaScriptBridge.eval("window.tofuLast = window.tofuRate ? 'wait' : 'fail'", true)
 	JavaScriptBridge.eval(js, true)
 	_rate_wait = true
+	_rate_sent_ms = Time.get_ticks_msec()
 	_rate_say("보내는 중")
 
 
@@ -334,8 +339,10 @@ func _note_send() -> void:
 		return
 	var js := "window.tofuNote && window.tofuNote(%s, %s, %s)" % [
 		JSON.stringify(id), JSON.stringify(("v%d %s" % [gver, VER]).left(40)), JSON.stringify(_rate_text)]
+	JavaScriptBridge.eval("window.tofuLast = window.tofuRate ? 'wait' : 'fail'", true)
 	JavaScriptBridge.eval(js, true)
 	_rate_wait = true
+	_rate_sent_ms = Time.get_ticks_msec()
 	_rate_say("보내는 중")
 
 
@@ -381,9 +388,9 @@ func _rate_poll() -> void:
 	if r == "ok":
 		_rate_wait = false
 		_rate_say("고마워요!")
-	elif r == "fail":
+	elif r == "fail" or Time.get_ticks_msec() - _rate_sent_ms > 12000:
 		_rate_wait = false
-		_rate_say("저장 안 됨")
+		_rate_say("저장 안 됨 · 별을 다시 탭")
 
 
 ## 웹이면 window.prompt, 아니면 ""

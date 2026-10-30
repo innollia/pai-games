@@ -28,7 +28,11 @@ async function send(col, data) {
   window.tofuLast = "wait";
   try {
     if (!db) throw new Error("no db");
-    await addDoc(collection(db, col), data);
+    // 폰 망에 따라 응답이 끝내 안 오는 때가 있어 10초면 실패로 본다
+    await Promise.race([
+      addDoc(collection(db, col), data),
+      new Promise((_, no) => setTimeout(() => no(new Error("timeout")), 10000)),
+    ]);
     window.tofuLast = "ok";
     return true;
   } catch (e) {
