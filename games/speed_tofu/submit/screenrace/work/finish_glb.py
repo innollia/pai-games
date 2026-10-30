@@ -1,4 +1,4 @@
-import struct,json,io
+import struct,json,io,sys
 from pathlib import Path
 from PIL import Image
 W=Path(__file__).resolve().parent
@@ -12,7 +12,10 @@ def read(path):
     return doc,data[28+n:28+n+bn]
 
 reports={}
-for path in sorted(OUT.glob('*.glb')):
+remodel='--remodel' in sys.argv
+names=['courier_coral','courier_blue','courier_mint','courier_gold','parcel','train','bridge_board']
+paths=[OUT/(name+'.glb') for name in names] if remodel else sorted(OUT.glob('*.glb'))
+for path in paths:
     doc,blob=read(path)
     for mat in doc.get('materials',[]):
         mat.setdefault('extensions',{})['KHR_materials_unlit']={}
@@ -41,5 +44,5 @@ for path in sorted(OUT.glob('*.glb')):
         assert accessor['count']>0
     tri=sum(doc['accessors'][p['indices']]['count']//3 for m in doc['meshes'] for p in m['primitives'])
     reports[path.name]={'bytes':size,'triangles':tri,'embedded_images':images,'animations':[a['name'] for a in doc.get('animations',[])],'nodes':[n.get('name') for n in doc['nodes']]}
-(W/'glb_validation.json').write_text(json.dumps(reports,indent=2),encoding='utf-8')
+(W/('remodel_validation.json' if remodel else 'glb_validation.json')).write_text(json.dumps(reports,indent=2),encoding='utf-8')
 print(json.dumps({k:{'bytes':v['bytes'],'triangles':v['triangles'],'animations':v['animations']} for k,v in reports.items()},indent=2))

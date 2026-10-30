@@ -1,0 +1,28 @@
+[IMAGE]
+Square 1024 by 1024 game texture atlas for low-poly folded-paper toy couriers and props. Pocket Parcel Town: matte painted cardstock, like chunky friendly paper-toy delivery runners. This is a flat UV material sheet, not a picture of any object.
+[LAYOUT]
+Sixteen axis-aligned square UV islands in a 4 by 4 grid. Origin top left. Each cell is 256 pixels square. Each painted square extends from cell offset (8,8) to (248,248); the 16-pixel gaps between painted squares remain flat middle grey #808080. Keep every island exactly in position, square, unrotated. Fill each square edge to edge, do not draw guide lines or outlines. Image top is world up.
+[SURFACES]
+Row 1, y=8..248: x=8..248 coral red #E86758 painted cap and shirt paper, a single broad darker seam near lower edge; x=264..504 warm peach #F2C098 plain face paper with NO facial features; x=520..760 navy #34334B trousers with two broad subdued blue folds near lower edge; x=776..1016 warm brown #79543B shoe leather paper, one broad tan upper edge.
+Row 2, y=264..504: x=8..248 kraft cardboard #DDA56A with one broad subtle fold; x=264..504 warm cream #FFF0D5 plain paper; x=520..760 very dark ink #282B3E plain paper; x=776..1016 crisp vermilion red #C84235 tape paper, nearly solid.
+Row 3, y=520..760: x=8..248 honey brown timber #B9814C with three long HORIZONTAL confident darker grain strokes and one small knot, clean readable broad grain; x=264..504 tan rope #CDB17E with sparse diagonal ochre binding marks; x=520..760 deep teal #426C71 painted locomotive paper with a pale upper edge; x=776..1016 butter amber #F3CB73 plain paper.
+Row 4, y=776..1016: x=8..248 blue #508CC8 painted cap and shirt paper with one darker seam near lower edge; x=264..504 mint green #62AD91 painted cap and shirt paper with one darker seam near lower edge; x=520..760 golden yellow #E8B34B painted cap and shirt paper with one darker seam near lower edge; x=776..1016 slate blue #658A9F locomotive window paper, a single diagonal cream reflection stroke.
+[LIGHT]
+Broad stepped warm upper edge and cooler lower edge only. Keep center 60 percent of each square almost flat in the specified base color. Minimal paper grain, matte dry gouache, no random noise. These painted surfaces wrap actual mesh geometry.
+[NEGATIVE]
+No hyper-detailed fur, bark, stone, or leaf rendering; a few confident marks stand for each.
+No sky gradients, no cloud detail, no glow around the sun, moon, or lights.
+No glossy digital painting, no airbrushed smooth gradients, no plastic or waxy skin.
+No bloom, lens flare, god rays, or haze unless the subject asks for them.
+No shallow depth of field, bokeh, or photographic blur.
+No 3D render look, no subsurface skin sheen, no CGI lighting.
+No evenly spread detail; detail sits in one or two places only.
+No perfectly symmetrical faces, poses, or compositions.
+No generic fantasy decoration: floating particles, sparkles, magic circles, random runes or glyphs.
+No extra eyes, mouths, faces, limbs, or tentacles; no melted or fused anatomy; hands have the correct number of fingers.
+No characters, animals, or props that the subject did not ask for.
+No text, letters, captions, title, signature, monogram, watermark, logo, frame, or border.
+No oversaturated or neon color unless the style card asks for it.
+No muddy, smeared, or noisy surface texture.
+No perspective, no shading that implies a 3D view inside a face.
+No text or labels. No objects, no characters, no eyes, no mouth, no face drawing, no little pictures inside the squares.

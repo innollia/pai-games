@@ -1,11 +1,12 @@
 ﻿# speed_tofu 의 screenrace(원본, 강화는 거기서 한다)를 이 단독판으로 가져온다: powershell -ExecutionPolicy Bypass -File tools\sync.ps1
-# 가져오는 것: g/screenrace.gd, tofu.gd(평가 포함), tools/tofu_fb.js, art/screenrace/, main.gd GAME_VER["screenrace"] -> main.gd GVER
+# 가져오는 것: g/screenrace.gd, g/sr_*.gd(UI 모듈), tofu.gd(평가 포함), tools/tofu_fb.js, art/screenrace/, main.gd GAME_VER["screenrace"] -> main.gd GVER
 # 단독판에서만 다른 것: 첫 장면 main.gd(메뉴 없음), tofu.gd 공용 글자를 영어로(잼 심사가 영어)
 $ErrorActionPreference = 'Stop'
 $kit = Split-Path -Parent $PSScriptRoot
 $src = Join-Path (Split-Path -Parent $kit) 'speed_tofu'
 $utf8 = New-Object Text.UTF8Encoding $false
 Copy-Item (Join-Path $src 'g\screenrace.gd') (Join-Path $kit 'g\screenrace.gd') -Force
+Get-ChildItem (Join-Path $src 'g') -Filter 'sr_*.gd' | ForEach-Object { Copy-Item $_.FullName (Join-Path $kit (Join-Path 'g' $_.Name)) -Force }  # 화면 밖 경주 UI 모듈
 Copy-Item (Join-Path $src 'tools\tofu_fb.js') (Join-Path $kit 'tools\tofu_fb.js') -Force
 $t = [IO.File]::ReadAllText((Join-Path $src 'tofu.gd'), $utf8)
 $en = [ordered]@{

@@ -465,3 +465,894 @@ No characters, no UI, no lettering. No text, letters, captions, title, signature
 Result: KEPT, night attempt 1. Pillow LANCZOS resize to 1024x512, saturation x0.82, 20% warm-paper veil to brighten night and lower contrast, WebP quality 85 method 6.
 
 Delivery result: cover and all three backdrops kept. Only image-generation failure: cover attempt 1 connection failed; attachment-free attempt 2 succeeded. No skipped items. No prompt was submitted for cover attempt 3. Logging transport initially failed with JSONDecodeError before writing; native Add-Content succeeded. All generation prompts actually submitted are preserved verbatim above, including the rejected attempt.
+
+## Cover-match remodel 2026-10-31 — atlas attempt 1
+Tool: built-in OpenAI imagegen. Prompt verbatim:
+```text
+[IMAGE]
+Square 1024 by 1024 game texture atlas for low-poly folded-paper toy couriers and props. Pocket Parcel Town: matte painted cardstock, like chunky friendly paper-toy delivery runners. This is a flat UV material sheet, not a picture of any object.
+[LAYOUT]
+Sixteen axis-aligned square UV islands in a 4 by 4 grid. Origin top left. Each cell is 256 pixels square. Each painted square extends from cell offset (8,8) to (248,248); the 16-pixel gaps between painted squares remain flat middle grey #808080. Keep every island exactly in position, square, unrotated. Fill each square edge to edge, do not draw guide lines or outlines. Image top is world up.
+[SURFACES]
+Row 1, y=8..248: x=8..248 coral red #E86758 painted cap and shirt paper, a single broad darker seam near lower edge; x=264..504 warm peach #F2C098 plain face paper with NO facial features; x=520..760 navy #34334B trousers with two broad subdued blue folds near lower edge; x=776..1016 warm brown #79543B shoe leather paper, one broad tan upper edge.
+Row 2, y=264..504: x=8..248 kraft cardboard #DDA56A with one broad subtle fold; x=264..504 warm cream #FFF0D5 plain paper; x=520..760 very dark ink #282B3E plain paper; x=776..1016 crisp vermilion red #C84235 tape paper, nearly solid.
+Row 3, y=520..760: x=8..248 honey brown timber #B9814C with three long HORIZONTAL confident darker grain strokes and one small knot, clean readable broad grain; x=264..504 tan rope #CDB17E with sparse diagonal ochre binding marks; x=520..760 deep teal #426C71 painted locomotive paper with a pale upper edge; x=776..1016 butter amber #F3CB73 plain paper.
+Row 4, y=776..1016: x=8..248 blue #508CC8 painted cap and shirt paper with one darker seam near lower edge; x=264..504 mint green #62AD91 painted cap and shirt paper with one darker seam near lower edge; x=520..760 golden yellow #E8B34B painted cap and shirt paper with one darker seam near lower edge; x=776..1016 slate blue #658A9F locomotive window paper, a single diagonal cream reflection stroke.
+[LIGHT]
+Broad stepped warm upper edge and cooler lower edge only. Keep center 60 percent of each square almost flat in the specified base color. Minimal paper grain, matte dry gouache, no random noise. These painted surfaces wrap actual mesh geometry.
+[NEGATIVE]
+No hyper-detailed fur, bark, stone, or leaf rendering; a few confident marks stand for each.
+No sky gradients, no cloud detail, no glow around the sun, moon, or lights.
+No glossy digital painting, no airbrushed smooth gradients, no plastic or waxy skin.
+No bloom, lens flare, god rays, or haze unless the subject asks for them.
+No shallow depth of field, bokeh, or photographic blur.
+No 3D render look, no subsurface skin sheen, no CGI lighting.
+No evenly spread detail; detail sits in one or two places only.
+No perfectly symmetrical faces, poses, or compositions.
+No generic fantasy decoration: floating particles, sparkles, magic circles, random runes or glyphs.
+No extra eyes, mouths, faces, limbs, or tentacles; no melted or fused anatomy; hands have the correct number of fingers.
+No characters, animals, or props that the subject did not ask for.
+No text, letters, captions, title, signature, monogram, watermark, logo, frame, or border.
+No oversaturated or neon color unless the style card asks for it.
+No muddy, smeared, or noisy surface texture.
+No perspective, no shading that implies a 3D view inside a face.
+No text or labels. No objects, no characters, no eyes, no mouth, no face drawing, no little pictures inside the squares.
+
+```
+
+
+
+## UI art task 191b5dc5-b2af-4dda-b9fd-c01536e5ef0a — 2026-10-31
+
+Inspected existing cover and all bg_*.webp references before generation. Built-in image_gen.imagegen; model tool-managed, undisclosed. One tool call per asset per attempt. Palette and paper-cut rendering locked across the set. Native reference files were inspected, not attached. All prompts below are the exact submitted strings.
+
+### logo.png — attempt 1
+Tool: image_gen.imagegen (built-in); model: tool-managed, undisclosed.
+Result: KEPT: subject/style and small-size readability verified in contact sheet.
+
+```text
+[IMAGE] 640x280 final game UI raster asset, landscape composition.
+[SCENE] Wide paper cut-out title logo. Exact text "Off the Screen!" in very big chunky hand-cut navy letters with red accents, thin cream-white cut edges and offset paper shadow. Two readable stacked lines: "Off the" above "Screen!". A small kraft parcel with red tape and three red speed streaks complete the logo. Actual transparent background. No other words.
+[RENDERING] Pocket Parcel Town PAPER-CRAFT DIORAMA matching the inspected Off the Screen cover: chunky cut colored cardstock and kraft cardboard layers, thin white cut-paper edges, soft shallow contact shadows, slight paper grain. Broad simple phone-readable silhouettes. Flat matte paper with a few folded facets, bright soft light from upper left.
+[EMPTY] Center the entire object including shadow within approximately 6% empty padding on all sides; uncluttered flat paper surfaces and empty space between shapes.
+[PALETTE] Ink Navy #2A2C44, Kraft #E3BA88, Kraft Shadow #BA8E5C, Manila Cream #FFFDF5, Postal Red #E85244, Delivery Gold #F7B336, Parcel Brown #D99B5B, Post Green #2B9348, Courier Blue #3D78B5, Lantern Night #1B1F38, Lantern Amber #FFD166.
+[NEGATIVE]
+No over-rendering: no painted texture on every surface, no object-by-object drawing of foliage, rocks, water, sky or background.
+No hyper-detailed fur, bark, stone, or leaf rendering; a few confident marks stand for each.
+No sky gradients, no cloud detail, no glow around the sun, moon, or lights.
+No glossy digital painting, no airbrushed smooth gradients, no plastic or waxy skin.
+No bloom, lens flare, god rays, or haze unless the subject asks for them.
+No shallow depth of field, bokeh, or photographic blur.
+No 3D render look, no subsurface skin sheen, no CGI lighting.
+No evenly spread detail; detail sits in one or two places only.
+No perfectly symmetrical faces, poses, or compositions.
+No generic fantasy decoration: floating particles, sparkles, magic circles, random runes or glyphs.
+No extra eyes, mouths, faces, limbs, or tentacles; no melted or fused anatomy; hands have the correct number of fingers.
+No characters, animals, or props that the subject did not ask for.
+No oversaturated or neon color unless the style card asks for it.
+No muddy, smeared, or noisy surface texture.
+No text other than the exact title Off the Screen! No signature or watermark.
+```
+
+### icon_parcel.png — attempt 1
+Tool: image_gen.imagegen (built-in); model: tool-managed, undisclosed.
+Result: KEPT: subject/style and small-size readability verified in contact sheet.
+
+```text
+[IMAGE] 160x160 final game UI raster asset, square composition.
+[SCENE] Single centered paper cut-out object: one kraft parcel box with a bold red tape cross, three-quarter view. Transparent background. No text.
+[RENDERING] Pocket Parcel Town PAPER-CRAFT DIORAMA matching the inspected Off the Screen cover: chunky cut colored cardstock and kraft cardboard layers, thin white cut-paper edges, soft shallow contact shadows, slight paper grain. Broad simple phone-readable silhouettes. Flat matte paper with a few folded facets, bright soft light from upper left.
+[EMPTY] Center the entire object including shadow within approximately 6% empty padding on all sides; uncluttered flat paper surfaces and empty space between shapes.
+[PALETTE] Ink Navy #2A2C44, Kraft #E3BA88, Kraft Shadow #BA8E5C, Manila Cream #FFFDF5, Postal Red #E85244, Delivery Gold #F7B336, Parcel Brown #D99B5B, Post Green #2B9348, Courier Blue #3D78B5, Lantern Night #1B1F38, Lantern Amber #FFD166.
+[NEGATIVE]
+No over-rendering: no painted texture on every surface, no object-by-object drawing of foliage, rocks, water, sky or background.
+No hyper-detailed fur, bark, stone, or leaf rendering; a few confident marks stand for each.
+No sky gradients, no cloud detail, no glow around the sun, moon, or lights.
+No glossy digital painting, no airbrushed smooth gradients, no plastic or waxy skin.
+No bloom, lens flare, god rays, or haze unless the subject asks for them.
+No shallow depth of field, bokeh, or photographic blur.
+No 3D render look, no subsurface skin sheen, no CGI lighting.
+No evenly spread detail; detail sits in one or two places only.
+No perfectly symmetrical faces, poses, or compositions.
+No generic fantasy decoration: floating particles, sparkles, magic circles, random runes or glyphs.
+No extra eyes, mouths, faces, limbs, or tentacles; no melted or fused anatomy; hands have the correct number of fingers.
+No characters, animals, or props that the subject did not ask for.
+No oversaturated or neon color unless the style card asks for it.
+No muddy, smeared, or noisy surface texture.
+No text, letters, captions, title, signature, monogram, watermark, logo, frame, or border.
+```
+
+### icon_shoe.png — attempt 1
+Tool: image_gen.imagegen (built-in); model: tool-managed, undisclosed.
+Result: KEPT: subject/style and small-size readability verified in contact sheet.
+
+```text
+[IMAGE] 160x160 final game UI raster asset, square composition.
+[SCENE] Single centered paper cut-out object: one Courier Blue running shoe pointing right, small cream paper wing on its heel, red sole. Transparent background. No text.
+[RENDERING] Pocket Parcel Town PAPER-CRAFT DIORAMA matching the inspected Off the Screen cover: chunky cut colored cardstock and kraft cardboard layers, thin white cut-paper edges, soft shallow contact shadows, slight paper grain. Broad simple phone-readable silhouettes. Flat matte paper with a few folded facets, bright soft light from upper left.
+[EMPTY] Center the entire object including shadow within approximately 6% empty padding on all sides; uncluttered flat paper surfaces and empty space between shapes.
+[PALETTE] Ink Navy #2A2C44, Kraft #E3BA88, Kraft Shadow #BA8E5C, Manila Cream #FFFDF5, Postal Red #E85244, Delivery Gold #F7B336, Parcel Brown #D99B5B, Post Green #2B9348, Courier Blue #3D78B5, Lantern Night #1B1F38, Lantern Amber #FFD166.
+[NEGATIVE]
+No over-rendering: no painted texture on every surface, no object-by-object drawing of foliage, rocks, water, sky or background.
+No hyper-detailed fur, bark, stone, or leaf rendering; a few confident marks stand for each.
+No sky gradients, no cloud detail, no glow around the sun, moon, or lights.
+No glossy digital painting, no airbrushed smooth gradients, no plastic or waxy skin.
+No bloom, lens flare, god rays, or haze unless the subject asks for them.
+No shallow depth of field, bokeh, or photographic blur.
+No 3D render look, no subsurface skin sheen, no CGI lighting.
+No evenly spread detail; detail sits in one or two places only.
+No perfectly symmetrical faces, poses, or compositions.
+No generic fantasy decoration: floating particles, sparkles, magic circles, random runes or glyphs.
+No extra eyes, mouths, faces, limbs, or tentacles; no melted or fused anatomy; hands have the correct number of fingers.
+No characters, animals, or props that the subject did not ask for.
+No oversaturated or neon color unless the style card asks for it.
+No muddy, smeared, or noisy surface texture.
+No text, letters, captions, title, signature, monogram, watermark, logo, frame, or border.
+```
+
+### icon_strap.png — attempt 1
+Tool: image_gen.imagegen (built-in); model: tool-managed, undisclosed.
+Result: KEPT: subject/style and small-size readability verified in contact sheet.
+
+```text
+[IMAGE] 160x160 final game UI raster asset, square composition.
+[SCENE] Single centered paper cut-out object: one navy looped carry strap supporting TWO small kraft boxes with red tape, clearly one integrated carry-more icon. Transparent background. No text.
+[RENDERING] Pocket Parcel Town PAPER-CRAFT DIORAMA matching the inspected Off the Screen cover: chunky cut colored cardstock and kraft cardboard layers, thin white cut-paper edges, soft shallow contact shadows, slight paper grain. Broad simple phone-readable silhouettes. Flat matte paper with a few folded facets, bright soft light from upper left.
+[EMPTY] Center the entire object including shadow within approximately 6% empty padding on all sides; uncluttered flat paper surfaces and empty space between shapes.
+[PALETTE] Ink Navy #2A2C44, Kraft #E3BA88, Kraft Shadow #BA8E5C, Manila Cream #FFFDF5, Postal Red #E85244, Delivery Gold #F7B336, Parcel Brown #D99B5B, Post Green #2B9348, Courier Blue #3D78B5, Lantern Night #1B1F38, Lantern Amber #FFD166.
+[NEGATIVE]
+No over-rendering: no painted texture on every surface, no object-by-object drawing of foliage, rocks, water, sky or background.
+No hyper-detailed fur, bark, stone, or leaf rendering; a few confident marks stand for each.
+No sky gradients, no cloud detail, no glow around the sun, moon, or lights.
+No glossy digital painting, no airbrushed smooth gradients, no plastic or waxy skin.
+No bloom, lens flare, god rays, or haze unless the subject asks for them.
+No shallow depth of field, bokeh, or photographic blur.
+No 3D render look, no subsurface skin sheen, no CGI lighting.
+No evenly spread detail; detail sits in one or two places only.
+No perfectly symmetrical faces, poses, or compositions.
+No generic fantasy decoration: floating particles, sparkles, magic circles, random runes or glyphs.
+No extra eyes, mouths, faces, limbs, or tentacles; no melted or fused anatomy; hands have the correct number of fingers.
+No characters, animals, or props that the subject did not ask for.
+No oversaturated or neon color unless the style card asks for it.
+No muddy, smeared, or noisy surface texture.
+No text, letters, captions, title, signature, monogram, watermark, logo, frame, or border.
+```
+
+
+### icon_spring.png — attempt 1
+Tool: image_gen.imagegen (built-in); model: tool-managed, undisclosed.
+Result: KEPT: subject/style and small-size readability verified in contact sheet.
+
+```text
+[IMAGE] 160x160 final game UI raster asset, square composition.
+[SCENE] Single centered paper cut-out object: one chunky silver-blue coil spring standing upright, gold lower mounting foot, visible open coils. Transparent background. No text.
+[RENDERING] Pocket Parcel Town PAPER-CRAFT DIORAMA matching the inspected Off the Screen cover: chunky cut colored cardstock and kraft cardboard layers, thin white cut-paper edges, soft shallow contact shadows, slight paper grain. Broad simple phone-readable silhouettes. Flat matte paper with a few folded facets, bright soft light from upper left.
+[EMPTY] Center the entire object including shadow within approximately 6% empty padding on all sides; uncluttered flat paper surfaces and empty space between shapes.
+[PALETTE] Ink Navy #2A2C44, Kraft #E3BA88, Kraft Shadow #BA8E5C, Manila Cream #FFFDF5, Postal Red #E85244, Delivery Gold #F7B336, Parcel Brown #D99B5B, Post Green #2B9348, Courier Blue #3D78B5, Lantern Night #1B1F38, Lantern Amber #FFD166.
+[NEGATIVE]
+No over-rendering: no painted texture on every surface, no object-by-object drawing of foliage, rocks, water, sky or background.
+No hyper-detailed fur, bark, stone, or leaf rendering; a few confident marks stand for each.
+No sky gradients, no cloud detail, no glow around the sun, moon, or lights.
+No glossy digital painting, no airbrushed smooth gradients, no plastic or waxy skin.
+No bloom, lens flare, god rays, or haze unless the subject asks for them.
+No shallow depth of field, bokeh, or photographic blur.
+No 3D render look, no subsurface skin sheen, no CGI lighting.
+No evenly spread detail; detail sits in one or two places only.
+No perfectly symmetrical faces, poses, or compositions.
+No generic fantasy decoration: floating particles, sparkles, magic circles, random runes or glyphs.
+No extra eyes, mouths, faces, limbs, or tentacles; no melted or fused anatomy; hands have the correct number of fingers.
+No characters, animals, or props that the subject did not ask for.
+No oversaturated or neon color unless the style card asks for it.
+No muddy, smeared, or noisy surface texture.
+No text, letters, captions, title, signature, monogram, watermark, logo, frame, or border.
+```
+
+### icon_wind.png — attempt 1
+Tool: image_gen.imagegen (built-in); model: tool-managed, undisclosed.
+Result: KEPT: subject/style and small-size readability verified in contact sheet.
+
+```text
+[IMAGE] 160x160 final game UI raster asset, square composition.
+[SCENE] Single centered paper cut-out object: one pale Courier Blue wind swirl, three broad curled paper ribbons flowing right. Transparent background. No text.
+[RENDERING] Pocket Parcel Town PAPER-CRAFT DIORAMA matching the inspected Off the Screen cover: chunky cut colored cardstock and kraft cardboard layers, thin white cut-paper edges, soft shallow contact shadows, slight paper grain. Broad simple phone-readable silhouettes. Flat matte paper with a few folded facets, bright soft light from upper left.
+[EMPTY] Center the entire object including shadow within approximately 6% empty padding on all sides; uncluttered flat paper surfaces and empty space between shapes.
+[PALETTE] Ink Navy #2A2C44, Kraft #E3BA88, Kraft Shadow #BA8E5C, Manila Cream #FFFDF5, Postal Red #E85244, Delivery Gold #F7B336, Parcel Brown #D99B5B, Post Green #2B9348, Courier Blue #3D78B5, Lantern Night #1B1F38, Lantern Amber #FFD166.
+[NEGATIVE]
+No over-rendering: no painted texture on every surface, no object-by-object drawing of foliage, rocks, water, sky or background.
+No hyper-detailed fur, bark, stone, or leaf rendering; a few confident marks stand for each.
+No sky gradients, no cloud detail, no glow around the sun, moon, or lights.
+No glossy digital painting, no airbrushed smooth gradients, no plastic or waxy skin.
+No bloom, lens flare, god rays, or haze unless the subject asks for them.
+No shallow depth of field, bokeh, or photographic blur.
+No 3D render look, no subsurface skin sheen, no CGI lighting.
+No evenly spread detail; detail sits in one or two places only.
+No perfectly symmetrical faces, poses, or compositions.
+No generic fantasy decoration: floating particles, sparkles, magic circles, random runes or glyphs.
+No extra eyes, mouths, faces, limbs, or tentacles; no melted or fused anatomy; hands have the correct number of fingers.
+No characters, animals, or props that the subject did not ask for.
+No oversaturated or neon color unless the style card asks for it.
+No muddy, smeared, or noisy surface texture.
+No text, letters, captions, title, signature, monogram, watermark, logo, frame, or border.
+```
+
+### icon_feather_box.png — attempt 1
+Tool: image_gen.imagegen (built-in); model: tool-managed, undisclosed.
+Result: KEPT: subject/style and small-size readability verified in contact sheet.
+
+```text
+[IMAGE] 160x160 final game UI raster asset, square composition.
+[SCENE] Single centered paper cut-out object: one kraft parcel with red tape and one large cream feather attached, lighter-boxes emblem. Transparent background. No text.
+[RENDERING] Pocket Parcel Town PAPER-CRAFT DIORAMA matching the inspected Off the Screen cover: chunky cut colored cardstock and kraft cardboard layers, thin white cut-paper edges, soft shallow contact shadows, slight paper grain. Broad simple phone-readable silhouettes. Flat matte paper with a few folded facets, bright soft light from upper left.
+[EMPTY] Center the entire object including shadow within approximately 6% empty padding on all sides; uncluttered flat paper surfaces and empty space between shapes.
+[PALETTE] Ink Navy #2A2C44, Kraft #E3BA88, Kraft Shadow #BA8E5C, Manila Cream #FFFDF5, Postal Red #E85244, Delivery Gold #F7B336, Parcel Brown #D99B5B, Post Green #2B9348, Courier Blue #3D78B5, Lantern Night #1B1F38, Lantern Amber #FFD166.
+[NEGATIVE]
+No over-rendering: no painted texture on every surface, no object-by-object drawing of foliage, rocks, water, sky or background.
+No hyper-detailed fur, bark, stone, or leaf rendering; a few confident marks stand for each.
+No sky gradients, no cloud detail, no glow around the sun, moon, or lights.
+No glossy digital painting, no airbrushed smooth gradients, no plastic or waxy skin.
+No bloom, lens flare, god rays, or haze unless the subject asks for them.
+No shallow depth of field, bokeh, or photographic blur.
+No 3D render look, no subsurface skin sheen, no CGI lighting.
+No evenly spread detail; detail sits in one or two places only.
+No perfectly symmetrical faces, poses, or compositions.
+No generic fantasy decoration: floating particles, sparkles, magic circles, random runes or glyphs.
+No extra eyes, mouths, faces, limbs, or tentacles; no melted or fused anatomy; hands have the correct number of fingers.
+No characters, animals, or props that the subject did not ask for.
+No oversaturated or neon color unless the style card asks for it.
+No muddy, smeared, or noisy surface texture.
+No text, letters, captions, title, signature, monogram, watermark, logo, frame, or border.
+```
+
+### icon_shield.png — attempt 1
+Tool: image_gen.imagegen (built-in); model: tool-managed, undisclosed.
+Result: KEPT: subject/style and small-size readability verified in contact sheet.
+
+```text
+[IMAGE] 160x160 final game UI raster asset, square composition.
+[SCENE] Single centered paper cut-out object: one sturdy navy shield with a blue face, cream layered rim and one kraft parcel emblem. Transparent background. No text.
+[RENDERING] Pocket Parcel Town PAPER-CRAFT DIORAMA matching the inspected Off the Screen cover: chunky cut colored cardstock and kraft cardboard layers, thin white cut-paper edges, soft shallow contact shadows, slight paper grain. Broad simple phone-readable silhouettes. Flat matte paper with a few folded facets, bright soft light from upper left.
+[EMPTY] Center the entire object including shadow within approximately 6% empty padding on all sides; uncluttered flat paper surfaces and empty space between shapes.
+[PALETTE] Ink Navy #2A2C44, Kraft #E3BA88, Kraft Shadow #BA8E5C, Manila Cream #FFFDF5, Postal Red #E85244, Delivery Gold #F7B336, Parcel Brown #D99B5B, Post Green #2B9348, Courier Blue #3D78B5, Lantern Night #1B1F38, Lantern Amber #FFD166.
+[NEGATIVE]
+No over-rendering: no painted texture on every surface, no object-by-object drawing of foliage, rocks, water, sky or background.
+No hyper-detailed fur, bark, stone, or leaf rendering; a few confident marks stand for each.
+No sky gradients, no cloud detail, no glow around the sun, moon, or lights.
+No glossy digital painting, no airbrushed smooth gradients, no plastic or waxy skin.
+No bloom, lens flare, god rays, or haze unless the subject asks for them.
+No shallow depth of field, bokeh, or photographic blur.
+No 3D render look, no subsurface skin sheen, no CGI lighting.
+No evenly spread detail; detail sits in one or two places only.
+No perfectly symmetrical faces, poses, or compositions.
+No generic fantasy decoration: floating particles, sparkles, magic circles, random runes or glyphs.
+No extra eyes, mouths, faces, limbs, or tentacles; no melted or fused anatomy; hands have the correct number of fingers.
+No characters, animals, or props that the subject did not ask for.
+No oversaturated or neon color unless the style card asks for it.
+No muddy, smeared, or noisy surface texture.
+No text, letters, captions, title, signature, monogram, watermark, logo, frame, or border.
+```
+
+
+### icon_gate.png — attempt 1
+Tool: image_gen.imagegen (built-in); model: tool-managed, undisclosed.
+Result: KEPT: subject/style and small-size readability verified in contact sheet.
+
+```text
+[IMAGE] 160x160 final game UI raster asset, square composition.
+[SCENE] Single centered paper cut-out object: one low kraft gate arch, red overhead bar, TWO small parcels fitting tightly beneath it to communicate a two-box limit. Transparent background. No text.
+[RENDERING] Pocket Parcel Town PAPER-CRAFT DIORAMA matching the inspected Off the Screen cover: chunky cut colored cardstock and kraft cardboard layers, thin white cut-paper edges, soft shallow contact shadows, slight paper grain. Broad simple phone-readable silhouettes. Flat matte paper with a few folded facets, bright soft light from upper left.
+[EMPTY] Center the entire object including shadow within approximately 6% empty padding on all sides; uncluttered flat paper surfaces and empty space between shapes.
+[PALETTE] Ink Navy #2A2C44, Kraft #E3BA88, Kraft Shadow #BA8E5C, Manila Cream #FFFDF5, Postal Red #E85244, Delivery Gold #F7B336, Parcel Brown #D99B5B, Post Green #2B9348, Courier Blue #3D78B5, Lantern Night #1B1F38, Lantern Amber #FFD166.
+[NEGATIVE]
+No over-rendering: no painted texture on every surface, no object-by-object drawing of foliage, rocks, water, sky or background.
+No hyper-detailed fur, bark, stone, or leaf rendering; a few confident marks stand for each.
+No sky gradients, no cloud detail, no glow around the sun, moon, or lights.
+No glossy digital painting, no airbrushed smooth gradients, no plastic or waxy skin.
+No bloom, lens flare, god rays, or haze unless the subject asks for them.
+No shallow depth of field, bokeh, or photographic blur.
+No 3D render look, no subsurface skin sheen, no CGI lighting.
+No evenly spread detail; detail sits in one or two places only.
+No perfectly symmetrical faces, poses, or compositions.
+No generic fantasy decoration: floating particles, sparkles, magic circles, random runes or glyphs.
+No extra eyes, mouths, faces, limbs, or tentacles; no melted or fused anatomy; hands have the correct number of fingers.
+No characters, animals, or props that the subject did not ask for.
+No oversaturated or neon color unless the style card asks for it.
+No muddy, smeared, or noisy surface texture.
+No text, letters, captions, title, signature, monogram, watermark, logo, frame, or border.
+```
+
+### icon_ice.png — attempt 1
+Tool: image_gen.imagegen (built-in); model: tool-managed, undisclosed.
+Result: KEPT: subject/style and small-size readability verified in contact sheet.
+
+```text
+[IMAGE] 160x160 final game UI raster asset, square composition.
+[SCENE] Single centered paper cut-out object: one light blue ice slope wedge with a bold cream snowflake attached above its face. Transparent background. No text.
+[RENDERING] Pocket Parcel Town PAPER-CRAFT DIORAMA matching the inspected Off the Screen cover: chunky cut colored cardstock and kraft cardboard layers, thin white cut-paper edges, soft shallow contact shadows, slight paper grain. Broad simple phone-readable silhouettes. Flat matte paper with a few folded facets, bright soft light from upper left.
+[EMPTY] Center the entire object including shadow within approximately 6% empty padding on all sides; uncluttered flat paper surfaces and empty space between shapes.
+[PALETTE] Ink Navy #2A2C44, Kraft #E3BA88, Kraft Shadow #BA8E5C, Manila Cream #FFFDF5, Postal Red #E85244, Delivery Gold #F7B336, Parcel Brown #D99B5B, Post Green #2B9348, Courier Blue #3D78B5, Lantern Night #1B1F38, Lantern Amber #FFD166.
+[NEGATIVE]
+No over-rendering: no painted texture on every surface, no object-by-object drawing of foliage, rocks, water, sky or background.
+No hyper-detailed fur, bark, stone, or leaf rendering; a few confident marks stand for each.
+No sky gradients, no cloud detail, no glow around the sun, moon, or lights.
+No glossy digital painting, no airbrushed smooth gradients, no plastic or waxy skin.
+No bloom, lens flare, god rays, or haze unless the subject asks for them.
+No shallow depth of field, bokeh, or photographic blur.
+No 3D render look, no subsurface skin sheen, no CGI lighting.
+No evenly spread detail; detail sits in one or two places only.
+No perfectly symmetrical faces, poses, or compositions.
+No generic fantasy decoration: floating particles, sparkles, magic circles, random runes or glyphs.
+No extra eyes, mouths, faces, limbs, or tentacles; no melted or fused anatomy; hands have the correct number of fingers.
+No characters, animals, or props that the subject did not ask for.
+No oversaturated or neon color unless the style card asks for it.
+No muddy, smeared, or noisy surface texture.
+No text, letters, captions, title, signature, monogram, watermark, logo, frame, or border.
+```
+
+### icon_headwind.png — attempt 1
+Tool: image_gen.imagegen (built-in); model: tool-managed, undisclosed.
+Result: KEPT: subject/style and small-size readability verified in contact sheet.
+
+```text
+[IMAGE] 160x160 final game UI raster asset, square composition.
+[SCENE] Single centered paper cut-out object: one big curled blue wind gust pointing LEFT against one tiny courier running RIGHT in a red cap and blue shirt. Transparent background. No text.
+[RENDERING] Pocket Parcel Town PAPER-CRAFT DIORAMA matching the inspected Off the Screen cover: chunky cut colored cardstock and kraft cardboard layers, thin white cut-paper edges, soft shallow contact shadows, slight paper grain. Broad simple phone-readable silhouettes. Flat matte paper with a few folded facets, bright soft light from upper left.
+[EMPTY] Center the entire object including shadow within approximately 6% empty padding on all sides; uncluttered flat paper surfaces and empty space between shapes.
+[PALETTE] Ink Navy #2A2C44, Kraft #E3BA88, Kraft Shadow #BA8E5C, Manila Cream #FFFDF5, Postal Red #E85244, Delivery Gold #F7B336, Parcel Brown #D99B5B, Post Green #2B9348, Courier Blue #3D78B5, Lantern Night #1B1F38, Lantern Amber #FFD166.
+[NEGATIVE]
+No over-rendering: no painted texture on every surface, no object-by-object drawing of foliage, rocks, water, sky or background.
+No hyper-detailed fur, bark, stone, or leaf rendering; a few confident marks stand for each.
+No sky gradients, no cloud detail, no glow around the sun, moon, or lights.
+No glossy digital painting, no airbrushed smooth gradients, no plastic or waxy skin.
+No bloom, lens flare, god rays, or haze unless the subject asks for them.
+No shallow depth of field, bokeh, or photographic blur.
+No 3D render look, no subsurface skin sheen, no CGI lighting.
+No evenly spread detail; detail sits in one or two places only.
+No perfectly symmetrical faces, poses, or compositions.
+No generic fantasy decoration: floating particles, sparkles, magic circles, random runes or glyphs.
+No extra eyes, mouths, faces, limbs, or tentacles; no melted or fused anatomy; hands have the correct number of fingers.
+No characters, animals, or props that the subject did not ask for.
+No oversaturated or neon color unless the style card asks for it.
+No muddy, smeared, or noisy surface texture.
+No text, letters, captions, title, signature, monogram, watermark, logo, frame, or border.
+```
+
+### icon_jump.png — attempt 1
+Tool: image_gen.imagegen (built-in); model: tool-managed, undisclosed.
+Result: KEPT: subject/style and small-size readability verified in contact sheet.
+
+```text
+[IMAGE] 160x160 final game UI raster asset, square composition.
+[SCENE] Single centered paper cut-out object: one bold WHITE upward arrow paper cutout with a thin cream edge and soft navy-gray offset shadow; opaque white paper arrow inside transparent canvas. Transparent background. No text.
+[RENDERING] Pocket Parcel Town PAPER-CRAFT DIORAMA matching the inspected Off the Screen cover: chunky cut colored cardstock and kraft cardboard layers, thin white cut-paper edges, soft shallow contact shadows, slight paper grain. Broad simple phone-readable silhouettes. Flat matte paper with a few folded facets, bright soft light from upper left.
+[EMPTY] Center the entire object including shadow within approximately 6% empty padding on all sides; uncluttered flat paper surfaces and empty space between shapes.
+[PALETTE] Ink Navy #2A2C44, Kraft #E3BA88, Kraft Shadow #BA8E5C, Manila Cream #FFFDF5, Postal Red #E85244, Delivery Gold #F7B336, Parcel Brown #D99B5B, Post Green #2B9348, Courier Blue #3D78B5, Lantern Night #1B1F38, Lantern Amber #FFD166.
+[NEGATIVE]
+No over-rendering: no painted texture on every surface, no object-by-object drawing of foliage, rocks, water, sky or background.
+No hyper-detailed fur, bark, stone, or leaf rendering; a few confident marks stand for each.
+No sky gradients, no cloud detail, no glow around the sun, moon, or lights.
+No glossy digital painting, no airbrushed smooth gradients, no plastic or waxy skin.
+No bloom, lens flare, god rays, or haze unless the subject asks for them.
+No shallow depth of field, bokeh, or photographic blur.
+No 3D render look, no subsurface skin sheen, no CGI lighting.
+No evenly spread detail; detail sits in one or two places only.
+No perfectly symmetrical faces, poses, or compositions.
+No generic fantasy decoration: floating particles, sparkles, magic circles, random runes or glyphs.
+No extra eyes, mouths, faces, limbs, or tentacles; no melted or fused anatomy; hands have the correct number of fingers.
+No characters, animals, or props that the subject did not ask for.
+No oversaturated or neon color unless the style card asks for it.
+No muddy, smeared, or noisy surface texture.
+No text, letters, captions, title, signature, monogram, watermark, logo, frame, or border.
+```
+
+
+### icon_drop.png — attempt 1
+Tool: image_gen.imagegen (built-in); model: tool-managed, undisclosed.
+Result: KEPT: subject/style and small-size readability verified in contact sheet.
+
+```text
+[IMAGE] 160x160 final game UI raster asset, square composition.
+[SCENE] Single centered paper cut-out object: one kraft parcel with red tape flying LEFT and broad red dash streaks trailing to its RIGHT, visibly backward motion. Transparent background. No text.
+[RENDERING] Pocket Parcel Town PAPER-CRAFT DIORAMA matching the inspected Off the Screen cover: chunky cut colored cardstock and kraft cardboard layers, thin white cut-paper edges, soft shallow contact shadows, slight paper grain. Broad simple phone-readable silhouettes. Flat matte paper with a few folded facets, bright soft light from upper left.
+[EMPTY] Center the entire object including shadow within approximately 6% empty padding on all sides; uncluttered flat paper surfaces and empty space between shapes.
+[PALETTE] Ink Navy #2A2C44, Kraft #E3BA88, Kraft Shadow #BA8E5C, Manila Cream #FFFDF5, Postal Red #E85244, Delivery Gold #F7B336, Parcel Brown #D99B5B, Post Green #2B9348, Courier Blue #3D78B5, Lantern Night #1B1F38, Lantern Amber #FFD166.
+[NEGATIVE]
+No over-rendering: no painted texture on every surface, no object-by-object drawing of foliage, rocks, water, sky or background.
+No hyper-detailed fur, bark, stone, or leaf rendering; a few confident marks stand for each.
+No sky gradients, no cloud detail, no glow around the sun, moon, or lights.
+No glossy digital painting, no airbrushed smooth gradients, no plastic or waxy skin.
+No bloom, lens flare, god rays, or haze unless the subject asks for them.
+No shallow depth of field, bokeh, or photographic blur.
+No 3D render look, no subsurface skin sheen, no CGI lighting.
+No evenly spread detail; detail sits in one or two places only.
+No perfectly symmetrical faces, poses, or compositions.
+No generic fantasy decoration: floating particles, sparkles, magic circles, random runes or glyphs.
+No extra eyes, mouths, faces, limbs, or tentacles; no melted or fused anatomy; hands have the correct number of fingers.
+No characters, animals, or props that the subject did not ask for.
+No oversaturated or neon color unless the style card asks for it.
+No muddy, smeared, or noisy surface texture.
+No text, letters, captions, title, signature, monogram, watermark, logo, frame, or border.
+```
+
+### icon_lantern.png — attempt 1
+Tool: image_gen.imagegen (built-in); model: tool-managed, undisclosed.
+Result: REJECTED: no image returned; image generation failed: network error: error sending request.
+
+```text
+[IMAGE] 160x160 final game UI raster asset, square composition.
+[SCENE] Single centered paper cut-out object: one hanging amber paper lantern with navy handle and cream lit center, simple red tassel. Transparent background. No text.
+[RENDERING] Pocket Parcel Town PAPER-CRAFT DIORAMA matching the inspected Off the Screen cover: chunky cut colored cardstock and kraft cardboard layers, thin white cut-paper edges, soft shallow contact shadows, slight paper grain. Broad simple phone-readable silhouettes. Flat matte paper with a few folded facets, bright soft light from upper left.
+[EMPTY] Center the entire object including shadow within approximately 6% empty padding on all sides; uncluttered flat paper surfaces and empty space between shapes.
+[PALETTE] Ink Navy #2A2C44, Kraft #E3BA88, Kraft Shadow #BA8E5C, Manila Cream #FFFDF5, Postal Red #E85244, Delivery Gold #F7B336, Parcel Brown #D99B5B, Post Green #2B9348, Courier Blue #3D78B5, Lantern Night #1B1F38, Lantern Amber #FFD166.
+[NEGATIVE]
+No over-rendering: no painted texture on every surface, no object-by-object drawing of foliage, rocks, water, sky or background.
+No hyper-detailed fur, bark, stone, or leaf rendering; a few confident marks stand for each.
+No sky gradients, no cloud detail, no glow around the sun, moon, or lights.
+No glossy digital painting, no airbrushed smooth gradients, no plastic or waxy skin.
+No bloom, lens flare, god rays, or haze unless the subject asks for them.
+No shallow depth of field, bokeh, or photographic blur.
+No 3D render look, no subsurface skin sheen, no CGI lighting.
+No evenly spread detail; detail sits in one or two places only.
+No perfectly symmetrical faces, poses, or compositions.
+No generic fantasy decoration: floating particles, sparkles, magic circles, random runes or glyphs.
+No extra eyes, mouths, faces, limbs, or tentacles; no melted or fused anatomy; hands have the correct number of fingers.
+No characters, animals, or props that the subject did not ask for.
+No oversaturated or neon color unless the style card asks for it.
+No muddy, smeared, or noisy surface texture.
+No text, letters, captions, title, signature, monogram, watermark, logo, frame, or border.
+```
+
+### icon_flag.png — attempt 1
+Tool: image_gen.imagegen (built-in); model: tool-managed, undisclosed.
+Result: KEPT: subject/style and small-size readability verified in contact sheet.
+
+```text
+[IMAGE] 160x160 final game UI raster asset, square composition.
+[SCENE] Single centered paper cut-out object: one finish checkered navy-and-cream paper flag on a short kraft pole, broad readable checks. Transparent background. No text.
+[RENDERING] Pocket Parcel Town PAPER-CRAFT DIORAMA matching the inspected Off the Screen cover: chunky cut colored cardstock and kraft cardboard layers, thin white cut-paper edges, soft shallow contact shadows, slight paper grain. Broad simple phone-readable silhouettes. Flat matte paper with a few folded facets, bright soft light from upper left.
+[EMPTY] Center the entire object including shadow within approximately 6% empty padding on all sides; uncluttered flat paper surfaces and empty space between shapes.
+[PALETTE] Ink Navy #2A2C44, Kraft #E3BA88, Kraft Shadow #BA8E5C, Manila Cream #FFFDF5, Postal Red #E85244, Delivery Gold #F7B336, Parcel Brown #D99B5B, Post Green #2B9348, Courier Blue #3D78B5, Lantern Night #1B1F38, Lantern Amber #FFD166.
+[NEGATIVE]
+No over-rendering: no painted texture on every surface, no object-by-object drawing of foliage, rocks, water, sky or background.
+No hyper-detailed fur, bark, stone, or leaf rendering; a few confident marks stand for each.
+No sky gradients, no cloud detail, no glow around the sun, moon, or lights.
+No glossy digital painting, no airbrushed smooth gradients, no plastic or waxy skin.
+No bloom, lens flare, god rays, or haze unless the subject asks for them.
+No shallow depth of field, bokeh, or photographic blur.
+No 3D render look, no subsurface skin sheen, no CGI lighting.
+No evenly spread detail; detail sits in one or two places only.
+No perfectly symmetrical faces, poses, or compositions.
+No generic fantasy decoration: floating particles, sparkles, magic circles, random runes or glyphs.
+No extra eyes, mouths, faces, limbs, or tentacles; no melted or fused anatomy; hands have the correct number of fingers.
+No characters, animals, or props that the subject did not ask for.
+No oversaturated or neon color unless the style card asks for it.
+No muddy, smeared, or noisy surface texture.
+No text, letters, captions, title, signature, monogram, watermark, logo, frame, or border.
+```
+
+### icon_star.png — attempt 1
+Tool: image_gen.imagegen (built-in); model: tool-managed, undisclosed.
+Result: KEPT: subject/style and small-size readability verified in contact sheet.
+
+```text
+[IMAGE] 160x160 final game UI raster asset, square composition.
+[SCENE] Single centered paper cut-out object: one chunky five-point gold paper star, one folded amber facet. Transparent background. No text.
+[RENDERING] Pocket Parcel Town PAPER-CRAFT DIORAMA matching the inspected Off the Screen cover: chunky cut colored cardstock and kraft cardboard layers, thin white cut-paper edges, soft shallow contact shadows, slight paper grain. Broad simple phone-readable silhouettes. Flat matte paper with a few folded facets, bright soft light from upper left.
+[EMPTY] Center the entire object including shadow within approximately 6% empty padding on all sides; uncluttered flat paper surfaces and empty space between shapes.
+[PALETTE] Ink Navy #2A2C44, Kraft #E3BA88, Kraft Shadow #BA8E5C, Manila Cream #FFFDF5, Postal Red #E85244, Delivery Gold #F7B336, Parcel Brown #D99B5B, Post Green #2B9348, Courier Blue #3D78B5, Lantern Night #1B1F38, Lantern Amber #FFD166.
+[NEGATIVE]
+No over-rendering: no painted texture on every surface, no object-by-object drawing of foliage, rocks, water, sky or background.
+No hyper-detailed fur, bark, stone, or leaf rendering; a few confident marks stand for each.
+No sky gradients, no cloud detail, no glow around the sun, moon, or lights.
+No glossy digital painting, no airbrushed smooth gradients, no plastic or waxy skin.
+No bloom, lens flare, god rays, or haze unless the subject asks for them.
+No shallow depth of field, bokeh, or photographic blur.
+No 3D render look, no subsurface skin sheen, no CGI lighting.
+No evenly spread detail; detail sits in one or two places only.
+No perfectly symmetrical faces, poses, or compositions.
+No generic fantasy decoration: floating particles, sparkles, magic circles, random runes or glyphs.
+No extra eyes, mouths, faces, limbs, or tentacles; no melted or fused anatomy; hands have the correct number of fingers.
+No characters, animals, or props that the subject did not ask for.
+No oversaturated or neon color unless the style card asks for it.
+No muddy, smeared, or noisy surface texture.
+No text, letters, captions, title, signature, monogram, watermark, logo, frame, or border.
+```
+
+
+### mode_classic.png — attempt 1
+Tool: image_gen.imagegen (built-in); model: tool-managed, undisclosed.
+Result: KEPT: subject/style and small-size readability verified in contact sheet.
+
+```text
+[IMAGE] 300x360 final game UI raster asset, portrait composition.
+[SCENE] Portrait isolated mini paper market street diorama, no outer rectangular backdrop. A courier running RIGHT, red cap, blue shirt, navy trousers and brown shoes, carrying exactly THREE kraft parcels stacked on their back. Two simple cream market facades and a muted green striped awning behind, bright daytime. Full silhouette fits in frame. Transparent surrounding canvas. No text.
+[RENDERING] Pocket Parcel Town PAPER-CRAFT DIORAMA matching the inspected Off the Screen cover: chunky cut colored cardstock and kraft cardboard layers, thin white cut-paper edges, soft shallow contact shadows, slight paper grain. Broad simple phone-readable silhouettes. Flat matte paper with a few folded facets, bright soft light from upper left.
+[EMPTY] Center the entire object including shadow within approximately 6% empty padding on all sides; uncluttered flat paper surfaces and empty space between shapes.
+[PALETTE] Ink Navy #2A2C44, Kraft #E3BA88, Kraft Shadow #BA8E5C, Manila Cream #FFFDF5, Postal Red #E85244, Delivery Gold #F7B336, Parcel Brown #D99B5B, Post Green #2B9348, Courier Blue #3D78B5, Lantern Night #1B1F38, Lantern Amber #FFD166.
+[NEGATIVE]
+No over-rendering: no painted texture on every surface, no object-by-object drawing of foliage, rocks, water, sky or background.
+No hyper-detailed fur, bark, stone, or leaf rendering; a few confident marks stand for each.
+No sky gradients, no cloud detail, no glow around the sun, moon, or lights.
+No glossy digital painting, no airbrushed smooth gradients, no plastic or waxy skin.
+No bloom, lens flare, god rays, or haze unless the subject asks for them.
+No shallow depth of field, bokeh, or photographic blur.
+No 3D render look, no subsurface skin sheen, no CGI lighting.
+No evenly spread detail; detail sits in one or two places only.
+No perfectly symmetrical faces, poses, or compositions.
+No generic fantasy decoration: floating particles, sparkles, magic circles, random runes or glyphs.
+No extra eyes, mouths, faces, limbs, or tentacles; no melted or fused anatomy; hands have the correct number of fingers.
+No characters, animals, or props that the subject did not ask for.
+No oversaturated or neon color unless the style card asks for it.
+No muddy, smeared, or noisy surface texture.
+No text, letters, captions, title, signature, monogram, watermark, logo, frame, or border.
+```
+
+### mode_lantern.png — attempt 1
+Tool: image_gen.imagegen (built-in); model: tool-managed, undisclosed.
+Result: KEPT: subject/style and small-size readability verified in contact sheet.
+
+```text
+[IMAGE] 300x360 final game UI raster asset, portrait composition.
+[SCENE] Portrait isolated mini paper night street diorama, no outer rectangular backdrop. A courier running RIGHT, red cap, blue shirt, navy trousers and brown shoes, holding one glowing amber paper lantern in their forward hand. Simple light lavender street facades behind, a small navy night-sky cutout behind roofs. FAIRLY LIGHT welcoming midtones, flat amber lantern center and warm paper wash, no bloom. Transparent surrounding canvas. No text.
+[RENDERING] Pocket Parcel Town PAPER-CRAFT DIORAMA matching the inspected Off the Screen cover: chunky cut colored cardstock and kraft cardboard layers, thin white cut-paper edges, soft shallow contact shadows, slight paper grain. Broad simple phone-readable silhouettes. Flat matte paper with a few folded facets, bright soft light from upper left.
+[EMPTY] Center the entire object including shadow within approximately 6% empty padding on all sides; uncluttered flat paper surfaces and empty space between shapes.
+[PALETTE] Ink Navy #2A2C44, Kraft #E3BA88, Kraft Shadow #BA8E5C, Manila Cream #FFFDF5, Postal Red #E85244, Delivery Gold #F7B336, Parcel Brown #D99B5B, Post Green #2B9348, Courier Blue #3D78B5, Lantern Night #1B1F38, Lantern Amber #FFD166.
+[NEGATIVE]
+No over-rendering: no painted texture on every surface, no object-by-object drawing of foliage, rocks, water, sky or background.
+No hyper-detailed fur, bark, stone, or leaf rendering; a few confident marks stand for each.
+No sky gradients, no cloud detail, no glow around the sun, moon, or lights.
+No glossy digital painting, no airbrushed smooth gradients, no plastic or waxy skin.
+No bloom, lens flare, god rays, or haze unless the subject asks for them.
+No shallow depth of field, bokeh, or photographic blur.
+No 3D render look, no subsurface skin sheen, no CGI lighting.
+No evenly spread detail; detail sits in one or two places only.
+No perfectly symmetrical faces, poses, or compositions.
+No generic fantasy decoration: floating particles, sparkles, magic circles, random runes or glyphs.
+No extra eyes, mouths, faces, limbs, or tentacles; no melted or fused anatomy; hands have the correct number of fingers.
+No characters, animals, or props that the subject did not ask for.
+No oversaturated or neon color unless the style card asks for it.
+No muddy, smeared, or noisy surface texture.
+No text, letters, captions, title, signature, monogram, watermark, logo, frame, or border.
+```
+
+### mode_rush.png — attempt 1
+Tool: image_gen.imagegen (built-in); model: tool-managed, undisclosed.
+Result: KEPT: subject/style and small-size readability verified in contact sheet.
+
+```text
+[IMAGE] 300x360 final game UI raster asset, portrait composition.
+[SCENE] Portrait isolated paper diorama: a courier dashing RIGHT in a deep forward lean, red cap, blue shirt, navy trousers and brown shoes, carrying exactly TWO kraft parcels on their back. Three big red speed chevrons behind, small cream paper street slab beneath. Keep character fully visible. Transparent surrounding canvas. No text.
+[RENDERING] Pocket Parcel Town PAPER-CRAFT DIORAMA matching the inspected Off the Screen cover: chunky cut colored cardstock and kraft cardboard layers, thin white cut-paper edges, soft shallow contact shadows, slight paper grain. Broad simple phone-readable silhouettes. Flat matte paper with a few folded facets, bright soft light from upper left.
+[EMPTY] Center the entire object including shadow within approximately 6% empty padding on all sides; uncluttered flat paper surfaces and empty space between shapes.
+[PALETTE] Ink Navy #2A2C44, Kraft #E3BA88, Kraft Shadow #BA8E5C, Manila Cream #FFFDF5, Postal Red #E85244, Delivery Gold #F7B336, Parcel Brown #D99B5B, Post Green #2B9348, Courier Blue #3D78B5, Lantern Night #1B1F38, Lantern Amber #FFD166.
+[NEGATIVE]
+No over-rendering: no painted texture on every surface, no object-by-object drawing of foliage, rocks, water, sky or background.
+No hyper-detailed fur, bark, stone, or leaf rendering; a few confident marks stand for each.
+No sky gradients, no cloud detail, no glow around the sun, moon, or lights.
+No glossy digital painting, no airbrushed smooth gradients, no plastic or waxy skin.
+No bloom, lens flare, god rays, or haze unless the subject asks for them.
+No shallow depth of field, bokeh, or photographic blur.
+No 3D render look, no subsurface skin sheen, no CGI lighting.
+No evenly spread detail; detail sits in one or two places only.
+No perfectly symmetrical faces, poses, or compositions.
+No generic fantasy decoration: floating particles, sparkles, magic circles, random runes or glyphs.
+No extra eyes, mouths, faces, limbs, or tentacles; no melted or fused anatomy; hands have the correct number of fingers.
+No characters, animals, or props that the subject did not ask for.
+No oversaturated or neon color unless the style card asks for it.
+No muddy, smeared, or noisy surface texture.
+No text, letters, captions, title, signature, monogram, watermark, logo, frame, or border.
+```
+
+### seal_gold.png — attempt 1
+Tool: image_gen.imagegen (built-in); model: tool-managed, undisclosed.
+Result: KEPT: subject/style and small-size readability verified in contact sheet.
+
+```text
+[IMAGE] 140x140 final game UI raster asset, square composition.
+[SCENE] One centered gold #F7B336 paper medal / matte wax-style seal, scalloped cardstock rim, shallow embossed kraft parcel emblem with a red tape cross. No ribbon, no rank numbers. Actual transparent background. No text.
+[RENDERING] Pocket Parcel Town PAPER-CRAFT DIORAMA matching the inspected Off the Screen cover: chunky cut colored cardstock and kraft cardboard layers, thin white cut-paper edges, soft shallow contact shadows, slight paper grain. Broad simple phone-readable silhouettes. Flat matte paper with a few folded facets, bright soft light from upper left.
+[EMPTY] Center the entire object including shadow within approximately 6% empty padding on all sides; uncluttered flat paper surfaces and empty space between shapes.
+[PALETTE] Ink Navy #2A2C44, Kraft #E3BA88, Kraft Shadow #BA8E5C, Manila Cream #FFFDF5, Postal Red #E85244, Delivery Gold #F7B336, Parcel Brown #D99B5B, Post Green #2B9348, Courier Blue #3D78B5, Lantern Night #1B1F38, Lantern Amber #FFD166.
+[NEGATIVE]
+No over-rendering: no painted texture on every surface, no object-by-object drawing of foliage, rocks, water, sky or background.
+No hyper-detailed fur, bark, stone, or leaf rendering; a few confident marks stand for each.
+No sky gradients, no cloud detail, no glow around the sun, moon, or lights.
+No glossy digital painting, no airbrushed smooth gradients, no plastic or waxy skin.
+No bloom, lens flare, god rays, or haze unless the subject asks for them.
+No shallow depth of field, bokeh, or photographic blur.
+No 3D render look, no subsurface skin sheen, no CGI lighting.
+No evenly spread detail; detail sits in one or two places only.
+No perfectly symmetrical faces, poses, or compositions.
+No generic fantasy decoration: floating particles, sparkles, magic circles, random runes or glyphs.
+No extra eyes, mouths, faces, limbs, or tentacles; no melted or fused anatomy; hands have the correct number of fingers.
+No characters, animals, or props that the subject did not ask for.
+No oversaturated or neon color unless the style card asks for it.
+No muddy, smeared, or noisy surface texture.
+No text, letters, captions, title, signature, monogram, watermark, logo, frame, or border.
+```
+
+
+### seal_silver.png — attempt 1
+Tool: image_gen.imagegen (built-in); model: tool-managed, undisclosed.
+Result: KEPT: subject/style and small-size readability verified in contact sheet.
+
+```text
+[IMAGE] 140x140 final game UI raster asset, square composition.
+[SCENE] One centered silver gray #BAC4C8 paper medal / matte wax-style seal, scalloped cardstock rim, shallow embossed kraft parcel emblem with a red tape cross. No ribbon, no rank numbers. Actual transparent background. No text.
+[RENDERING] Pocket Parcel Town PAPER-CRAFT DIORAMA matching the inspected Off the Screen cover: chunky cut colored cardstock and kraft cardboard layers, thin white cut-paper edges, soft shallow contact shadows, slight paper grain. Broad simple phone-readable silhouettes. Flat matte paper with a few folded facets, bright soft light from upper left.
+[EMPTY] Center the entire object including shadow within approximately 6% empty padding on all sides; uncluttered flat paper surfaces and empty space between shapes.
+[PALETTE] Ink Navy #2A2C44, Kraft #E3BA88, Kraft Shadow #BA8E5C, Manila Cream #FFFDF5, Postal Red #E85244, Delivery Gold #F7B336, Parcel Brown #D99B5B, Post Green #2B9348, Courier Blue #3D78B5, Lantern Night #1B1F38, Lantern Amber #FFD166.
+[NEGATIVE]
+No over-rendering: no painted texture on every surface, no object-by-object drawing of foliage, rocks, water, sky or background.
+No hyper-detailed fur, bark, stone, or leaf rendering; a few confident marks stand for each.
+No sky gradients, no cloud detail, no glow around the sun, moon, or lights.
+No glossy digital painting, no airbrushed smooth gradients, no plastic or waxy skin.
+No bloom, lens flare, god rays, or haze unless the subject asks for them.
+No shallow depth of field, bokeh, or photographic blur.
+No 3D render look, no subsurface skin sheen, no CGI lighting.
+No evenly spread detail; detail sits in one or two places only.
+No perfectly symmetrical faces, poses, or compositions.
+No generic fantasy decoration: floating particles, sparkles, magic circles, random runes or glyphs.
+No extra eyes, mouths, faces, limbs, or tentacles; no melted or fused anatomy; hands have the correct number of fingers.
+No characters, animals, or props that the subject did not ask for.
+No oversaturated or neon color unless the style card asks for it.
+No muddy, smeared, or noisy surface texture.
+No text, letters, captions, title, signature, monogram, watermark, logo, frame, or border.
+```
+
+### seal_bronze.png — attempt 1
+Tool: image_gen.imagegen (built-in); model: tool-managed, undisclosed.
+Result: KEPT: subject/style and small-size readability verified in contact sheet.
+
+```text
+[IMAGE] 140x140 final game UI raster asset, square composition.
+[SCENE] One centered bronze #CD7F32 paper medal / matte wax-style seal, scalloped cardstock rim, shallow embossed kraft parcel emblem with a red tape cross. No ribbon, no rank numbers. Actual transparent background. No text.
+[RENDERING] Pocket Parcel Town PAPER-CRAFT DIORAMA matching the inspected Off the Screen cover: chunky cut colored cardstock and kraft cardboard layers, thin white cut-paper edges, soft shallow contact shadows, slight paper grain. Broad simple phone-readable silhouettes. Flat matte paper with a few folded facets, bright soft light from upper left.
+[EMPTY] Center the entire object including shadow within approximately 6% empty padding on all sides; uncluttered flat paper surfaces and empty space between shapes.
+[PALETTE] Ink Navy #2A2C44, Kraft #E3BA88, Kraft Shadow #BA8E5C, Manila Cream #FFFDF5, Postal Red #E85244, Delivery Gold #F7B336, Parcel Brown #D99B5B, Post Green #2B9348, Courier Blue #3D78B5, Lantern Night #1B1F38, Lantern Amber #FFD166.
+[NEGATIVE]
+No over-rendering: no painted texture on every surface, no object-by-object drawing of foliage, rocks, water, sky or background.
+No hyper-detailed fur, bark, stone, or leaf rendering; a few confident marks stand for each.
+No sky gradients, no cloud detail, no glow around the sun, moon, or lights.
+No glossy digital painting, no airbrushed smooth gradients, no plastic or waxy skin.
+No bloom, lens flare, god rays, or haze unless the subject asks for them.
+No shallow depth of field, bokeh, or photographic blur.
+No 3D render look, no subsurface skin sheen, no CGI lighting.
+No evenly spread detail; detail sits in one or two places only.
+No perfectly symmetrical faces, poses, or compositions.
+No generic fantasy decoration: floating particles, sparkles, magic circles, random runes or glyphs.
+No extra eyes, mouths, faces, limbs, or tentacles; no melted or fused anatomy; hands have the correct number of fingers.
+No characters, animals, or props that the subject did not ask for.
+No oversaturated or neon color unless the style card asks for it.
+No muddy, smeared, or noisy surface texture.
+No text, letters, captions, title, signature, monogram, watermark, logo, frame, or border.
+```
+
+### howto_run.png — attempt 1
+Tool: image_gen.imagegen (built-in); model: tool-managed, undisclosed.
+Result: KEPT: subject/style and small-size readability verified in contact sheet.
+
+```text
+[IMAGE] 420x260 final game UI raster asset, landscape composition.
+[SCENE] Landscape comic-style paper cut-out tutorial illustration. One courier in red cap, blue shirt, navy trousers and brown shoes running and hopping RIGHT over one low kraft crate, airborne bent knees, arms balanced, small cream paper ground strip. Full body visible, strong readable action. Transparent surrounding canvas, no panel frame, no text.
+[RENDERING] Pocket Parcel Town PAPER-CRAFT DIORAMA matching the inspected Off the Screen cover: chunky cut colored cardstock and kraft cardboard layers, thin white cut-paper edges, soft shallow contact shadows, slight paper grain. Broad simple phone-readable silhouettes. Flat matte paper with a few folded facets, bright soft light from upper left.
+[EMPTY] Center the entire object including shadow within approximately 6% empty padding on all sides; uncluttered flat paper surfaces and empty space between shapes.
+[PALETTE] Ink Navy #2A2C44, Kraft #E3BA88, Kraft Shadow #BA8E5C, Manila Cream #FFFDF5, Postal Red #E85244, Delivery Gold #F7B336, Parcel Brown #D99B5B, Post Green #2B9348, Courier Blue #3D78B5, Lantern Night #1B1F38, Lantern Amber #FFD166.
+[NEGATIVE]
+No over-rendering: no painted texture on every surface, no object-by-object drawing of foliage, rocks, water, sky or background.
+No hyper-detailed fur, bark, stone, or leaf rendering; a few confident marks stand for each.
+No sky gradients, no cloud detail, no glow around the sun, moon, or lights.
+No glossy digital painting, no airbrushed smooth gradients, no plastic or waxy skin.
+No bloom, lens flare, god rays, or haze unless the subject asks for them.
+No shallow depth of field, bokeh, or photographic blur.
+No 3D render look, no subsurface skin sheen, no CGI lighting.
+No evenly spread detail; detail sits in one or two places only.
+No perfectly symmetrical faces, poses, or compositions.
+No generic fantasy decoration: floating particles, sparkles, magic circles, random runes or glyphs.
+No extra eyes, mouths, faces, limbs, or tentacles; no melted or fused anatomy; hands have the correct number of fingers.
+No characters, animals, or props that the subject did not ask for.
+No oversaturated or neon color unless the style card asks for it.
+No muddy, smeared, or noisy surface texture.
+No text, letters, captions, title, signature, monogram, watermark, logo, frame, or border.
+```
+
+### howto_weight.png — attempt 1
+Tool: image_gen.imagegen (built-in); model: tool-managed, undisclosed.
+Result: KEPT: subject/style and small-size readability verified in contact sheet.
+
+```text
+[IMAGE] 420x260 final game UI raster asset, landscape composition.
+[SCENE] Landscape comic-style paper cut-out tutorial illustration. One courier in red cap, blue shirt, navy trousers and brown shoes walking slowly RIGHT with a very tall stack of FIVE kraft boxes on their back, back bowed, knees bent, one arm bracing stack, two oversized blue sweat drops near head. Small cream paper ground strip. Full stack and feet visible. Transparent surrounding canvas, no panel frame, no text.
+[RENDERING] Pocket Parcel Town PAPER-CRAFT DIORAMA matching the inspected Off the Screen cover: chunky cut colored cardstock and kraft cardboard layers, thin white cut-paper edges, soft shallow contact shadows, slight paper grain. Broad simple phone-readable silhouettes. Flat matte paper with a few folded facets, bright soft light from upper left.
+[EMPTY] Center the entire object including shadow within approximately 6% empty padding on all sides; uncluttered flat paper surfaces and empty space between shapes.
+[PALETTE] Ink Navy #2A2C44, Kraft #E3BA88, Kraft Shadow #BA8E5C, Manila Cream #FFFDF5, Postal Red #E85244, Delivery Gold #F7B336, Parcel Brown #D99B5B, Post Green #2B9348, Courier Blue #3D78B5, Lantern Night #1B1F38, Lantern Amber #FFD166.
+[NEGATIVE]
+No over-rendering: no painted texture on every surface, no object-by-object drawing of foliage, rocks, water, sky or background.
+No hyper-detailed fur, bark, stone, or leaf rendering; a few confident marks stand for each.
+No sky gradients, no cloud detail, no glow around the sun, moon, or lights.
+No glossy digital painting, no airbrushed smooth gradients, no plastic or waxy skin.
+No bloom, lens flare, god rays, or haze unless the subject asks for them.
+No shallow depth of field, bokeh, or photographic blur.
+No 3D render look, no subsurface skin sheen, no CGI lighting.
+No evenly spread detail; detail sits in one or two places only.
+No perfectly symmetrical faces, poses, or compositions.
+No generic fantasy decoration: floating particles, sparkles, magic circles, random runes or glyphs.
+No extra eyes, mouths, faces, limbs, or tentacles; no melted or fused anatomy; hands have the correct number of fingers.
+No characters, animals, or props that the subject did not ask for.
+No oversaturated or neon color unless the style card asks for it.
+No muddy, smeared, or noisy surface texture.
+No text, letters, captions, title, signature, monogram, watermark, logo, frame, or border.
+```
+
+
+### howto_drop.png — attempt 1
+Tool: image_gen.imagegen (built-in); model: tool-managed, undisclosed.
+Result: KEPT: subject/style and small-size readability verified in contact sheet.
+
+```text
+[IMAGE] 420x260 final game UI raster asset, landscape composition.
+[SCENE] Landscape comic-style paper cut-out tutorial illustration. One courier in red cap, blue shirt, navy trousers and brown shoes bursting rapidly RIGHT with ONE box remaining on back, tossing one separate kraft parcel backward LEFT with extended rear arm. Three red speed lines behind the runner and forward stretched legs. Small cream paper ground strip. All anatomy and flying parcel visible. Transparent surrounding canvas, no panel frame, no text.
+[RENDERING] Pocket Parcel Town PAPER-CRAFT DIORAMA matching the inspected Off the Screen cover: chunky cut colored cardstock and kraft cardboard layers, thin white cut-paper edges, soft shallow contact shadows, slight paper grain. Broad simple phone-readable silhouettes. Flat matte paper with a few folded facets, bright soft light from upper left.
+[EMPTY] Center the entire object including shadow within approximately 6% empty padding on all sides; uncluttered flat paper surfaces and empty space between shapes.
+[PALETTE] Ink Navy #2A2C44, Kraft #E3BA88, Kraft Shadow #BA8E5C, Manila Cream #FFFDF5, Postal Red #E85244, Delivery Gold #F7B336, Parcel Brown #D99B5B, Post Green #2B9348, Courier Blue #3D78B5, Lantern Night #1B1F38, Lantern Amber #FFD166.
+[NEGATIVE]
+No over-rendering: no painted texture on every surface, no object-by-object drawing of foliage, rocks, water, sky or background.
+No hyper-detailed fur, bark, stone, or leaf rendering; a few confident marks stand for each.
+No sky gradients, no cloud detail, no glow around the sun, moon, or lights.
+No glossy digital painting, no airbrushed smooth gradients, no plastic or waxy skin.
+No bloom, lens flare, god rays, or haze unless the subject asks for them.
+No shallow depth of field, bokeh, or photographic blur.
+No 3D render look, no subsurface skin sheen, no CGI lighting.
+No evenly spread detail; detail sits in one or two places only.
+No perfectly symmetrical faces, poses, or compositions.
+No generic fantasy decoration: floating particles, sparkles, magic circles, random runes or glyphs.
+No extra eyes, mouths, faces, limbs, or tentacles; no melted or fused anatomy; hands have the correct number of fingers.
+No characters, animals, or props that the subject did not ask for.
+No oversaturated or neon color unless the style card asks for it.
+No muddy, smeared, or noisy surface texture.
+No text, letters, captions, title, signature, monogram, watermark, logo, frame, or border.
+```
+
+### howto_edge.png — attempt 1
+Tool: image_gen.imagegen (built-in); model: tool-managed, undisclosed.
+Result: REJECTED: depicted an earthen cliff with grass/fence rather than a torn paper page.
+
+```text
+[IMAGE] 420x260 final game UI raster asset, landscape composition.
+[SCENE] Landscape comic-style paper cut-out tutorial illustration. A torn cream paper PAGE occupies the RIGHT half, its ragged LEFT edge is a vertical cliff at center. One courier in red cap, blue shirt, navy trousers and brown shoes has fallen OFF the LEFT edge into empty space at the lower LEFT, arms lifted, feet dangling, one kraft parcel tipping with them. Clear readable falling-off-left-edge action, full body visible. Transparent surrounding canvas, no frame, no text.
+[RENDERING] Pocket Parcel Town PAPER-CRAFT DIORAMA matching the inspected Off the Screen cover: chunky cut colored cardstock and kraft cardboard layers, thin white cut-paper edges, soft shallow contact shadows, slight paper grain. Broad simple phone-readable silhouettes. Flat matte paper with a few folded facets, bright soft light from upper left.
+[EMPTY] Center the entire object including shadow within approximately 6% empty padding on all sides; uncluttered flat paper surfaces and empty space between shapes.
+[PALETTE] Ink Navy #2A2C44, Kraft #E3BA88, Kraft Shadow #BA8E5C, Manila Cream #FFFDF5, Postal Red #E85244, Delivery Gold #F7B336, Parcel Brown #D99B5B, Post Green #2B9348, Courier Blue #3D78B5, Lantern Night #1B1F38, Lantern Amber #FFD166.
+[NEGATIVE]
+No over-rendering: no painted texture on every surface, no object-by-object drawing of foliage, rocks, water, sky or background.
+No hyper-detailed fur, bark, stone, or leaf rendering; a few confident marks stand for each.
+No sky gradients, no cloud detail, no glow around the sun, moon, or lights.
+No glossy digital painting, no airbrushed smooth gradients, no plastic or waxy skin.
+No bloom, lens flare, god rays, or haze unless the subject asks for them.
+No shallow depth of field, bokeh, or photographic blur.
+No 3D render look, no subsurface skin sheen, no CGI lighting.
+No evenly spread detail; detail sits in one or two places only.
+No perfectly symmetrical faces, poses, or compositions.
+No generic fantasy decoration: floating particles, sparkles, magic circles, random runes or glyphs.
+No extra eyes, mouths, faces, limbs, or tentacles; no melted or fused anatomy; hands have the correct number of fingers.
+No characters, animals, or props that the subject did not ask for.
+No oversaturated or neon color unless the style card asks for it.
+No muddy, smeared, or noisy surface texture.
+No text, letters, captions, title, signature, monogram, watermark, logo, frame, or border.
+```
+
+### paper_grain.png — attempt 1
+Tool: image_gen.imagegen (built-in); model: tool-managed, undisclosed.
+Result: REJECTED: generated a post office building instead of a blank seamless paper texture.
+
+```text
+[IMAGE] 256x256 final game UI raster asset, square composition.
+[SCENE] Square seamless TILEABLE light Manila Cream #FFFDF5 paper fiber texture. Fully opaque. Very subtle sparse warm cream paper fibers and faint grain, almost flat at small size. Matching edges, uniform illumination, no gradient, no directional shadows, no folds, no objects, no text.
+[RENDERING] Pocket Parcel Town PAPER-CRAFT DIORAMA matching the inspected Off the Screen cover: chunky cut colored cardstock and kraft cardboard layers, thin white cut-paper edges, soft shallow contact shadows, slight paper grain. Broad simple phone-readable silhouettes. Flat matte paper with a few folded facets, bright soft light from upper left.
+[EMPTY] Center the entire object including shadow within approximately 6% empty padding on all sides; uncluttered flat paper surfaces and empty space between shapes.
+[PALETTE] Ink Navy #2A2C44, Kraft #E3BA88, Kraft Shadow #BA8E5C, Manila Cream #FFFDF5, Postal Red #E85244, Delivery Gold #F7B336, Parcel Brown #D99B5B, Post Green #2B9348, Courier Blue #3D78B5, Lantern Night #1B1F38, Lantern Amber #FFD166.
+[NEGATIVE]
+No over-rendering: no painted texture on every surface, no object-by-object drawing of foliage, rocks, water, sky or background.
+No hyper-detailed fur, bark, stone, or leaf rendering; a few confident marks stand for each.
+No sky gradients, no cloud detail, no glow around the sun, moon, or lights.
+No glossy digital painting, no airbrushed smooth gradients, no plastic or waxy skin.
+No bloom, lens flare, god rays, or haze unless the subject asks for them.
+No shallow depth of field, bokeh, or photographic blur.
+No 3D render look, no subsurface skin sheen, no CGI lighting.
+No evenly spread detail; detail sits in one or two places only.
+No perfectly symmetrical faces, poses, or compositions.
+No generic fantasy decoration: floating particles, sparkles, magic circles, random runes or glyphs.
+No extra eyes, mouths, faces, limbs, or tentacles; no melted or fused anatomy; hands have the correct number of fingers.
+No characters, animals, or props that the subject did not ask for.
+No oversaturated or neon color unless the style card asks for it.
+No muddy, smeared, or noisy surface texture.
+No text, letters, captions, title, signature, monogram, watermark, logo, frame, or border.
+```
+
+### icon_lantern.png — attempt 2
+Tool: image_gen.imagegen (built-in); model: tool-managed, undisclosed.
+Result: KEPT: text-only retry succeeded; amber paper lantern with transparent surround.
+
+```text
+[IMAGE] 160x160 final game UI raster asset, square composition.
+[SCENE] Single centered paper cut-out object: one hanging amber paper lantern with navy handle and cream lit center, simple red tassel. Transparent background. No text.
+[RENDERING] Pocket Parcel Town PAPER-CRAFT DIORAMA matching the inspected Off the Screen cover: chunky cut colored cardstock and kraft cardboard layers, thin white cut-paper edges, soft shallow contact shadows, slight paper grain. Broad simple phone-readable silhouettes. Flat matte paper with a few folded facets, bright soft light from upper left.
+[EMPTY] Center the entire object including shadow within approximately 6% empty padding on all sides; uncluttered flat paper surfaces and empty space between shapes.
+[PALETTE] Ink Navy #2A2C44, Kraft #E3BA88, Kraft Shadow #BA8E5C, Manila Cream #FFFDF5, Postal Red #E85244, Delivery Gold #F7B336, Parcel Brown #D99B5B, Post Green #2B9348, Courier Blue #3D78B5, Lantern Night #1B1F38, Lantern Amber #FFD166.
+[NEGATIVE]
+No over-rendering: no painted texture on every surface, no object-by-object drawing of foliage, rocks, water, sky or background.
+No hyper-detailed fur, bark, stone, or leaf rendering; a few confident marks stand for each.
+No sky gradients, no cloud detail, no glow around the sun, moon, or lights.
+No glossy digital painting, no airbrushed smooth gradients, no plastic or waxy skin.
+No bloom, lens flare, god rays, or haze unless the subject asks for them.
+No shallow depth of field, bokeh, or photographic blur.
+No 3D render look, no subsurface skin sheen, no CGI lighting.
+No evenly spread detail; detail sits in one or two places only.
+No perfectly symmetrical faces, poses, or compositions.
+No generic fantasy decoration: floating particles, sparkles, magic circles, random runes or glyphs.
+No extra eyes, mouths, faces, limbs, or tentacles; no melted or fused anatomy; hands have the correct number of fingers.
+No characters, animals, or props that the subject did not ask for.
+No oversaturated or neon color unless the style card asks for it.
+No muddy, smeared, or noisy surface texture.
+No text, letters, captions, title, signature, monogram, watermark, logo, frame, or border.
+```
+
+
+### howto_edge.png — attempt 2
+Tool: image_gen.imagegen (built-in); model: tool-managed, undisclosed.
+Result: KEPT: courier visibly falls left from the torn left margin of a flat paper page; no terrain.
+
+```text
+[IMAGE] 420x260 final game UI raster asset, landscape composition.
+[SCENE] This is a PAPER PAGE, NOT a landscape or cliff. A FLAT cream sheet with a torn vertical margin, visible thin layered white edges. No earth, no soil, no rock, no grass, no fence. Landscape comic-style paper cut-out tutorial illustration. A torn cream paper PAGE occupies the RIGHT half, its ragged LEFT edge is a thin vertical ripped sheet edge at center. One courier in red cap, blue shirt, navy trousers and brown shoes has fallen OFF the LEFT edge into empty space at the lower LEFT, arms lifted, feet dangling, one kraft parcel tipping with them. Clear readable falling-off-left-edge action, full body visible. Transparent surrounding canvas, no frame, no text.
+[RENDERING] Pocket Parcel Town PAPER-CRAFT DIORAMA matching the inspected Off the Screen cover: chunky cut colored cardstock and kraft cardboard layers, thin white cut-paper edges, soft shallow contact shadows, slight paper grain. Broad simple phone-readable silhouettes. Flat matte paper with a few folded facets, bright soft light from upper left.
+[EMPTY] Center the entire object including shadow within approximately 6% empty padding on all sides; uncluttered flat paper surfaces and empty space between shapes.
+[PALETTE] Ink Navy #2A2C44, Kraft #E3BA88, Kraft Shadow #BA8E5C, Manila Cream #FFFDF5, Postal Red #E85244, Delivery Gold #F7B336, Parcel Brown #D99B5B, Post Green #2B9348, Courier Blue #3D78B5, Lantern Night #1B1F38, Lantern Amber #FFD166.
+[NEGATIVE]
+No over-rendering: no painted texture on every surface, no object-by-object drawing of foliage, rocks, water, sky or background.
+No hyper-detailed fur, bark, stone, or leaf rendering; a few confident marks stand for each.
+No sky gradients, no cloud detail, no glow around the sun, moon, or lights.
+No glossy digital painting, no airbrushed smooth gradients, no plastic or waxy skin.
+No bloom, lens flare, god rays, or haze unless the subject asks for them.
+No shallow depth of field, bokeh, or photographic blur.
+No 3D render look, no subsurface skin sheen, no CGI lighting.
+No evenly spread detail; detail sits in one or two places only.
+No perfectly symmetrical faces, poses, or compositions.
+No generic fantasy decoration: floating particles, sparkles, magic circles, random runes or glyphs.
+No extra eyes, mouths, faces, limbs, or tentacles; no melted or fused anatomy; hands have the correct number of fingers.
+No characters, animals, or props that the subject did not ask for.
+No oversaturated or neon color unless the style card asks for it.
+No muddy, smeared, or noisy surface texture.
+No text, letters, captions, title, signature, monogram, watermark, logo, frame, or border.
+The ONLY environment is a flat torn paper PAGE occupying the right half of the composition, lying face-on like a book page. The courier falls off its left margin; transparent space beneath the page. No terrain.
+```
+
+### paper_grain.png — attempt 2
+Tool: image_gen.imagegen (built-in); model: tool-managed, undisclosed.
+Result: KEPT: blank light cream fiber texture; repeated-tile visual review passed. Fully opaque.
+
+```text
+[IMAGE] 256x256 seamless tileable material texture, opaque light cream paper surface, flat orthographic macro scan.
+[SCENE] ONLY a blank sheet of light cream paper, uniformly filling the ENTIRE square from edge to edge. Sparse almost invisible cream fibers. Nothing printed or drawn on it. No objects whatsoever.
+[RENDERING] Flat 2D material scan, uniform illumination, no shading, extremely low contrast. Base Manila Cream #FFFDF5 with tiny fibers only 2-4 RGB values darker. Opposite edges match for seamless repeating tiling.
+[EMPTY] The entire image is blank cream paper. No composition, no subject, no landscape, no props.
+[PALETTE] ONLY near-white cream #FFFDF5 and #F9F5EB.
+[NEGATIVE]
+No buildings, house, town, street, courier, parcel, icons, illustration, diorama, cardboard structures, scenery, or objects.
+No border, edges of sheet, folds, stains, creases, gradient, shadows, vignette, lighting variation.
+No text, letters, captions, title, signature, monogram, watermark, logo, frame, or border.
+No muddy, smeared, or noisy surface texture.
+```
+
+Production: Pillow LANCZOS resize, alpha-bounds crop for transparent cutouts, centered within an 88% maximum content area (approximately 6% padding), PNG optimize=True / compress_level=9. All final PNG files remain true RGBA, including opaque paper_grain.png. Palette quantization was unnecessary because lossless outputs fit the 1,500,000-byte cap. No game code changed; no git or Godot run.
+
+Attempt totals: 30 image_gen.imagegen calls, 27 KEPT, 2 REJECTED visual mismatches, 1 REJECTED network failure. The lantern network retry and both visual replacements succeeded on attempt 2. No skipped items. All submitted prompts, including failures/rejections, are recorded above.
+
+
+### Cover-match remodel — final result (2026-10-31)
+Atlas attempt 1: KEPT. Built-in OpenAI imagegen succeeded on the first call; no retry or procedural fallback was needed. The verbatim prompt is under "Cover-match remodel 2026-10-31 — atlas attempt 1" above. Generated output: C:/Users/fixme/.codex/generated_images/01a18e6f-e72c-7a10-af02-dba84a6cbd5e/exec-311a3f18-d145-40a9-bba8-8ab066b47987.png. Inspected all sixteen swatches. Saved with Pillow LANCZOS at 512x512, JPEG quality 90, subsampling 0, optimize=True, to work/pipeline/out/remodel/atlas.jpg. Colors for all teams come from this one generated atlas; skin and shoe colors are shared. Crisp red tape and shipping label edges are modeled thin surfaces using the corresponding painted swatches.
+
+Geometry rebuilt with texture3d Model/box/lathe helpers in work/remodel_art.py; existing finish_glb.py now has --remodel to touch only the seven requested GLBs. The four couriers have a large head/cap silhouette (~36% of total height), generous cap brim, two profile eyes, small smile, short leaning shirt, running arms, chunky navy legs, sturdy brown shoes with cream soles, and cargo straps. No boxes are baked into couriers: ART.md and the existing game assemble countable parcels separately. Preserved arm_0/1 and leg_0/1 pivots plus run_loop. Train rebuilt as a steam locomotive, nose -X, with boiler, chimney, cab, driving wheels, rods and cowcatcher. Board has painted grain and three rope wraps plus a knot at each end.
+
+Final GLB output (bytes / triangles): courier_coral 212496 / 1480; courier_blue 212496 / 1480; courier_mint 212496 / 1480; courier_gold 212496 / 1480; parcel 92164 / 324; train 365696 / 3364; bridge_board 175220 / 1188. Every GLB has one material, one embedded 512x512 JPEG atlas, unlit extension and baked vertex lighting. Each courier is natively height 1, feet y=0, X/Z centered. Final Blender subprocess exit code 0. Final finish_glb --remodel and check_remodel.py passed. Seven side-view previews and cover_match.png were rendered and visually inspected; large head/cap, chunky running silhouette, face, navy trousers and brown shoes now belong to the cover's paper-toy style.
+
+Failures and recovery: rg unavailable (CommandNotFoundException), oracle consulted, used PowerShell Select-String. One redirected PowerShell render wrapper returned 1 despite seven successful exports and previews; oracle consulted; final subprocess capture confirmed BLENDER_EXIT 0. Initial checker compared normalized byte vertex colors as raw integers; corrected normalization and checked actual transformed mesh bounds, then all checks passed. Get-CimInstance process inspection was denied (0x80041003), oracle consulted; Get-Process fallback found no Godot process. Optional global Godot import was not run, keeping this delivery within the named art files and avoiding concurrent UI import side effects. No image generation failures and no skipped requested assets. No .gd edits, git commands, or writes to art/screenrace/ui/. hwapongstuy was read only.

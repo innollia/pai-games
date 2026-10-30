@@ -17,6 +17,8 @@ const DASH_V := 16.0
 const DASH_T := 0.25
 const HW := 0.4
 const HH := 1.2
+const BODY_H := 2.1  # courier model height on screen (visual only; collision stays HW/HH)
+const VIS_K := 1.4  # carried parcels / ghosts scale with the bigger body (BODY_H / 1.5)
 const STEP := 0.55
 const RAMP_RUN := 1.8  # 경사로 길이 = 높이 × 이만큼
 const RAMP_DRAG := 14.0  # 오르막에서 더 깎이는 속도 (경사·짐 무게에 비례)
@@ -33,8 +35,8 @@ const LOAD_SLOW := 0.06  # 짐 하나당 최고 속도 감소
 const LOAD_JUMP := 0.035  # 짐 하나당 점프 감소
 const FLOW := 5.5  # 흐르는 바닥 속도 (뒤로)
 const WINS := 2
-const PARCEL := Color("e0a96d")
-const NIGHT := Color("1b1f3b")
+const PARCEL := Color("D99B5B")
+const NIGHT := Color("1B1F38")
 const PERKS := ["신발", "끈", "용수철", "바람", "가벼운 상자", "단단한 몸"]
 const PERK_SAY := {"신발": "더 빨리", "끈": "짐 하나 더", "용수철": "높이 뛰기", "바람": "바람 두 배", "가벼운 상자": "짐 무게 40% 덜", "단단한 몸": "치여도 덜 밀림"}
 # English: same keys -> [button name, effect]
@@ -46,12 +48,12 @@ const TRAIN_H := 2.0
 const TRENCH := 3.2  # 선로 도랑 깊이
 const BREAK_W := 3.0  # 이 무게 이상이면 다리 판이 무너진다
 const BREAK_T := 0.42  # 금 간 판이 떨어지기까지
-const BOARD := Color("c99a6e")
-const CRACK := Color("f03e3e")
+const BOARD := Color("E3BA88")
+const CRACK := Color("E85244")
 const GATE_MAX := 2  # 낮은 문: 짐 이만큼까지만 지나간다
 const GATE_H := 1.6
-const ICE := Color("d0ebff")
-const WIND_C := Color("74c0fc")
+const ICE := Color("B1C9E1")  # BLUE lightened 0.6
+const WIND_C := Color("77A0CB")  # BLUE lightened 0.3
 const WIND_K := 0.45  # 맞바람에 깎이는 최고 속도 (가벼울 때)
 # 판 변주: 구간 이름 -> [버튼 이름, 설명]
 const TWISTS := {"gate": ["낮은 문", "짐 2개까지만 지나간다"], "slide": ["얼음 내리막", "못 멈춘다, 무거울수록 빠르다"],
@@ -59,9 +61,9 @@ const TWISTS := {"gate": ["낮은 문", "짐 2개까지만 지나간다"], "slid
 const TWISTS_EN := {"gate": ["Low Gate", "only 2 boxes or fewer fit"], "slide": ["Ice Slope", "no stopping, heavier is faster"],
 	"wind": ["Headwind", "tuck in behind and it's calm"]}
 # 밤 등불 모드
-const NIGHT_SKY := Color("5b70d9")
+const NIGHT_SKY := Color("3D4156")  # NIGHT lightened 0.15
 const FOG := Color("e4e8f7")
-const GLOW := Color("ffe066")
+const GLOW := Color("FFD166")
 const LIGHT_R := 5.0
 const LOST_T := 1.5  # 빛 밖에서 이만큼 있으면 짐 하나를 잃는다 (없으면 탈락)
 const ZR := 2.2  # 등불 모드: 주자는 안개 앞에 그린다
@@ -73,6 +75,13 @@ const MODE_RULES := {"base": "짐을 지키거나 버려서 앞서라", "lantern
 const MODES_EN := {"base": "Classic", "lantern": "Lantern", "over": "Rush"}
 const MODE_RULES_EN := {"base": "keep or drop boxes to get ahead", "lantern": "stay in the light · speed swings it back", "over": "≤2 boxes: ceiling boost / wall bounce"}
 const RECORDS := "user://screenrace_v7.cfg"
+const SrFront = preload("res://g/sr_front.gd")
+const SrMenus = preload("res://g/sr_menus.gd")
+const SR_HUD = preload("res://g/sr_hud.gd")
+const MODE_KIT := {"base": "jump", "lantern": "drop", "over": "mode_over"}  # _pick_mode takes the old kit names
+const KIT_PHASES := ["count", "race", "roundend", "tutorial"]  # the stick and buttons only work here
+const BACK_ARM_PHASES := ["race", "count", "perk", "route", "roundend"]
+const MARKER_PHASES := ["count", "tutorial"]  # the "you" pointer only finds you at the start; the blue courier does the rest
 const SEG_RULES := {
 	"flat": "짐은 느림과 목숨 · 빈손 결승은 실격",
 	"stairs": "언덕: 짐이 무거우면 오르막이 느리다",
@@ -129,34 +138,34 @@ const POOL_N := 140  # 코스 상자를 그리는 풀 (화면 근처만)
 const BITS_N := 12
 const COURSES := [
 	{"name": "시장", "rule": "", "say": "벽을 넘어라",
-		"sky": Color("d8eeff"), "far": Color("b2f2bb"),
-		"gnd": Color("ffd8a8"), "top": Color("ff922b"), "wall": Color("e8590c"),
-		"bld": [Color("ffc9c9"), Color("ffec99"), Color("d3f9d8")],
+		"sky": Color("F7F5EE"), "far": Color("AAD4B6"),
+		"gnd": Color("EDD2B2"), "top": Color("D99B5B"), "wall": Color("BA8E5C"),
+		"bld": [Color("F4E3CF"), Color("ECCDAD"), Color("FBD99A")],
 		"segs": ["flat", "stairs", "wall", "pit", "awning", "crates", "flat", "crates"]},
 	{"name": "강변", "rule": "flow", "say": "바닥이 흐른다: 짐이 무거우면 덜 밀린다",
-		"sky": Color("e7f5ff"), "far": Color("a5d8ff"),
-		"gnd": Color("c5f6fa"), "top": Color("3bc9db"), "wall": Color("1098ad"),
-		"bld": [Color("d0ebff"), Color("e3fafc"), Color("d3f9d8")],
+		"sky": Color("F7F5EE"), "far": Color("B1C9E1"),
+		"gnd": Color("F0D9BE"), "top": Color("77A0CB"), "wall": Color("3D78B5"),
+		"bld": [Color("FFFDF5"), Color("C5D6E9"), Color("F1DCC3")],
 		"segs": ["flat", "river", "river", "pit", "stairs", "river", "wall", "river"]},
 	{"name": "건널목", "rule": "train", "say": "아래 선로는 빠르다. 기차는 앞에서 온다",
-		"sky": Color("fff4e6"), "far": Color("ffd8a8"),
-		"gnd": Color("fff3bf"), "top": Color("fab005"), "wall": Color("f08c00"),
-		"bld": [Color("ffe8cc"), Color("e7f5ff"), Color("fff9db")],
+		"sky": Color("F7F5EE"), "far": Color("FCE1AF"),
+		"gnd": Color("EED6B8"), "top": Color("F7B336"), "wall": Color("BA8E5C"),
+		"bld": [Color("FDE8C3"), Color("F4E3CF"), Color("C5D6E9")],
 		"segs": ["flat", "track", "stairs", "track", "crates", "track", "pit"]},
 	{"name": "야시장", "rule": "dark", "say": "정전: 꺼지면 아무도 앞을 못 본다",
-		"sky": Color("fff0f6"), "far": Color("fcc2d7"),
-		"gnd": Color("ffe8cc"), "top": Color("f76707"), "wall": Color("d9480f"),
-		"bld": [Color("ffdeeb"), Color("fff3bf"), Color("e5dbff")],
+		"sky": Color("F7F5EE"), "far": Color("F6BAB4"),
+		"gnd": Color("EBCFAC"), "top": Color("E85244"), "wall": Color("BA8E5C"),
+		"bld": [Color("F8CBC7"), Color("FDE8C3"), Color("F4E3CF")],
 		"segs": ["flat", "wall", "pit", "crates", "stairs", "awning", "wall", "pit"]},
 	{"name": "흔들다리", "rule": "bridge", "say": "짐 3개 이상이면 밟은 판이 무너진다",
-		"sky": Color("ebfbee"), "far": Color("8ce99a"),
-		"gnd": Color("d8f5a2"), "top": Color("74b816"), "wall": Color("5c940d"),
-		"bld": [Color("c0eb75"), Color("e9fac8"), Color("d3f9d8")],
+		"sky": Color("F7F5EE"), "far": Color("AAD4B6"),
+		"gnd": Color("F1DCC3"), "top": Color("6BB37F"), "wall": Color("2B9348"),
+		"bld": [Color("BFDFC8"), Color("F4E3CF"), Color("FDE8C3")],
 		"segs": ["flat", "bridge", "stairs", "bridge", "pit", "bridge", "crates"]},
 	{"name": "지붕", "rule": "roof", "say": "벽이 없다: 먼 틈은 짐을 버려야 넘는다",
-		"sky": Color("f3f0ff"), "far": Color("d0bfff"),
-		"gnd": Color("e5dbff"), "top": Color("cc5de8"), "wall": Color("9775fa"),
-		"bld": [Color("f3d9fa"), Color("dbe4ff"), Color("ffdeeb")],
+		"sky": Color("F7F5EE"), "far": Color("BFC0C7"),
+		"gnd": Color("EED6B8"), "top": Color("7F808F"), "wall": Color("555669"),
+		"bld": [Color("F4E3CF"), Color("BFC0C7"), Color("F8CBC7")],
 		"segs": ["roofgap", "roofgap", "longgap", "stairs", "roofgap", "longgap"]},
 ]
 # English course [name, say], same order as COURSES
@@ -167,15 +176,85 @@ const COURSES_EN := [
 	["Night Market", "Blackouts: when it's dark, nobody sees ahead"],
 	["Rope Bridge", "3+ boxes and the planks you step on fall"],
 	["Rooftops", "No walls: drop a box to clear long gaps"]]
-const NICKS_EN := ["Me", "Orange", "Sky", "Pink"]
+const NICKS_EN := ["Me", "Red", "Mint", "Gold"]
 # Delivery stamps
 const ST_INK := 0
 const ST_GOOD := 1
 const ST_BAD := 2
-const ST_COL := [Color("2f4a8a"), Color("12907a"), Color("d8433a")]
-const ST_PAPER := Color("fff8ec")
-const ST_N := 3
+const ST_COL := [Color("2A2C44"), Color("2B9348"), Color("E85244")]
+const ST_PAPER := Color("FFFDF5")
+const ST_N := 1  # one stamp on screen at a time: a new one replaces the old
 const ST_REPEAT := 1.5
+const ST_SLAM := 0.14
+# Pocket Parcel Town palette (same values as sr_theme.gd, kept inline here)
+const P_NAVY := Color("2A2C44")
+const P_KRAFT := Color("E3BA88")
+const P_KRAFT_SH := Color("BA8E5C")
+const P_CREAM := Color("FFFDF5")
+const P_RED := Color("E85244")
+const P_GOLD := Color("F7B336")
+const P_PARCEL := Color("D99B5B")
+const P_GREEN := Color("2B9348")
+const P_BLUE := Color("3D78B5")
+# Screen layout (720x1280): thin rail 0..PF_TOP, playfield PF_TOP..PF_BOT (controls float over the ground).
+const PF_TOP := 80.0
+const PF_BOT := 1280.0
+const FEET_Y := 790.0  # screen y where the leader's feet sit (ground/foreground below, controls float on it)
+const FX_LINES := 22
+const FX_POPS := 6
+const DUST_N := 24
+const TOSS_N := 5
+const TEAR_N := 44
+const SLOWMO := 0.35
+const SLOWMO_MS := 400
+
+
+## One screen-space overlay for speed lines, the torn page edge and floating numbers.
+class _FxPad extends Control:
+	var draw_fn: Callable
+
+	func _draw() -> void:
+		if draw_fn.is_valid():
+			draw_fn.call(self)
+
+
+## A rubber postal stamp: perforated paper chip, thick + thin ink border, worn ink gaps.
+class _StampCard extends Control:
+	var ink := Color.BLACK
+	var paper := Color.WHITE
+	var shade := Color(0, 0, 0, 0.2)
+	var seed_n := 1
+
+	func _draw() -> void:
+		var r := Rect2(Vector2.ZERO, size)
+		var inner := r.grow(-5.0)
+		draw_rect(Rect2(inner.position + Vector2(4, 5), inner.size), shade)
+		draw_rect(inner, paper)
+		var nx := maxi(int(inner.size.x / 15.0), 2)
+		var ny := maxi(int(inner.size.y / 15.0), 2)
+		for i in nx + 1:
+			var x := inner.position.x + inner.size.x * float(i) / float(nx)
+			draw_circle(Vector2(x, inner.position.y), 4.0, paper)
+			draw_circle(Vector2(x, inner.end.y), 4.0, paper)
+		for i in range(1, ny):
+			var y := inner.position.y + inner.size.y * float(i) / float(ny)
+			draw_circle(Vector2(inner.position.x, y), 4.0, paper)
+			draw_circle(Vector2(inner.end.x, y), 4.0, paper)
+		var ob := r.grow(-12.0)
+		draw_rect(ob, ink, false, 5.0)
+		draw_rect(r.grow(-20.0), ink, false, 2.0)
+		var h := seed_n
+		for k in 8:
+			h = (h * 1103515245 + 12345) & 0x7fffffff
+			var f := float(h % 997) / 997.0
+			var pt := Vector2.ZERO
+			match k % 4:
+				0: pt = Vector2(ob.position.x + ob.size.x * f, ob.position.y)
+				1: pt = Vector2(ob.end.x, ob.position.y + ob.size.y * f)
+				2: pt = Vector2(ob.position.x + ob.size.x * f, ob.end.y)
+				_: pt = Vector2(ob.position.x, ob.position.y + ob.size.y * f)
+			var sz := Vector2(6, 6) if k % 2 == 0 else Vector2(9, 4)
+			draw_rect(Rect2(pt - sz * 0.5, sz), paper)
 
 
 class Courier:
@@ -215,6 +294,22 @@ class Courier:
 	var dive := false  # 경쟁자: 건널목에서 선로로 내려갈지
 	var lost := 0.0  # 등불 모드: 빛 밖에 있은 시간
 	var bold := 0.5  # 등불 모드 경쟁자: 등불을 들고 얼마나 빨리 달리나
+	# animation / fx (visual only)
+	var run_ph := 0.0  # run cycle phase
+	var sway := 0.0  # parcel stack lag (world x), spring-damper
+	var sway_v := 0.0
+	var jig := 0.0  # parcel stack squash on landing
+	var jig_v := 0.0
+	var pvx := 0.0  # last frame v.x (for acceleration)
+	var flash := 0.0  # hit flash time left
+	var meshes: Array[GeometryInstance3D] = []  # body meshes that take the flash overlay
+	var ghosts: Array[MeshInstance3D] = []  # dash afterimages
+	var trail := 0.0  # afterimage time left
+	var dust_t := 0.0
+	var out_t := 0.0  # tumbling off the page after being knocked out
+	var out_p := Vector3.ZERO
+	var out_v := Vector3.ZERO
+	var vis_dx := 0.0  # visual-only x offset that eases to 0 (edge shove)
 	# 이번 프레임 입력
 	var mx := 0.0
 	var i_jump := false
@@ -280,6 +375,7 @@ var load_w := 1.0
 var perk_offer: Array = []
 var taken: Array = []
 var lead_t := 0.0
+var lead_said := false  # FIRST CLASS stamp: once per round
 var radar_t := 0.0
 var dark_t := 0.0
 var dark_on := false
@@ -327,13 +423,51 @@ var finale := false
 var result_l: Label
 var route_l: Label
 var backdrop: Sprite3D
+var sky_cache := {}  # backdrop path -> its top-row colour (the flat sky above it)
+var _edge_mat: ShaderMaterial  # warm kraft paper edge instead of tofu's dark ink outline
+var _flat_cols := {}  # colours drawn without an outline (deep ground fills)
+var _paper_map := {}  # tofu's shared flat colours -> design palette
 var lang := "en"  # "en" (default) or "ko", saved in RECORDS [opt] lang
 var tell_s := ""  # calm rule line shown on route_l for tell_t seconds
 var tell_t := 0.0
+var tut_skipped := false  # left the practice with SKIP: the opening gets the one edge-rule line
+var tut_step_max := -1  # furthest practice step seen (sr_front.step)
+var skip_title := false  # PLAY AGAIN: restart without flashing the title
 var stamps: Array = []  # pooled paper stamps {panel, label, age, life, base}
 var stamp_last := {}  # text -> msec shown (no repeats within ST_REPEAT)
-var stamp_box: Array[StyleBoxFlat] = []
 var stamp_set: Array[LabelSettings] = []
+var stamp_font: FontVariation
+# speed feel / framing / signature edge
+var fx: _FxPad
+var fx_lines: Array[Dictionary] = []  # {x, y, len, sp, w}
+var pops: Array[Dictionary] = []  # floating numbers {on, r, at, text, col, age, w}
+var fx_radial := 0.0  # EXPRESS radial burst time left
+var fov_kick := 0.0  # + widens the view (decays)
+var cam_nudge := 0.0  # world x offset of the camera only (visual; the kill line stays camx - hwv)
+var spd_ratio := 0.0  # 0 slow .. 1 dashing (player), smoothed
+var edge_warn := 0.0  # 0 far .. 1 player at the edge, smoothed
+var back_arm_t := 0.0  # >0: the home icon is armed (first tap); a second tap in time quits. sr_hud may tint it red
+var edge_flap := 0.0  # torn edge ripple after someone goes off the page
+var edge_hit := 0.0  # red flash on the edge (player lost a box there)
+var slowmo_end := 0  # msec; 0 = not slowed
+var slowmo_last := -100000
+var dust: Array[Dictionary] = []  # pooled paper scraps {node, v, life, max}
+var dust_i := 0
+var tosses: Array[Dictionary] = []  # pooled tumbling lost boxes {node, v, life}
+var toss_i := 0
+var last_put: Dictionary = {}
+var tear_off := PackedFloat32Array()
+var _tear := PackedVector2Array()
+var _tear_sh := PackedVector2Array()
+var _tear_ln := PackedVector2Array()
+var _quad := PackedVector2Array([Vector2.ZERO, Vector2.ZERO, Vector2.ZERO, Vector2.ZERO])
+var _chev := PackedVector2Array([Vector2.ZERO, Vector2.ZERO, Vector2.ZERO])
+var _fx_mats := {}
+var front  # sr_front.gd: title + tutorial (CanvasLayer 20)
+var menus  # sr_menus.gd: mode / perk / route cards, countdown, receipt (CanvasLayer 15)
+var sr_hud: CanvasLayer  # sr_hud.gd: race ribbon, control deck, hint chip (CanvasLayer 10)
+var tut_crate_x := -1.0  # > 0: the opening flat gets one practice crate at this x (tutorial only)
+var kit_live := true  # stick + jump/box answer touches (false on title and menus)
 
 
 func L(ko: String, en: String) -> String:
@@ -388,8 +522,8 @@ func msg(s: String, dur := 0.6) -> void:
 
 
 func _stamp(ko: String, en: String, kind := ST_INK, who: Courier = null, dur := 0.8) -> void:
-	_stamp_show(L(ko, en), kind, who, dur)
-	_sfx("stamp", null, -8.0)
+	if _stamp_show(L(ko, en), kind, who, dur):
+		_sfx("stamp", null, -8.0)
 
 
 ## 효과음 (nkido로 구운 art/screenrace/sfx/*.wav). r이 있으면 내 배달부는 크게, 화면 안 상대는 작게, 화면 밖은 안 난다
@@ -425,25 +559,22 @@ func _stamp_setup() -> void:
 	var layer := CanvasLayer.new()
 	layer.layer = 3
 	add_child(layer)
+	stamp_font = FontVariation.new()
+	stamp_font.base_font = _font
+	stamp_font.spacing_glyph = 3  # wide rubber-stamp lettering
 	for k in 3:
-		var sb := StyleBoxFlat.new()
-		sb.bg_color = ST_PAPER
-		sb.border_color = ST_COL[k]
-		sb.set_border_width_all(4)
-		sb.set_corner_radius_all(6)
-		sb.shadow_color = Color(0.15, 0.1, 0.05, 0.28)
-		sb.shadow_size = 3
-		sb.shadow_offset = Vector2(3, 4)
-		stamp_box.append(sb)
 		var ls := LabelSettings.new()
-		ls.font = _font
-		ls.font_size = 38
-		ls.font_color = ST_COL[k]
+		ls.font = stamp_font
+		ls.font_size = 36
+		var ink: Color = ST_COL[k]
+		ls.font_color = Color(ink, 0.92)
 		stamp_set.append(ls)
 	for i in ST_N:
-		var p := Panel.new()
+		var p := _StampCard.new()
 		p.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		p.visible = false
+		p.paper = Color(ST_PAPER, 0.93)
+		p.shade = Color(P_NAVY, 0.22)
 		layer.add_child(p)
 		var l := Label.new()
 		l.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -451,15 +582,19 @@ func _stamp_setup() -> void:
 		l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		l.set_anchors_preset(Control.PRESET_FULL_RECT)
 		p.add_child(l)
-		stamps.append({"panel": p, "label": l, "age": 0.0, "life": 0.0, "base": Vector2.ZERO})
+		stamps.append({"panel": p, "label": l, "age": 0.0, "life": 0.0, "base": Vector2.ZERO, "landed": false, "kind": 0, "k": 1.0})
 
 
-func _stamp_show(s: String, kind: int, who: Courier, dur: float) -> void:
+func _stamp_show(s: String, kind: int, who: Courier, dur: float) -> bool:
 	if stamps.is_empty() or s == "":
-		return
+		return false
 	var now := Time.get_ticks_msec()
 	if stamp_last.has(s) and now - int(stamp_last[s]) < int(ST_REPEAT * 1000.0):
-		return
+		return false
+	# a fresh bad-news stamp is never covered by good news
+	for e in stamps:
+		if (e.panel as Control).visible and e.age < 0.6 and int(e.kind) == ST_BAD and kind != ST_BAD:
+			return false
 	stamp_last[s] = now
 	# a free slot, or recycle the oldest
 	var st: Dictionary = {}
@@ -477,13 +612,18 @@ func _stamp_show(s: String, kind: int, who: Courier, dur: float) -> void:
 	if st.is_empty():
 		st = oldest
 		holding = maxi(holding - (1 if oldest.age < 0.6 else 0), 0)
-	var p: Panel = st.panel
+	var p: _StampCard = st.panel
 	var l: Label = st.label
 	kind = clampi(kind, 0, 2)
-	p.add_theme_stylebox_override("panel", stamp_box[kind])
+	st.kind = kind
+	st.k = 0.8 if phase == "race" else 1.0  # smaller over the running lane
+	var ink: Color = ST_COL[kind]
+	p.ink = Color(ink, 0.9)
+	p.seed_n = randi() % 100000 + 1
+	p.queue_redraw()
 	l.label_settings = stamp_set[kind]
 	l.text = s
-	var sz := _font.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, 38) + Vector2(44, 22)
+	var sz := stamp_font.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, 36) + Vector2(70, 46)
 	p.size = sz
 	p.pivot_offset = sz * 0.5
 	# above the courier on screen (player by default), clamped inside the screen
@@ -496,23 +636,25 @@ func _stamp_show(s: String, kind: int, who: Courier, dur: float) -> void:
 		var wp := Vector3(r.p.x, r.p.y + HH * 2.0 + 1.2, 0.0)
 		if not c.is_position_behind(wp):
 			at = c.unproject_position(wp)
-	at.y -= 50.0 + holding * 66.0
+	at.y -= 50.0 + holding * 80.0
 	at.x = clampf(at.x, 16.0 + sz.x * 0.5, 704.0 - sz.x * 0.5)
-	at.y = clampf(at.y, 440.0, 1000.0)
+	at.y = clampf(at.y, PF_TOP + 60.0, PF_BOT - 80.0)
 	st.base = at - sz * 0.5
 	st.age = 0.0
+	st.landed = false
 	st.life = clampf(dur, 0.5, 1.4) + 0.4
 	p.position = st.base
-	p.rotation = deg_to_rad(randf_range(-8.0, 8.0))
-	p.scale = Vector2.ONE * 1.35
-	p.modulate.a = 1.0
+	p.rotation = deg_to_rad(randf_range(3.0, 8.0) * (1.0 if randf() < 0.5 else -1.0))
+	p.scale = Vector2.ONE * 1.7
+	p.modulate.a = 0.2
 	p.visible = true
+	return true
 
 
 func _stamp_tick(dt: float) -> void:
 	var gone := over or _rating
 	for st in stamps:
-		var p: Panel = st.panel
+		var p: Control = st.panel
 		if not p.visible:
 			continue
 		st.age += dt
@@ -520,9 +662,17 @@ func _stamp_tick(dt: float) -> void:
 			p.visible = false
 			continue
 		var a: float = st.age
-		p.scale = Vector2.ONE * (lerpf(1.35, 1.0, a / 0.1) if a < 0.1 else 1.0)
 		var fade: float = clampf((a - (st.life - 0.4)) / 0.4, 0.0, 1.0)
-		p.modulate.a = 1.0 - fade
+		if a < ST_SLAM:  # slam: 1.7 -> 1.0, cubic ease-in, ink fades in
+			var u := a / ST_SLAM
+			p.scale = Vector2.ONE * lerpf(1.7, 1.0, u * u * u) * float(st.k)
+			p.modulate.a = lerpf(0.2, 1.0, u)
+		else:
+			if not st.landed:
+				st.landed = true
+				shk = maxf(shk, 0.14)  # ~2 px thump
+			p.scale = Vector2.ONE * float(st.k)
+			p.modulate.a = 1.0 - fade
 		p.position = st.base + Vector2(0.0, -40.0 * fade)
 
 
@@ -530,10 +680,13 @@ func _set_lang(l: String) -> void:
 	lang = l
 	records.set_value("opt", "lang", lang)
 	records.save(RECORDS)
-	howto = _howto_text()
 	for signpost in signs:
 		(signpost.node as Label3D).text = L(signpost.ko, signpost.en)
-	_mode_buttons()
+	_restore_labels()
+	if menus:
+		menus.refresh()
+	if front:
+		front.refresh_text()
 
 
 func _howto_text() -> String:
@@ -541,13 +694,87 @@ func _howto_text() -> String:
 		"Left stick to run, [Jump] to hop.\nBoxes slow you down but are your lives.\n[Box] drops one for a dash.\nCross six towns to the final delivery!")
 
 
-func _mode_buttons() -> void:
-	_btns["jump"].label = _mode_name("base")
-	_btns["drop"].label = _mode_name("lantern")
-	_btns["mode_over"].label = L("과속", "Rush")
-	_btns["mode_over"].r = 80.0
-	_btns["lang"].label = L("English", "한국어")
-	_btns["lang"].r = 54.0
+## The stick and the two buttons only answer touches in KIT_PHASES; on the title and the
+## paper menus every tap goes to _tap (the modules) instead, so the two never fight.
+func _kit_live(on: bool) -> void:
+	if on == kit_live:
+		return
+	kit_live = on
+	_kit_clear()
+	_stick_zone = SR_HUD.STICK_ZONE if on else Rect2()
+	if _btns.has("jump"):
+		_btns["jump"].r = SR_HUD.JUMP_R if on else 0.0
+		_btns["drop"].r = SR_HUD.BOX_R if on else 0.0
+
+
+func _open_mode_select() -> void:
+	tut_crate_x = -1.0
+	if front and front.state == "title":
+		front.hide_title()
+	menus.hide_countdown()
+	phase = "mode"
+	menus.show_modes()
+
+
+func _open_title() -> void:
+	menus.hide_all()
+	menus.hide_countdown()
+	phase = "title"
+	tell_t = 0.0
+	front.show_title()
+
+
+## sr_front: course 1 opening flat as an empty practice yard (no rivals, one crate).
+func tutorial_begin() -> void:
+	menus.hide_all()
+	ci = 0
+	rnd = 0
+	finale = false
+	mode = "base"
+	fresh = true
+	twist = ""
+	tut_crate_x = 16.0
+	_build_course()
+	_start_round()
+	menus.hide_countdown()
+	for r in runners:
+		if r.ai:
+			r.alive = false  # _start_round() of the next real race sets them back
+			r.node.visible = false
+	phase = "tutorial"
+	tell_t = 0.0
+	tut_step_max = -1
+	_kit_live(true)
+
+
+## tofu's corner touch zones stay live while sr_hud hides their icons: swallow those presses.
+func _finger(id: int, p: Vector2, kind: int) -> void:
+	if kind == 1 and not over and not _rating and not (_howto_box and _howto_box.visible):
+		if SR_HUD.NO_RATE_PHASES.has(phase) and _RATE_BTN.has_point(p):
+			return
+		if p.x < 180.0 and p.y < 100.0 and SR_HUD.NO_BACK_PHASES.has(phase):
+			return
+		# mid-run the home corner needs two taps: a stray tap must not throw away the 6-course run
+		if p.x < 180.0 and p.y < 100.0 and BACK_ARM_PHASES.has(phase) and back_arm_t <= 0.0:
+			back_arm_t = 1.5
+			beep(660.0, 0.06)
+			_stamp("한 번 더 누르면 나감", "TAP AGAIN TO QUIT", ST_INK, null, 1.2)
+			return
+	super._finger(id, p, kind)
+
+
+func _tap(p: Vector2) -> void:
+	if front:
+		front.tap(p)
+
+
+func _kit_draw(c: Control) -> void:
+	if not kit_live:
+		return
+	if sr_hud:
+		sr_hud.draw_kit(c, self)
+	else:
+		super._kit_draw(c)
 
 
 func _opening() -> bool:
@@ -563,12 +790,13 @@ func _sign(x: float, y: float, ko: String, en: String, rule := "") -> void:
 	label.font = _font
 	label.text = L(ko, en)
 	label.font_size = 48
-	label.pixel_size = 0.012
-	label.outline_size = 10
-	label.modulate = WHITE
-	label.outline_modulate = INK
+	label.pixel_size = 0.016
+	label.outline_size = 12
+	label.modulate = P_CREAM
+	label.outline_modulate = P_NAVY
+	label.visible = false  # only shown near the camera while racing (_update_content_hud)
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	label.position = Vector3(x + 3.0, y, 0.2)
+	label.position = Vector3(x + 3.0, y + 0.6, 0.2)
 	stage.add_child(label)
 	signs.append({"x": x, "ko": ko, "en": en, "rule": rule, "node": label})
 
@@ -602,8 +830,13 @@ func _mechanisms(dt: float) -> void:
 
 
 func _update_content_hud() -> void:
-	route_l.visible = not over and not _rating
-	route_l.label_settings.font_size = 25 if phase == "mode" else 30  # 모드 화면은 네 줄이라 작게 (안 겹치게)
+	if phase != "race":
+		for signpost in signs:
+			(signpost.node as Node3D).visible = false
+	route_l.visible = false  # sr_hud shows this text as the hint chip; the cards show menu text
+	if not KIT_PHASES.has(phase) or phase == "tutorial":
+		route_l.text = ""
+		return
 	if phase == "mode":
 		var best_l := L("최다 배달: 기본 %d / 등불 %d / 과속 %d", "Best: Classic %d · Lantern %d · Rush %d")
 		route_l.text = "%s: %s\n%s: %s\n%s: %s\n%s" % [_mode_name("base"), _mode_rule("base"), L("밤 등불", "Lantern"), _mode_rule("lantern"), L("과속", "Rush"), _mode_rule("over"), best_l % [int(records.get_value("base", "delivered", 0)), int(records.get_value("lantern", "delivered", 0)), int(records.get_value("over", "delivered", 0))]]
@@ -615,10 +848,8 @@ func _update_content_hud() -> void:
 		route_l.text = "%s\n%s: %s\n%s: %s" % [L("다음 길? 내 짐 %d", "Next road? You carry %d") % maxi(pl.cargo, 1), _tw(route_offer[0], 0), _tw(route_offer[0], 1), _tw(route_offer[1], 0), _tw(route_offer[1], 1)]
 		return
 	if _opening():
-		var lesson := mini(int(rt / 3.3), 2)
-		route_l.text = [L("← 빨간 끝 밖: 짐 하나 / 빈손 탈락", "← Red edge: lose a box, out if empty"),
-			L("짐 = 느림 + 목숨 · 함께 든 짐이 화면 폭", "Boxes = slow + lives · all boxes set the view"),
-			L("[짐] 하나 버려 가속. 마지막 하나는 남겨라", "[Box] drops one for speed. Keep the last")][lesson]
+		# no text in the race: a skipper is taught by the torn edge itself (forced warning pulse, _fx_tick)
+		route_l.text = ""
 		return
 	route_l.text = ""
 	var telling := tell_t > 0.0 and phase != "roundend"
@@ -626,12 +857,10 @@ func _update_content_hud() -> void:
 		route_l.text = tell_s
 	if phase != "race":
 		return
-	# World signs are repeated at the next encounter until actually approached.
+	# World signs speak for themselves (no duplicate HUD line); a new rule still gets a chime.
 	for signpost in signs:
 		(signpost.node as Node3D).visible = absf(signpost.x - camx) < hwv + 8.0
 		if pl.p.x > signpost.x - 7.0 and pl.p.x < signpost.x + 6.0:
-			if not telling:
-				route_l.text = L(signpost.ko, signpost.en)
 			if signpost.rule != "" and not seen_rules.has(signpost.rule):
 				seen_rules[signpost.rule] = true
 				beep(740.0, 0.06, 990.0, 0.12)
@@ -657,7 +886,6 @@ func _start_finale() -> void:
 	_build_course()
 	_start_round()
 	_tell("마지막 배달. 배운 길을 모두 써라", "Final delivery. Use every road you learned", 2.6)
-	_stamp("최종 배달", "FINAL DELIVERY", ST_INK, null, 1.2)
 	# Keep the last round's parcels, grid and upgrades for the final delivery.
 
 
@@ -694,14 +922,37 @@ func _finish(won: bool) -> void:
 		hint = L("다음엔 과속 배달: 짐 2개로 천장 가속!", "Next: try Rush, ceiling boost with 2 boxes!")
 	elif mode == "over":
 		hint = L("다음엔 밤 등불: 선두의 빛에 붙어라!", "Next: try Lantern, stick to the leader's light!")
+	var medals := [0, 0, 0, 0, 0, 0]
+	for row in course_results:
+		medals[row.ci] = maxi(medals[row.ci], int(row.medal))  # 3 gold, 2 silver, 1 bronze, 0 not reached
+	var names := []
+	for i in COURSES.size():
+		names.append(_cname(i))
 	var res_f := L("%s · %d위\n배달한 짐 %d개 · 달린 시간 %.1f초\n최고 코스: %s\n%s\n로컬 최다 배달 %d개%s\n완주 최고 %s\n%s\n금: 2판 안에 승리 + 남은 짐 3개\n은: 3판 안 / 동: 코스 완주\n별점 아래 빈 곳을 탭하면 다시 배달",
 		"%s · #%d\nDelivered %d · Time %.1fs\nBest course: %s\n%s\nMost delivered here: %d%s\nBest finish: %s\n%s\nGold: win in 2 rounds + 3 boxes left\nSilver: in 3 rounds / Bronze: finish\nTap the empty space below the stars to go again")
 	var best_s := (L("%.1f초", "%.1fs") % best_time) if best_time > 0.0 else L("도전 중", "not yet")
 	result_l.text = res_f % [L("여섯 동네 배달 완료!", "All six towns delivered!") if won else L("오늘 배달은 여기까지", "That's it for today"), placement, delivered, journey_time, strongest, rows, best_delivery, L(" · 새 기록!", " · New record!") if delivered > previous else "", best_s, hint]
 	if not saved:
 		result_l.text += L("\n기록 저장 안 됨", "\nRecord not saved")
-	result_l.visible = true
+	result_l.visible = false
 	phase = "results"
+	_kit_live(false)
+	menus.show_results({
+		"won": won,
+		"placement": placement,
+		"delivered": delivered,
+		"time": journey_time,
+		"best_course": strongest,
+		"best_delivery": best_delivery,
+		"new_record": delivered > previous,
+		"best_time": best_time,
+		"medals": medals,
+		"courses": names,
+		"hint": hint,
+		"saved": saved,
+		"mode": _mode_name(mode),
+		"headline": L("여섯 동네 배달 완료!", "All six towns delivered!") if won else L("오늘 배달은 여기까지", "That's it for today"),
+	})
 	end() # Tofu owns stars, feedback, score save and tap-to-restart.
 	_sfx("champion" if won else "lost")
 
@@ -709,12 +960,22 @@ func _finish(won: bool) -> void:
 func _process(dt: float) -> void:
 	super._process(dt)
 	tell_t = maxf(tell_t - dt, 0.0)
+	back_arm_t = maxf(back_arm_t - dt, 0.0)
 	_stamp_tick(dt)
+	_fx_tick(dt)
+	if phase == "tutorial" and front:
+		tut_step_max = maxi(tut_step_max, int(front.step))
+	_bar_bg.visible = false  # tofu's edge gauge: the HUD rail + torn red edge show this now
 	if result_l:
-		result_l.visible = over and not _rating
+		result_l.visible = false
+		mode_l.visible = false
+		route_l.visible = false
 		if over:
 			_over_l.visible = false
-			route_l.visible = false
+	_kit_live(KIT_PHASES.has(phase) and not over)
+	if sr_hud:
+		var racing := phase == "race"
+		sr_hud.set_line(route_l.text if racing else "")
 
 
 # Art contract: art/screenrace/{name}.glb or models/{name}.glb, Y-up, auto-height.
@@ -769,7 +1030,45 @@ func _build_backdrop() -> void:
 				backdrop.pixel_size = 65.0 / maxf(texture.get_width(), 1.0)
 				backdrop.shaded = false
 				stage.add_child(backdrop)
+				_sky_from(path, texture)
 				return
+
+
+## The flat sky above the backdrop takes the backdrop's own top-row colour, so there is no seam.
+func _sky_from(path: String, texture: Texture2D) -> void:
+	if not sky_cache.has(path):
+		var col := P_CREAM.darkened(0.03)
+		var img := texture.get_image()
+		if img and not img.is_empty() and not img.is_compressed():
+			var acc := Color(0, 0, 0, 0)
+			var w := img.get_width()
+			for k in 8:
+				acc += img.get_pixel(clampi(int(w * (k + 0.5) / 8.0), 0, w - 1), 1)
+			col = acc * 0.125
+			col.a = 1.0
+		sky_cache[path] = col
+	for e in get_children():
+		if e is WorldEnvironment:
+			(e as WorldEnvironment).environment.background_color = sky_cache[path]
+
+
+## Paper-craft materials: palette colours and a soft kraft edge (tofu.gd stays untouched).
+func mat(color: Color) -> StandardMaterial3D:
+	var key := color.to_html()
+	if not _mats.has(key):
+		if _paper_map.is_empty():
+			_paper_map = {BAD.to_html(): P_RED, GOOD.to_html(): P_GREEN, D.to_html(): P_GOLD,
+				B.to_html(): WIND_C, A.to_html(): P_PARCEL, ME.to_html(): P_BLUE, INK.to_html(): P_NAVY,
+				WHITE.to_html(): P_CREAM, SOFT.to_html(): P_KRAFT.lightened(0.35)}
+		if _edge_mat == null:
+			_edge_mat = OUTLINE.duplicate() as ShaderMaterial
+			_edge_mat.set_shader_parameter("ink", P_KRAFT_SH.darkened(0.3))
+		var sm := StandardMaterial3D.new()
+		sm.albedo_color = _paper_map.get(key, color)
+		if not _flat_cols.has(key):
+			sm.next_pass = _edge_mat
+		_mats[key] = sm
+	return _mats[key]
 
 
 func _swap_visual(asset: String, parent: Node3D, pos: Vector3, height: float) -> void:
@@ -795,15 +1094,45 @@ func _setup() -> void:
 	var opt := ConfigFile.new()
 	if opt.load(RECORDS) == OK:
 		lang = "ko" if str(opt.get_value("opt", "lang", "en")) == "ko" else "en"
-	howto = _howto_text()
+	howto = ""  # no tofu how-to card: the title + interactive tutorial (sr_front) teach instead
+	_fx_setup()
 	_stamp_setup()
-	kit_stick()
-	kit_button("jump", L("점프", "Jump"), Vector2(600, 1120), 100.0, A)
-	kit_button("drop", L("짐", "Box"), Vector2(600, 890), 82.0, PARCEL)
-	kit_button("mode_over", L("과속", "Rush"), Vector2(420, 690), 80.0, BAD)
-	_btns["mode_over"].r = 0.0
-	kit_button("lang", L("English", "한국어"), Vector2(630, 520), 54.0, INK.lightened(0.3))
-	_btns["lang"].r = 0.0
+	kit_stick(SR_HUD.STICK_ZONE)  # Rect2(0,920,360,380) -> home (180,1100)
+	kit_button("jump", L("점프", "Jump"), SR_HUD.JUMP_POS, SR_HUD.JUMP_R, SR_HUD.JUMP_FACE)
+	kit_button("drop", L("짐", "Box"), SR_HUD.BOX_POS, SR_HUD.BOX_R, PARCEL)
+	sr_hud = SR_HUD.new()
+	add_child(sr_hud)
+	sr_hud.setup(self)
+	menus = SrMenus.new()
+	add_child(menus)
+	menus.setup(self)
+	menus.mode_chosen.connect(func(id: String) -> void: _pick_mode(MODE_KIT[id]))
+	menus.perk_chosen.connect(func(i: int) -> void: _pick_perk("jump" if i == 0 else "drop"))
+	menus.route_chosen.connect(func(i: int) -> void: _pick_route("jump" if i == 0 else "drop"))
+	menus.lang_pressed.connect(func() -> void: _set_lang("en" if lang == "ko" else "ko"))
+	menus.back_pressed.connect(func() -> void: _open_title())
+	menus.again_pressed.connect(func() -> void:
+		var m := mode
+		skip_title = true
+		restart()
+		_pick_mode(MODE_KIT[m]))
+	menus.title_pressed.connect(func() -> void: restart())
+	front = SrFront.new()
+	add_child(front)
+	front.setup(self)
+	front.play_pressed.connect(func() -> void: _open_mode_select())
+	front.tutorial_pressed.connect(func(first: bool) -> void:
+		tutorial_begin()
+		front.start_tutorial(first))
+	front.lang_pressed.connect(func() -> void: _set_lang("en" if lang == "ko" else "ko"))
+	front.tutorial_done.connect(func(first: bool) -> void:
+		tut_skipped = tut_step_max < SrFront.STEP_N
+		if first:
+			# first run: straight into the basic race, no mode choice they cannot judge yet
+			menus.hide_all()
+			_pick_mode(MODE_KIT["base"])
+		else:
+			_open_mode_select())
 
 
 func _reset() -> void:
@@ -816,6 +1145,9 @@ func _reset() -> void:
 	seen_rules.clear()
 	finale = false
 	result_l.visible = false
+	tut_crate_x = -1.0
+	if menus:
+		menus.hide_all()
 	records = ConfigFile.new()
 	if FileAccess.file_exists(RECORDS):
 		records.load(RECORDS)
@@ -833,8 +1165,9 @@ func _reset() -> void:
 	taken.clear()
 	game_seed = randi()
 	runners.clear()
-	var cols := [ME, A, B, Color("f783ac")]
-	var nicks := ["나", "주황", "하늘", "분홍"]
+	# colour = the courier model's cap colour (blue = you), so rail pins, ghosts and bursts match the bodies
+	var cols := [P_BLUE, P_RED, P_GREEN, P_GOLD]
+	var nicks := ["나", "빨강", "민트", "노랑"]
 	for i in 4:
 		var r := Courier.new()
 		r.ai = i > 0
@@ -850,12 +1183,28 @@ func _reset() -> void:
 		if _art_model("parcel", n, Vector3(0, -0.5, 0), 1.0):
 			n.mesh = null
 		n.visible = false
-		parcels.append({"node": n, "on": false, "p": Vector2.ZERO, "owner": null, "cd": 0.0})
+		parcels.append({"node": n, "on": false, "p": Vector2.ZERO, "owner": null, "cd": 0.0, "fly": 0.0, "from": Vector3.ZERO})
+	Engine.time_scale = 1.0
+	slowmo_end = 0
+	dust.clear()
+	for i in DUST_N:
+		var m := box(Vector3(0, -80, 0), Vector3(0.22, 0.14, 0.04), WHITE)
+		m.visible = false
+		dust.append({"node": m, "v": Vector3.ZERO, "life": 0.0, "max": 0.4})
+	tosses.clear()
+	for i in TOSS_N:
+		var n := box(Vector3(0, -80, 0), Vector3(0.5, 0.38, 0.6) * VIS_K, PARCEL)
+		if _art_model("parcel", n, Vector3(0, -0.5, 0), 1.0):
+			n.mesh = null
+		n.visible = false
+		tosses.append({"node": n, "v": Vector3.ZERO, "life": 0.0})
 	edge_strip = box(Vector3.ZERO, Vector3(0.35, 1, 0.2), BAD)
 	curtain = box(Vector3.ZERO, Vector3(1, 1, 0.2), NIGHT)
 	curtain.visible = false
-	marker = box(Vector3.ZERO, Vector3(0.36, 0.36, 0.36), ME)
+	# "you" pointer: a small flat blue paper diamond on a white paper edge (scale set per frame)
+	marker = box(Vector3.ZERO, Vector3(0.36, 0.36, 0.05), WHITE)
 	marker.rotation.z = PI * 0.25
+	box(Vector3(0, 0, 0.6), Vector3(0.72, 0.72, 1.0), ME, marker)
 	vpool.clear()
 	for i in POOL_N:
 		var m := box(Vector3(0, -80, 0), Vector3.ONE, WHITE)
@@ -866,10 +1215,7 @@ func _reset() -> void:
 		var m := box(Vector3(0, -80, 0), Vector3(0.28, 0.28, 0.28), WHITE)
 		m.visible = false
 		bits.append({"node": m, "v": Vector3.ZERO, "life": 0.0})
-	clouds.clear()
-	for i in 4:
-		var m := box(Vector3(0, 0, -22.0), Vector3(gen.randf_range(5.0, 9.0), 1.4, 1.0), WHITE)
-		clouds.append({"node": m, "x": i * 17.0 + randf() * 6.0, "y": 13.0 + randf() * 7.0})
+	clouds.clear()  # no slab clouds: the watercolor backdrop has its own (slabs read as stray UI tabs)
 	winds.clear()
 	for i in 5:
 		var m := box(Vector3(0, -80, 4.0), Vector3(2.5, 0.06, 0.06), WHITE)
@@ -898,16 +1244,25 @@ func _reset() -> void:
 	_restore_labels()
 	_build_course()
 	_start_round()
-	# 모드 고르기: 버튼 셋
-	phase = "mode"
-	_mode_buttons()
+	# Title over the live course-1 diorama (PLAY -> mode cards, first run -> tutorial)
+	if skip_title:
+		skip_title = false
+		menus.hide_all()
+		phase = "title"
+	else:
+		_open_title()
+	_kit_live(false)
+	# Frame the start grid from the very first frame (the how-to card freezes _step).
+	_cam_snap()
+	_draw_all()
 
 
 func _pick_mode(n: String) -> void:
 	mode = "base" if n == "jump" else ("lantern" if n == "drop" else "over")
-	_btns["mode_over"].r = 0.0
-	_btns["lang"].r = 0.0
-	_btns["lang"].label = ""
+	tut_crate_x = -1.0
+	if front and front.state == "title":
+		front.hide_title()
+	menus.hide_all()
 	play("good")
 	_restore_labels()
 	_kit_clear()
@@ -920,15 +1275,26 @@ func _pick_mode(n: String) -> void:
 func _make_body(r: Courier) -> void:
 	r.node = Node3D.new()
 	world.add_child(r.node)
-	var skins := ["courier_coral", "courier_blue", "courier_mint", "courier_gold"]
-	if _art_model(skins[runners.size() % 4], r.node, Vector3(0, -0.45, 0), 1.5):
+	var skins := ["courier_blue", "courier_coral", "courier_mint", "courier_gold"]  # runner 0 = you = blue
+	if _art_model(skins[runners.size() % 4], r.node, Vector3(0, -0.45, 0), BODY_H):
 		r.art = r.node.get_child(r.node.get_child_count() - 1)
+		var pending: Array[Node] = [r.art]
+		while not pending.is_empty():
+			var nd: Node = pending.pop_back()
+			if nd is GeometryInstance3D:
+				r.meshes.append(nd as GeometryInstance3D)
+			pending.append_array(nd.get_children())
 	else:
-		box(Vector3.ZERO, Vector3(HW * 2.0, HH * 0.75, 0.8), r.col, r.node)
-		box(Vector3(0, 0.63, 0), Vector3(0.42, 0.36, 0.5), SOFT, r.node)
-		box(Vector3(0.05, 0.88, 0), Vector3(0.6, 0.14, 0.6), WHITE if not r.ai else r.col.darkened(0.2), r.node)
+		r.meshes.append(box(Vector3.ZERO, Vector3(HW * 2.0, HH * 0.75, 0.8), r.col, r.node))
+		r.meshes.append(box(Vector3(0, 0.63, 0), Vector3(0.42, 0.36, 0.5), SOFT, r.node))
+		r.meshes.append(box(Vector3(0.05, 0.88, 0), Vector3(0.6, 0.14, 0.6), WHITE if not r.ai else r.col.darkened(0.2), r.node))
+	for k in 3:
+		var g := box(Vector3(0, -80, 0), Vector3(0.75, 1.3, 0.05), r.col)
+		g.material_override = _fx_mat(r.col.lightened(0.15), 0.4 - k * 0.11)
+		g.visible = false
+		r.ghosts.append(g)
 	for k in LOAD_MAX + 1:
-		var q := box(Vector3(-0.5, -0.2 + k * 0.4, 0), Vector3(0.5, 0.38, 0.6), PARCEL, r.node)
+		var q := box(Vector3(-0.5, -0.2 + k * 0.4, 0), Vector3(0.5, 0.38, 0.6) * VIS_K, PARCEL, r.node)
 		if _art_model("parcel", q, Vector3(0, -0.5, 0), 1.0):
 			q.mesh = null
 		q.visible = false
@@ -954,6 +1320,7 @@ func _build_course() -> void:
 	stage = Node3D.new()
 	world.add_child(stage)
 	cdef = COURSES[ci]
+	_flat_cols[(cdef.gnd as Color).to_html()] = true  # deep ground: no outline seams down the control deck
 	rects.clear()
 	kinds = PackedInt32Array()
 	ramp_of.clear()
@@ -987,9 +1354,8 @@ func _build_course() -> void:
 	gx = 4.0
 	if ci == 0 and rnd == 0 and not finale:
 		_floor(gx, 90.0)
-		_sign(1.0, fy + 3.6, "왼쪽 밖: 짐 하나 · 빈손이면 탈락", "Off the left: lose a box · out if empty")
-		_sign(26.0, fy + 3.6, "짐이 많으면 느리지만 안전하다", "More boxes: slower but safer")
-		_sign(52.0, fy + 3.6, "[짐] 하나 버리면 앞으로 튀어나간다", "Drop one [Box] to burst forward")
+		if tut_crate_x > 0.0:
+			_bump(tut_crate_x, fy, 1.0, 1.0, cdef.wall, 0.0, 0.0)  # tutorial: a 1 m crate to jump
 		gx = 94.0
 	if finale:
 		for part in ["ballast", "ballast_mix", "updraft", "updraft_mix", "shutter", "shutter_mix", "dropfloor", "dropfloor_mix"]:
@@ -1201,7 +1567,7 @@ func _seg(s: String) -> void:
 		"river":  # 뒤로 흐르는 바닥 조각들, 사이는 물
 			for k in 3:
 				var w := gen.randf_range(7.0, 10.0)
-				_solid(Rect2(gx, fy - 14.0, w, 14.0), cdef.gnd, 3)
+				_solid(Rect2(gx, fy - 26.0, w, 26.0), cdef.gnd, 3)
 				_vbox(Vector3(gx + w * 0.5, fy - 0.1, 0), Vector3(w, 0.2, 2.5), cdef.top)
 				var marks: Array = []
 				for m in 3:
@@ -1300,7 +1666,7 @@ func _seg(s: String) -> void:
 			_floor(gx, 2.0)
 			gx += 2.0
 			for k in 5:
-				_solid(Rect2(gx, fy - 14.0, 3.4, 14.0), ICE, 5)
+				_solid(Rect2(gx, fy - 26.0, 3.4, 26.0), ICE, 5)
 				_vbox(Vector3(gx + 1.7, fy - 0.08, 0), Vector3(3.4, 0.16, 2.5), WHITE)
 				gx += 3.4
 				if k < 4:
@@ -1347,8 +1713,9 @@ func _danger_edge(x: float, y: float) -> void:
 
 
 func _floor(x: float, w: float) -> void:
-	_solid(Rect2(x, fy - 14.0, w, 14.0), cdef.gnd, 0)
+	_solid(Rect2(x, fy - 26.0, w, 26.0), cdef.gnd, 0)  # deep: the ground fills the bottom of the screen
 	_vbox(Vector3(x + w * 0.5, fy - 0.1, 0), Vector3(w, 0.2, 2.5), cdef.top)
+	_vbox(Vector3(x + w * 0.5, fy - 1.6, 1.26), Vector3(w, 0.16, 0.04), cdef.gnd.darkened(0.12))  # cut-paper layer line
 
 
 func _plat(x: float, top: float, w: float, c: Color) -> void:
@@ -1479,6 +1846,17 @@ func _start_round() -> void:
 		r.poof.visible = false
 		r.sq = 0.0
 		r.node.scale = Vector3.ONE
+		r.sway = 0.0
+		r.sway_v = 0.0
+		r.jig = 0.0
+		r.jig_v = 0.0
+		r.pvx = 0.0
+		r.trail = 0.0
+		r.out_t = 0.0
+		if r.flash > 0.0:
+			r.flash = 0.0
+			for g in r.meshes:
+				g.material_overlay = null
 		if r.ai:
 			var lv := ci * 0.6  # 코스 6개를 예전 4개 난이도 폭에 맞춘다
 			r.skill = 0.93 + 0.025 * lv + (runners.find(r) - 2) * 0.02
@@ -1513,6 +1891,7 @@ func _start_round() -> void:
 		_put_parcel(spots[i], null)
 	rt = 0.0
 	lead_t = 0.0
+	lead_said = false
 	lean = 0.0
 	dark_t = 0.0
 	dark_on = false
@@ -1520,18 +1899,16 @@ func _start_round() -> void:
 	curtain.visible = false
 	fresh = false
 	hwv = _want_w()
-	camx = 0.0
-	camy = 2.0
+	_cam_snap()
 	phase = "count"
 	pt = 1.4
+	if menus:
+		menus.countdown_tick(0)
 	danger = false
 	bearer = null
 	hold_acc = 0.0
 	was_bearer = false
-	if twist != "":
-		_tell("%s %d판: %s" % [TWISTS[twist][0], rnd, TWISTS[twist][1]], "%s, round %d: %s" % [TWISTS_EN[twist][0], rnd, TWISTS_EN[twist][1]], 2.4)
-	else:
-		_tell("%s: %s" % [cdef.name, cdef.say], "%s: %s" % [COURSES_EN[ci][0], COURSES_EN[ci][1]], 2.4)
+	# no round-start sentence: the route card and the world signs already explain the twist / course
 	beep(440.0, 0.12)
 
 
@@ -1542,10 +1919,14 @@ func _put_parcel(at: Vector2, who: Courier) -> void:
 			pc.p = at
 			pc.owner = who
 			pc.cd = 0.8 if who else 0.0
+			pc.fly = 0.0
 			var n: Node3D = pc.node
 			n.visible = true
 			n.position = Vector3(at.x, at.y + 0.25, 0)
+			n.rotation = Vector3.ZERO
+			last_put = pc
 			return
+	last_put = {}
 
 
 func _step(dt: float) -> void:
@@ -1555,11 +1936,11 @@ func _step(dt: float) -> void:
 			var before := pt
 			pt -= dt
 			if before > 0.7 and pt <= 0.7:
-				_sfx("go")
+				menus.countdown_tick(1)  # SET: the stamp thud only
 			if pt <= 0.0:
 				phase = "race"
-				_stamp("배송 출발", "OUT FOR DELIVERY", ST_INK, null, 0.6)
-				play("good")
+				menus.countdown_tick(2)
+				_sfx("go")  # the whistle on the real start
 		"race":
 			rt += dt
 			journey_time += dt
@@ -1569,33 +1950,32 @@ func _step(dt: float) -> void:
 			pt -= dt
 			if pt <= 0.0:
 				_after_round()
-		"perk":
-			for n in ["jump", "drop"]:
-				if kit_just(n):
-					_pick_perk(n)
-					break
-		"mode":
-			if kit_just("lang"):
-				_set_lang("en" if lang == "ko" else "ko")
-				play("good")
-			for n in ["jump", "drop", "mode_over"]:
-				if kit_just(n):
-					_pick_mode(n)
-					break
-		"route":
-			for n in ["jump", "drop"]:
-				if kit_just(n):
-					_pick_route(n)
-					break
+		"title":
+			# couriers jog in place behind the logo
+			var tj := Time.get_ticks_msec() * 0.012
+			for r in runners:
+				r.sq = 0.06 * sin(tj + r.col.r * 9.0)
+		"tutorial":
+			pl.mx = kit_move.x
+			pl.i_jump = kit_just("jump")
+			pl.i_jheld = kit_held("jump")
+			pl.i_drop = kit_just("drop")
+			_runner(pl, dt)
+			pl.p.x = minf(pl.p.x, 80.0)  # stay on the opening flat
+			if pl.p.y < kill_y:
+				pl.p = Vector2(camx, 2.0)
+				pl.v = Vector2.ZERO
+		"perk", "mode", "route":
+			pass  # the paper cards (sr_menus) emit the choice
 	_update_parcels(dt)
-	if mode == "lantern" and phase != "mode":
+	if mode == "lantern" and phase != "mode" and phase != "title" and phase != "tutorial":
 		_pass_lantern()
 		_lantern(dt)
 		_lights()
 	_camera(dt)
 	_draw_all()
 	if mode_l:
-		mode_l.text = L("세 가지 배달 · 버튼을 눌러 선택", "Three deliveries · tap one") if phase == "mode" else L("%s · %s %d판 · 짐 %d", "%s · %s · R%d · Box %d") % [_mode_name(mode), L("마지막 배달", "Final Delivery") if finale else _cname(ci), rnd, pl.cargo]
+		mode_l.text = "" if phase == "mode" else L("%s · %s %d판 · 짐 %d", "%s · %s · R%d · Box %d") % [_mode_name(mode), L("마지막 배달", "Final Delivery") if finale else _cname(ci), rnd, pl.cargo]
 	_update_content_hud()
 	if phase != "perk" and phase != "route" and phase != "mode" and _btns.has("drop"):
 		_btns["drop"].label = L("짐 %d", "Box %d") % pl.cargo
@@ -1625,20 +2005,28 @@ func _race(dt: float) -> void:
 		return
 	# 화면 왼쪽 끝: 짐이 있으면 하나 내주고 버틴다, 없으면 탈락
 	var left := camx - hwv
+	# fall-out line kept on the old framing (leader + 2 - vhv - 1), not the feet-at-FEET_Y camera
+	var fall_y := camy - (vhv * _feet_k() - 2.0) - vhv - 1.0
 	for r in runners:
 		if not r.alive:
 			continue
-		if r.p.y < kill_y or r.p.y < camy - vhv - 1.0:
+		if r.p.y < kill_y or r.p.y < fall_y:
 			_out(r, "분실", "MISSING")
 		elif _opening() and r.p.x + HW < left + 0.15:
-			r.p.x = left + 1.0
+			r.p.x = left + 0.16 - HW  # soft wall: no teleport
+			r.v.x = maxf(r.v.x, 0.0)
+			if r == pl:
+				edge_flap = maxf(edge_flap, 0.3)
 		elif r.p.x + HW < left + 0.15:
 			if r.immune > 0.0 and r.p.x + HW > left - 2.0:
 				pass
 			elif r.cargo > 0 and r.immune <= 0.0:
+				_edge_moment(r, r == pl)
 				_shove(r, left)
 			else:
+				_edge_moment(r, r == pl or _leader() == pl)
 				_out(r, "반송", "RETURN TO SENDER")
+				r.out_v = Vector3(-8.0, 8.0, 5.0)  # tumbles out of the page, past the edge
 	if mode == "lantern":
 		_fog_check(dt)
 	if phase != "race":
@@ -1663,8 +2051,9 @@ func _race(dt: float) -> void:
 		_lantern_hud(dt)
 	elif _leader() == pl:
 		if lead_t == 0.0:
-			_stamp("1등석", "FIRST CLASS", ST_GOOD)
-			_tell_once("lead", "선두는 빠를수록 앞 시야가 짧다", "In the lead, speed shortens your view")
+			if not lead_said and not _opening():
+				lead_said = true
+				_stamp("1등석", "FIRST CLASS", ST_GOOD)
 			beep(900.0, 0.1, 1400.0, 0.2)
 		lead_t += dt
 		if lean > 0.35 and pl.grounded:
@@ -1697,7 +2086,6 @@ func _race(dt: float) -> void:
 	if wi and not wind_in:
 		beep(320.0, 0.4, 160.0, 0.2)
 		_stamp("맞바람", "HEADWIND", ST_INK)
-		_tell_once("wind", "맞바람. 앞사람 뒤에 붙으면 바람이 없다", "Headwind. Tuck in behind someone")
 	wind_in = wi
 	var on_ice := pl.grounded and pl.sup == 5
 	if on_ice and not was_ice:
@@ -1779,9 +2167,11 @@ func _train_hit(r: Courier) -> void:
 	r.sq = -0.4
 	_burst(Vector3(r.p.x, r.p.y + 0.8, 0.6), 6, PARCEL if r.cargo > 0 else r.col)
 	_sfx("damaged", r)
+	_hit_flash(r, true)
 	if r == pl:
 		shk = 0.6
 	if r.cargo > 0:
+		_toss_box(r, Vector3(-6.0, 9.0, 2.0))
 		r.cargo -= 1
 		if r == pl:
 			_stamp("운송 사고", "LOST IN TRANSIT", ST_BAD)
@@ -1800,7 +2190,6 @@ func _crack(i: int, r: Courier) -> void:
 	if r == pl and not bridge_said:
 		bridge_said = true
 		_stamp("중량 초과", "OVERWEIGHT", ST_BAD)
-		_tell_once("bridge", "무거우면 밟은 판이 무너진다", "Too heavy: planks give way under you")
 
 
 func _boards(dt: float) -> void:
@@ -1841,12 +2230,16 @@ func _burst(at: Vector3, n: int, c: Color) -> void:
 
 
 func _shove(r: Courier, left: float) -> void:
+	_toss_box(r, Vector3(-7.0, 8.0, 2.5))
 	r.cargo -= 1
 	r.immune = 0.7
+	var x0 := r.p.x
 	_mx(r, left + HW + 0.6 - r.p.x)
+	r.vis_dx -= r.p.x - x0  # the body slides back onto the page instead of popping forward
 	r.v.x = maxf(r.v.x, 8.0)
 	_sfx("damaged", r)
 	_burst(Vector3(r.p.x - 0.5, r.p.y + 1.0, 0.6), 3, PARCEL)
+	_hit_flash(r, true)
 	r.sq = -0.35
 	if r == pl:
 		shk = maxf(shk, 0.35)
@@ -1858,7 +2251,12 @@ func _shove(r: Courier, left: float) -> void:
 
 func _out(r: Courier, ko: String, en: String) -> void:
 	r.alive = false
-	r.node.visible = false
+	# tumbles off "out of the page" for a moment instead of vanishing (see _draw_all)
+	r.node.visible = r.p.y > camy - vhv
+	r.out_t = 0.7
+	r.out_p = Vector3(r.p.x, r.p.y + HH * 0.375, 0.0)
+	r.out_v = Vector3(-5.0, 9.0, 4.0)
+	r.trail = 0.0
 	r.poof.visible = true
 	r.poof_t = 0.5
 	r.poof.position = Vector3(clampf(r.p.x, camx - hwv + 0.6, camx + hwv), maxf(r.p.y, camy - vhv + 2.0), 0.5)
@@ -1869,8 +2267,7 @@ func _out(r: Courier, ko: String, en: String) -> void:
 		_stamp(ko, en, ST_BAD, null, 1.2)
 	else:
 		_sfx("returned", r)
-		shk = maxf(shk, 0.25)
-		_stamp("%s 배송 취소" % r.nick, "%s CANCELLED" % r.nick_en.to_upper(), ST_INK, r)
+		shk = maxf(shk, 0.25)  # poof + burst + sound say it; no rival stamp over the player's own
 
 
 func _round_over(w: Courier) -> void:
@@ -1895,6 +2292,9 @@ func _round_over(w: Courier) -> void:
 		score += 10 + 5 * pl.cargo
 		play("win")
 		_stamp("배달 완료 · %d" % pl.cargo, "DELIVERED · %d" % pl.cargo, ST_GOOD, null, 1.4)
+		_burst(Vector3(pl.p.x, pl.p.y + 1.2, 0.6), 8, P_GREEN)
+		_burst(Vector3(goal_x, pl.p.y + 3.0, 0.6), 6, P_GOLD)
+		shk = maxf(shk, 0.15)
 	else:
 		_sfx("lost")
 		_stamp("%s 먼저 도착" % w.nick, "%s ARRIVED FIRST" % w.nick_en.to_upper(), ST_BAD, w, 1.4)
@@ -1907,16 +2307,14 @@ func _after_round() -> void:
 		if ci >= COURSES.size() - 1:
 			_start_finale()
 			return
-		play("win")
 		var pool := []
 		for k in PERKS:
 			if not taken.has(k):
 				pool.append(k)
 		pool.shuffle()
 		perk_offer = pool.slice(0, 2)
-		_btns["jump"].label = _perk(perk_offer[0])
-		_btns["drop"].label = _perk(perk_offer[1])
 		phase = "perk"
+		menus.show_perks(perk_offer)
 		return
 	for r in runners:
 		if r.ai and r.wins >= WINS:
@@ -1930,9 +2328,8 @@ func _after_round() -> void:
 			routes.append(k)
 	routes.shuffle()
 	route_offer = routes.slice(0, 2)
-	_btns["jump"].label = _tw(route_offer[0], 0)
-	_btns["drop"].label = _tw(route_offer[1], 0)
 	phase = "route"
+	menus.show_routes(route_offer, pl.cargo)
 
 
 func _pick_route(n: String) -> void:
@@ -1955,8 +2352,6 @@ func _pick_perk(n: String) -> void:
 		"가벼운 상자": load_w = 0.6
 		"단단한 몸": knock_mul = 0.5
 	play("good")
-	_stamp("특전 받음", "UPGRADED", ST_GOOD, null, 1.0)
-	_tell("%s: %s" % [k, PERK_SAY[k]], "%s: %s" % [PERK_EN[k][0], PERK_EN[k][1]], 2.0)
 	_restore_labels()
 	_kit_clear()
 	ci += 1
@@ -2067,6 +2462,7 @@ func _runner(r: Courier, dt: float) -> void:
 		_sfx("land", r, -6.0 + clampf(-vy0 / 6.0, 0.0, 6.0))
 		if vy0 < -15.0 and absf(r.p.x - camx) < hwv + 2.0:
 			_burst(Vector3(r.p.x, r.p.y + 0.1, 0.6), 2, cdef.top)
+		_land_fx(r, vy0)
 	r.sq = move_toward(r.sq, 0.0, dt * 2.5)
 	if r.grounded and r.sup == 1:
 		r.v.y = PAD_V * (1.0 - LOAD_JUMP * _weight(r))
@@ -2085,12 +2481,19 @@ func _drop(r: Courier) -> void:
 	r.v.x = maxf(r.v.x, 32.0 if _overpowered(r) else DASH_V)
 	var x := r.p.x - r.face * 1.2
 	var y := _floor_top(x, r.p.y + 0.5)
+	var from := Vector3(r.p.x - r.face * 0.5, r.p.y + 0.6 + r.cargo * 0.4, 0.0)
 	if y > r.p.y - 6.0:
 		_put_parcel(Vector2(x, y), r)
+		if not last_put.is_empty():  # the dropped box flies back spinning to where it lands
+			last_put.fly = 0.32
+			last_put.from = from
+			(last_put.node as Node3D).position = from
+	r.trail = DASH_T + 0.3
 	_sfx("express", r)
 	if r == pl:
 		shk = maxf(shk, 0.15)
-		_stamp("속달", "EXPRESS", ST_GOOD)
+		fov_kick = maxf(fov_kick, 0.08)
+		fx_radial = 0.35
 
 
 func _box(r: Courier) -> Rect2:
@@ -2160,7 +2563,6 @@ func _mx(r: Courier, dx: float) -> void:
 			if kinds[i] == 6 and r == pl and gate_said <= 0.0:
 				gate_said = 1.2
 				_stamp("규격 초과", "OVERSIZE", ST_BAD)
-				_tell("낮은 문은 짐 %d개까지만 지나간다" % GATE_MAX, "Only %d boxes fit under the gate" % GATE_MAX)
 				_sfx("gate")
 			if r.grounded and q.end.y - r.p.y <= STEP:
 				r.p.y = q.end.y
@@ -2173,6 +2575,7 @@ func _mx(r: Courier, dx: float) -> void:
 			if absf(r.v.x) > 12.0:
 				_sfx("bump", r, -2.0)
 				r.sq = -0.3
+				_hit_flash(r, false)
 				if r == pl:
 					_burst(Vector3(r.p.x + HW, r.p.y + 0.8, 0.6), 2, cdef.wall)
 					shk = maxf(shk, 0.3)
@@ -2305,7 +2708,7 @@ func _pickups() -> void:
 				(pc.node as Node3D).visible = false
 				_sfx("pickup", r)
 				if r == pl:
-					_stamp("수령", "RECEIVED", ST_GOOD)
+					pop_num(r, "+1", P_GREEN)
 				break
 
 
@@ -2313,7 +2716,20 @@ func _update_parcels(dt: float) -> void:
 	for pc in parcels:
 		if pc.on:
 			pc.cd = maxf(pc.cd - dt, 0.0)
-			(pc.node as Node3D).rotation.y += dt * 1.5
+			var n: Node3D = pc.node
+			var fly: float = pc.fly
+			if fly > 0.0:  # dropped box arcs back, spinning, then settles where it can be picked up
+				fly = maxf(fly - dt, 0.0)
+				pc.fly = fly
+				var u := 1.0 - fly / 0.32
+				var pp: Vector2 = pc.p
+				var to := Vector3(pp.x, pp.y + 0.25, 0.0)
+				var from: Vector3 = pc.from
+				n.position = from.lerp(to, u) + Vector3(0.0, sin(u * PI) * 1.3, 0.0)
+				n.rotation.z = u * TAU * 1.25
+				if fly <= 0.0:
+					n.rotation.z = 0.0
+			n.rotation.y += dt * 1.5
 
 
 func _leader() -> Courier:
@@ -2441,43 +2857,142 @@ func _camera(dt: float) -> void:
 		if mode == "lantern" and bearer and bearer.alive:
 			tx = lerpf(bearer.p.x, light_c, 0.3)  # 등불 모드: 화면은 등불 빛 쪽으로
 		camx = lerpf(camx, tx - hwv * lerpf(-0.18, 0.32, lean), k)
-		camy = lerpf(camy, lead.p.y + 2.0, 1.0 - exp(-4.0 * dt))
-	cam.fov = rad_to_deg(2.0 * atan(hwv / CAM_D))
+		# feet land at FEET_Y: more sky / shortcuts above, little dirt above the control deck
+		camy = lerpf(camy, lead.p.y + vhv * _feet_k(), 1.0 - exp(-4.0 * dt))
+	fov_kick = lerpf(fov_kick, 0.0, 1.0 - exp(-5.0 * dt))
+	cam_nudge = lerpf(cam_nudge, 0.0, 1.0 - exp(-5.0 * dt))
+	_cam_apply()
+
+
+## Camera vertical offset (in half-heights) that puts the leader's feet at FEET_Y.
+func _feet_k() -> float:
+	var h := get_viewport().get_visible_rect().size.y * 0.5
+	return (FEET_Y - h) / maxf(h, 1.0)
+
+
+## FOV kick only widens the view and the nudge only moves the lens: the kill line is still
+## camx - hwv, and the torn edge is drawn at its projected screen x (edge_screen_x), so it stays honest.
+func _cam_apply() -> void:
+	cam.fov = rad_to_deg(2.0 * atan(hwv * (1.0 + fov_kick) / CAM_D))
 	cam.rotation = Vector3.ZERO
-	cam.position = Vector3(camx + randf_range(-1.0, 1.0) * shk * 0.4, camy + randf_range(-1.0, 1.0) * shk * 0.4, CAM_D)
+	cam.position = Vector3(camx + cam_nudge + randf_range(-1.0, 1.0) * shk * 0.4, camy + randf_range(-1.0, 1.0) * shk * 0.4, CAM_D)
+
+
+## Put the camera on the start grid right away (no lerp): used at round start and on reset.
+func _cam_snap() -> void:
+	var vs := get_viewport().get_visible_rect().size
+	vhv = hwv * vs.y / maxf(vs.x, 1.0)
+	fov_kick = 0.0
+	cam_nudge = 0.0
+	lean = 0.0
+	var lead := _leader()
+	if lead:
+		camx = lead.p.x + hwv * 0.18
+		camy = lead.p.y + vhv * _feet_k()
+	_cam_apply()
 
 
 func _draw_all() -> void:
 	var tm := Time.get_ticks_msec() * 0.001
+	var fdt := minf(get_process_delta_time(), 0.05)
+	var base_s := (CAM_D - ZR) / CAM_D if mode == "lantern" else 1.0
 	for r in runners:
 		r.poof.visible = r.poof_t > 0.0
 		if r.poof_t > 0.0:
 			r.poof_t -= get_process_delta_time()
 			var s := 1.0 + (0.5 - r.poof_t) * 6.0
 			r.poof.scale = Vector3(s, s, s)
+		if r.flash > 0.0:
+			r.flash -= fdt
+			if r.flash <= 0.0:
+				for g in r.meshes:
+					g.material_overlay = null
 		if not r.alive:
 			for s2 in r.streaks:
 				s2.visible = false
 			for q in r.pips:
 				q.visible = false
+			for g in r.ghosts:
+				g.visible = false
+			r.fire.visible = false
+			# knocked out: spin and fall "out of the page" past the edge
+			if r.out_t > 0.0:
+				r.out_t -= fdt
+				r.out_v.y -= GRAV * 0.8 * fdt
+				r.out_p += r.out_v * fdt
+				r.node.position = _fz(r.out_p.x, r.out_p.y, r.out_p.z)
+				r.node.rotation.z += fdt * 13.0
+				r.node.rotation.x += fdt * 5.0
+				r.node.scale = Vector3.ONE * base_s * (1.0 + (0.7 - r.out_t) * 0.35)
+				if r.out_t <= 0.0:
+					r.node.visible = false
 			continue
 		var spd := absf(r.v.x)
-		var bob := sin(tm * (8.0 + spd)) * 0.06 if r.grounded and spd > 1.0 else 0.0
-		r.node.position = _fz(r.p.x, r.p.y + HH * 0.375 + bob)
-		if mode == "lantern":
-			r.node.scale = Vector3.ONE * ((CAM_D - ZR) / CAM_D)
-		r.node.rotation.z = -clampf(r.v.x * 0.012, -0.2, 0.2)
+		# run cycle bob + forward lean by speed; idle breathing when nearly stopped
+		var run_k := clampf(spd / 8.0, 0.0, 1.0)
+		if r.grounded and spd > 1.0:
+			r.run_ph += fdt * (6.0 + spd * 0.9)
+		var bob := absf(sin(r.run_ph)) * 0.1 * run_k if r.grounded and spd > 1.0 else 0.0
+		var sq := r.sq
+		if not r.grounded:
+			sq = minf(sq, -clampf(absf(r.v.y) / 70.0, 0.0, 0.14))  # stretch in flight
+		var sy := 1.0 - sq * 0.45
+		var sx := 1.0 + sq * 0.35
+		if r.grounded and spd < 1.0:
+			sy += sin(tm * 3.2 + r.col.r * 6.0) * 0.022
+		r.vis_dx = lerpf(r.vis_dx, 0.0, 1.0 - exp(-18.0 * fdt))
+		r.node.position = _fz(r.p.x + r.vis_dx, r.p.y + HH * 0.375 * sy + bob)
+		r.node.scale = Vector3(sx, sy, sx) * base_s
+		var lean_z := -clampf(r.v.x * (0.022 if r.grounded else 0.012), -0.3, 0.3)
+		if r.grounded and spd > 1.0:
+			lean_z += sin(r.run_ph * 2.0) * 0.035 * run_k
+		r.node.rotation.z = lean_z
 		if r.art:
 			r.art.rotation.y = 0.0 if r.face > 0.0 else PI
 		r.node.visible = r.immune <= 0.0 or fmod(tm, 0.12) < 0.08
 		if mode == "lantern" and r.lost > 0.3 and fmod(tm, 0.2) > 0.13:
 			r.node.visible = false  # 길을 잃어 가면 깜빡인다
+		# parcel stack: spring-damper lag behind acceleration, squash-jiggle on landing
+		if fdt > 0.0:
+			var ax := clampf((r.v.x - r.pvx) / fdt, -250.0, 250.0)
+			r.pvx = r.v.x
+			r.sway_v += (-120.0 * r.sway - 9.0 * r.sway_v - ax * 0.035) * fdt
+			r.sway = clampf(r.sway + r.sway_v * fdt, -0.22, 0.22)
+			r.jig_v += (-160.0 * r.jig - 11.0 * r.jig_v) * fdt
+			r.jig = clampf(r.jig + r.jig_v * fdt, -0.3, 0.3)
 		for k in r.packs.size():
 			var q := r.packs[k]
 			q.visible = k < r.cargo
-			q.position.x = -0.5 * r.face
+			if q.visible:
+				var hk := float(k + 1)
+				q.position.x = -0.5 * VIS_K * r.face + r.sway * hk * 0.45
+				q.position.y = -0.12 + k * 0.4 * VIS_K * (1.0 + r.jig)
+				q.rotation.z = -r.sway * hk * 0.5
+		# dash afterimages
+		r.trail = maxf(r.trail - fdt, 0.0)
+		for k in r.ghosts.size():
+			var g := r.ghosts[k]
+			g.visible = r.trail > 0.0 and r.node.visible
+			if g.visible:
+				var f := clampf(r.trail / 0.3, 0.0, 1.0)
+				var gp := _fz(r.p.x - r.face * (0.6 + k * 0.65) * (0.5 + 0.5 * f), r.p.y + BODY_H * 0.5)
+				gp.z -= 0.25 + k * 0.05
+				g.position = gp
+				g.rotation.z = lean_z
+				g.scale = Vector3(0.75 * VIS_K, 1.3 * VIS_K, 0.05) * (0.55 + 0.45 * f) * (1.0 - k * 0.1) * base_s
+		# running dust: paper scraps behind the feet, more with speed and when climbing ramps
+		if r.grounded and spd > 4.0 and absf(r.p.x - camx) < hwv + 1.0 and fdt > 0.0:
+			var climb := r.slope * signf(r.v.x) > 0.05
+			r.dust_t -= fdt * (1.7 if climb else 1.0)
+			if r.dust_t <= 0.0:
+				var fk := clampf((spd - 4.0) / 12.0, 0.0, 1.0)
+				r.dust_t = lerpf(0.2, 0.06, fk) * (1.0 if r == pl else 1.8)
+				var back := -signf(r.v.x)
+				_dust_emit(Vector3(r.p.x + back * 0.3, r.p.y + 0.08, 0.5),
+					Vector3(back * randf_range(1.0, 2.5 + spd * 0.15), randf_range(1.2, 3.0), randf_range(-0.5, 1.0)),
+					P_KRAFT if climb else WHITE)
 		r.fire.visible = r.dash > 0.0
-		r.fire.position.x = -0.9 * r.face
+		r.fire.position.x = -1.1 * r.face
 		r.fire.scale.x = 0.9 + sin(tm * 50.0) * 0.3
 		var ln := clampf((spd - 10.0) * 0.6, 0.0, 4.0)
 		for k in 3:
@@ -2490,9 +3005,15 @@ func _draw_all() -> void:
 		for k in r.pips.size():
 			var q := r.pips[k]
 			q.visible = k < r.wins
-			q.position = _fz(r.p.x - 0.15 + k * 0.3, r.p.y + HH + 0.55)
-	marker.visible = pl.alive
-	marker.position = _fz(pl.p.x, pl.p.y + HH + 1.1 + sin(tm * 5.0) * 0.12)
+			q.position = _fz(r.p.x - 0.15 + k * 0.3, r.p.y + BODY_H + 0.35)
+	marker.visible = pl.alive and MARKER_PHASES.has(phase)
+	if marker.visible:
+		# box() keeps the mesh size in scale: keep the 0.36 base so it stays ~30 px at any view width
+		var mk := maxf(0.36 * (hwv / NARROW) * 0.8, 0.6)
+		marker.scale = Vector3(mk, mk, 0.05)
+		# just above the head / top box of the stack (whichever is higher), never floating among posts
+		var stack_top := 0.33 + 0.4 * VIS_K * pl.cargo
+		marker.position = _fz(pl.p.x, pl.p.y + maxf(BODY_H, stack_top) + 0.3 + mk * 0.5 + sin(tm * 5.0) * 0.06)
 	# 흐르는 바닥 눈금 (뒤로 흐른다)
 	for fl in flows:
 		var w: float = fl.w
@@ -2515,6 +3036,39 @@ func _draw_all() -> void:
 			m.position += bv * dt
 			m.rotation.z += dt * 9.0
 			m.visible = b.life > 0.0
+	# running / landing dust scraps
+	for d in dust:
+		var life: float = d.life
+		if life <= 0.0:
+			continue
+		life -= dt
+		d.life = life
+		var dm: MeshInstance3D = d.node
+		if life <= 0.0:
+			dm.visible = false
+			continue
+		var dv: Vector3 = d.v
+		dv.y -= 9.0 * dt
+		dv *= maxf(1.0 - 2.5 * dt, 0.0)
+		d.v = dv
+		dm.position += dv * dt
+		dm.rotation.z += dt * 8.0
+		dm.scale = Vector3(0.22, 0.14, 0.04) * (0.35 + 0.65 * life / float(d.max))
+	# lost boxes tumbling away
+	for tb in tosses:
+		var tl: float = tb.life
+		if tl <= 0.0:
+			continue
+		tl -= dt
+		tb.life = tl
+		var tn: Node3D = tb.node
+		var tv: Vector3 = tb.v
+		tv.y -= GRAV * 0.8 * dt
+		tb.v = tv
+		tn.position += tv * dt
+		tn.rotation.z += dt * 11.0
+		tn.rotation.x += dt * 4.0
+		tn.visible = tl > 0.0
 	# 구름 (천천히 흘러가며 원근으로 느리게 지나간다)
 	var span := hwv * (CAM_D + 22.0) / CAM_D * 2.0 + 16.0
 	for c in clouds:
@@ -2551,11 +3105,8 @@ func _draw_all() -> void:
 			curtain.scale = Vector3(rgt - l, vhv * 2.2, 0.2)
 		else:
 			curtain.visible = false
-	# 왼쪽 화면 끝 경고 띠
-	var ed := pl.p.x - (camx - hwv)
-	edge_strip.visible = phase == "race" and pl.alive and (_opening() or (ed < 4.0 and (ed > 2.0 or fmod(tm, 0.16) < 0.1)))
-	edge_strip.position = Vector3(camx - hwv * k2 + 0.18, camy, 1.6)
-	edge_strip.scale = Vector3(0.35 + maxf(0.0, 4.0 - ed) * 0.1, vhv * 2.0, 0.2)
+	# 왼쪽 화면 끝 경고: the torn paper edge is drawn in screen space by _fx_draw now
+	edge_strip.visible = false
 
 
 # ---- 밤 등불 모드 ----
@@ -2630,13 +3181,14 @@ func _fog_check(dt: float) -> void:
 			continue
 		r.lost = 0.0
 		if r.cargo > 0:
+			_toss_box(r, Vector3(-3.0, 6.0, 1.0))
 			r.cargo -= 1
 			_burst(Vector3(r.p.x - 0.5, r.p.y + 1.0, 0.6), 3, PARCEL)
 			_sfx("damaged", r)
+			_hit_flash(r, true)
 			if r == pl:
 				shk = maxf(shk, 0.3)
 				_stamp("분실", "MISPLACED", ST_BAD)
-				_tell("안개에 짐 하나를 잃었다. 빛 안으로 돌아가라", "Lost a box in the fog. Back to the light", 1.6)
 		else:
 			_out(r, "주소 불명", "ADDRESS UNKNOWN")
 
@@ -2649,11 +3201,9 @@ func _lantern_hud(dt: float) -> void:
 			score += 1
 		if not was_bearer:
 			_stamp("야간 배송", "NIGHT POST", ST_GOOD)
-			_tell_once("lamp", "등불을 들고 빨리 달리면 앞이 안 보인다", "Run fast with the lantern, see less ahead")
 			beep(990.0, 0.1, 1480.0, 0.24)
 	elif was_bearer and pl.alive:
 		_stamp("가로챔", "HIJACKED", ST_BAD)
-		_tell("등불을 뺏겼다. 빛 안에 붙어라", "Lantern taken. Stay inside the light", 1.6)
 		beep(500.0, 0.2, 260.0, 0.22)
 	if pl.lost > 0.0 and radar_t <= 0.0:
 		var safe := 1.0 - pl.lost / LOST_T
@@ -2709,3 +3259,344 @@ func _draw_lantern() -> void:
 			var r := camx + (gaps[k].y - camx) * kf
 			m.position = Vector3((l + r) * 0.5, camy, ZF)
 			m.scale = Vector3(maxf(r - l, 0.01), vhv * 2.6, 0.1)
+
+
+# ---- speed feel, framing helpers and the "off the screen" moment ----
+# Public hooks for other UI code (HUD, deck): play_rect(), speed_ratio(), edge_danger(),
+# edge_screen_x(), courier_screen(r, h), pop_num(r, text, col).
+
+## The race playfield on screen (HUD above, control deck below).
+func play_rect() -> Rect2:
+	return Rect2(0.0, PF_TOP, 720.0, PF_BOT - PF_TOP)
+
+
+## Player speed feel 0 (cruising) .. 1 (dashing / sliding fast), smoothed.
+func speed_ratio() -> float:
+	return spd_ratio
+
+
+## How close the player is to the left kill edge, 0 far .. 1 at the edge, smoothed.
+func edge_danger() -> float:
+	return edge_warn
+
+
+## Screen x of the kill line (camx - hwv). About 0 normally; moves right during FOV kick / nudge.
+func edge_screen_x() -> float:
+	if cam == null:
+		return 0.0
+	var wp := Vector3(camx - hwv, camy, 0.0)
+	if cam.is_position_behind(wp):
+		return 0.0
+	return cam.unproject_position(wp).x
+
+
+## Screen position of a courier at feet + h world units up (works in Lantern mode too).
+func courier_screen(r: Courier, h := 0.0) -> Vector2:
+	if r == null or cam == null:
+		return Vector2(360, 640)
+	var wp := _fz(r.p.x, r.p.y + h)
+	if cam.is_position_behind(wp):
+		return Vector2(360, 640)
+	return cam.unproject_position(wp)
+
+
+func _fx_mat(c: Color, a: float) -> StandardMaterial3D:
+	var key := "%s_%.2f" % [c.to_html(), a]
+	if not _fx_mats.has(key):
+		var m := StandardMaterial3D.new()
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		m.albedo_color = Color(c, a)
+		_fx_mats[key] = m
+	return _fx_mats[key]
+
+
+func _fx_setup() -> void:
+	var layer := CanvasLayer.new()
+	layer.layer = 0  # over the 3D world, under the HUD / deck / stamps
+	add_child(layer)
+	fx = _FxPad.new()
+	fx.draw_fn = _fx_draw
+	fx.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	fx.position = Vector2.ZERO
+	fx.size = Vector2(720, 1280)
+	layer.add_child(fx)
+	fx_lines.clear()
+	for i in FX_LINES:
+		var ln := {"x": 0.0, "y": 0.0, "len": 0.0, "sp": 1.0, "w": 4.0}
+		_fx_line_respawn(ln, randf_range(0.0, 900.0))
+		fx_lines.append(ln)
+	pops.clear()
+	for i in FX_POPS:
+		pops.append({"on": false, "r": null, "at": Vector2.ZERO, "text": "", "col": Color.WHITE, "age": 0.0, "w": 0.0})
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	tear_off.resize(TEAR_N)
+	for i in TEAR_N:
+		tear_off[i] = rng.randf_range(-5.0, 7.0) + (6.0 if i % 5 == 0 else 0.0)
+	_tear.resize(TEAR_N + 2)
+	_tear_sh.resize(TEAR_N + 2)
+	_tear_ln.resize(TEAR_N)
+
+
+func _fx_line_respawn(ln: Dictionary, x: float) -> void:
+	ln.x = x
+	ln.y = randf_range(180.0, 900.0)  # playfield band only: never over the rail or the control deck
+	ln.len = randf_range(80.0, 220.0)
+	ln.sp = randf_range(0.8, 1.35)
+	ln.w = randf_range(3.0, 6.0)
+
+
+func _fx_tick(dt: float) -> void:
+	# slow motion is timed in real milliseconds and always restored
+	if slowmo_end > 0:
+		var racing := phase == "race" or phase == "roundend"
+		if Time.get_ticks_msec() >= slowmo_end or over or _rating or not racing:
+			Engine.time_scale = 1.0
+			slowmo_last = Time.get_ticks_msec()
+			slowmo_end = 0
+	if over:
+		for r in runners:
+			if not r.alive and r.out_t > 0.0:
+				r.out_t = 0.0
+				r.node.visible = false
+	if fx == null:
+		return
+	var want := 0.0
+	var warn := 0.0
+	var paused := _howto_box != null and _howto_box.visible
+	if pl != null and pl.alive and (phase == "race" or phase == "tutorial") and not paused:
+		want = clampf((absf(pl.v.x) - 8.0) / 8.0, 0.0, 1.0)
+		if pl.dash > 0.0:
+			want = 1.0
+		if wind_in:
+			want = maxf(want, 0.4)
+		var ed := pl.p.x - (camx - hwv)
+		warn = clampf(1.0 - (ed - 0.6) / 4.4, 0.0, 1.0)
+		if tut_skipped and _opening() and rt < 2.0:
+			warn = maxf(warn, 0.85)  # skipped the practice: the torn edge itself shows the one rule
+	spd_ratio = lerpf(spd_ratio, want, 1.0 - exp(-(14.0 if want > spd_ratio else 4.0) * dt))
+	edge_warn = lerpf(edge_warn, warn, 1.0 - exp(-10.0 * dt))
+	edge_flap = maxf(edge_flap - dt * 2.4, 0.0)
+	edge_hit = maxf(edge_hit - dt * 2.8, 0.0)
+	fx_radial = maxf(fx_radial - dt, 0.0)
+	var move := (500.0 + 2200.0 * spd_ratio) * dt
+	for ln in fx_lines:
+		var x: float = ln.x
+		x -= move * float(ln.sp)
+		ln.x = x
+		if x + float(ln.len) < -20.0:
+			_fx_line_respawn(ln, 720.0 + randf_range(0.0, 260.0))
+	for p in pops:
+		if p.on:
+			var age: float = p.age
+			p.age = age + dt
+			if age + dt >= 0.7:
+				p.on = false
+	fx.queue_redraw()
+
+
+## "+1" / "-1" that pops above a courier, rises and fades (0.6 s). Pooled, drawn by _fx_draw.
+func pop_num(r: Courier, text: String, col: Color) -> void:
+	if pops.is_empty():
+		return
+	var slot: Dictionary = pops[0]
+	for p in pops:
+		if not p.on:
+			slot = p
+			break
+		if float(p.age) > float(slot.age):
+			slot = p
+	slot.on = true
+	slot.r = r
+	slot.at = courier_screen(r, HH + 1.0)
+	slot.text = text
+	slot.col = col
+	slot.age = 0.0
+	slot.w = _font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 44).x
+
+
+## Brief white (bump) or red (hurt) flash on the courier meshes + two paper scraps.
+func _hit_flash(r: Courier, red: bool) -> void:
+	if r != pl and absf(r.p.x - camx) > hwv + 1.0:
+		return
+	r.flash = 0.12
+	var m := _fx_mat(P_RED, 0.6) if red else _fx_mat(WHITE, 0.75)
+	for g in r.meshes:
+		g.material_overlay = m
+	_dust_emit(Vector3(r.p.x, r.p.y + 1.0, 0.6), Vector3(randf_range(-3.0, -1.0), randf_range(2.0, 4.0), 1.0), WHITE)
+	_dust_emit(Vector3(r.p.x, r.p.y + 0.8, 0.6), Vector3(randf_range(1.0, 3.0), randf_range(2.0, 4.0), 1.0), P_CREAM)
+
+
+## A lost box flies off the back of the stack, spinning (visual only; cargo is counted elsewhere).
+func _toss_box(r: Courier, v: Vector3) -> void:
+	if tosses.is_empty() or absf(r.p.x - camx) > hwv + 3.0:
+		return
+	var tb: Dictionary = tosses[toss_i]
+	toss_i = (toss_i + 1) % tosses.size()
+	var n: Node3D = tb.node
+	n.position = _fz(r.p.x - r.face * 0.5 * VIS_K, r.p.y + 0.33 + mini(r.cargo, 4) * 0.4 * VIS_K, 0.3)
+	n.rotation = Vector3.ZERO
+	n.visible = true
+	tb.v = v + Vector3(r.v.x * 0.3, 0.0, 0.0)
+	tb.life = 0.9
+
+
+func _dust_emit(at: Vector3, v: Vector3, c: Color) -> void:
+	if dust.is_empty():
+		return
+	var d: Dictionary = dust[dust_i]
+	dust_i = (dust_i + 1) % dust.size()
+	var m: MeshInstance3D = d.node
+	m.position = _fz(at.x, at.y, at.z)
+	m.rotation = Vector3(0.0, 0.0, randf() * TAU)
+	m.material_override = mat(c)
+	m.visible = true
+	d.v = v
+	var life := randf_range(0.3, 0.45)
+	d.max = life
+	d.life = life
+
+
+## Landing: paper puffs to both sides + the parcel stack squashes.
+func _land_fx(r: Courier, vy0: float) -> void:
+	r.jig_v -= clampf(-vy0, 0.0, 30.0) * 0.05
+	if absf(r.p.x - camx) > hwv + 1.0:
+		return
+	var n := 2 if vy0 > -15.0 else 4
+	for k in n:
+		var side := -1.0 if k % 2 == 0 else 1.0
+		_dust_emit(Vector3(r.p.x + side * 0.2, r.p.y + 0.05, 0.5), Vector3(side * randf_range(2.0, 4.0), randf_range(1.0, 2.5), 0.3), WHITE)
+
+
+## THE SIGNATURE MOMENT: someone is pushed off the left edge of the page.
+## strong = slow motion (0.35x for 0.4 real s, throttled) + bigger burst. Player = red edge flash.
+func _edge_moment(r: Courier, strong: bool) -> void:
+	edge_flap = 1.0
+	cam_nudge = minf(cam_nudge, -0.5 if strong else -0.25)
+	var at := Vector3(camx - hwv + 0.3, r.p.y + 1.0, 0.6)
+	_burst(at, 4 if strong else 2, WHITE)
+	for k in (4 if strong else 2):
+		_dust_emit(at + Vector3(0.0, k * 0.3, 0.0), Vector3(randf_range(-4.0, -1.0), randf_range(1.0, 5.0), 1.5), P_CREAM if k % 2 == 0 else P_PARCEL)
+	if r == pl:
+		edge_hit = 1.0
+		shk = maxf(shk, 0.35)
+	var now := Time.get_ticks_msec()
+	if strong and slowmo_end == 0 and now - slowmo_last > 900:
+		slowmo_end = now + SLOWMO_MS
+		Engine.time_scale = SLOWMO
+
+
+func _exit_tree() -> void:
+	Engine.time_scale = 1.0
+
+
+func _fx_draw(c: Control) -> void:
+	if pl == null or cam == null or over:
+		return
+	var tm := Time.get_ticks_msec() * 0.001
+	var racing := phase == "race" or phase == "count" or phase == "roundend" or phase == "tutorial"
+	# 1. speed lines: paper streaks across the playfield, tapering to the right
+	var n := int(roundf(spd_ratio * FX_LINES))
+	if n > 0:
+		var a := 0.1 + 0.45 * spd_ratio
+		var lc := P_BLUE if wind_in else P_NAVY  # ink streaks read on cream sky and kraft ground
+		var py := courier_screen(pl, HH * 0.5).y if pl.alive else -999.0
+		for i in n:
+			var ln: Dictionary = fx_lines[i]
+			var x: float = ln.x
+			var y: float = ln.y
+			var l: float = float(ln.len) * (0.6 + 0.7 * spd_ratio)
+			var w: float = ln.w
+			_quad[0] = Vector2(x, y - w * 0.5)
+			_quad[1] = Vector2(x + l, y - 0.7)
+			_quad[2] = Vector2(x + l, y + 0.7)
+			_quad[3] = Vector2(x, y + w * 0.5)
+			var la := a * (0.3 if absf(y - py) < 55.0 else 1.0)  # keep the player readable
+			c.draw_colored_polygon(_quad, Color(lc, la * 0.35))
+	# slipstream: short blue draft lines hugging the player
+	if racing and pl.alive and pl.slip:
+		var ps := courier_screen(pl, HH * 0.5)
+		for k in 3:
+			var ox := fposmod(tm * 420.0 + k * 37.0, 90.0)
+			var yy := ps.y - 26.0 + k * 22.0
+			c.draw_line(Vector2(ps.x - 30.0 - ox, yy), Vector2(ps.x - 70.0 - ox, yy), Color(P_BLUE, 0.7), 4.0)
+	# 2. EXPRESS radial burst
+	if fx_radial > 0.0 and pl.alive:
+		var t := fx_radial / 0.35
+		var ps2 := courier_screen(pl, HH * 0.5)
+		# a backward cone of thrust lines (not a 360 burst): forward speed, not an explosion
+		for i in 6:
+			var ang := (PI if pl.face > 0.0 else 0.0) + lerpf(-0.45, 0.45, i / 5.0)
+			var d := Vector2(cos(ang), sin(ang))
+			var r0 := 50.0 + (1.0 - t) * 90.0
+			var r1 := r0 + 30.0 + 60.0 * t
+			c.draw_line(ps2 + d * r0, ps2 + d * r1, Color(WHITE, t * 0.9), 2.0 + 5.0 * t)
+	# 3. the torn page edge = the kill line
+	if racing:
+		_fx_draw_edge(c, tm)
+	# 4. floating numbers
+	for p in pops:
+		if not p.on:
+			continue
+		var age: float = p.age
+		var at: Vector2 = p.at
+		var who: Courier = p.r
+		if who != null and who.alive:
+			at = courier_screen(who, HH + 1.0)
+			p.at = at
+		var s := lerpf(1.45, 1.0, clampf(age / 0.1, 0.0, 1.0))
+		var al := 1.0 - clampf((age - 0.45) / 0.25, 0.0, 1.0)
+		var col: Color = p.col
+		var txt: String = p.text
+		var w: float = p.w
+		c.draw_set_transform(at + Vector2(0.0, -70.0 * age / 0.7), 0.0, Vector2(s, s))
+		c.draw_string_outline(_font, Vector2(-w * 0.5, 15.0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 44, 12, Color(WHITE, al))
+		c.draw_string(_font, Vector2(-w * 0.5, 15.0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 44, Color(col, al))
+	c.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+func _fx_draw_edge(c: Control, tm: float) -> void:
+	var ex := edge_screen_x()
+	var top := -10.0
+	var bot := 1290.0
+	# off the page: bare cardboard shows where the page has pulled back (FOV kick / nudge)
+	if ex > 0.5:
+		c.draw_rect(Rect2(-2.0, top, ex + 2.0, bot - top), P_KRAFT_SH)
+	# danger tint + white chevrons pulse faster as the player nears the edge
+	var warn := edge_warn
+	if warn > 0.02 and pl.alive:
+		var pulse := 0.5 + 0.5 * sin(tm * TAU * lerpf(1.5, 6.0, warn))
+		var a := warn * (0.22 + 0.4 * pulse)
+		for i in 6:
+			c.draw_rect(Rect2(ex + i * 14.0, PF_TOP, 14.0, PF_BOT - PF_TOP), Color(P_RED, a * (1.0 - i / 6.0)))
+		var slide := fposmod(tm * (24.0 + 60.0 * warn), 18.0)
+		var ca := clampf(a * 1.8, 0.0, 0.95)
+		for k in 7:
+			var cy := PF_TOP + 60.0 + k * 105.0
+			var cx := ex + 40.0 - slide
+			_chev[0] = Vector2(cx + 11.0, cy - 15.0)
+			_chev[1] = Vector2(cx - 5.0, cy)
+			_chev[2] = Vector2(cx + 11.0, cy + 15.0)
+			c.draw_polyline(_chev, Color(P_NAVY, ca * 0.8), 6.0)
+	if edge_hit > 0.0:
+		c.draw_rect(Rect2(ex, PF_TOP, 70.0, PF_BOT - PF_TOP), Color(P_RED, edge_hit * 0.5))
+		c.draw_rect(Rect2(ex + 70.0, PF_TOP, 70.0, PF_BOT - PF_TOP), Color(P_RED, edge_hit * 0.22))
+	# torn white paper strip with a soft offset shadow; ripples (flaps) after a knock-off
+	var flap := edge_flap
+	var left := ex - 34.0
+	_tear[0] = Vector2(left, top)
+	_tear_sh[0] = Vector2(left, top)
+	for i in TEAR_N:
+		var y := top + (bot - top) * float(i) / float(TEAR_N - 1)
+		var x := ex + 11.0 + tear_off[i] + flap * 16.0 * sin(y * 0.03 - tm * 40.0)
+		x = maxf(x, left + 6.0)
+		_tear[i + 1] = Vector2(x, y)
+		_tear_ln[i] = Vector2(x - 3.0, y)
+		_tear_sh[i + 1] = Vector2(x + 6.0 + flap * 4.0, y + 3.0)
+	_tear[TEAR_N + 1] = Vector2(left, bot)
+	_tear_sh[TEAR_N + 1] = Vector2(left, bot)
+	c.draw_colored_polygon(_tear_sh, Color(P_NAVY, 0.22))
+	c.draw_colored_polygon(_tear, WHITE.lerp(P_RED, edge_hit * 0.5))
+	# the torn edge is the danger line: always a thin red rule, stronger as the player nears it
+	c.draw_polyline(_tear_ln, Color(P_RED, 0.6 + 0.35 * edge_warn), 4.0)
