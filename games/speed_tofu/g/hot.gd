@@ -1,12 +1,16 @@
 extends Tofu
-## 슈퍼핫 1인칭. 내가 움직이는 만큼 시간이 흐른다(조이스틱을 민 만큼, 둘러보면 조금, 쏘거나 치면 잠깐).
-## 왼쪽 조이스틱 = 걷기, 오른쪽 끌기 = 둘러보기, 쏘기 = 가운데 조준점으로 쏘기(적이 가까우면 주먹), 던지기 = 총 던져 무장 해제.
-## 바닥 총은 지나가면 줍는다. 한 방 맞으면 죽고 그 방부터 다시. 방을 다 비우면 SUPER HOT, 다음 방.
+## 슈퍼핫 1인칭이지만 규칙이 다르다: 내 속도가 세상의 시간을 정한다(세상 배율 = 1 / (1 + 내 속도)).
+## 전력 질주하면 적·총알이 거의 멈춘 듯 느리고, 서 있으면 적이 정상 속도로 쏜다. 나는 시간을 멈추는 자가 아니라 너무 빨라서 세상이 느려 보이는 자.
+## 왼쪽 조이스틱 = 달리기(관성 큼, 급정지·급회전 안 됨), 오른쪽 끌기 = 둘러보기, 쏘기 = 조준점으로(가까우면 주먹), 던지기 = 총 던져 무장 해제.
+## 벽에 세게 부딪히면 0.6초 비틀거림(그동안 세상은 정상 속도). 쏠 때 내 속도가 탄에 얹힌다. 한 방 맞으면 그 방부터 다시.
 
 const R := 7.0  # 방 반폭
 const GREY := Color("dfe3e8")
 const NB := 40
 const SPEEDS: Array[float] = [8.0, 26.0, 14.0]  # 적 총알, 내 총알, 던진 총
+const TOP := 8.0  # 내 최고 속도 (m/s)
+const SLOW_K := 1.0  # 세상 배율 = 1 / (1 + 속도 * SLOW_K)
+const CRASH := 4.5  # 이 속도 이상으로 벽에 박으면 비틀거림
 const LEVELS := [
 	{"start": Vector3(0, 0, 5), "gun": 3, "foes": [[Vector3(0, 0, -5), true]], "guns": [], "pillars": [], "queue": []},
 	{"start": Vector3(0, 0, 5), "gun": 0, "foes": [[Vector3(-3, 0, -5), true], [Vector3(3, 0, -5), true], [Vector3(0, 0, -3), false]],
@@ -45,12 +49,13 @@ var bv: Array[Vector3] = []
 var bk: Array[int] = []  # -1 없음, 0 적 총알, 1 내 총알, 2 던진 총
 var bsrc: Array = []
 var pos := Vector3.ZERO
+var vel := Vector3.ZERO  # 내 속도 (수평)
 var yaw := 0.0
 var pitch := 0.0
 var has_gun := false
 var ammo := 0
-var flow := 0.03
-var burst := 0.0
+var flow := 1.0  # 세상 시간 배율
+var stun := 0.0  # 벽에 박은 뒤 비틀거리는 시간
 var die_t := 0.0
 var clear_t := 0.0
 var step_t := 0.0
@@ -59,7 +64,7 @@ var viewgun: MeshInstance3D
 
 
 func _setup() -> void:
-	howto = "내가 움직이는 만큼만 시간이 흐른다.\n왼손 조이스틱은 걷기, 오른쪽을 끌면 둘러보기.\n쏘기는 가운데 조준점으로(가까우면 주먹), 던지기는 총을 던져 무장 해제. 총은 밟으면 줍는다.\n한 방 맞으면 그 방부터 다시. 방을 다 비우면 다음 방."
+	howto = "내가 빠를수록 세상이 느려진다. 서 있으면 적이 제 속도로 쏜다.\n왼손 조이스틱은 달리기(관성이 커서 바로 못 멈춘다), 오른쪽을 끌면 둘러보기.\n쏘기는 가운데 조준점으로(가까우면 주먹), 던지기는 총을 던져 무장 해제. 총은 밟으면 줍는다.\n벽에 세게 박으면 잠깐 비틀거린다. 한 방 맞으면 그 방부터 다시."
 	time_limit = 0.0
 	cam.fov = 72.0
 	viewgun = box(Vector3(0.24, -0.26, -0.55), Vector3(0.08, 0.13, 0.36), INK, cam)
@@ -119,12 +124,13 @@ func _room(i: int) -> void:
 		bsrc.append(null)
 	queue = L.queue.duplicate()
 	pos = L.start
+	vel = Vector3.ZERO
 	yaw = 0.0
 	pitch = -0.08
 	ammo = L.gun
 	has_gun = ammo > 0
-	flow = 0.03
-	burst = 0.0
+	flow = 1.0
+	stun = 0.0
 	die_t = 0.0
 	clear_t = 0.0
 	msg("%d / %d" % [i + 1, LEVELS.size()], 1.0)
@@ -157,7 +163,7 @@ func _drop_gun(at: Vector3, n_ammo: int) -> void:
 
 func _step(dt: float) -> void:
 	cam.position = pos + Vector3(0, 1.6, 0)
-	cam.rotation = Vector3(pitch, yaw, 0)
+	cam.rotation = Vector3(pitch, yaw, sin(stun * 40.0) * 0.1 if stun > 0.0 else 0.0)
 	viewgun.visible = has_gun
 	if die_t > 0.0:
 		die_t -= dt
@@ -178,38 +184,46 @@ func _step(dt: float) -> void:
 			else:
 				_room(lv)
 		return
-	# 둘러보기·걷기
+	# 둘러보기 (조준은 자유)
 	yaw -= kit_look.x * 0.007
 	pitch = clampf(pitch - kit_look.y * 0.004, -0.7, 0.4)
-	var amt := kit_move.length()
-	if amt > 0.05:
-		var fwd := Vector3(-sin(yaw), 0, -cos(yaw))
-		var right := Vector3(cos(yaw), 0, -sin(yaw))
-		pos += (right * kit_move.x - fwd * kit_move.y) * 3.2 * dt
+	# 달리기: 관성. 빠를수록 가속·감속이 둔해서 급정지·급회전이 안 된다
+	var spd := vel.length()
+	if stun > 0.0:
+		stun -= dt
+		vel = Vector3.ZERO
+	else:
+		var want := Vector3.ZERO
+		if kit_move.length() > 0.05:
+			var fwd := Vector3(-sin(yaw), 0, -cos(yaw))
+			var right := Vector3(cos(yaw), 0, -sin(yaw))
+			want = (right * kit_move.x - fwd * kit_move.y) * TOP
+		var acc := 40.0 / (1.0 + spd * 0.6)
+		vel = vel.move_toward(want, acc * dt)
+		pos += vel * dt
 		_push_out()
-		step_t -= dt * amt
-		if step_t <= 0.0:
-			step_t = 0.35
+		spd = vel.length()
+		step_t -= dt * spd / TOP
+		if spd > 0.5 and step_t <= 0.0:
+			step_t = 0.3
 			beep(110.0, 0.04, 0.0, 0.12)
-	if kit_just("fire"):
-		_shoot()
-	if kit_just("throw"):
-		_throw()
+		if kit_just("fire"):
+			_shoot()
+		if kit_just("throw"):
+			_throw()
 	# 총 위를 지나가면 줍는다
 	for g in guns:
 		var gn: MeshInstance3D = g.n
 		if Vector2(gn.position.x - pos.x, gn.position.z - pos.z).length() < 0.8 and (not has_gun or ammo == 0):
 			_pick(g)
 			break
-	# 시간은 조이스틱을 민 만큼 흐른다
-	var aim := maxf(0.03, amt)
-	if burst > 0.0:
-		aim = 1.0
-	elif kit_look.length() > 0.5:
-		aim = maxf(aim, 0.25)
-	burst -= dt
-	flow = move_toward(flow, aim, dt * 8.0)
-	gauge(flow, B)
+	# 세상의 시간 배율 = 내 속도가 정한다
+	var aim := 1.0 / (1.0 + spd * SLOW_K)
+	if stun > 0.0:
+		flow = 1.0
+	else:
+		flow = move_toward(flow, aim, dt * 6.0)
+	gauge(1.0 - flow, BAD if stun > 0.0 else B)
 	var gd := dt * flow
 	hum += gd
 	if hum > 0.4:
@@ -304,6 +318,7 @@ func _bullets(gd: float) -> void:
 				break
 
 
+## kind 1·2(내가 쏘거나 던진 것)는 내 속도가 날아가는 방향으로 얹힌다
 func _fire(kind: int, from: Vector3, dir: Vector3, src: Foe) -> void:
 	for j in NB:
 		if bk[j] >= 0:
@@ -311,7 +326,10 @@ func _fire(kind: int, from: Vector3, dir: Vector3, src: Foe) -> void:
 		var b := bn[j]
 		bk[j] = kind
 		bsrc[j] = src
-		bv[j] = dir * SPEEDS[kind]
+		var s := SPEEDS[kind]
+		if kind > 0:
+			s += maxf(0.0, vel.dot(dir)) * 2.0
+		bv[j] = dir * s
 		b.position = from
 		b.scale = Vector3(0.14, 0.16, 0.48) if kind == 2 else Vector3(0.07, 0.07, 0.45)
 		if absf(dir.y) < 0.98:
@@ -320,7 +338,7 @@ func _fire(kind: int, from: Vector3, dir: Vector3, src: Foe) -> void:
 		if kind == 0:
 			beep(300.0, 0.12, 120.0, 0.25)
 		elif kind == 1:
-			beep(180.0, 0.1, 60.0, 0.35)
+			beep(180.0, 0.1, 60.0 + s * 4.0, 0.35)
 		else:
 			beep(600.0, 0.08, 300.0, 0.2)
 		return
@@ -341,7 +359,9 @@ func _in_pillar(p: Vector3, half: float) -> bool:
 	return false
 
 
+## 벽·기둥 밖으로 밀어낸다. 세게 박으면 비틀거림, 살살이면 그 방향 속도만 죽는다
 func _push_out() -> void:
+	var raw := pos
 	pos.x = clampf(pos.x, -R + 0.4, R - 0.4)
 	pos.z = clampf(pos.z, -R + 0.4, R - 0.4)
 	for c in pillars:
@@ -351,6 +371,23 @@ func _push_out() -> void:
 				pos.x = c.x + signf(d.x) * 0.95
 			else:
 				pos.z = c.z + signf(d.z) * 0.95
+	var corr := pos - raw
+	if corr.length() < 0.0001:
+		return
+	var n := corr.normalized()
+	var into := -vel.dot(n)
+	if into > CRASH:
+		_crash()
+	elif into > 0.0:
+		vel += n * into
+
+
+func _crash() -> void:
+	vel = Vector3.ZERO
+	stun = 0.6
+	flow = 1.0
+	beep(90.0, 0.2, 40.0, 0.4)
+	msg("쿵!", 0.6)
 
 
 func _kill(f: Foe, dir: Vector3) -> void:
@@ -390,6 +427,7 @@ func _die() -> void:
 	if die_t > 0.0:
 		return
 	die_t = 1.4
+	vel = Vector3.ZERO
 	play("bad")
 	msg("죽었다", 1.3)
 
@@ -425,13 +463,11 @@ func _shoot() -> void:
 			continue
 		var to := Vector2(f.root.position.x - pos.x, f.root.position.z - pos.z)
 		if to.length() < 1.8 and to.normalized().dot(flat) > 0.5:
-			burst = 0.25
 			beep(160.0, 0.08, 0.0, 0.35)
 			_kill(f, (f.root.position + Vector3(0, 1.2, 0) - cam.position).normalized())
 			return
 	if has_gun and ammo > 0:
 		ammo -= 1
-		burst = 0.25
 		var hit := _aimed(n)
 		var dir := n if hit == null else (hit.root.position + Vector3(0, 1.2, 0) - cam.position).normalized()
 		_fire(1, cam.position + n * 0.6, dir, null)
@@ -439,7 +475,6 @@ func _shoot() -> void:
 		beep(900.0, 0.03, 0.0, 0.15)  # 빈 총 딸깍
 		msg("빈 총", 0.5)
 	else:
-		burst = 0.15
 		beep(140.0, 0.05, 0.0, 0.2)  # 허공에 주먹
 
 
@@ -450,7 +485,6 @@ func _throw() -> void:
 	var n := _aim_dir()
 	has_gun = false
 	ammo = 0
-	burst = 0.25
 	var hit := _aimed(n)
 	var dir := n if hit == null else (hit.root.position + Vector3(0, 1.2, 0) - cam.position).normalized()
 	_fire(2, cam.position + n * 0.6, dir, null)

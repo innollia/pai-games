@@ -1,5 +1,6 @@
 extends Tofu
 ## 늙은 마법사가 차를 늦춰 길을 건넌다 (높은 위 시점). 왼쪽 아래 조이스틱 = 천천히 걷기, 차를 탭 = 느리게(기어감), 차를 진행 방향으로 쓸기 = 빠르게(휙 지나감).
+## 변형(느림의 미학·속도를 조절함): 주문은 시간을 빌려 온다. 차를 늦추면 그 동안 내 걸음도 기어가고, 차를 빠르게 하면 나도 그만큼 빨라진다. 얼음은 나도 잠깐 얼린다.
 ## 주문은 마나를 쓴다. 차·기차에 닿으면 그 건널목 처음부터. 마을 길 → 4차선 → 교차로 → 고속도로 → 기찻길, 구역 사이에 받침대로 걸어가 강화 하나를 고른다.
 
 const LW := 2.6  # 차선 폭
@@ -43,10 +44,14 @@ var cast_done := false
 var pedestals: Array = []
 var blink_t := 0.0
 var tries := 0
+var me_slow_t := 0.0  # 내가 느린 시간 (차를 늦춘 만큼)
+var me_fast_t := 0.0  # 내가 빠른 시간 (차를 빠르게 한 만큼)
+var me_frz_t := 0.0  # 내가 언 시간
+var robe: MeshInstance3D
 
 
 func _setup() -> void:
-	howto = "늙은 마법사가 마을 끝까지 길을 건넌다.\n왼쪽 아래 조이스틱 = 천천히 걷기\n차를 탭 = 느리게(기어감), 차를 가는 쪽으로 쓸기 = 빠르게(휙 지나감). 둘 다 마나를 쓴다.\n차·기차에 닿으면 그 길 처음부터. 구역 사이엔 받침대(보라 얼음·파랑 넓게·초록 마나)로 걸어가 하나 고른다."
+	howto = "늙은 마법사가 마을 끝까지 길을 건넌다.\n왼쪽 아래 조이스틱 = 걷기. 차를 탭 = 느리게, 차를 가는 쪽으로 쓸기 = 빠르게. 둘 다 마나를 쓴다.\n주문은 시간을 빌려 온다: 차를 늦추면 그 동안 내 걸음도 기어가고, 차를 빠르게 하면 나도 그만큼 빨라진다(얼음은 나도 잠깐 언다).\n차·기차에 닿으면 그 길 처음부터. 구역 사이 받침대(보라 얼음·파랑 넓게·초록 마나)에서 하나 고른다."
 	cam.fov = 42.0
 	kit_stick(Rect2(0, 960, 330, 320))
 	var car := ["car"]
@@ -205,6 +210,10 @@ func _build_pick() -> void:
 func _reset_people() -> void:
 	wiz.rotation = Vector3.ZERO
 	wiz.position = wpos
+	me_slow_t = 0.0
+	me_fast_t = 0.0
+	me_frz_t = 0.0
+	robe.material_override = mat(C)
 	kid.visible = has_kid
 	kid.rotation = Vector3.ZERO
 	kid.position = kpos
@@ -214,7 +223,7 @@ func _reset_people() -> void:
 func _make_wizard() -> Node3D:
 	var r := Node3D.new()
 	world.add_child(r)
-	box(Vector3(0, 0.55, 0), Vector3(0.8, 1.1, 0.8), C, r)
+	robe = box(Vector3(0, 0.55, 0), Vector3(0.8, 1.1, 0.8), C, r)
 	box(Vector3(0, 1.3, 0), Vector3(0.5, 0.45, 0.5), SKIN, r)
 	box(Vector3(0, 1.1, -0.3), Vector3(0.42, 0.45, 0.14), WHITE, r)
 	box(Vector3(0, 1.58, 0), Vector3(1.0, 0.1, 1.0), ME, r)
@@ -356,24 +365,40 @@ func _step(dt: float) -> void:
 	_camera(dt)
 
 
+## 주문에 빌려 준 시간만큼 내 걸음이 바뀐다: 얼음 0, 느리게 0.3배, 빠르게 2배
+func _pace() -> float:
+	if me_frz_t > 0.0:
+		return 0.0
+	if me_slow_t > 0.0:
+		return 0.3
+	if me_fast_t > 0.0:
+		return 2.0
+	return 1.0
+
+
 func _walk(dt: float, zmin: float) -> void:
+	me_slow_t = maxf(0.0, me_slow_t - dt)
+	me_fast_t = maxf(0.0, me_fast_t - dt)
+	me_frz_t = maxf(0.0, me_frz_t - dt)
+	var pace := _pace()
+	robe.material_override = mat(ICE if pace == 0.0 else (CRAWL if pace < 1.0 else (D if pace > 1.0 else C)))
 	var m := kit_move
-	if m.length() > 0.12:
-		wpos += Vector3(m.x, 0, m.y) * WALK * dt
+	if m.length() > 0.12 and pace > 0.0:
+		wpos += Vector3(m.x, 0, m.y) * WALK * pace * dt
 		wpos.x = clampf(wpos.x, -8.0, 8.0)
 		wpos.z = clampf(wpos.z, zmin, 3.5)
 		wiz.rotation.y = atan2(-m.x, -m.y)
-		step_t += dt
-		step_snd -= dt
+		step_t += dt * pace
+		step_snd -= dt * pace
 		if step_snd <= 0.0:
 			step_snd = 0.42
-			beep(170.0, 0.04, 0.0, 0.12)
+			beep(170.0 * (0.7 if pace < 1.0 else (1.4 if pace > 1.0 else 1.0)), 0.04, 0.0, 0.12)
 	wiz.position = wpos + Vector3(0, absf(sin(step_t * 9.0)) * 0.12, 0)
 	if has_kid:
 		var tgt := wpos + Vector3(0.7, 0, 0.9)
 		var dv := tgt - kpos
-		if dv.length() > 0.15:
-			kpos += dv.normalized() * minf(dv.length(), WALK * 1.3 * dt)
+		if dv.length() > 0.15 and pace > 0.0:
+			kpos += dv.normalized() * minf(dv.length(), WALK * 1.3 * pace * dt)
 			kid.rotation.y = atan2(-dv.x, -dv.z)
 		kid.position = kpos + Vector3(0, absf(sin(step_t * 12.0)) * 0.1, 0)
 
@@ -654,11 +679,18 @@ func _cast(c: Dictionary, fast: bool) -> void:
 		c.haste_t = 2.6
 		c.slow_t = 0.0
 		c.frz_t = 0.0
+		me_fast_t = 2.6
+		me_slow_t = 0.0
+		me_frz_t = 0.0
 		beep(300.0, 0.2, 1700.0, 0.28)
 		shake = maxf(shake, 0.25)
-		msg("휙!", 0.4)
+		msg("휙! 나도", 0.5)
 	else:
 		_slow(c)
+		me_slow_t = 4.0
+		me_fast_t = 0.0
+		if up.frz > 0:
+			me_frz_t = 0.5 + 0.5 * float(up.frz)
 		if up.area > 0:
 			var cp: Vector3 = c.n.position
 			for o in cars:
@@ -670,7 +702,7 @@ func _cast(c: Dictionary, fast: bool) -> void:
 					else:
 						_slow(o)
 		beep(760.0, 0.4, 140.0, 0.26)
-		msg("느리게", 0.4)
+		msg("느리게… 나도", 0.5)
 
 
 func _slow(c: Dictionary) -> void:

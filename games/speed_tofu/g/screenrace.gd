@@ -1,6 +1,7 @@
 extends Tofu
 ## 화면 밖으로 밀리지 마 (옆모습 4인 배달 경주): 왼쪽 아래 조이스틱 좌우, 점프, 갈고리(앞쪽 고리에 자동으로 걸고 누르는 동안 매달림), 아이템(톡 = 쓰기, 꾹 = 태워서 대시).
-## 카메라는 나 말고 1등을 따라간다. 화면 왼쪽 밖·구덩이로 떨어지면 탈락, 마지막까지 남으면 라운드 승. 3승이면 다음 코스(시장 → 공사장 → 지하철 → 옥상), 코스 사이에 특전 하나.
+## 변형(절체절명의 순간): 카메라는 1등을 따라간다. 내가 1등이 되면 화면이 내 속도에 맞춰 앞으로 쏠려 나는 오른쪽 끝에 붙고, 앞의 벽·구덩이가 거의 안 보인 채 닥친다(짧은 경고음만). 뒤쫓는 쪽은 넓게 본다.
+## 화면 왼쪽 밖·구덩이로 떨어지면 탈락, 마지막까지 남으면 라운드 승. 3승이면 다음 코스(시장 → 공사장 → 지하철 → 옥상), 코스 사이에 특전 하나.
 
 const GRAV := 38.0
 const JUMP_V := 15.0
@@ -149,12 +150,14 @@ var slip_mul := 1.0
 var bag := false
 var perk_offer: Array = []
 var btn_names := {}
+var lead_t := 0.0  # 내가 1등인 시간 (길수록 화면이 앞으로 쏠린다)
+var radar_t := 0.0
 
 
 func _setup() -> void:
 	time_limit = 0.0
 	cam.keep_aspect = Camera3D.KEEP_WIDTH
-	howto = "막내 배달부 경주! 카메라는 1등만 따라간다. 화면 왼쪽 밖으로 밀리거나 구덩이에 빠지면 탈락.\n조이스틱 좌우, 점프, 갈고리(앞 고리에 자동, 누르는 동안 매달렸다 놓으면 휙).\n아이템: 톡 = 쓰기(바나나·로켓), 꾹 = 태워서 대시. 남의 뒤에 붙으면 바람 타고 빨라진다.\n마지막까지 남으면 1승, 3승이면 다음 코스. 경쟁자가 먼저 3승하면 끝."
+	howto = "막내 배달부 경주! 카메라는 1등만 따라간다. 화면 왼쪽 밖으로 밀리거나 구덩이에 빠지면 탈락.\n내가 1등이면 화면이 내 속도에 쏠려 나는 오른쪽 끝에 붙는다. 앞의 벽·구덩이는 거의 안 보이고 짧은 경고음만 난다. 뒤쫓을 땐 넓게 보인다.\n조이스틱 좌우, 점프, 갈고리(앞 고리에 자동, 누르는 동안 매달렸다 놓으면 휙). 아이템: 톡 = 쓰기, 꾹 = 태워서 대시. 남의 뒤에 붙으면 바람 타고 빨라진다.\n마지막까지 남으면 1승, 3승이면 다음 코스. 경쟁자가 먼저 3승하면 끝."
 	kit_stick()
 	kit_button("jump", "점프", Vector2(600, 1120), 100.0, A)
 	kit_button("hook", "갈고리", Vector2(600, 890), 82.0, INK)
@@ -472,6 +475,7 @@ func _start_round() -> void:
 		tr.wait = 1.0
 		(tr.node as Node3D).visible = false
 	rt = 0.0
+	lead_t = 0.0
 	hwv = WIDE
 	camx = 0.0
 	camy = 2.0
@@ -572,6 +576,22 @@ func _race(dt: float) -> void:
 	if n <= 1:
 		_round_over(pl)
 		return
+	# 1등이면 화면이 내 속도에 쏠린다: 앞이 안 보이니 벽·구덩이는 소리로만
+	radar_t -= dt
+	if _leader() == pl:
+		if lead_t == 0.0:
+			msg("선두! 앞이 안 보인다", 0.8)
+			beep(900.0, 0.1, 1400.0, 0.2)
+		lead_t += dt
+		if lead_t > 0.4 and pl.grounded:
+			var ax := pl.p.x + HW + 2.2
+			var pit := _floor_top(ax, pl.p.y + 0.6) < pl.p.y - 2.0
+			var wall := _solid_in(Rect2(pl.p.x + HW + 0.6, pl.p.y + STEP + 0.05, 3.5, 2.0))
+			if (pit or wall) and radar_t <= 0.0:
+				radar_t = 0.22
+				beep(240.0 if pit else 420.0, 0.05, 0.0, 0.18)
+	else:
+		lead_t = 0.0
 	# 화면 끝 압박
 	var ed := pl.p.x - left
 	gauge(ed / (hwv * 2.0), GOOD if ed > hwv * 0.6 else (A if ed > 2.5 else BAD))
@@ -1221,7 +1241,11 @@ func _camera(dt: float) -> void:
 	var lead := _leader()
 	if lead and phase != "perk":
 		var k := 1.0 - exp(-9.0 * dt)
-		camx = lerpf(camx, lead.p.x - hwv * 0.16, k)
+		# 1등이 나면 화면이 내 속도에 맞춰 앞으로 쏠려 나는 오른쪽 끝에 붙는다
+		var off := 0.16
+		if lead == pl:
+			off = lerpf(0.16, 0.74, clampf(lead_t / 1.5, 0.0, 1.0))
+		camx = lerpf(camx, lead.p.x - hwv * off, k)
 		camy = lerpf(camy, lead.p.y + 2.0, 1.0 - exp(-4.0 * dt))
 	cam.fov = rad_to_deg(2.0 * atan(hwv / CAM_D))
 	cam.rotation = Vector3.ZERO

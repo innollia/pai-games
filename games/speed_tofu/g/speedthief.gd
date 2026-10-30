@@ -1,5 +1,6 @@
 extends Tofu
-## 스피드 도둑 (3D 등뒤 추격). 왼손 조이스틱 = 핸들, 해킹(꾹) = 가까운 바이커 속도를 빨아 내 것으로, 발차기 = 바로 옆 바이커 걷어차기.
+## 스피드 도둑 (3D 등뒤 추격). 왼손 조이스틱 = 핸들, 해킹(꾹) = 가까운 바이커 속도를 내 탱크로 빨아들인다(쥐는 동안 나는 안 빨라진다), 떼면 모은 속도가 한 번에 터진다. 발차기 = 옆 바이커 걷어차기.
+## 변형(다급함·주체할 수 없는 속도): 훔친 속도는 3초 안에 터뜨려야 한다. 쥔 채 3초가 지나면 바이크가 타 버려 죽는다. 터지는 순간엔 핸들이 잠시 안 듣는다.
 ## 뒤에서 경찰이 쫓는다. 느려서 따라잡히면 체포, 차·바리케이드에 박으면 속도 반토막.
 ## 시장 골목 → 고가도로(무장 바이커) → 항구(바리케이드) → 터널(라이벌 도둑) → 도심 탑(경찰 드론 조명). 구역 끝 관문마다 강화 하나.
 
@@ -14,6 +15,8 @@ const NSIDE := 20
 const NDASH := 20
 const RANGE := 11.0  # 해킹 거리
 const GAPMAX := 70.0
+const FUSE := 3.2  # 훔친 속도를 쥐고 있을 수 있는 시간
+const BURST_OVER := 30.0  # 터진 직후 최고 속도를 이만큼 넘을 수 있다
 
 var dist := 0.0  # 내 진행 거리 (월드 z = -dist)
 var px := 0.0
@@ -37,8 +40,15 @@ var steal_t := 0.0
 var bonus := 0
 var hacking := false
 var clock := 0.0
+var hot := 0.0  # 탱크에 모인 훔친 속도
+var fuse := 0.0  # 쥐고 있은 시간
+var was_hack := false
+var lock := 0.0  # 터진 뒤 핸들이 안 듣는 시간
+var burst_t := 0.0  # 최고 속도를 넘어도 되는 시간
+var tick_t := 0.0
 
 var me: Node3D
+var hot_box: MeshInstance3D
 var leg: MeshInstance3D
 var plate: MeshInstance3D
 var can: MeshInstance3D
@@ -64,7 +74,7 @@ var pick_ui: CanvasLayer
 
 
 func _setup() -> void:
-	howto = "도둑 바이커가 되어 남의 속도를 훔쳐 도시를 빠져나간다.\n왼손 조이스틱 = 핸들. 해킹을 꾹 = 가까운 바이커 속도를 빨아 내 것으로. 발차기 = 바로 옆 바이커 걷어차기.\n뒤에서 경찰이 쫓는다. 느려서 따라잡히면 체포, 차·바리케이드에 박으면 속도 반토막.\n구역 끝 관문마다 강화 하나를 고른다."
+	howto = "도둑 바이커가 되어 남의 속도를 훔쳐 도시를 빠져나간다.\n왼손 조이스틱 = 핸들. 해킹을 꾹 = 가까운 바이커의 속도를 내 탱크로 빨아들인다(쥐는 동안 나는 안 빨라진다). 떼면 모은 속도가 한 번에 터져 나온다.\n훔친 속도는 3초 안에 터뜨려야 한다. 쥔 채 3초가 넘으면 바이크가 타 버린다. 발차기 = 옆 바이커 걷어차기.\n뒤에서 경찰이 쫓는다. 느리면 체포, 차·바리케이드에 박으면 속도 반토막. 관문마다 강화 하나."
 	time_limit = 0.0
 	cam.fov = 64.0
 	kit_stick()
@@ -118,6 +128,11 @@ func _reset() -> void:
 	bonus = 0
 	hacking = false
 	clock = 0.0
+	hot = 0.0
+	fuse = 0.0
+	was_hack = false
+	lock = 0.0
+	burst_t = 0.0
 	time_limit = 0.0
 	pick_ui.visible = false
 	sides.clear()
@@ -147,6 +162,8 @@ func _reset() -> void:
 	leg.visible = false
 	plate = box(Vector3(0, 0.05, 0), Vector3(1.6, 0.08, 2.6), GOOD, me)
 	can = box(Vector3(0, 0.95, 1.0), Vector3(0.5, 0.6, 0.35), B, me)
+	hot_box = box(Vector3(0, 1.0, -0.95), Vector3(0.5, 0.3, 0.5), C, me)
+	hot_box.visible = false
 	# 경찰차 + 경찰 드론
 	cop = Node3D.new()
 	world.add_child(cop)
@@ -249,7 +266,9 @@ func _step(dt: float) -> void:
 		return
 	clock += dt
 	var prev := dist
-	var steer := kit_move.x
+	lock = maxf(lock - dt, 0.0)
+	burst_t = maxf(burst_t - dt, 0.0)
+	var steer := kit_move.x if lock <= 0.0 else sin(clock * 40.0) * 0.6  # 터진 직후엔 핸들이 제멋대로
 	px = clampf(px + steer * 10.0 * dt, -HALF, HALF)
 	# 가만히 있으면 속도가 샌다. 니트로가 있으면 채워 준다
 	spd -= (1.2 + spd * 0.02) * dt
@@ -270,9 +289,14 @@ func _step(dt: float) -> void:
 	_move_drones(dt)
 	_move_rival(dt)
 	_scenery()
+	if over:
+		return
 	if spd > vmax:
-		nitro = minf(nitro + spd - vmax, tank)
-		spd = vmax
+		if burst_t > 0.0:
+			spd = minf(spd, vmax + BURST_OVER)
+		else:
+			nitro = minf(nitro + spd - vmax, tank)
+			spd = vmax
 	# 경찰: 내가 느리면 다가온다
 	gap = minf(gap + (spd - COP[zone]) * dt, GAPMAX)
 	if gap <= 0.0:
@@ -296,6 +320,10 @@ func _step(dt: float) -> void:
 	can.visible = tank > 0.0
 	if tank > 0.0:
 		can.scale.y = 0.1 + 0.8 * nitro / tank
+	hot_box.visible = hot > 0.0
+	if hot > 0.0:
+		hot_box.scale = Vector3(0.5, 0.3 + hot * 0.03, 0.5)
+		hot_box.material_override = mat(_fuse_col())
 	cop.position = Vector3(lerpf(cop.position.x, px, minf(1.0, 2.0 * dt)), 0, -(dist - gap - 2.0))
 	chopper.position = Vector3(px * 0.5, 6.0 + sin(clock * 3.0) * 0.3, -(dist - gap + 9.0))
 	score = int(dist / 10.0) + bonus
@@ -337,38 +365,78 @@ func _target() -> Dictionary:
 	return pick
 
 
+## 꾹: 표적의 속도를 탱크(hot)로 빨아들인다. 떼면 한 번에 터진다. 쥔 채 FUSE 가 지나면 타 버린다.
 func _hack(dt: float) -> void:
 	hacking = false
 	beam.visible = false
 	var tgt := _target()
 	mark.visible = not tgt.is_empty()
-	if tgt.is_empty():
+	if not tgt.is_empty():
+		mark.position = Vector3(tgt.x, 2.6 + sin(clock * 8.0) * 0.15, -float(tgt.d))
+	var holding := kit_held("hack")
+	if not holding:
+		if was_hack and hot > 0.0:
+			_burst()
+		was_hack = false
+		fuse = 0.0
 		return
-	mark.position = Vector3(tgt.x, 2.6 + sin(clock * 8.0) * 0.15, -float(tgt.d))
-	if not kit_held("hack"):
-		return
+	was_hack = true
 	hacking = true
-	var rate := hack_rate * (0.4 if tgt.armor else 1.0)
-	var take := minf(rate * dt, float(tgt.v))
-	tgt.v -= take
-	spd += take * 0.9
-	_beam(beam, Vector3(px, 1.4, -dist), Vector3(tgt.x, 1.4, -float(tgt.d)))
-	hum_t -= dt
-	if hum_t <= 0.0:
-		hum_t = 0.07
-		beep(300.0 + spd * 9.0, 0.06, 0.0, 0.12)
-	if tgt.has("is_rival"):
-		if tgt.v < spd - 10.0:
-			_rival_out()
-			bonus += 40
-			msg("역해킹!")
+	if not tgt.is_empty():
+		var rate := hack_rate * (0.4 if tgt.armor else 1.0)
+		var take := minf(rate * dt, float(tgt.v))
+		tgt.v -= take
+		hot += take
+		_beam(beam, Vector3(px, 1.4, -dist), Vector3(tgt.x, 1.4, -float(tgt.d)))
+		beam.material_override = mat(_fuse_col())
+		hum_t -= dt
+		if hum_t <= 0.0:
+			hum_t = 0.07
+			beep(300.0 + hot * 14.0, 0.06, 0.0, 0.12)
+		if tgt.has("is_rival"):
+			if tgt.v < spd - 10.0:
+				_rival_out()
+				bonus += 40
+				msg("역해킹!")
+				play("good")
+		elif tgt.v < 5.0:
+			tgt.dead = true
+			tgt.fall = 1.0 if randf() < 0.5 else -1.0
+			bonus += 30 if tgt.armor else 15
+			msg("탈취!")
 			play("good")
-	elif tgt.v < 5.0:
-		tgt.dead = true
-		tgt.fall = 1.0 if randf() < 0.5 else -1.0
-		bonus += 30 if tgt.armor else 15
-		msg("탈취!")
-		play("good")
+	if hot <= 0.0:
+		return
+	fuse += dt
+	if fuse > FUSE - 1.2:
+		tick_t -= dt
+		if tick_t <= 0.0:
+			tick_t = 0.16
+			beep(1700.0, 0.05, 0.0, 0.2)
+			msg("터진다!", 0.2)
+	if fuse >= FUSE:
+		shake = 1.0
+		msg("타 버렸다!", 2.0)
+		end()
+
+
+func _fuse_col() -> Color:
+	if fuse < FUSE * 0.45:
+		return C
+	return A if fuse < FUSE - 1.2 else BAD
+
+
+## 떼는 순간: 모은 속도가 한 번에 붙는다. 잠깐 핸들이 안 듣는다
+func _burst() -> void:
+	spd += hot
+	burst_t = 2.0
+	lock = clampf(hot * 0.012, 0.15, 0.45)
+	shake = 0.6
+	bonus += int(hot / 10.0)
+	beep(200.0, 0.35, 1600.0, 0.3)
+	msg("+%d!" % int(hot), 0.6)
+	hot = 0.0
+	fuse = 0.0
 
 
 func _beam(m: MeshInstance3D, a: Vector3, b: Vector3) -> void:

@@ -1,10 +1,19 @@
 extends Tofu
-## 슈퍼핫 옆모습: 화면 왼쪽/오른쪽 반을 누르고 있으면 달리고, 달릴 때만 시간이 흐른다. 위로 쓸면 점프, 아래로 쓸면 엎드려 기기.
-## 적 탭 = 가까우면 주먹, 총 있으면 쏘기, 빈 총이면 던지기, 빈손이면 달려가 주먹. 한 방 맞거나 떨어지면 그 방부터. 방을 비우면 SUPER HOT.
+## 내 속도가 세상의 시간: 왼쪽/오른쪽 반을 누르고 있으면 가속. 빠를수록 적·총알이 멈추고, 서거나 벽에 박히면(0.6초 기절) 적이 정상 속도로 쏜다.
+## 가속·감속이 느려 방향을 바꾸면 미끄러진다. 빠를수록 점프가 멀리 간다. 전속으로 적을 뚫고 지나가면 부서진다(기본), 적 탭 = 총 쏘기·빈 총 던지기(보조).
+## 위로 쓸면 점프, 아래로 쓸면 엎드려 기기. 한 방 맞거나 떨어지면 그 방부터. 방을 비우면 SUPER HOT.
 
 const GREY := Color("cfd4db")
 const NB := 40
-const RUN := 4.5
+const RUN := 8.0  # 최고 수평 속도
+const ACC := 7.0  # 가속 (바닥)
+const BRAKE := 9.0  # 반대쪽을 누를 때 감속
+const FRICTION := 4.0  # 손을 떼면
+const ACC_AIR := 2.0
+const RAM_V := 3.5  # 이 속도 이상으로 적을 지나가면 부순다
+const CRASH_V := 2.5  # 이 속도 이상으로 벽에 박으면 기절
+const STUN := 0.6
+const K := 2.0  # 세상 시간 배율 = 1 / (1 + |vx| * K)
 const CRAWL := 1.6
 const JUMP := 9.0
 const GRAV := 22.0
@@ -52,13 +61,12 @@ var ducked := false
 var face := 1.0
 var has_gun := false
 var ammo := 0
-var mode := 0  # 0 가만, 1 달리기, 2 적에게 달려가기, 3 엎드려 기기
+var mode := 0  # 0 가만(미끄러짐), 1 가속, 3 엎드려 기기
 var run_dir := 1.0
-var chase: Foe
 var press := Vector2.ZERO
 var swiped := false
-var flow := 0.03
-var burst := 0.0
+var flow := 1.0  # 세상 시간 배율
+var stun_t := 0.0
 var die_t := 0.0
 var clear_t := 0.0
 var beat_i := -1
@@ -82,7 +90,7 @@ var elev_floor := -4.0
 func _setup() -> void:
 	time_limit = 0.0
 	cam.fov = 50.0
-	howto = "화면 왼쪽/오른쪽 반을 누르고 있으면 달린다. 달릴 때만 시간이 흐른다.\n위로 쓸면 점프, 아래로 쓸면 엎드려 긴다. 총구 높이를 보고 총알을 넘거나 밑으로 피한다.\n빨간 적을 탭하면 쏘기·주먹·빈 총 던지기. 한 방 맞거나 떨어지면 그 방부터 다시.\n방의 적을 다 부수면 다음 방."
+	howto = "화면 왼쪽/오른쪽 반을 누르고 있으면 그쪽으로 가속. 내가 빠를수록 세상이 느려진다(위 막대 = 세상 시간).\n서 있거나 벽에 박히면 적이 정상 속도로 쏜다. 가속·감속이 느려 방향을 바꾸면 미끄러진다.\n전속으로 빨간 적을 뚫고 지나가면 부서진다. 적 탭 = 총 쏘기·빈 총 던지기. 위로 쓸면 점프(빠를수록 멀리), 아래로 쓸면 엎드려 긴다.\n한 방 맞거나 떨어지면 그 방부터 다시. 방의 적을 다 부수면 다음 방."
 
 
 func _reset() -> void:
@@ -218,12 +226,11 @@ func _room(i: int) -> void:
 	grounded = false
 	ducked = false
 	mode = 0
-	chase = null
 	ammo = a
 	has_gun = a > 0
 	face = 1.0
-	flow = 0.03
-	burst = 0.0
+	flow = 1.0
+	stun_t = 0.0
 	die_t = 0.0
 	clear_t = 0.0
 	punch_t = 0.0
@@ -304,25 +311,22 @@ func _step(dt: float) -> void:
 		return
 	punch_t -= dt
 	coyote -= ft
+	stun_t -= ft
 	var oldx := px
-	# 내 움직임 (실제 시간)
-	var want := 0.0
-	if mode == 2:
-		if chase == null or chase.dead:
-			mode = 0
-		elif _near(chase):
-			_punch(chase)
-			mode = 0
-		else:
-			want = signf(chase.x - px) * RUN
-	if mode == 1:
-		want = run_dir * RUN
-	elif mode == 3:
-		want = run_dir * CRAWL
+	# 내 움직임 (실제 시간): 가속·감속이 느려 미끄러진다
 	if mode != 3 and ducked and _free(px, py, 1.8):
 		ducked = false
-	if grounded or mode == 1 or mode == 2:
-		vx = want
+	if stun_t > 0.0:
+		vx = 0.0
+	elif mode == 3:
+		vx = run_dir * CRAWL
+	elif mode == 1:
+		var a := ACC if grounded else ACC_AIR
+		if grounded and vx * run_dir < 0.0:
+			a = BRAKE
+		vx = move_toward(vx, run_dir * RUN, a * ft)
+	elif grounded:
+		vx = move_toward(vx, 0.0, FRICTION * ft)
 	if vx != 0.0:
 		face = signf(vx)
 	px += vx * ft
@@ -334,6 +338,9 @@ func _step(dt: float) -> void:
 					py = top
 				else:
 					px = r.position.x - 0.301 if vx > 0.0 else r.end.x + 0.301
+					if absf(vx) >= CRASH_V:
+						_crash()
+					vx = 0.0
 	vy = maxf(vy - GRAV * ft, -15.0)
 	py += vy * ft
 	var was := grounded
@@ -355,16 +362,18 @@ func _step(dt: float) -> void:
 	if moved and grounded:
 		step_t -= dt
 		if step_t <= 0.0:
-			step_t = 0.45 if ducked else 0.26
-			beep(110.0, 0.04, 0.0, 0.12)
-	# 시간: 움직이면 1, 가만히 있으면 거의 멈춤
-	var aim := 0.03
-	if moved or not grounded or burst > 0.0:
-		aim = 1.0
-	burst -= dt
-	flow = move_toward(flow, aim, dt * 8.0)
-	gauge(flow, A if flow > 0.5 else B)
+			step_t = 0.45 if ducked else clampf(1.6 / maxf(absf(vx), 0.5), 0.12, 0.5)
+			beep(100.0 + absf(vx) * 14.0, 0.04, 0.0, 0.12)
+	# 시간: 내 수평 속도가 세상의 시간 배율을 정한다 (공중에서도 수평 속도만 센다)
+	var aim := 1.0 / (1.0 + absf(vx) * K)
+	flow = move_toward(flow, aim, dt * 10.0)
+	gauge(flow, BAD if flow > 0.5 else B)
 	var gd := ft * flow
+	# 전속으로 적을 뚫고 지나가면 부서진다
+	if absf(vx) >= RAM_V and die_t <= 0.0:
+		for f in foes:
+			if not f.dead and Rect2(f.x - 0.35, f.y, 0.7, 2.05).intersects(_me_rect()):
+				_ram(f)
 	hum += gd
 	if hum > 0.4:
 		hum = 0.0
@@ -597,10 +606,6 @@ func _free(x: float, y: float, h: float) -> bool:
 	return true
 
 
-func _near(f: Foe) -> bool:
-	return absf(f.x - px) < 1.4 and absf(f.y - py) < 1.0
-
-
 func _kill(f: Foe, dir: Vector2) -> void:
 	f.dead = true
 	f.gun.visible = false
@@ -624,12 +629,19 @@ func _disarm(f: Foe) -> void:
 	msg("빈손!", 0.5)
 
 
-func _punch(f: Foe) -> void:
+## 달리는 몸으로 적을 치고 지나간다 (속도는 그대로)
+func _ram(f: Foe) -> void:
 	punch_t = 0.15
-	burst = 0.25
-	face = signf(f.x - px) if f.x != px else face
 	beep(160.0, 0.08, 0.0, 0.35)
-	_kill(f, Vector2(face, 0.2))
+	_kill(f, Vector2(face, 0.3))
+
+
+## 달리다 벽에 박힘: 잠깐 기절, 세상이 정상 속도로 돌아온다
+func _crash() -> void:
+	stun_t = STUN
+	mode = 0
+	beep(80.0, 0.25, 40.0, 0.4)
+	msg("쾅", 0.5)
 
 
 func _pick(g: Dictionary) -> void:
@@ -659,34 +671,31 @@ func _jump() -> void:
 	if ducked and not _free(px, py, 1.8):
 		return
 	ducked = false
-	vy = JUMP
 	grounded = false
 	coyote = 0.0
-	burst = 0.2
-	beep(400.0, 0.1, 700.0, 0.22)
+	vy = JUMP + minf(absf(vx), RUN) * 0.15  # 빠를수록 조금 더 높이, 수평 속도는 그대로라 더 멀리
+	beep(400.0 + absf(vx) * 20.0, 0.1, 700.0, 0.22)
 
 
+## 적 탭: 총이 있으면 쏘고, 빈 총이면 던지고, 빈손이면 그쪽으로 가속 (뚫고 지나가 치기)
 func _act(f: Foe) -> void:
-	if f.x != px:
-		face = signf(f.x - px)
-	burst = 0.25
-	mode = 0
-	var from := Vector2(px + face * 0.5, py + _ph() * 0.72)
+	var to := signf(f.x - px) if f.x != px else face
+	var from := Vector2(px + to * 0.5, py + _ph() * 0.72)
 	var dir := (Vector2(f.x, f.y + 1.2) - from).normalized()
-	if _near(f):
-		_punch(f)
-	elif has_gun and ammo > 0:
+	if has_gun and ammo > 0:
+		face = to
 		ammo -= 1
 		_fire(1, from, dir, null)
 		if ammo == 0:
 			msg("빈 총", 0.5)
 	elif has_gun:
+		face = to
 		has_gun = false
 		_fire(2, from, dir, null)
 	else:
-		chase = f
-		mode = 2
-		burst = 0.0
+		run_dir = to
+		mode = 1
+		step_t = 0.0
 
 
 func _foe_at(p: Vector2) -> Foe:
@@ -732,11 +741,9 @@ func _drag(p: Vector2) -> void:
 		elif grounded:
 			ducked = true
 			mode = 3
-			burst = 0.2
 			run_dir = -1.0 if p.x < 360.0 else 1.0
 			beep(200.0, 0.08, 120.0, 0.2)
 
 
 func _lift(_p: Vector2) -> void:
 	mode = 0
-	chase = null

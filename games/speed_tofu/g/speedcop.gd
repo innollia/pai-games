@@ -1,10 +1,14 @@
 extends Tofu
-## 단속 경찰 1인칭: 갓길·육교에서 달려오는 차를 보고 과속차만 탭해서 세운다. '측정'을 누르고 있으면 가장 가까운 차 속도를 잰다(배터리).
-## 정상 차·구급차를 세우거나 과속차를 놓치면 목숨 -1(3개). 근무지 국도→고속도로→비 오는 밤→터널→도심, 근무 사이 장비 하나.
+## 단속 경찰 1인칭: 갓길에서 달려오는 차 중 과속차를 탭하면 그 차가 도주한다 → 돌아서서 '가속'을 쥐고 뒤쫓는다. '측정'을 꾹 = 가까운 차 속도(배터리).
+## 변형(속도 때문에 고통스러운 상황): 과속차를 잡으려면 나도 과속해야 하는데 길가 과속 카메라에 나도 찍혀 벌점이 쌓인다(40이면 면허 정지). 카메라 앞에서 늦추면 범인이 달아난다.
+## 정상 차·구급차를 세우거나 과속차를 놓치면 목숨 -1(3개). 근무지 국도→고속도로→비 오는 밤→터널→도심, 근무 사이 장비 하나. 길은 세 토막을 돌려 써서 끝이 없다.
 
 const K := 0.6  # km/h -> 판 속도(m/s) 비율
 const POOL := 24
-const SPAWN_Z := -170.0
+const SPAWN_Z := -170.0  # 내 자리 기준
+const TILE := 230.0  # 길 한 토막. 세 토막을 돌려 쓴다
+const MAXP := 40  # 벌점이 여기 닿으면 면허 정지
+const CAM_LZ := [-130.0, -20.0]  # 토막 안 과속 카메라 자리 (나를 찍는다)
 const PLACES := [
 	{"name": "시골 국도", "limit": 80, "margin": 22, "lanes": [-1.8, 1.8], "cam": Vector3(5.2, 1.7, 0), "look": Vector3(-0.8, 0.6, -40), "side": 4.0, "every": 1.7, "count": 14},
 	{"name": "고속도로", "limit": 110, "margin": 16, "lanes": [-3.6, 0.0, 3.6], "cam": Vector3(2.0, 7.5, 4.4), "look": Vector3(0, 0, -45), "side": 6.8, "every": 1.15, "count": 20},
@@ -17,6 +21,8 @@ const UPS := {
 	"partner": ["파트너", "놓친 과속차를 근무마다 1대 잡아 준다"],
 	"slow": ["슬로모 카메라", "측정하는 동안 세상이 느려진다"],
 	"life": ["서장님 칭찬", "목숨 +1"],
+	"engine": ["엔진 튜닝", "순찰차가 더 빨리 붙고 더 빠르다"],
+	"edu": ["안전 교육", "벌점 -15"],
 }
 const CAR_COLS := [A, B, C, D, GOOD, ME, WHITE]
 
@@ -48,6 +54,11 @@ class Car:
 
 var cars: Array[Car] = []
 var stage: Node3D
+var tiles: Array[Node3D] = []  # 같은 길 세 토막 (stage 와 복제 둘)
+var sign_ls: Array[Label3D] = []
+var paints: Array[MeshInstance3D] = []
+var spcams: Array[Dictionary] = []  # {tile, lz, flash, warned}
+var rain_root: Node3D
 var rain: Array[MeshInstance3D] = []
 var marker: MeshInstance3D
 var school_paint: MeshInstance3D
@@ -65,8 +76,21 @@ var day_bg := Color("d8eeff")
 var lives := 3
 var ups := {}
 var shift := 0
-var mode := "shift"  # shift / done / pick
+var mode := "shift"  # shift / chase / done / pick
 var done_t := 0.0
+# 추격
+var post := Vector3.ZERO  # 서 있는 자리
+var look_off := Vector3(-6, -1.1, -40)  # 자리에서 보는 방향
+var facing := 0.0  # 0 = 오는 차 쪽(-z), 1 = 돌아서서 추격(+z)
+var my_z := 0.0
+var my_spd := 0.0  # km/h
+var chase_tgt: Car = null
+var chase_t := 0.0
+var caught := false
+var points := 0  # 벌점
+var hum_t := 0.0
+var flash_t := 0.0
+var flash_m: MeshInstance3D = null
 var place: Dictionary = {}
 var lanes: Array = []
 var limit := 80
@@ -89,7 +113,7 @@ var siren_hi := false
 
 
 func _setup() -> void:
-	howto = "단속 경찰이다. 달려오는 차 중 과속차만 탭해서 세운다.\n속도는 눈과 소리로 판단. 아래 '측정'을 누르고 있으면 가장 가까운 차의 속도가 뜬다(배터리).\n정상 차나 구급차를 세우거나 과속차를 놓치면 목숨 -1, 3번이면 끝.\n근무가 끝나면 장비를 하나 고른다."
+	howto = "단속 경찰이다. 달려오는 차 중 과속차를 탭하면 그 차가 도주하고, 나는 돌아서서 뒤쫓는다.\n'측정'을 꾹 = 가까운 차 속도 재기(배터리). 추격 중엔 같은 버튼이 '가속'.\n과속차를 잡으려면 나도 과속해야 하는데, 길가 과속 카메라에 나도 찍혀 벌점이 쌓인다. 벌점 40이면 면허 정지로 끝.\n정상 차·구급차를 세우거나 과속차를 놓치면 목숨 -1(3개). 근무 끝에 장비 하나."
 	time_limit = 0.0
 	cam.fov = 75.0
 	cam.far = 400.0
@@ -102,7 +126,7 @@ func _setup() -> void:
 			sun_ref = ch
 	var hud := CanvasLayer.new()
 	add_child(hud)
-	info_l = _label(hud, 34, 240, 50)
+	info_l = _label(hud, 30, 240, 50)
 	# 장비 고르기 (근무 사이)
 	var top_layer := CanvasLayer.new()
 	top_layer.layer = 6
@@ -132,12 +156,17 @@ func _setup() -> void:
 
 func _reset() -> void:
 	stage = null
+	tiles.clear()
+	rain_root = null
 	rain.clear()
 	cars.clear()
 	lives = 3
-	ups = {"gun": 0, "partner": 0, "slow": 0}
+	points = 0
+	ups = {"gun": 0, "partner": 0, "slow": 0, "engine": 0}
 	gun_bat = 1.0
 	gun_tgt = null
+	chase_tgt = null
+	flash_m = null
 	shake = 0.0
 	pick_root.visible = false
 	for i in POOL:
@@ -177,11 +206,20 @@ func _start_shift(s: int) -> void:
 	partner_left = ups.partner
 	school = false
 	mode = "shift"
+	chase_tgt = null
+	caught = false
+	my_spd = 0.0
+	facing = 0.0
 	for c in cars:
 		_off(c)
-	cam_base = place.cam
+	post = place.cam
+	look_off = place.look - place.cam
+	my_z = post.z
+	cam_base = post
 	cam.position = cam_base
 	cam.look_at(place.look)
+	_btns["gun"].label = "측정"
+	_btns["gun"].color = B
 	_build_stage(s % PLACES.size())
 	msg("근무 %d  %s" % [s + 1, place.name], 1.8)
 	beep(660.0, 0.12, 990.0, 0.25)
@@ -192,8 +230,13 @@ func _p() -> int:
 
 
 func _build_stage(p: int) -> void:
-	if stage:
-		stage.queue_free()
+	for tl in tiles:
+		tl.queue_free()
+	tiles.clear()
+	if rain_root:
+		rain_root.queue_free()
+	rain_root = Node3D.new()
+	world.add_child(rain_root)
 	stage = Node3D.new()
 	world.add_child(stage)
 	rain.clear()
@@ -245,7 +288,7 @@ func _build_stage(p: int) -> void:
 				box(Vector3(x1 + 0.8, 3.0, lz), Vector3(0.2, 6.0, 0.2), Color("adb5bd"), stage)
 				box(Vector3(x1 - 0.4, 6.0, lz), Vector3(2.4, 0.3, 0.6), D, stage)
 			for i in 50:
-				var r := box(_rain_spot(randf_range(0, 9)), Vector3(0.04, 0.7, 0.04), Color("a5d8ff"), stage)
+				var r := box(_rain_spot(randf_range(0, 9)), Vector3(0.04, 0.7, 0.04), Color("a5d8ff"), rain_root)
 				rain.append(r)
 		3:
 			var wall := Color("f4e1c1")
@@ -281,6 +324,31 @@ func _build_stage(p: int) -> void:
 	sign_l.position = sign_pos + Vector3(0, 0, 0.12)
 	sign_l.text = str(limit)
 	stage.add_child(sign_l)
+	# 과속 카메라: 기둥, 카메라, 노란 안내판, 번쩍이는 판
+	var flash_is: Array[int] = []
+	for lz in CAM_LZ:
+		box(Vector3(x1 + 0.9, 2.2, lz), Vector3(0.15, 4.4, 0.15), Color("495057"), stage)
+		box(Vector3(x1 + 0.9, 4.5, lz), Vector3(0.6, 0.45, 0.7), INK, stage)
+		box(Vector3(x1 + 0.9, 3.1, lz), Vector3(0.9, 0.9, 0.1), D, stage)
+		var fl := box(Vector3(x1 + 0.9, 4.5, lz + 0.45), Vector3(0.9, 0.9, 0.12), WHITE, stage)
+		fl.visible = false
+		flash_is.append(fl.get_index())
+	# 같은 토막을 앞뒤로 복제해 세 토막을 돌려 쓴다 (추격하면 길이 이어진다)
+	tiles = [stage]
+	for k in [-1, 1]:
+		var d := stage.duplicate() as Node3D
+		world.add_child(d)
+		d.position.z = k * TILE
+		tiles.append(d)
+	sign_ls.clear()
+	paints.clear()
+	spcams.clear()
+	for tl in tiles:
+		sign_ls.append(tl.get_child(sign_l.get_index()) as Label3D)
+		if school_paint:
+			paints.append(tl.get_child(school_paint.get_index()) as MeshInstance3D)
+		for i in CAM_LZ.size():
+			spcams.append({"tile": tl, "lz": float(CAM_LZ[i]), "flash": tl.get_child(flash_is[i]), "warned": false})
 
 
 func _rain_spot(y: float) -> Vector3:
@@ -290,15 +358,40 @@ func _rain_spot(y: float) -> Vector3:
 # ---- 매 프레임 ----
 func _step(dt: float) -> void:
 	clock += dt
-	_gun(dt)
+	if mode == "shift":
+		_gun(dt)
 	var slow := 1.0
 	if gun_tgt != null and ups.slow > 0:
 		slow = 0.4 if ups.slow == 1 else 0.25
 	var wdt := dt * slow
-	# 흔들림
+	# 카메라: 자리에 서 있거나(오는 차 쪽) 돌아서서 추격 중(+z)
+	facing = move_toward(facing, 1.0 if mode == "chase" else 0.0, 1.8 * dt)
+	var goal := post
+	if mode == "chase":
+		goal = Vector3(float(lanes[-1]), 1.6, my_z)
+	cam_base.x = lerpf(cam_base.x, goal.x, minf(1.0, 4.0 * dt))
+	cam_base.y = lerpf(cam_base.y, goal.y, minf(1.0, 4.0 * dt))
+	cam_base.z = my_z
 	shake = move_toward(shake, 0.0, 1.6 * dt)
 	cam.position = cam_base + Vector3(randf_range(-1, 1), randf_range(-1, 1), 0) * shake * 0.25
-	info_l.text = "근무 %d · %s   제한 %d   목숨 %d" % [shift + 1, place.name, limit, lives]
+	var dir := Vector3(look_off.x, lerpf(look_off.y, -0.6, facing), look_off.z * (1.0 - 2.0 * facing))
+	cam.look_at(cam.position + dir)
+	# 길 세 토막: 내 주변에 오게 돌린다
+	for tl in tiles:
+		var d := (tl.position.z - 70.0) - my_z
+		if d > 1.5 * TILE:
+			tl.position.z -= 3.0 * TILE
+		elif d < -1.5 * TILE:
+			tl.position.z += 3.0 * TILE
+	if flash_t > 0.0:
+		flash_t -= dt
+		if flash_t <= 0.0 and flash_m:
+			flash_m.visible = false
+			flash_m = null
+	if mode == "chase":
+		info_l.text = "%d km/h  제한 %d  벌점 %d/%d" % [int(my_spd), limit, points, MAXP]
+	else:
+		info_l.text = "근무%d %s  제한%d  목숨%d  벌점%d" % [shift + 1, place.name, limit, lives, points]
 	for r in rain:
 		r.position.y -= 22.0 * wdt
 		if r.position.y < 0.0:
@@ -310,9 +403,13 @@ func _step(dt: float) -> void:
 		if done_t <= 0.0:
 			_open_pick()
 		return
-	# 생성
+	if mode == "chase":
+		_chase(dt)
+		if over:
+			return
+	# 생성 (자리에 서 있을 때만)
 	spawn_t -= wdt
-	if left_n > 0 and spawn_t <= 0.0:
+	if mode == "shift" and left_n > 0 and spawn_t <= 0.0:
 		spawn_t = every * randf_range(0.7, 1.3)
 		_spawn()
 	# 도심: 중간에 스쿨존으로 제한이 바뀐다
@@ -320,9 +417,10 @@ func _step(dt: float) -> void:
 		school = true
 		limit = maxi(30, limit / 2)
 		margin = maxi(6, margin - 2)
-		sign_l.text = str(limit)
-		if school_paint:
-			school_paint.visible = true
+		for sl in sign_ls:
+			sl.text = str(limit)
+		for pm in paints:
+			pm.visible = true
 		msg("제한 %d로 바뀜!" % limit, 1.6)
 		beep(990.0, 0.3, 660.0, 0.3)
 		for c in cars:
@@ -387,6 +485,11 @@ func _move(c: Car, dt: float) -> void:
 	for w in c.wheels:
 		w.rotation.x += mv / 0.3
 	c.n.position = Vector3(c.x, 0, c.z)
+	if mode == "chase":
+		# 추격 중엔 판정 없음. 범인 말고 멀리 뒤처지거나 앞선 차만 치운다
+		if c != chase_tgt and (c.z < my_z - 40.0 or c.z > my_z + 230.0):
+			_off(c)
+		return
 	# 소리: 다가올 때 엔진(높을수록 빠름), 지나갈 때 휙
 	if not c.cued and c.z > cam_base.z - 75.0:
 		c.cued = true
@@ -448,8 +551,9 @@ func _lane_free(l: int, z: float, gap: float, me: Car) -> bool:
 # ---- 차 만들기 ----
 func _spawn() -> void:
 	var free_lanes: Array[int] = []
+	var sz := my_z + SPAWN_Z
 	for l in lanes.size():
-		if _lane_free(l, SPAWN_Z, 20.0, null):
+		if _lane_free(l, sz, 20.0, null):
 			free_lanes.append(l)
 	if free_lanes.is_empty():
 		spawn_t = 0.3
@@ -473,10 +577,10 @@ func _spawn() -> void:
 	if kind == "car" and p >= 1 and randf() < 0.15:
 		# 줄지어 오는 차들: 같은 속도
 		for i in 4:
-			_place(_free_car(), "car", lane, SPAWN_Z - i * 11.0, kmh, false)
+			_place(_free_car(), "car", lane, sz - i * 11.0, kmh, false)
 		return
 	var braker := kind == "car" and speeding and p >= 2 and randf() < 0.45
-	_place(_free_car(), kind, lane, SPAWN_Z, kmh, braker)
+	_place(_free_car(), kind, lane, sz, kmh, braker)
 
 
 func _kmh(speeding: bool) -> float:
@@ -647,15 +751,103 @@ func _tap(p: Vector2) -> void:
 	if pick.kind == "amb":
 		_lose("구급차는 보내야지!")
 		return
-	pick.stopped = true
-	beep(980.0, 0.14, 700.0, 0.3)
 	if pick.spd > limit:
-		var pts := int(10.0 + (pick.spd - limit) / 2.0) * (1 + loop_n)
+		# 과속차는 서지 않고 달아난다. 돌아서서 쫓는다
+		mode = "chase"
+		chase_tgt = pick
+		chase_t = 0.0
+		caught = false
+		my_spd = 0.0
+		pick.braker = false
+		pick.braking = false
+		gun_tgt = null
+		marker.position.y = -50.0
+		pick.target = minf(pick.spd + (15.0 if pick.kind == "truck" else 28.0) + 6.0 * loop_n, 195.0)
+		_btns["gun"].label = "가속"
+		_btns["gun"].color = A
+		for sc in spcams:
+			sc.warned = false
+		beep(980.0, 0.14, 1400.0, 0.3)
+		msg("도주! 추격!", 1.0)
+	else:
+		pick.stopped = true
+		beep(980.0, 0.14, 700.0, 0.3)
+		_lose("정상 %d km/h" % int(pick.spd))
+
+
+# ---- 추격: 범인을 따라잡으려면 나도 과속해야 하고, 카메라는 나도 찍는다 ----
+func _chase(dt: float) -> void:
+	var c := chase_tgt
+	var top := 170.0 + 20.0 * float(ups.engine)
+	if kit_held("gun") and not caught:
+		my_spd = minf(top, my_spd + (40.0 + 12.0 * float(ups.engine)) * dt)
+	else:
+		my_spd = maxf(0.0, my_spd - (90.0 if caught else 55.0) * dt)
+	var prev := my_z
+	my_z += my_spd / 3.6 * K * dt
+	chase_t += dt
+	hum_t -= dt
+	if hum_t <= 0.0 and my_spd > 5.0:
+		hum_t = 0.11
+		beep(_q(90.0 + my_spd * 2.2), 0.08, 0.0, 0.09)
+	var over := my_spd - float(limit) - 10.0
+	for sc in spcams:
+		var tl: Node3D = sc.tile
+		var cz: float = tl.position.z + float(sc.lz)
+		if cz > my_z and cz - my_z < 70.0 and over > 0.0 and not sc.warned:
+			sc.warned = true
+			msg("카메라!", 0.5)
+			beep(1500.0, 0.06, 0.0, 0.15)
+		if prev < cz and my_z >= cz:
+			sc.warned = false
+			if over > 0.0:
+				var pts := ceili(over / 10.0)
+				points += pts
+				flash_m = sc.flash
+				flash_m.visible = true
+				flash_t = 0.15
+				shake = maxf(shake, 0.35)
+				beep(1900.0, 0.1, 0.0, 0.25)
+				msg("찰칵! 벌점 +%d" % pts, 0.9)
+				if points >= MAXP:
+					msg("면허 정지!", 2.0)
+					end()
+					return
+	gauge(my_spd / 200.0, BAD if over > 0.0 else GOOD)
+	if caught:
+		if my_spd <= 0.0:
+			_chase_end()
+		return
+	if c == null or not c.on:
+		_chase_end()
+		return
+	var ahead := c.z - my_z
+	if chase_t > 1.0 and ahead > -2.0 and ahead < 7.0 and my_spd >= c.spd - 5.0:
+		caught = true
+		c.stopped = true
+		var pts := int(10.0 + (c.spd - limit) / 2.0) * (1 + loop_n)
 		score += pts
 		play("good")
-		msg("과속 %d! +%d" % [int(pick.spd), pts], 0.9)
-	else:
-		_lose("정상 %d km/h" % int(pick.spd))
+		msg("검거! +%d" % pts, 1.0)
+	elif ahead > 170.0 or chase_t > 16.0:
+		_missed(c)
+		_chase_end()
+
+
+func _chase_end() -> void:
+	mode = "shift"
+	chase_tgt = null
+	caught = false
+	my_spd = 0.0
+	post = Vector3(float(place.side) + 0.3, 1.7, my_z)
+	look_off = Vector3(-6.0, -1.1, -40.0)
+	_btns["gun"].label = "측정"
+	_btns["gun"].color = B
+	for c in cars:
+		if c.on and not c.passed and c.z > my_z - 1.0:
+			c.passed = true  # 추격 중에 지나친 차는 묻지 않는다
+	for sc in spcams:
+		sc.warned = false
 
 
 func _missed(c: Car) -> void:
@@ -695,6 +887,8 @@ func _open_pick() -> void:
 func _take(k: String) -> void:
 	if k == "life":
 		lives += 1
+	elif k == "edu":
+		points = maxi(0, points - 15)
 	else:
 		ups[k] += 1
 	pick_root.visible = false
