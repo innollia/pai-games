@@ -5,7 +5,6 @@ const GAMES := [
 	# 합격 (10/30 판정)
 	["blade", "★ 일격의 길"],
 	["boulder", "★ 굴러라 신전석"],
-	["quicksilver_tp", "★ 퀵실버 (등뒤 3인칭)"],
 	["boulder_fp", "★ 신전석 (1인칭)"],
 	["screenrace", "★ 화면 밖 경주 (옆모습)"],
 	["overpower", "★ 과속 플랫포머 (옆모습)"],
