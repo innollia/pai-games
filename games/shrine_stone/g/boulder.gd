@@ -3640,19 +3640,16 @@ func _build_journey_ui() -> void:
 	_score_l.label_settings.font_size = 40
 	_score_l.position = Vector2(24, 82)
 	_score_l.size = Vector2(672, 50)
-	# 안내 판: 글 뒤에 크림 돌판을 깔고 글 길이에 맞춘다 (_fit_plates)
-	action_label.label_settings.outline_size = 6
-	_msg_l.label_settings.outline_size = 6
-	route_plate = _ui_plate(route_label)
-	action_plate = _ui_plate(action_label)
-	msg_plate = _ui_plate(_msg_l, 24, 4)
-	score_plate = _ui_plate(_score_l, 24, 3)
+	# 화면 글은 판 없이 흰 외곽선만: 길을 가리지 않게 덜어낸다
+	route_label.label_settings.outline_size = 10
+	route_label.label_settings.font_size = 26
+	action_label.label_settings.outline_size = 10
+	_msg_l.label_settings.outline_size = 12
+	_score_l.label_settings.font_size = 56
+	_score_l.label_settings.outline_size = 12
 	for c in _score_l.get_parent().get_children():
 		if c is Label and (c as Label).text.begins_with("<"):
 			back_l = c as Label
-			back_plate = _ui_plate(back_l, 24, 3)
-	if _rate_btn_l:
-		rate_plate = _ui_plate(_rate_btn_l, 24, 3)
 	var result_layer := CanvasLayer.new()
 	result_layer.layer = 8
 	add_child(result_layer)
@@ -3900,11 +3897,10 @@ func _process(dt: float) -> void:
 	if over:
 		_over_l.visible = false
 		return
-	_score_l.text = tr("%d점   ·   속도 %02d m/s") % [score, int(v)]
+	_score_l.text = "%d m/s" % int(v)
 	var k := maxi(cur_k, cp_k)
-	route_label.text = tr("%02d / %02d   ·   %s   ·   크기 %.1f") % [k + 1, Z.size(), _format_time(run_elapsed), s_goal]
-	var hints := ["끌어서 항아리를 깔고 빨간 기둥은 피해", "뛰기 · 떨어지면 저 아래 지하 신전으로", "쪼개면 잠깐 돌진 · 집을 뚫고 가볍게 회전", "파란 머리 탑·신상 = 공중에서 버티기로 쾅 → 가속", "집을 깔거나 뛰어넘어 길을 골라", "흰 빗금 눈 = 성장 · 노란 길 = 해빙", "초록 점선에서 던져 수정에 통로를 열어", "노란 돌은 받아 · 빨간 돌은 피해 / 쪼개서 막아"]
-	action_label.text = tr(str(Z[k].get("objective", hints[mini(k, hints.size() - 1)])))
+	route_label.text = "%02d / %02d   ·   %s" % [k + 1, Z.size(), _format_time(run_elapsed)]
+	action_label.text = ""  # 평소엔 비워 둔다: 필요한 순간(발판·다리·얼음벽)에만 뜬다
 	for drum: Dictionary in drums:
 		if dist >= float(drum.a) and dist < float(drum.b) and on_ground:
 			action_label.text = tr("발판 힘 %d%% · %s") % [int(drum_charge * 100.0), tr("손을 떼서 발사!" if drum_charge >= 0.4 else "버티기를 길게 눌러")]

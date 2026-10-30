@@ -124,14 +124,6 @@ func _title_open() -> void:
 	else:
 		_text(tr("굴러라 신전석"), 104, Vector2(0, 170), Vector2(720, 140), INK, 18)
 		_text(sub, 40, Vector2(0, 300), Vector2(720, 60), Color("8a5a2b"), 10)
-	_text(tr("신전에서 풀려난 돌,\n바다까지 멈추지 말고 굴러라"), 36, Vector2(0, 420), Vector2(720, 110), INK, 10)
-	if ui:
-		# 조작 한 줄: howto 둘째 줄 (영어면 HOWTO_EN 이라 이미 영어)
-		var lines := game.howto.split("\n")
-		if lines.size() >= 2:
-			game.call("ui_panel", title, Vector2(110, 548), Vector2(500, 62), game.call("ui_box", Color(0.937, 0.882, 0.769, 0.88), 24, 3, false))
-			var cfs: int = game.call("fit_fs", lines[1], 30, 470)
-			_text(lines[1], cfs, Vector2(110, 548), Vector2(500, 62), INK, 0)
 	var cfg := ConfigFile.new()
 	if cfg.load(RECORD) == OK and float(cfg.get_value("record", "time", 0.0)) > 0.0:
 		var c := int(float(cfg.get_value("record", "time", 0.0)) * 100.0)
@@ -143,8 +135,6 @@ func _title_open() -> void:
 			_text(best, 34, Vector2(0, 520), Vector2(720, 50), Color("2b7a3d"), 10)
 	var play_b := _button(tr("▶  시작"), Vector2(110, 760), Vector2(500, 130), GOLD, 56, _title_start)
 	var bs: Array = [play_b]
-	if game.has_method("start_tutorial"):
-		bs.append(_button(tr("튜토리얼"), Vector2(110, 920), Vector2(500, 110), Color.WHITE, 44, _title_tutorial))
 	if OS.has_feature("web"):
 		bs.append(_button("English" if TranslationServer.get_locale() != "en" else "한국어", Vector2(250, 1090), Vector2(220, 70), Color(1, 1, 1, 0.8), 30, _title_lang))
 	if ui:
