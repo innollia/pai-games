@@ -151,6 +151,24 @@ def build_md(ratings, ideas):
                     L.append(f"- ★{r['stars']} ({_when(r)}, {r.get('ver') or '?'}, 점수 {r.get('score', '-')}) {txt}")
             L.append("")
 
+    # 별 없이 남긴 한마디(tofu_ideas 에 game 이 붙은 것)는 게임별로 따로 모은다
+    notes = defaultdict(list)
+    for d in ideas:
+        g = str(d.get("game") or "")
+        if g and not g.startswith("_"):
+            notes[g].append(d)
+    ideas = [d for d in ideas if not d.get("game")]
+    L.append("## 별 없는 한마디 (게임별)\n")
+    if not notes:
+        L.append("(아직 없음)\n")
+    else:
+        for g in sorted(notes):
+            L.append(f"### {g}\n")
+            for d in sorted(notes[g], key=_sort_key, reverse=True):
+                txt = str(d.get("text") or "").strip().replace("\n", " ")
+                L.append(f"- ({_when(d)}, {d.get('ver') or '?'}) {txt}")
+            L.append("")
+
     L.append("## 아이디어 (최신순)\n")
     if not ideas:
         L.append("(아직 없음)\n")

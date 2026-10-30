@@ -288,7 +288,7 @@ func _rate_hit(p: Vector2) -> bool:
 			var w := _js_ask("이 게임에 한마디 (선택)")
 			if w.strip_edges() != "":
 				_rate_text = w.strip_edges().left(500)
-				_rate_status.text = "별도 탭해 주세요"
+				_note_send()
 		elif _CLOSE_RECT.has_point(p):
 			play("tap")
 			_rate_close()
@@ -309,7 +309,7 @@ func _rate_hit(p: Vector2) -> bool:
 			if _rated > 0:
 				_rate_send()  # 별은 이미 보냈으니 같은 별 수로 글만 한 건 더
 			else:
-				_rate_status.text = "별도 탭해 주세요"
+				_note_send()
 		return true
 	return false
 
@@ -322,6 +322,18 @@ func _rate_send() -> void:
 		return
 	var js := "window.tofuRate && window.tofuRate(%s, %s, %d, %s, %d)" % [
 		JSON.stringify(id), JSON.stringify(("v%d %s" % [gver, VER]).left(40)), _rated, JSON.stringify(_rate_text), score]
+	JavaScriptBridge.eval(js, true)
+	_rate_wait = true
+	_rate_say("보내는 중")
+
+
+## 별 없이 한마디만 보낸다. 별을 나중에 탭하면 그 글이 별과 함께 한 번 더 간다
+func _note_send() -> void:
+	if not OS.has_feature("web"):
+		_rate_say("한마디 보냈어요")
+		return
+	var js := "window.tofuNote && window.tofuNote(%s, %s, %s)" % [
+		JSON.stringify(id), JSON.stringify(("v%d %s" % [gver, VER]).left(40)), JSON.stringify(_rate_text)]
 	JavaScriptBridge.eval(js, true)
 	_rate_wait = true
 	_rate_say("보내는 중")

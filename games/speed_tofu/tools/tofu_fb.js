@@ -62,6 +62,19 @@ window.tofuIdea = function (text, ver) {
   });
 };
 
+// 별 없이 한마디만: tofu_ideas 에 game 을 붙여 쌓는다 (규칙은 text 만 본다). feedback.py 가 그 게임 한마디에 합친다.
+window.tofuNote = function (game, ver, text) {
+  const t = clip(text, 2000).trim();
+  if (!t) { window.tofuLast = "fail"; return Promise.resolve(false); }
+  return send("tofu_ideas", {
+    text: t,
+    game: clip(game, 40),
+    ver: clip(ver, 40),
+    ua: clip(navigator.userAgent, 300),
+    ts: serverTimestamp(),
+  });
+};
+
 window.tofuAsk = function (msg) {
   try {
     const r = window.prompt(msg);
