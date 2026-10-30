@@ -3,7 +3,7 @@ extends Node
 ## 새 게임의 기반으로 쓸 때: g/boulder.gd 를 고치거나, g/ 에 Tofu 를 extends 한 새 파일을 만들고 GAME 을 바꾼다.
 
 const GAME := "boulder"
-const GVER := 9  # speed_tofu main.gd GAME_VER["boulder"] (tools/sync.ps1 이 맞춘다). 평가 ver = "v<GVER> <빌드>"
+const GVER := 10  # speed_tofu main.gd GAME_VER["boulder"] (tools/sync.ps1 이 맞춘다). 평가 ver = "v<GVER> <빌드>"
 
 var game: Tofu
 var from_tofu := false  # SPEED 두부 목록(?from=tofu)에서 왔으면 "<" 가 목록으로 돌아간다
@@ -24,6 +24,14 @@ func _open() -> void:
 	game.gver = GVER
 	game.back.connect(_close)
 	add_child(game)
+	# 확인용: 주소에 ?zone=N 이면 N 구역(1부터)에서 시작한다
+	if OS.has_feature("web"):
+		var zq := int(str(JavaScriptBridge.eval("(location.search.match(/zone=(\\d+)/) || [0, 0])[1]", true)))
+		if zq > 1 and zq <= game.Z.size():
+			game.cp_k = zq - 1
+			game.cp_st = {"x": 0.0, "z": 0.0, "yw": 0.0, "h": 200.0}
+			game.cp_s = 2.6
+			game.restart()
 	if from_tofu:
 		_relabel(game)
 	_title_open()
@@ -36,7 +44,7 @@ const GOLD := Color("fcc419")
 const STONE := Color("efe1c4")
 const GLYPH_SUB := Color("8a6d4b")
 const RECORD := "user://boulder_v6.cfg"
-const UI_FNS := ["ui_box", "ui_panel", "ui_slab", "ui_glyph", "ui_button_styles", "ui_squash", "fit_fs"]
+const UI_FNS := ["ui_box", "ui_stone", "ui_panel", "ui_slab", "ui_glyph", "ui_button_styles", "ui_squash", "fit_fs"]
 var _font: Font = preload("res://fonts/Pretendard-Bold.otf")
 var title: CanvasLayer
 var lintel: Control
@@ -129,7 +137,7 @@ func _title_open() -> void:
 		var c := int(float(cfg.get_value("record", "time", 0.0)) * 100.0)
 		var best := tr("최고 완주 %s") % ("%02d:%02d.%02d" % [c / 6000, (c / 100) % 60, c % 100])
 		if ui:
-			game.call("ui_panel", title, Vector2(190, 630), Vector2(340, 58), game.call("ui_box", STONE, 24, 3))
+			game.call("ui_panel", title, Vector2(190, 630), Vector2(340, 58), game.call("ui_stone", STONE, "btn"))
 			_text(best, 30, Vector2(190, 630), Vector2(340, 58), Color("2b7a3d"), 0)
 		else:
 			_text(best, 34, Vector2(0, 520), Vector2(720, 50), Color("2b7a3d"), 10)

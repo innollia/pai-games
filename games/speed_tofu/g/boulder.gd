@@ -256,7 +256,7 @@ var end_fov := 55.0
 # 결과 돌판·도장, 안내 판, 속도 게이지, 키트 버튼
 var result_band_sb: StyleBoxFlat
 var result_seal: Control
-var seal_sb: StyleBoxFlat
+var seal_sb: StyleBoxTexture
 var seal_l: Label
 var seal_crack: Line2D
 var seal_tw: Tween
@@ -389,7 +389,7 @@ func _zones_list() -> Array:
 			"items": [{"legs": [[30, 0, 7], [88, -19.4, 7], [12, -2.6, 7, 0, "mouthL"]], "put": _cut(PUT1, 0, 130),
 					"say": [[2, "11개의 길 너머\n마지막 신전으로"], [24, "끌어서 항아리를 깔아봐"], [100, "빨간 기둥은 옆으로 피해"]]},
 				{"fork": [
-					{"legs": [[14, -0.7, 7, 70], [10, -2, 5], [54, -9, 4.5, -70], [12, 0, 4.5]], "put": [["pot", 30, 0], ["pot", 46, 0], ["pot", 62, 0]]},
+					{"legs": [[14, -0.7, 7, 32], [10, -2, 5], [54, -9, 4.5, -32], [12, 0, 4.5]], "put": [["pot", 30, 0], ["pot", 46, 0], ["pot", 62, 0]]},
 					{"legs": [[40, -2, 7], [60, 8, 6]], "put": _cut(PUT1, 130, 230), "say": [[30, "큰 돌은 무거워\n오르막 전엔 욕심내지 마"]]}],
 					"hidden": true, "pick_x": -4.0, "lane_x": -5.5, "name": "옛 배수로"},
 				{"legs": [[20, 0, 6], [100, -23, 4], [20, 5, 4, 0, "ramp"], [22, -10, 5, 0, "gap"], [28, 0, 5], [70, -4, 3.5, 0, "bridge"], [50, -10, 6], [60, 6, 6]],
@@ -402,8 +402,7 @@ func _zones_list() -> Array:
 				"put": [["pot", 38, 0], ["pot", 48, 0], ["pot", 60, 0], ["wall", 125, 0], ["pot", 148, 0], ["pot", 153, 0],
 					["wall", 222, 0], ["pot", 240, 0], ["pot", 246, 0], ["statue", 310, 0], ["pot", 322, 0]],
 				"say": [[60, "틈! 뛰기"], [112, "담도 뛰어"], [296, "석상!\n뛰거나 깔거나"]],
-				# 숨은 길 2 (깊은 물길): 지하 바닥 위 뛰는 높이에 바람 줄이 물기둥을 넘어간다. 물기둥을 뛰어넘으면 다음 수로 밑까지 이어 달려 속도를 지킨 채 솟는다
-				"lane": [[345, 391, 0.0, -85.0]]},
+				},
 				# 섞기: 항아리로 커져야 석상을 깐다. 석상 바로 뒤가 틈이라 튕기면 빠진다. 담 바로 뒤도 틈.
 				{"legs": [[30, -4, 2.2, 0, "aq"], [40, -8, 2.2, 0, "aq"], [16, -1, 2.2, 0, "gap"], [40, -6, 2.2, 0, "aq"],
 					[12, -1, 2.2, 0, "gap"], [40, -6, 2.2, 0, "aq"], [15, 0, 4]],
@@ -415,18 +414,18 @@ func _zones_list() -> Array:
 					"fence": [10], "say": [[6, "쪼개면 가볍고
 잠깐 돌진: 집도 뚫는다"]]},
 				{"fork": [
-					{"legs": [[26, -3, 6, 90], [70, -12, 7]], "put": [["house", 34, -3], ["pot", 40, 3], ["house", 48, 3], ["pot", 56, -3],
+					{"legs": [[26, -3, 6, 35], [70, -12, 7]], "put": [["house", 34, -3], ["pot", 40, 3], ["house", 48, 3], ["pot", 56, -3],
 						["house", 62, -3], ["house", 76, 3], ["pot", 84, 0]], "fence": [92]},
-					{"legs": [[26, -3, 5, -90], [70, -18, 4.5]], "put": [["pot", 45, 0], ["pot", 70, -2], ["pot", 72, 2]], "fence": [56]}]},
+					{"legs": [[26, -3, 5, -35], [70, -18, 4.5]], "put": [["pot", 45, 0], ["pot", 70, -2], ["pot", 72, 2]], "fence": [56]}]},
 				{"legs": [[12, -2.5, 7], [12, -2.5, 7, 0, "mouthL"]], "put": [["pot", 8, 0], ["pot", 12, 3]]},
 				# 숨은 길 3 (뒷골목): 왼쪽 차선에만 보라 금 돌문. 쪼개 돌진하거나 42m/s 로 들이받으면 열리고, 다음 갈림길을 건너뛴다
 				{"fork": [
-					{"legs": [[14, -2, 7, 70], [12, -4, 5], [46, -12, 4.5, -70], [12, -1, 5]], "put": [["pot", 30, 0], ["pot", 44, 0], ["pot", 58, 0]]},
+					{"legs": [[14, -2, 7, 32], [12, -4, 5], [46, -12, 4.5, -32], [12, -1, 5]], "put": [["pot", 30, 0], ["pot", 44, 0], ["pot", 58, 0]]},
 					{"legs": [[56, -8, 7]], "put": [["pot", 14, -3], ["pot", 26, 3], ["pot", 40, 0]]}],
 					"hidden": true, "pick_x": -3.5, "seal": ["door", 10, -4.8], "skip": 1, "name": "뒷골목"},
 				{"fork": [
-					{"legs": [[22, -2, 6, 100], [50, -10, 7]], "put": [["house", 30, 3], ["house", 40, -3], ["house", 52, 2], ["statue", 60, -2]]},
-					{"legs": [[22, -2, 6, -100], [26, -6, 6], [10, 4, 6, 0, "ramp"], [12, -4, 6, 0, "gap"], [22, -4, 6]],
+					{"legs": [[22, -2, 6, 38], [50, -10, 7]], "put": [["house", 30, 3], ["house", 40, -3], ["house", 52, 2], ["statue", 60, -2]]},
+					{"legs": [[22, -2, 6, -38], [26, -6, 6], [10, 4, 6, 0, "ramp"], [12, -4, 6, 0, "gap"], [22, -4, 6]],
 						"put": [["pot", 30, 0], ["pot", 80, -2], ["pot", 82, 2]]}]},
 				{"legs": [[40, -8, 7], [30, 3, 7]], "put": [["house", 15, -3.5], ["house", 30, 3.5], ["pot", 50, 0]], "fence": [60]},
 				# 섞기: 집을 깔아 무거워진 뒤 큰 회전(무거우면 밀려 떨어짐) → 쪼개기, 곧바로 경사대 틈 → 뛰기
@@ -475,7 +474,7 @@ func _zones_list() -> Array:
 				# 숨은 길 5 (얼음 골짜기): '녹여'라는 말과 반대로 왼쪽 눈길에 남아 커지면, 왼쪽 차선 얼음판을 깨고 오르막 없이 내려간다
 				{"fork": [
 					# 둘째 다리는 살짝 오른다: 큰길이 바로 오르막이라, 내려가면 큰길 판 밑으로 파고든다
-					{"legs": [[14, -1, 9, 45], [16, 1, 6], [60, -19, 6, -45], [14, -3, 6]], "put": [["pot", 34, 0], ["pot", 54, 0]]},
+					{"legs": [[14, -1, 9, 28], [16, 1, 6], [60, -19, 6, -28], [14, -3, 6]], "put": [["pot", 34, 0], ["pot", 54, 0]]},
 					{"legs": [[14, -1, 9], [55, 19, 8], [10, -1, 8]], "say": [[68, "다시 키워!"]]}],
 					"hidden": true, "pick_x": -4.5, "seal": ["icedoor", 12, -6.0], "name": "얼음 골짜기"},
 				{"legs": [[90, -16, 9], [20, -1, 9], [40, -6, 8], [20, -2, 8]],
@@ -494,7 +493,7 @@ func _zones_list() -> Array:
 				"say": [[6, "던지기 = 내 몸 한 덩이를\n앞으로 (작아진다)"], [50, "보라 벽은 몸으로 못 지나간다\n점선이 초록이면 던져"], [96, "기둥보다 크면\n다리가 끊어진다"], [150, "다시 키워"], [206, "빠를수록 멀리 닿는다"]]},
 				# 숨은 길 6 (수정 맥 길): 조준선이 막히지 않은 왼쪽 차선의 수정 하나를 가리킨다. 던져 깨면 좁은 흔들다리 없이 벼랑 틈으로 내려간다
 				{"fork": [
-					{"legs": [[14, -1.4, 7, 70], [12, -4, 5], [44, -15, 4.5, -70], [12, -2, 5]], "put": [["pot", 26, 0], ["pot", 44, 0]]},
+					{"legs": [[14, -1.4, 7, 32], [12, -4, 5], [44, -15, 4.5, -32], [12, -2, 5]], "put": [["pot", 26, 0], ["pot", 44, 0]]},
 					{"legs": [[20, -2, 7], [55, -4, 3.2, 0, "rope", 3.0], [15, -1, 7]], "row": [[12, "crystal"]], "say": [[18, "더 좁은 다리"]]}],
 					"hidden": true, "pick_x": -3.5, "seal": ["vein", 14, -5.0], "name": "수정 맥 길"},
 				{"legs": [[40, -7, 7], [20, -1, 7]], "put": [["pot", 10, 0]]},
@@ -992,9 +991,10 @@ func _zone_items(z: Dictionary) -> void:
 		var d1 := float(maxi(_len(), 0))
 		_extend(it.legs)
 		_draw_road(pd, int(d1), _len(), z)
-		if int(z.k) == 1 and not tutorial:
-			# 다음 조각이 있으면 바닥 연장 없이 이어 붙인다 (연장 바닥이 다음 조각 바닥 위에 뜨지 않게)
-			_build_tunnel(d1, float(_len()), z.node, {"ext": 0.0 if int(z.item) + 1 < items.size() else 80.0})
+		if int(z.k) == 1 and not tutorial and int(z.item) + 1 == items.size():
+			# 수로 구역이 다 지어지면 구역 처음부터 끝까지 하나로 잇는다: 떨어지면 구역 끝 물기둥까지 아래 세상을 달린다
+			_build_tunnel(float(z.start), float(_len()), z.node, {"ext": 80.0})
+			z.things.append_array(_under_things(float(z.start), float(_len()), z))
 		var acc := d1
 		for lg: Array in it.legs:
 			if lg.size() > 5 and str(lg[4]) == "rope":
@@ -1404,6 +1404,8 @@ func _plate(o: Dictionary, la: float, lb: float, x0: float, x1: float, col: Colo
 		var p0 := _opos(o, d, xm, _oh(o, d))
 		var p1 := _opos(o, next, xm, _oh(o, next))
 		var m := box(Vector3.ZERO, Vector3.ONE, col, nd)
+		if col == BAD:
+			_red(m)
 		m.basis = Basis.looking_at((p1 - p0).normalized(), Vector3.UP)
 		m.scale = Vector3(x1 - x0, 0.2, (p1 - p0).length() + 0.02)
 		m.position = (p0 + p1) * 0.5 + Vector3.UP * lift
@@ -1425,6 +1427,7 @@ func _arch_o(o: Dictionary, d: float, lim: float, nd: Node3D) -> void:
 		var p := box(_opos(o, d, sd * (hw + 0.8), h + lim * 0.5), Vector3(1.0, lim, 1.0), D, nd)
 		p.rotation.y = yw
 		var cap := box(_opos(o, d, sd * (hw + 0.8), h + lim + 0.3), Vector3(1.6, 0.6, 1.6), BAD, nd)
+		_red(cap)
 		cap.rotation.y = yw
 
 
@@ -1458,6 +1461,24 @@ func _thing(o: Dictionary, l: float, d: float, x: float, kind: String, z: Dictio
 		th.n.material_override = art_materials["ice_wall"]
 	elif kind == "statue":
 		_apply_art(th.n, "pillar")
+		# 석상 머리와 받침: 기둥이 아니라 서 있는 상으로 읽히게
+		var head := MeshInstance3D.new()
+		var sph := SphereMesh.new()
+		sph.radial_segments = 10
+		sph.rings = 6
+		head.mesh = sph
+		th.n.add_child(head)
+		head.position = Vector3(0, 0.62, 0)
+		head.scale = Vector3(0.62, 0.3, 0.62)
+		_skin(head, "wall", Color("fff1d6"))
+		var foot := box(Vector3(0, -0.47, 0), Vector3(1.3, 0.08, 1.3), STONE, th.n)
+		_skin(foot, "wall")
+	elif kind == "wall":
+		_skin(th.n, "wall")
+		var cope := box(Vector3(0, 0.56, 0), Vector3(1.08, 0.14, 1.15), STONE, th.n)
+		_skin(cope, "wall", Color("fff1d6"))
+	elif kind == "fence":
+		_apply_art(th.n, "plank")
 	elif kind == "tower":
 		_apply_art(th.n, "pillar", Color("cfe6ff"))
 	elif kind == "gold":
@@ -1471,11 +1492,11 @@ func _thing(o: Dictionary, l: float, d: float, x: float, kind: String, z: Dictio
 		_seal_marks(th, kind)  # 숨은 길 봉인: 빨간 띠 없음(위험이 아니라 선택), 여는 동작 색 무늬
 		return th
 	if float(th.kd.need) > 90.0 or kind == "ice":
-		box(Vector3(0, -0.43, 0), Vector3(1.05, 0.18, 1.05), BAD, th.n)
+		_red(box(Vector3(0, -0.43, 0), Vector3(1.05, 0.18, 1.05), BAD, th.n))
 	if kind == "house":
-		box(Vector3(0, 0.6, 0), Vector3(1.15, 0.25, 1.15), BAD, th.n)
+		_roof(th.n)
 	elif kind == "pillar" or kind == "post":
-		box(Vector3(0, 0.46, 0), Vector3(1.4, 0.08, 1.4), BAD, th.n)
+		_red(box(Vector3(0, 0.46, 0), Vector3(1.4, 0.08, 1.4), BAD, th.n))
 	return th
 
 
@@ -3012,6 +3033,28 @@ func _try_crack() -> void:
 				_fall("")
 			return
 
+
+## 지하 신전 바닥에 놓는 것: 위 수로와 다른 놀이. 항아리 무리로 크게 커지고(위에서는 못 먹는 양),
+## 석상은 깔거나 뛰어넘고, 무너진 담은 뛰어넘는다. 커진 몸은 물기둥이 위로 솟을 때 그대로 간다.
+func _under_things(a: float, b: float, z: Dictionary) -> Array:
+	var out := []
+	var d := a + 40.0
+	var n := 0
+	while d < b - 60.0:
+		var kinds: Array = ["pot", "pot", "pot"]
+		if n % 4 == 3:
+			kinds = ["statue"]
+		elif n % 6 == 5:
+			kinds = ["wall"]
+		for q in kinds.size():
+			var th := _thing(pd, d + q * 3.0, d + q * 3.0, 0.0, kinds[q], z)
+			th.base -= DEEP
+			th.n.position.y -= DEEP
+			out.append(th)
+		d += 26.0
+		n += 1
+	return out
+
 ## 수로 밑 협곡과 잠든 지하 신전. 숨기지 않는다: 위에서도 저 아래가 보여 궁금하게 만든다.
 ## 뒤 절벽(지층 띠), 바닥 길, 옛 기둥·신전 폐허, 빛나는 수정, 수로 틈으로 내려오는 햇빛 기둥, 끝의 물기둥.
 func _build_tunnel(a: float, b: float, nd: Node3D, opt := {}) -> Array:
@@ -3167,6 +3210,59 @@ func _apply_art(node: MeshInstance3D, name: String, tint := Color.WHITE) -> void
 			art_tinted[key] = m
 		node.material_override = art_tinted[key]
 	node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
+
+
+## 메시는 그대로 두고 잘라 낸 그림 재질만 입힌다: roof(신전 테라코타), wall(계곡 사암 띠). tint 로 색을 바꾼다.
+func _skin(node: MeshInstance3D, tex_name: String, tint := Color.WHITE) -> void:
+	var key := "skin_" + tex_name + tint.to_html()
+	if not art_tinted.has(key):
+		var m := StandardMaterial3D.new()
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.albedo_texture = load(ART_ROOT + tex_name + ".png") as Texture2D
+		m.albedo_color = tint
+		m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+		art_tinted[key] = m
+	node.material_override = art_tinted[key]
+	node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
+
+## 위험 표시(빨간 띠·머리·경계): 맨 빨강 대신 붉게 칠한 테라코타 돌결
+func _red(node: MeshInstance3D) -> MeshInstance3D:
+	_skin(node, "roof", Color("ff8a7a"))
+	return node
+
+
+## 박공 지붕: 바닥이 평평하고 용마루가 위로 선 삼각 기둥(직접 만든 메시)에 테라코타
+var roof_mesh: ArrayMesh
+
+
+func _roof(parent: MeshInstance3D) -> void:
+	if roof_mesh == null:
+		var st := SurfaceTool.new()
+		st.begin(Mesh.PRIMITIVE_TRIANGLES)
+		var a := Vector3(-0.5, 0.0, -0.5)
+		var b := Vector3(0.5, 0.0, -0.5)
+		var c := Vector3(0.0, 1.0, -0.5)
+		var a2 := Vector3(-0.5, 0.0, 0.5)
+		var b2 := Vector3(0.5, 0.0, 0.5)
+		var c2 := Vector3(0.0, 1.0, 0.5)
+		# 앞뒤 삼각 면 + 비탈 두 면 (UV 는 그림 한 장을 면마다)
+		for tri: Array in [[a, c, b, Vector2(0, 1), Vector2(0.5, 0), Vector2(1, 1)], [a2, b2, c2, Vector2(0, 1), Vector2(1, 1), Vector2(0.5, 0)],
+				[a, a2, c2, Vector2(0, 1), Vector2(1, 1), Vector2(1, 0)], [a, c2, c, Vector2(0, 1), Vector2(1, 0), Vector2(0, 0)],
+				[b, c, c2, Vector2(0, 1), Vector2(0, 0), Vector2(1, 0)], [b, c2, b2, Vector2(0, 1), Vector2(1, 0), Vector2(1, 1)]]:
+			for q in 3:
+				st.set_uv(tri[3 + q])
+				st.add_vertex(tri[q])
+		st.generate_normals()
+		roof_mesh = st.commit()
+	var r := MeshInstance3D.new()
+	r.mesh = roof_mesh
+	parent.add_child(r)
+	# 부모(집) 단위 공간: 처마가 조금 나오고 높이는 집의 0.45
+	r.position = Vector3(0, 0.5, 0)
+	r.scale = Vector3(1.2, 0.45, 1.12)
+	_skin(r, "roof")
 
 
 func _ground_art(k: int) -> String:
@@ -3343,8 +3439,8 @@ func _stamp(word: String, pri: int, at: Vector3, tint := GLYPH, big := 1.0, hold
 	b.rotation = 0.0
 	a.modulate.a = 1.0
 	b.modulate.a = 1.0
-	for sb: StyleBoxFlat in st.boxes:
-		sb.bg_color = slab
+	for sb: StyleBox in st.boxes:
+		_sb_fill(sb, slab)
 	lab.text = tr(word)
 	lab.modulate.a = 1.0
 	lab.label_settings.font_color = tint
@@ -3493,6 +3589,49 @@ func _score_chip(at: Vector3, col: Color, gem := false) -> void:
 # ---- UI 디자인 시스템 ----
 # 새긴 돌 한 벌: 알약 버튼(반지름 = 높이/2, 테 5), 카드 반지름 24, 돌판 반지름 14 + 아래 두께 12, 그림자는 곧게 아래로.
 # main.gd 도 game.call 로 이 함수들을 쓴다.
+## 신전 돌결 판 (art/boulder/ui/*.png: 신전 모델 그림의 크림 돌 면을 잘라 구운 9-patch, submit/boulder/build_ui_tex.py).
+## 그림은 색이 빠진 밝은 돌결이고 modulate 로 색을 입힌다. 테두리·아래 두께는 그림에 들어 있다.
+## kind: slab(새긴 판, 안쪽 파인 테), card(큰 카드), btn / btn_dn(버튼 평소·눌림). half 1 = 왼쪽 반, 2 = 오른쪽 반.
+var _ui_tex := {}
+
+
+func ui_stone(fill: Color, kind := "slab", half := 0) -> StyleBoxTexture:
+	if not _ui_tex.has(kind):
+		_ui_tex[kind] = load(ART_ROOT + "ui/" + kind + ".png")
+	var tex: Texture2D = _ui_tex[kind]
+	var sb := StyleBoxTexture.new()
+	sb.texture = tex
+	var small := kind.begins_with("btn")
+	var m := 20.0 if small else 30.0
+	var mb := 22.0 if small else 34.0
+	sb.texture_margin_left = m
+	sb.texture_margin_right = m
+	sb.texture_margin_top = m
+	sb.texture_margin_bottom = mb
+	sb.content_margin_left = 12.0
+	sb.content_margin_right = 12.0
+	sb.content_margin_top = 6.0
+	sb.content_margin_bottom = 10.0 if kind != "btn_dn" else 6.0
+	sb.modulate_color = fill
+	var w := float(tex.get_width())
+	var h := float(tex.get_height())
+	if half == 1:
+		sb.region_rect = Rect2(0, 0, w * 0.5, h)
+		sb.texture_margin_right = 0.0
+	elif half == 2:
+		sb.region_rect = Rect2(w * 0.5, 0, w * 0.5, h)
+		sb.texture_margin_left = 0.0
+	return sb
+
+
+## 판 색 바꾸기 (평판·돌결판 어느 쪽이든)
+func _sb_fill(sb: StyleBox, col: Color) -> void:
+	if sb is StyleBoxTexture:
+		(sb as StyleBoxTexture).modulate_color = col
+	elif sb is StyleBoxFlat:
+		(sb as StyleBoxFlat).bg_color = col
+
+
 func ui_box(fill: Color, r := 24, bw := 5, shadow := true) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = fill
@@ -3540,11 +3679,9 @@ func ui_squash(b: BaseButton) -> void:
 
 ## 알약 버튼 겉모습: 평소·눌림(가라앉음: 그림자 짧게, 12% 어둡게). 폰에서는 hover 가 남으므로 hover = 평소
 func ui_button_styles(b: Button, fill: Color) -> void:
-	var n := ui_box(fill, int(b.size.y * 0.5))
-	var dn := n.duplicate() as StyleBoxFlat
-	dn.bg_color = fill.darkened(0.12)
-	dn.shadow_offset = Vector2(0, 2)
-	dn.content_margin_top = 4
+	var n := ui_stone(fill, "btn")
+	var dn := ui_stone(fill.darkened(0.12), "btn_dn")
+	dn.content_margin_top = 10.0
 	b.add_theme_stylebox_override("normal", n)
 	b.add_theme_stylebox_override("hover", n)
 	# focus 는 눌림 위에 덧그려지므로 비워 둔다 (채운 상자면 가라앉은 모습을 덮는다)
@@ -3557,38 +3694,9 @@ func ui_button_styles(b: Button, fill: Color) -> void:
 
 ## 새긴 돌판: 테 5 + 아래 두께 12, 안쪽에 파인 테두리. half 1 = 왼쪽 반, 2 = 오른쪽 반 (가운데 이음매에는 테가 없다)
 func ui_slab(parent: Node, pos: Vector2, size: Vector2, half := 0, slab := STONE) -> Panel:
-	var sb := ui_box(slab, 14, 5)
-	sb.border_width_bottom = 12
-	if half == 1:
-		sb.border_width_right = 0
-		sb.corner_radius_top_right = 0
-		sb.corner_radius_bottom_right = 0
-	elif half == 2:
-		sb.border_width_left = 0
-		sb.corner_radius_top_left = 0
-		sb.corner_radius_bottom_left = 0
+	var sb := ui_stone(slab, "slab", half)
 	var p := ui_panel(parent, pos, size, sb)
 	p.set_meta("sb", sb)
-	var fr := StyleBoxFlat.new()
-	fr.draw_center = false
-	fr.set_border_width_all(3)
-	fr.border_color = ROCK.darkened(0.15)
-	fr.set_corner_radius_all(6)
-	fr.anti_aliasing = true
-	var fp := Vector2(12, 12)
-	var fsz := size - Vector2(24, 30)
-	if half == 1:
-		fr.border_width_right = 0
-		fr.corner_radius_top_right = 0
-		fr.corner_radius_bottom_right = 0
-		fsz.x += 12.0
-	elif half == 2:
-		fr.border_width_left = 0
-		fr.corner_radius_top_left = 0
-		fr.corner_radius_bottom_left = 0
-		fp.x = 0.0
-		fsz.x += 12.0
-	ui_panel(p, fp, fsz, fr)
 	return p
 
 
@@ -3658,7 +3766,7 @@ func _build_journey_ui() -> void:
 	result_card.visible = false
 	result_layer.add_child(result_card)
 	# 결과 = 새긴 돌판: 크림 판 + 위에 메달색 띠, 가운데 위에 도장이 쾅
-	ui_panel(result_card, Vector2(40, 230), Vector2(640, 520), ui_box(STONE, 28, 6))
+	ui_panel(result_card, Vector2(40, 230), Vector2(640, 520), ui_stone(STONE, "card"))
 	result_band_sb = ui_box(D, 0, 0, false)
 	result_band_sb.corner_radius_top_left = 24
 	result_band_sb.corner_radius_top_right = 24
@@ -3678,8 +3786,7 @@ func _build_journey_ui() -> void:
 	result_seal.pivot_offset = Vector2(75, 75)
 	result_seal.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	result_card.add_child(result_seal)
-	seal_sb = ui_box(BAD.darkened(0.12), 22, 6)
-	seal_sb.border_width_bottom = 10
+	seal_sb = ui_stone(BAD.darkened(0.12), "slab")
 	ui_panel(result_seal, Vector2.ZERO, Vector2(150, 150), seal_sb)
 	var seal_fr := StyleBoxFlat.new()
 	seal_fr.draw_center = false
@@ -4060,16 +4167,14 @@ func end() -> void:
 	# 도장: 완주 = 메달색 별, 실패 = 붉은 도장에 의성어 한 마디 (까닭은 도장이 말하므로 아래 글에서 뺀다)
 	if won:
 		var medal: Color = D if finish_time <= GOLD_TIME else (SILVER if finish_time <= SILVER_TIME else BRONZE)
-		seal_sb.bg_color = medal
-		seal_sb.border_color = INK
+		seal_sb.modulate_color = medal
 		seal_l.text = "★"
 		seal_l.label_settings.font_size = 84
 		seal_l.label_settings.font_color = INK
 		result_band_sb.bg_color = medal
 		seal_crack.visible = false
 	else:
-		seal_sb.bg_color = BAD.darkened(0.12)
-		seal_sb.border_color = BAD.darkened(0.45)
+		seal_sb.modulate_color = BAD.darkened(0.12)
 		var w := tr(failure_reason if failure_reason != "" else "털썩…")
 		seal_l.text = w
 		seal_l.label_settings.font_size = fit_fs(w, 52, 118)
@@ -4099,7 +4204,7 @@ func end() -> void:
 	result_tw2.parallel().tween_property(result_seal, "rotation", -0.08, 0.14)
 	result_tw2.tween_callback(func() -> void:
 		sfx("bonk", 4.0, 0.6)
-		_stamp_chips(result_seal.position + Vector2(75, 150), 6, seal_sb.bg_color))
+		_stamp_chips(result_seal.position + Vector2(75, 150), 6, seal_sb.modulate_color))
 	var jolt := func(k: float) -> void:
 		result_card.position = Vector2(sin(k * 50.0) * 8.0 * (1.0 - k), cos(k * 37.0) * 5.0 * (1.0 - k))
 	result_tw2.tween_method(jolt, 0.0, 1.0, 0.22)
@@ -4136,7 +4241,7 @@ func _howto_card() -> Control:
 	var top := CanvasLayer.new()
 	top.layer = 10
 	add_child(top)
-	var card := ui_panel(top, Vector2(60, 330), Vector2(600, 560), ui_box(STONE, 28, 6))
+	var card := ui_panel(top, Vector2(60, 330), Vector2(600, 560), ui_stone(STONE, "card"))
 	var band := ui_box(D, 0, 0, false)
 	band.corner_radius_top_left = 24
 	band.corner_radius_top_right = 24
