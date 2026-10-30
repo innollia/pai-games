@@ -1,5 +1,5 @@
 extends Tofu
-## 균형추 배달부 (옆모습): 오른쪽 '던지기' = 승강기 칸에서 짐 하나를 옆으로 던진다. 2구역부터 '받기'(선반 짐), 3구역 '건너기'(엇갈리는 칸으로).
+## 균형추 배달부 v2 (옆모습): 화면 위 저울 = 내 칸 무게 vs 반대 칸 무게(숫자·네모), 승강로 가로선 = 지금 던지면 칸이 멈췄다 솟을 높이(색 = 결과). 0층 연습은 한 번 던지면 무조건 성공. 오른쪽 '던지기' = 승강기 칸에서 짐 하나를 옆으로 던진다. 2구역부터 '받기'(선반 짐), 3구역 '건너기'(엇갈리는 칸으로).
 ## 내 칸과 반대편 균형추는 옥상 도르래 하나로 묶여 있다. 짐이 추보다 무거우면 내 칸이 내려가며 빨라지고, 던져 가벼워지는 순간 느려지다 거꾸로 솟는다.
 ## 불 켜진 창 앞에서 던지면 배달(느리면 성공, 빠르면 와장창). 옥상에 닿으면 그 속도 그대로 지붕 위로 튀어나가 옆 빌딩 초록 옥상에 내려야 한다.
 ## 속도는 몸·화면으로 보인다: 떨어질 땐 몸이 떠오르고 모자가 날아가며, 솟을 땐 눌려 납작. 빠를수록 빨개지고 칸이 덜컹, 바람 줄·층 딸깍이 빨라지고, 옥상 발사 점선이 늘어난다.
@@ -26,6 +26,7 @@ const TIPS := ["", "선반 짐은 느릴 때 '받기'", "칸이 스칠 때 '건�
 const ZONES := ["아파트 단지", "시장 빌딩", "쌍둥이 승강기", "기운 빌딩", "물류 탑"]
 # F 층수, n 내 짐, cr1 반대편 칸 짐(건너기 동), ex 반대편 추 무게, wins [층, 쪽], picks [층, 쪽], gap 다음 빌딩까지
 const BLD := [
+	{"zone": 0, "name": "연습", "F": 8, "n": 1, "cr1": 0, "ex": 1.6, "wins": [[0, 0]], "picks": [], "gap": 3.0, "cross": false, "low": true},
 	{"zone": 0, "name": "첫 배달", "F": 8, "n": 3, "cr1": 0, "ex": 3.3, "wins": [[5, 0], [2, 0]], "picks": [], "gap": 3.0, "cross": false},
 	{"zone": 0, "name": "세 집", "F": 8, "n": 4, "cr1": 0, "ex": 4.0, "wins": [[6, 0], [4, 0], [1, 0]], "picks": [], "gap": 3.0, "cross": false},
 	{"zone": 1, "name": "짐 받기", "F": 9, "n": 3, "cr1": 0, "ex": 3.5, "wins": [[7, 0], [2, 0]], "picks": [[4, 0]], "gap": 3.0, "cross": false},
@@ -88,13 +89,33 @@ var fly_v: Array[Vector3] = []
 var fly_life: Array[float] = []
 var fly_to: Array = []  # 창 위치(Vector3) 또는 null
 var fly_k := 0
+var ghost: MeshInstance3D  # 지금 던지면 칸이 멈췄다 솟을 높이
+var pred_text := ""
+var pred_col := GREY
+var scale_ui: Control
+
+
+class _Scale extends Control:
+	var k: Node
+
+	func _draw() -> void:
+		k._scale_draw(self)
 
 
 func _setup() -> void:
 	time_limit = 0.0
 	cam.fov = 56.0
-	howto = "승강기 칸에 짐이 가득. 반대편 추보다 무거우면 내려가며 점점 빨라진다.\n'던지기': 짐 하나를 옆으로 던져 가벼워진다. 불 켜진 창 앞이면 배달(느려야 안 깨짐).\n가벼워지면 칸이 거꾸로 솟아 옥상에서 튀어나간다. 점선 끝이 초록 옥상에 오게!\n바닥에 빨리 닿으면 쾅, 약하면 골목, 세면 간판."
+	howto = "승강기 칸과 반대 칸이 줄 하나로 묶인 저울이다. 화면 위 저울에서 무거운 쪽이 내려간다.\n'던지기': 짐 하나를 버려 내 칸이 가벼워진다. 불 켜진 창 앞이면 배달(느려야 안 깨짐).\n승강로의 가로선 = 지금 던지면 칸이 멈췄다 솟을 높이. 초록이면 옥상에서 튀어 올라 옆 초록 옥상에 내린다.\n바닥에 빨리 닿으면 쾅, 약하면 골목, 세면 간판."
 	kit_button("throw", "던지기", Vector2(590, 1120), 112.0, A)
+	var layer := CanvasLayer.new()
+	layer.layer = 4
+	add_child(layer)
+	var sc := _Scale.new()
+	sc.k = self
+	sc.size = Vector2(720, 1280)
+	sc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(sc)
+	scale_ui = sc
 
 
 func _reset() -> void:
@@ -121,6 +142,8 @@ func _reset() -> void:
 		dots.append(m)
 	mark = box(Vector3.ZERO, Vector3(0.9, 0.9, 0.3), GOOD)
 	mark.visible = false
+	ghost = box(Vector3.ZERO, Vector3(2.8, 0.2, 0.12), GOOD)
+	ghost.visible = false
 	flies.clear()
 	fly_v.clear()
 	fly_life.clear()
@@ -135,7 +158,7 @@ func _reset() -> void:
 	lv = 0
 	_enter(0, false)
 	cam.position = Vector3(bxs[0] + 2.6, S * 0.6, 17.0)
-	msg("불 켜진 창 앞에서 던지기!", 2.2)
+	msg("던지기 = 짐 버리기\n가벼워지면 솟는다", 2.4)
 
 
 func _make_me() -> void:
@@ -240,7 +263,7 @@ func _enter(i: int, retry: bool) -> void:
 	var d := _bdef(i)
 	var f: int = d.F
 	S = f * FH - CH - 0.2
-	s = S
+	s = 0.0 if d.get("low", false) else S  # 연습 층은 바닥에서 시작: 언제 던져도 같은 결과
 	v = 0.0
 	side = 0
 	cr = [int(d.n), int(d.cr1)]
@@ -279,6 +302,8 @@ func _mine() -> Vector3:
 
 func _step(dt: float) -> void:
 	anim += dt
+	scale_ui.visible = phase == "ride" or phase == "ready"
+	scale_ui.queue_redraw()
 	shake = maxf(shake - dt * 2.5, 0.0)
 	jolt = maxf(jolt - dt * 4.0, 0.0)
 	_update_flies(dt)
@@ -467,6 +492,7 @@ func _preview(mm: Vector3) -> void:
 		else:
 			vb = sqrt(maxf(u * u - 2.0 * au * h, 0.0))
 			kind = "crash" if vb > CRASH else "rest"
+	_predict(mm)
 	var bufm: MeshInstance3D = cur.bufs[side]
 	warn_t -= get_process_delta_time()
 	if kind == "crash":
@@ -534,6 +560,89 @@ func _arc(x0: float, y0: float, vt: float) -> Array:
 		return [tw, false]
 	var t3 := (vt + sqrt(vt * vt + 2.0 * GA * y0)) / GA
 	return [t3, false]
+
+
+## 지금 짐 하나를 던지면: 칸이 멈췄다 솟을 높이(가로선)와 결과(색·글자)
+func _predict(mm: Vector3) -> void:
+	if cr[side] <= 0:
+		ghost.visible = false
+		pred_text = "던질 짐 없음"
+		pred_col = GREY
+		return
+	var mo := _mass(1 - side)
+	var mi := _mass(side) - 1.0
+	var a2 := G * (mo - mi) / (mo + mi)
+	var h := mm.x
+	var u := mm.y
+	var hr := h
+	if a2 > 0.0:
+		var crash := false
+		if u < 0.0:
+			hr = h - u * u / (2.0 * a2)
+			if hr < 0.0:
+				crash = sqrt(maxf(u * u - 2.0 * a2 * h, 0.0)) > CRASH
+				hr = 0.0
+		if crash:
+			pred_col = BAD
+			pred_text = "지금 던지면 → 바닥 쾅"
+		else:
+			var vt := sqrt(maxf(u * u + 2.0 * a2 * (S - h), 0.0)) if u >= 0.0 else sqrt(2.0 * a2 * (S - hr))
+			var ok := false
+			if vt >= 0.5:
+				var car: Node3D = cur.cars[side].n
+				ok = bool(_arc(car.position.x, float(cur.H) + 0.3, vt)[1])
+			pred_col = GOOD if ok else A
+			pred_text = "지금 던지면 → 초록 옥상" if ok else "지금 던지면 → 빗나감"
+	else:
+		hr = 0.0
+		if sqrt(maxf(u * u + 2.0 * (-a2) * h, 0.0)) > CRASH:
+			pred_col = BAD
+			pred_text = "던져도 무거움 → 바닥 쾅"
+		else:
+			pred_col = GREY
+			pred_text = "던져도 아직 무거움 → 내려감"
+	var cn: Node3D = cur.cars[side].n
+	ghost.visible = true
+	ghost.position = Vector3(cn.position.x, hr + 0.1, 0.55)
+	ghost.material_override = mat(pred_col)
+
+
+## 화면 위 저울: 내 칸(왼쪽 접시) vs 반대 칸(오른쪽 접시). 네모 하나 = 무게 1
+func _scale_draw(c: Control) -> void:
+	var mi := _mass(side)
+	var mo := _mass(1 - side)
+	c.draw_rect(Rect2(80, 238, 560, 262), Color(1, 1, 1, 0.82))
+	var cx := 360.0
+	var cy := 300.0
+	var ang := clampf((mi - mo) * 0.22, -0.3, 0.3)  # + 면 내 쪽(왼쪽)이 내려간다
+	var L := 190.0
+	var le := Vector2(cx - L * cos(ang), cy + L * sin(ang))
+	var re := Vector2(cx + L * cos(ang), cy - L * sin(ang))
+	c.draw_colored_polygon(PackedVector2Array([Vector2(cx, cy), Vector2(cx - 22, cy + 40), Vector2(cx + 22, cy + 40)]), INK)
+	c.draw_line(le, re, INK, 10.0)
+	for k in 2:
+		var who := side if k == 0 else 1 - side
+		var e := le if k == 0 else re
+		var parts := [[1.0, WHITE], [float(cr[who]), A], [exm[who], WEIGHTC], [1.0 if side == who else 0.0, ME]]
+		var top := e + Vector2(-80, 12)
+		c.draw_line(e, top + Vector2(80, 0), INK, 4.0)
+		c.draw_rect(Rect2(top, Vector2(160, 62)), SOFT)
+		c.draw_rect(Rect2(top, Vector2(160, 62)), INK, false, 3.0)
+		var i := 0
+		for pt: Array in parts:
+			var amt: float = pt[0]
+			while amt > 0.01:
+				var w := 22.0 * minf(amt, 1.0)
+				var q := top + Vector2(6 + (i % 6) * 25, 6 + (i / 6) * 27)
+				c.draw_rect(Rect2(q, Vector2(w, 22)), pt[1])
+				c.draw_rect(Rect2(q, Vector2(w, 22)), INK, false, 2.0)
+				amt -= 1.0
+				i += 1
+		var m := mi if k == 0 else mo
+		c.draw_string(_font, e + Vector2(-110, -14), ("내 칸 %.1f" if k == 0 else "반대 %.1f") % m, HORIZONTAL_ALIGNMENT_CENTER, 220, 30, INK)
+	var st := "내가 무거움 → 내려간다" if mi > mo else ("반대가 무거움 → 솟는다" if mi < mo else "같음 → 그대로")
+	c.draw_string(_font, Vector2(80, 440), st, HORIZONTAL_ALIGNMENT_CENTER, 560, 32, BAD if mi > mo else GOOD)
+	c.draw_string(_font, Vector2(80, 482), pred_text, HORIZONTAL_ALIGNMENT_CENTER, 560, 30, pred_col.darkened(0.25))
 
 
 # ---- 동사 ----
@@ -654,6 +763,7 @@ func _launch() -> void:
 	for dm in dots:
 		dm.visible = false
 	mark.visible = false
+	ghost.visible = false
 	_place_cars()
 	me.position = Vector3(fx, fy, 0.3)
 
@@ -694,6 +804,7 @@ func _fly(dt: float) -> void:
 			score += 20
 			msg("배달 끝!", 2.0)
 			phase = "done"
+			scale_ui.visible = false
 			end()
 			return
 		phase = "walk"
@@ -738,3 +849,4 @@ func _die(why: String) -> void:
 	for dm in dots:
 		dm.visible = false
 	mark.visible = false
+	ghost.visible = false

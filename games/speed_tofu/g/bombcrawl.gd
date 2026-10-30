@@ -1,5 +1,5 @@
 extends Tofu
-## 폭탄 애벌레 (옆모습): 왼쪽 조이스틱으로 느리게 긴다(점프 없음). 오른쪽 "놓기"로 발밑에 폭탄, "쾅"으로 터뜨리면 폭탄 반대쪽으로 날아간다. 속도는 폭탄에서만 나온다.
+## 폭탄 애벌레 v2 (옆모습): 놓기 = 등 뒤 1칸에 폭탄(놓고 바로 쾅 = 앞으로 뛰기), 가까울수록 높고 세게(점선 = 지금 쾅 하면 날 길). 주황 금 간 발판과 지뢰는 기어야(느려야) 지난다. 왼쪽 조이스틱으로 느리게 긴다(점프 없음). 오른쪽 "놓기"로 발밑에 폭탄, "쾅"으로 터뜨리면 폭탄 반대쪽으로 날아간다. 속도는 폭탄에서만 나온다.
 ## 땅에서 폭탄 0.7칸 안이면 직격 사망, 공중 폭탄은 안전하지만 약하다(비행당 1개, 연쇄). 방마다 속도 규칙 실험: 1 기본, 2 속도=몸 늘어남, 3 탭 워프=속도 보존, 4 블럭 설치=벽차기, 5 섞임.
 # 한 문장: 나는 점프를 못 하는 폭탄 애벌레로서 속도를 폭탄 폭발로만 얻는 제약 속에서 폭탄을 놓고 떨어져 터뜨려 다음 방 문에 닿지만, 가까울수록 세게 날지만 0.7칸 안이면 터져 죽고 한번 얻은 속도는 벽·가시·틈이 그대로 받아 내는 대가를 감수한다.
 
@@ -24,19 +24,21 @@ const H1 := 0.45
 const WARP_RANGE := 6.5
 const EPS := 0.0001
 const WALLC := Color("d9c39a")
-# 방: 위 줄부터. # 벽, ^ 가시, S 시작, D 문(2칸). stretch 몸 늘어남, warp 탭 워프, block 블럭 버튼.
+const SAFE_V := 3.2  # 이 아래(기는 속도)면 금 간 발판이 버티고 지뢰가 안 터진다
+const NDOT := 10
+# 방: 위 줄부터. # 벽, ^ 가시, S 시작, D 문(2칸), = 금 간 발판(빠르면 무너짐), * 지뢰(빠르면 터짐). stretch 몸 늘어남, warp 탭 워프, block 블럭 버튼.
 const ROOMS := [
-	{"name": "기본 폭탄", "stretch": false, "warp": 0, "block": 0, "map": [
-		"######################",
-		"#                    #",
-		"#                    #",
-		"#                    #",
-		"#              D     #",
-		"#            #########",
-		"#            #########",
-		"#            #########",
-		"#  S         #########",
-		"######^^##############",
+	{"name": "느려야 사는 길", "stretch": false, "warp": 0, "block": 0, "map": [
+		"#########################################",
+		"#              ############      ########",
+		"#              ############      ########",
+		"#              ############      ########",
+		"#              ############             #",
+		"#                                       #",
+		"#                       * *          * D#",
+		"#     #########========#######   ########",
+		"# S   #########^^^^^^^^#######^^^########",
+		"#########################################",
 	]},
 	{"name": "납작: 속도가 몸을 늘인다", "stretch": true, "warp": 0, "block": 0, "map": [
 		"######################",
@@ -133,16 +135,26 @@ var bomb_n: MeshInstance3D
 var flash_n: MeshInstance3D
 var block_n: Array[MeshInstance3D] = []
 var trail: Array[MeshInstance3D] = []
+var crumbs := {}  # Vector2i -> MeshInstance3D (금 간 발판)
+var mines := {}  # Vector2i -> [몸, 등]
+var dots: Array[MeshInstance3D] = []
+var creak_t := 0.0
+var tips := {}
 
 
 func _setup() -> void:
 	time_limit = 0.0
 	cam.fov = 58.0
-	howto = "왼쪽 조이스틱으로 느리게 긴다(점프 없음). 오른쪽 놓기 = 발밑에 폭탄, 쾅 = 터뜨리기. 폭탄 반대쪽으로 날아간다.\n가까울수록 세게 날지만 땅에서 0.7칸 안이면 직격 사망. 공중에서는 안전하지만 약하다(비행당 1개).\n방마다 규칙이 하나 붙는다: 빠르면 몸이 납작해진다 / 탭 워프(속도 그대로) / 블럭을 놓고 박으면 위로 튄다.\n가시·추락·끼임이면 그 방부터. 초록 문에 닿으면 다음 방."
+	howto = "왼쪽 조이스틱으로 느리게 긴다. 놓기 = 등 뒤에 폭탄, 쾅 = 터뜨리기 → 폭탄 반대쪽으로 날아간다(점선이 날 길).\n가까울수록 높고 세게, 멀수록 낮고 짧게. 땅에서 0.7칸 안이면 직격 사망. 공중 폭탄은 약하고 비행당 1개.\n주황 금 간 발판·지뢰는 기어서만 지난다(위 게이지가 흰 눈금 아래 = 안전). 빠르면 무너지고 터진다.\n가시·추락·끼임이면 그 방부터. 초록 문에 닿으면 다음 방."
 	kit_stick()
-	kit_button("drop", "놓기", Vector2(470, 1140), 80.0, B)
-	kit_button("boom", "쾅", Vector2(630, 1020), 100.0, A)
-	kit_button("block", "블럭", Vector2(620, 840), 70.0, C)
+	kit_button("drop", "놓기", Vector2(440, 1165), 80.0, B)  # 판정 원이 '쾅'과 안 겹치게 (예전엔 겹쳐 쾅이 놓기로 잡혔다)
+	kit_button("boom", "쾅", Vector2(630, 1010), 100.0, A)
+	var tk := ColorRect.new()  # 게이지 = 내 속도, 흰 눈금 = 기는 속도(안전)
+	tk.color = WHITE
+	tk.position = Vector2(600.0 * SAFE_V / VMAX - 3.0, -10.0)
+	tk.size = Vector2(6, 48)
+	tk.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_bar_bg.add_child(tk)
 
 
 func _reset() -> void:
@@ -169,6 +181,11 @@ func _room(i: int) -> void:
 	for s in m:
 		grid.append(String(s).rpad(cols, "#"))
 	blocks.clear()
+	crumbs.clear()
+	mines.clear()
+	_btns.erase("block")
+	if rule_b > 0:
+		kit_button("block", "블럭", Vector2(620, 800), 70.0, C)
 	var start := Vector2(2.5, 1.0)
 	for r in rows:
 		var yy := rows - 1 - r
@@ -188,6 +205,14 @@ func _room(i: int) -> void:
 				sp.rotation.z = PI * 0.25
 			elif ch == "S":
 				start = Vector2(c + 0.5, yy)
+			elif ch == "=":
+				var cb := box(Vector3(c + 0.5, yy + 0.5, 0.0), Vector3(0.96, 1.0, 2.0), A, stage)
+				box(Vector3(0.1, 0.0, 0.52), Vector3(0.08, 0.7, 0.04), WHITE, cb)
+				crumbs[Vector2i(c, yy)] = cb
+			elif ch == "*":
+				var mb := box(Vector3(c + 0.5, yy + 0.18, 0.0), Vector3(0.8, 0.36, 1.2), INK, stage)
+				var ml := box(Vector3(c + 0.5, yy + 0.45, 0.0), Vector3(0.3, 0.2, 0.3), GOOD, stage)
+				mines[Vector2i(c, yy)] = [mb, ml]
 			elif ch == "D":
 				door = Rect2(c, yy, 1.0, 2.0)
 				box(Vector3(c + 0.5, yy + 1.0, -0.6), Vector3(1.1, 2.0, 0.6), GOOD, stage)
@@ -219,6 +244,11 @@ func _room(i: int) -> void:
 		var tb := box(Vector3.ZERO, Vector3(W0, H0, 0.4), B, stage)
 		tb.visible = false
 		trail.append(tb)
+	dots.clear()
+	for k in NDOT:
+		var dm := box(Vector3.ZERO, Vector3(0.16, 0.16, 0.16), INK, stage)
+		dm.visible = false
+		dots.append(dm)
 	px = start.x
 	py = start.y
 	vx = 0.0
@@ -258,7 +288,8 @@ func _wall(c: int, yy: int) -> bool:
 
 
 func _solid(c: int, yy: int) -> bool:
-	return _ch(c, yy) == "#" or blocks.has(Vector2i(c, yy))
+	var ch := _ch(c, yy)
+	return ch == "#" or ch == "=" or blocks.has(Vector2i(c, yy))
 
 
 func _x0() -> int:
@@ -306,7 +337,6 @@ func _free_rect(x: float, y: float, w: float, h: float) -> bool:
 func _step(dt: float) -> void:
 	var h := minf(dt, 1.0 / 30.0)
 	anim += dt
-	gauge(float(lv) / ROOMS.size(), GOOD)
 	if die_t > 0.0:
 		die_t -= dt
 		_view(dt)
@@ -338,8 +368,12 @@ func _step(dt: float) -> void:
 		return
 	_physics(h)
 	_bomb_step(h)
+	_slow_things(h)
 	_check()
 	_sounds(h)
+	_preview()
+	var sp := Vector2(vx, vy).length()
+	gauge(sp / VMAX, GOOD if sp <= SAFE_V else BAD)
 	_view(dt)
 
 
@@ -390,6 +424,11 @@ func _drop() -> void:
 	bomb.rest = on_floor
 	bomb.x = px
 	bomb.y = py + 0.2 if on_floor else py + bh * 0.5
+	if on_floor:  # 땅에서는 등 뒤 1칸: 놓고 바로 쾅 = 앞으로 뛴다 (발밑이면 늘 직격이었다)
+		var bx := px - face * 1.0
+		if not _solid(floori(bx), floori(py + 0.2)):
+			bomb.x = bx
+			bomb.rest = _solid(floori(bx), floori(py - 0.2))
 	bomb.vx = 0.0 if on_floor else vx  # 공중 폭탄은 나와 같이 가서 늘 바로 밑 = 수직으로 민다
 	bomb.vy = 0.0
 	bomb_n.visible = true
@@ -409,28 +448,119 @@ func _boom() -> void:
 	shake = maxf(shake, 0.35)
 	beep(90.0, 0.25, 30.0, 0.5)
 	beep(900.0, 0.06, 300.0, 0.2)
-	var c := Vector2(px, py + bh * 0.5)
-	var d := c - Vector2(bomb.x, bomb.y)
-	var dist := d.length()
-	if dist > RADIUS:
+	var bv := _blast()
+	if bv.z == 2.0:
 		msg("멀다", 0.5)
 		return
-	if on_floor and dist < KILL_R:
+	if bv.z == 1.0:
 		_die("직격")
 		return
-	var dir := Vector2(0.0, 1.0)
-	if dist > 0.05:
-		dir = (d + Vector2(0.0, 0.1)).normalized()
-	var k := clampf(1.2 - dist / RADIUS, 0.25, 1.0)
-	var imp := (BLAST if on_floor else AIR_BLAST) * k
-	vx += dir.x * imp
-	vy = maxf(vy, 0.0) + dir.y * imp
+	vx = bv.x
+	vy = bv.y
 	if on_floor:
 		on_floor = false
 		py += 0.03
 	stun = 0.0
 	squash = 0.5
 	msg("쾅!", 0.3)
+
+
+## 지금 터뜨리면 내 속도 (x, y, 결과: 0 날아감, 1 직격, 2 멀다)
+## 땅: 거리가 각도를 정한다(가까우면 68도 높게, 멀면 22도 낮게). 공중: 예전처럼 폭탄 반대쪽.
+func _blast() -> Vector3:
+	var c := Vector2(px, py + bh * 0.5)
+	var d := c - Vector2(bomb.x, bomb.y)
+	var dist := d.length()
+	if dist > RADIUS:
+		return Vector3(vx, vy, 2.0)
+	if on_floor and dist < KILL_R:
+		return Vector3(vx, vy, 1.0)
+	var dir := Vector2(0.0, 1.0)
+	if on_floor:
+		var sx := signf(d.x) if absf(d.x) > 0.05 else face
+		var ang := deg_to_rad(lerpf(68.0, 22.0, clampf((dist - KILL_R) / (RADIUS - KILL_R), 0.0, 1.0)))
+		dir = Vector2(sx * cos(ang), sin(ang))
+	elif dist > 0.05:
+		dir = (d + Vector2(0.0, 0.1)).normalized()
+	var k := clampf(1.2 - dist / RADIUS, 0.25, 1.0)
+	var imp := (BLAST if on_floor else AIR_BLAST) * k
+	return Vector3(vx + dir.x * imp, maxf(vy, 0.0) + dir.y * imp, 0.0)
+
+
+## 점선: 지금 쾅 하면 날아갈 길 (벽에 닿는 데서 끊김). 빨강 = 직격
+func _preview() -> void:
+	var vis: bool = bomb.live and die_t <= 0.0 and clear_t <= 0.0
+	var bv := _blast() if vis else Vector3(0, 0, 2)
+	if bv.z == 2.0:
+		for dm in dots:
+			dm.visible = false
+		return
+	var col := BAD if bv.z == 1.0 else INK
+	var hit := false
+	for j in NDOT:
+		var tt := 0.07 * (j + 1)
+		var x := px + bv.x * tt
+		var y := py + bh * 0.5 + bv.y * tt - GRAV * 0.5 * tt * tt
+		if bv.z == 1.0:
+			x = px
+			y = py + bh + 0.3 + j * 0.12
+		if _solid(floori(x), floori(y)):
+			hit = true
+		dots[j].visible = not hit
+		dots[j].position = Vector3(x, y, 0.6)
+		dots[j].material_override = mat(col)
+
+
+## 느림이 답인 것: 금 간 발판(빠르면 무너짐)과 지뢰(빠르면 터짐). 색이 내 속도를 따라 바뀐다.
+func _slow_things(h: float) -> void:
+	var sp := Vector2(vx, vy).length()
+	var fast := sp > SAFE_V
+	var blink := fmod(anim, 0.2) < 0.1
+	for key: Vector2i in mines:
+		var ml: MeshInstance3D = mines[key][1]
+		var near := absf(key.x + 0.5 - px) < 4.0 and absf(key.y - py) < 3.0
+		ml.material_override = mat(BAD if fast and near and blink else (D if fast and near else GOOD))
+		if near:
+			_tip("mine", "지뢰: 빠르면 터진다\n기어서 넘어")
+	for key: Vector2i in crumbs:
+		var cb: MeshInstance3D = crumbs[key]
+		var near := absf(key.x + 0.5 - px) < 3.0 and absf(key.y + 1.0 - py) < 2.0
+		cb.material_override = mat(BAD if fast and near else A)
+		if near:
+			_tip("crumb", "금 간 발판: 기어서만 버틴다")
+	creak_t -= h
+	if not on_floor:
+		return
+	var yy := floori(py - 0.02)
+	var under: Array[Vector2i] = []
+	for c in range(_x0(), _x1() + 1):
+		if crumbs.has(Vector2i(c, yy)):
+			under.append(Vector2i(c, yy))
+	if under.is_empty():
+		return
+	if absf(vx) > SAFE_V:
+		for key in under:
+			(crumbs[key] as MeshInstance3D).visible = false
+			crumbs.erase(key)
+			var r := rows - 1 - key.y
+			grid[r] = grid[r].substr(0, key.x) + " " + grid[r].substr(key.x + 1)
+		vx *= 0.4
+		on_floor = false
+		shake = maxf(shake, 0.3)
+		beep(120.0, 0.25, 50.0, 0.4)
+		msg("와르르! 빨랐다", 0.8)
+	elif creak_t <= 0.0 and absf(vx) > 0.3:
+		creak_t = 0.4
+		beep(380.0, 0.05, 300.0, 0.1)  # 삐걱: 버티는 중
+		for key in under:
+			(crumbs[key] as MeshInstance3D).position.y = key.y + 0.5 - 0.06
+
+
+func _tip(key: String, text: String) -> void:
+	if tips.has(key):
+		return
+	tips[key] = true
+	msg(text, 1.6)
 
 
 ## 블럭: 바라보는 쪽 한 칸 앞에 2칸 기둥 (방4·5, 일회용 2개). 빠르게 박으면 벽차기.
@@ -498,6 +628,7 @@ func _shape(h: float) -> void:
 
 func _physics(h: float) -> void:
 	vy = maxf(vy - GRAV * h, -MAX_FALL)
+	var vy_in := vy
 	for i in 4:
 		_move_x(vx * h * 0.25)
 		_move_y(vy * h * 0.25)
@@ -508,6 +639,12 @@ func _physics(h: float) -> void:
 		if not was:
 			squash = maxf(squash, 0.35)
 			beep(90.0, 0.06, 0.0, 0.2)
+			vx *= 0.55  # 착지하면 배로 붙어 미끄러짐이 줄어든다
+			if vy_in < -6.0:  # 금 간 발판에 떨어지면 무너진다
+				var yy := floori(py - 0.02)
+				for c in range(_x0(), _x1() + 1):
+					if crumbs.has(Vector2i(c, yy)):
+						vx = maxf(absf(vx), SAFE_V + 0.5) * signf(vx if vx != 0.0 else 1.0)
 
 
 func _move_x(d: float) -> void:
@@ -628,6 +765,20 @@ func _check() -> void:
 			if _ch(c, yy) == "^" and Rect2(c + 0.15, yy + 0.15, 0.7, 0.7).intersects(r):
 				_die("가시")
 				return
+	var sp := Vector2(vx, vy).length()
+	for key: Vector2i in mines:
+		if Rect2(key.x + 0.1, key.y, 0.8, 0.4).intersects(r):
+			if sp > SAFE_V:
+				var mb: MeshInstance3D = mines[key][0]
+				flash_t = 0.18
+				flash_n.visible = true
+				flash_n.position = mb.position + Vector3(0, 0.3, 0.4)
+				beep(90.0, 0.25, 30.0, 0.5)
+				_die("지뢰! 빨랐다")
+				return
+			elif creak_t <= 0.0:
+				creak_t = 0.5
+				beep(1200.0, 0.03, 0.0, 0.08)  # 딸깍: 느려서 안 터짐
 	if door.intersects(r):
 		clear_t = 1.0
 		vx = 0.0

@@ -2,7 +2,9 @@ extends Tofu
 ## 퀵실버 1인칭: 폭발이 멈춘 세상을 내 눈으로 뛴다. 왼쪽 조이스틱으로 달리고 오른쪽을 끌어 둘러본다.
 ## 달린 거리만큼 속도력(막대)이 닳고, 바닥나면 세상이 제 속도로 터진다. 사람(파랑) 곁에 가면 저절로 업고 초록 문 앞에 가면 내려 준다.
 ## 업은 사람 수만큼 내 발이 무거워진다. 날아오는 잔해(보라)는 쳐내기 버튼으로 떨군다.
-## 건물 → 지하철 → 다리. 방마다 2명 이상 다치면 끝. 불덩이·열차·꺼지는 다리는 나도 죽인다.
+## 건물 → 지하철 → 다리 → 고속도로 → 항구 → 다리 위 추돌. 방마다 2명 이상 다치면 끝. 불덩이·열차·꺼지는 다리·해일은 나도 죽인다.
+## v3 핵심: 내 속도가 닿은 것에 옮겨 간다. 4구역 고속도로: 차에 부딪히면 내 속도로 미끄러진다(세게 밀면 사람을 친다).
+## 5구역 항구: '던지기' = 업은 사람이 내 달리기 속도로 날아간다(느리면 물, 빠르면 다침). 6구역은 꺼지는 다리+밀기+던지기를 섞는다.
 
 const MAXP := 8
 const MAXR := 12
@@ -16,8 +18,14 @@ const CLOCK := 10.0
 const ALLOW := 1
 const TOP := 9.0  # 내 최고 속도 m/s
 const COST := 1.0  # 1m 달릴 때 닳는 속도력 (1.25였을 때는 첫 방에서 5명 구할 최단 경로 65m가 예산 80m에 안 들어가 2단계에 못 갔다)
-const ROOM_NAME := ["건물 폭발", "지하철 승강장", "무너지는 다리"]
-const ROOM_PW := [1.0, 1.35, 1.7]
+const ROOM_NAME := ["건물 폭발", "지하철 승강장", "무너지는 다리", "고속도로 추돌", "항구 해일", "다리 위 연쇄 추돌"]
+const ROOM_PW := [1.0, 1.35, 1.7, 1.5, 1.6, 1.9]
+const LAST := 5
+const MAXC := 6
+const CAR_F := 2.5  # 미끄러지는 차의 마찰 (세상 시간 기준 m/s²)
+const THROW_UP := 4.0  # 던질 때 위로 주는 속도 (늘 같다. 멀리 가는 건 내 달리기 속도)
+const THROW_HURT := 7.5  # 이보다 빠르게 떨어지면 다친다
+const GRAV_W := 9.8
 const UP_NAME := ["업기+1", "속도력+", "절약", "내열"]
 const PLAY := 0
 const RESULT := 1
@@ -83,18 +91,37 @@ var deco: Array[MeshInstance3D] = []
 var n_deco := 0
 var dust: Array[MeshInstance3D] = []
 var opt_box: Array[MeshInstance3D] = []
+# v3: 밀리는 차, 던진 사람, 해일, 가독성
+var cars: Array[MeshInstance3D] = []
+var roofs: Array[MeshInstance3D] = []
+var car_r: Array[Rect2] = []
+var car_v := PackedVector2Array()
+var car_m := PackedFloat32Array()
+var car_on: Array[bool] = []
+var n_car := 0
+var f_from := PackedVector3Array()
+var f_v := PackedVector3Array()
+var f_t := PackedFloat32Array()
+var safe_r := Rect2()  # 던진 사람이 여기 떨어지면 구함
+var fly_r := Rect2()  # 날아가다 이 밖이면 벽에 부딪힘
+var wave_z := 0.0
+var marks: Array[MeshInstance3D] = []
+var hands: Array[MeshInstance3D] = []
+var hand_ph := 0.0
 
 
 func _setup() -> void:
 	time_limit = 1000.0
 	cam.fov = 75.0
-	howto = "왼쪽 조이스틱으로 달리고, 오른쪽을 끌어 둘러본다.\n달린 만큼 속도력이 닳고, 바닥나면 멈춰 있던 폭발이 제 속도로 터진다.\n사람(파랑) 곁에 가면 업고, 초록 문 앞에 가면 내려 준다. 업을수록 느려진다.\n날아오는 잔해(보라)는 쳐내기. 2명 다치거나 불·열차·구멍에 내가 당하면 끝."
+	howto = "왼쪽 조이스틱으로 달리고, 오른쪽을 끌어 둘러본다. 달린 만큼 속도력이 닳고, 바닥나면 멈춰 있던 재난이 제 속도로 터진다.\n사람(파랑, 머리 위 노란 표시) 곁에 가면 업고, 초록 문 앞에 가면 내려 준다. 업을수록 느려진다. 보라 잔해는 쳐내기.\n4구역부터 내 속도가 닿은 것에 옮겨 간다: 차를 세게 밀면 멀리 미끄러져 사람을 친다. 5구역부터 '던지기' = 업은 사람이 내 달리기 속도로 날아간다(느리면 물·구멍, 빠르면 다침).\n2명 다치거나 불·열차·구멍·해일에 내가 당하면 끝."
 	kit_stick()
 	kit_lookpad()
 	kit_button("hit", "쳐내기", Vector2(590, 1080), 100.0, BAD)
 	for k in 4:  # 업은 사람 머리가 시야 위 모서리로 삐죽 (카메라에 붙어 판이 바뀌어도 남는다)
 		arms.append(box(Vector3(-0.42 + k * 0.28, 0.36, -0.9), Vector3(0.16, 0.16, 0.16), B, cam))
 		arms[k].visible = false
+	for k in 2:  # 1인칭 손: 발소리 박자로 흔들린다
+		hands.append(box(Vector3(-0.34 if k == 0 else 0.34, -0.46, -0.72), Vector3(0.13, 0.13, 0.42), SOFT, cam))
 	var cross := CanvasLayer.new()
 	cross.layer = 0
 	add_child(cross)
@@ -139,6 +166,26 @@ func _reset() -> void:
 	dust.clear()
 	for i in NDUST:
 		dust.append(box(Vector3.ZERO, Vector3(0.08, 0.08, 0.08), INK))
+	marks.clear()
+	for i in MAXP:  # 서 있는 사람 머리 위 노란 마름모 (차·책상 너머로도 보인다)
+		var mk := box(Vector3.ZERO, Vector3(0.22, 0.22, 0.22), D)
+		mk.rotation = Vector3(PI * 0.25, 0, PI * 0.25)
+		mk.visible = false
+		marks.append(mk)
+	f_from.resize(MAXP)
+	f_v.resize(MAXP)
+	f_t.resize(MAXP)
+	cars.clear()
+	roofs.clear()
+	car_r.clear()
+	car_on.clear()
+	car_v.resize(MAXC)
+	car_m.resize(MAXC)
+	for c in MAXC:
+		cars.append(box(Vector3.ZERO, Vector3.ONE, D))
+		roofs.append(box(Vector3.ZERO, Vector3.ONE, WHITE))
+		car_r.append(Rect2())
+		car_on.append(false)
 	opt_box.clear()
 	for k in 2:
 		opt_box.append(box(Vector3.ZERO, Vector3(1.5, 1.5, 0.3), B if k == 0 else D))
@@ -182,6 +229,14 @@ func _begin(r: int) -> void:
 	n_deco = 0
 	for m in opt_box:
 		m.visible = false
+	for c in MAXC:
+		car_on[c] = false
+		car_v[c] = Vector2.ZERO
+		cars[c].visible = false
+		roofs[c].visible = false
+	n_car = 0
+	safe_r = Rect2()
+	_btns["hit"]["label"] = "던지기" if r >= 4 else "쳐내기"
 	rng.seed = 4321 + r
 	match r:
 		0:
@@ -192,20 +247,36 @@ func _begin(r: int) -> void:
 			rx0 = -3.0
 			rx1 = 3.0
 			rz0 = -22.0
-		_:
+		2:
 			rx0 = -4.0
 			rx1 = 4.0
 			rz0 = -28.0
+		3:
+			rx0 = -5.0
+			rx1 = 5.0
+			rz0 = -30.0
+		4:
+			rx0 = -5.0
+			rx1 = 1.0
+			rz0 = -24.0
+		_:
+			rx0 = -4.0
+			rx1 = 4.0
+			rz0 = -26.0
 	rz1 = 2.0
-	door_p = Vector2(0, rz1 - 0.8)
+	door_p = Vector2((rx0 + rx1) * 0.5, rz1 - 0.8)
+	fly_r = Rect2(rx0, rz0, rx1 - rx0, rz1 - rz0)
 	match r:
 		0: _room_office()
 		1: _room_subway()
-		_: _room_bridge()
+		2: _room_bridge()
+		3: _room_highway()
+		4: _room_harbor()
+		_: _room_pileup()
 	for m in dust:
 		m.position = Vector3(rng.randf_range(rx0, rx1), rng.randf_range(0.4, 2.6), rng.randf_range(rz0, rz1))
 		m.rotation = Vector3(rng.randf() * TAU, rng.randf() * TAU, 0)
-	me_p = Vector2(0, rz1 - 1.8)
+	me_p = Vector2(door_p.x, rz1 - 1.8)
 	vel = Vector2.ZERO
 	yaw = 0.0
 	pitch = -0.05
@@ -328,6 +399,118 @@ func _room_bridge() -> void:
 		_chunk(Vector3(sx, 2.4, sz), Vector3(-signf(sx) * 1.2, -0.15, 0.4))
 
 
+func _room_highway() -> void:
+	# 멈춘 차들이 차선을 틈 없이 막았다. 차에 부딪히면 내 속도로 미끄러진다. 끝에서 탱크로리 불이 번진다.
+	_walls(true)
+	var d := rz1 - rz0
+	var cz := (rz0 + rz1) * 0.5
+	_deco(Vector3(rx0 - 0.15, 0.5, cz), Vector3(0.3, 1.0, d), WHITE)  # 방호벽 (낮아서 하늘이 보인다)
+	_deco(Vector3(rx1 + 0.15, 0.5, cz), Vector3(0.3, 1.0, d), WHITE)
+	for k in 7:
+		var z := rz0 + 2.0 + k * 4.5
+		_deco(Vector3(-1.65, 0.01, z), Vector3(0.15, 0.03, 2.0), WHITE)
+		_deco(Vector3(1.65, 0.01, z), Vector3(0.15, 0.03, 2.0), WHITE)
+	ex = Vector2(0.0, -29.0)
+	fb[0].material_override = mat(D)
+	fb[1].material_override = mat(A)
+	fb[2].material_override = mat(A)
+	fb[3].material_override = mat(BAD)
+	for k in 4:
+		fb[k].visible = true
+	# 첫 줄: 틈 0.7 (지나갈 수 없음). 오른쪽은 무거운 트럭
+	_car(-3.3, -6.0, 2.6, 4.0, 1.0)
+	_car(0.0, -6.0, 2.6, 4.0, 1.0)
+	_car(3.3, -6.25, 2.6, 4.5, 2.0)
+	# 둘째 줄: 가운데가 비어 있지만 민 차가 날아와 박힐 수 있다
+	_car(-3.0, -18.0, 2.6, 4.0, 1.0)
+	_car(2.2, -18.5, 2.6, 4.0, 1.0)
+	for q in [Vector2(-3.3, -12.5), Vector2(0.8, -15.5), Vector2(3.6, -11.0), Vector2(-0.5, -21.0), Vector2(-3.0, -23.0), Vector2(2.2, -24.5)]:
+		_person(q.x, q.y)
+
+
+func _room_harbor() -> void:
+	# 부두(왼쪽)와 수로 건너 배 갑판(초록). 해일 벽이 부두 끝에서 다가온다. 업은 사람을 갑판으로 던진다.
+	var d := rz1 - rz0
+	var cz := (rz0 + rz1) * 0.5
+	_deco(Vector3((rx0 + rx1) * 0.5, -0.1, cz), Vector3(rx1 - rx0, 0.2, d), SOFT)  # 부두
+	_deco(Vector3(2.5, -0.8, cz - 5.0), Vector3(3.0, 0.2, d + 10.0), B)  # 수로
+	_deco(Vector3(5.9, 0.3, cz), Vector3(3.8, 0.6, d), GOOD)  # 갑판
+	_deco(Vector3(4.2, 0.62, cz), Vector3(0.1, 0.03, d), WHITE)  # 갑판 앞 끝
+	_deco(Vector3(7.6, 0.62, cz), Vector3(0.1, 0.03, d), WHITE)
+	_deco(Vector3(8.0, 1.8, cz), Vector3(0.4, 3.6, d), WHITE)  # 선실 벽 (빠르게 던지면 여기 부딪힌다)
+	_deco(Vector3(rx1, 0.02, cz), Vector3(0.12, 0.05, d), D)  # 부두 가장자리
+	_deco(Vector3(rx0 - 0.15, 1.5, cz), Vector3(0.3, 3.0, d), WHITE)
+	_deco(Vector3(rx0 + 0.85, 1.5, rz1 + 0.15), Vector3(1.7, 3.0, 0.3), WHITE)
+	_deco(Vector3(rx1 - 0.85, 1.5, rz1 + 0.15), Vector3(1.7, 3.0, 0.3), WHITE)
+	_deco(Vector3(door_p.x, 1.2, rz1 + 0.2), Vector3(2.6, 2.4, 0.2), GOOD)
+	for q in [Vector2(-3.6, -15.0), Vector2(-1.0, -8.0)]:  # 짐 상자
+		_deco(Vector3(q.x, 0.7, q.y), Vector3(1.4, 1.4, 1.4), WHITE)
+		blocks.append(Rect2(q.x - 0.7, q.y - 0.7, 1.4, 1.4))
+	safe_r = Rect2(4.2, rz0 - 5.0, 3.4, rz1 - rz0 + 5.0)
+	fly_r = Rect2(rx0, rz0 - 5.0, 7.6 - rx0, rz1 - rz0 + 5.0)
+	wave_z = rz0 - 2.0
+	fb[0].material_override = mat(B)
+	fb[1].material_override = mat(WHITE)
+	fb[2].material_override = mat(BAD)
+	for k in 3:
+		fb[k].visible = true
+	for q in [Vector2(-4.0, -21.0), Vector2(-1.5, -18.0), Vector2(-3.2, -12.5), Vector2(0.0, -10.5), Vector2(-4.2, -6.0), Vector2(-1.2, -3.8)]:
+		_person(q.x, q.y)
+	crackle = 0.5
+
+
+func _room_pileup() -> void:
+	# 다리 위 추돌. 출발 직후 판 하나가 꺼져 문 쪽 길이 끊긴다. 건너편 차 줄을 밀고, 구한 사람은 구멍 너머로 던진다.
+	_walls(false)
+	var d := rz1 - rz0
+	var cz := (rz0 + rz1) * 0.5
+	_deco(Vector3(0, -9.0, cz), Vector3(60.0, 0.2, 80.0), B)  # 강물
+	_deco(Vector3(rx0 - 0.15, 0.45, cz), Vector3(0.3, 0.9, d), WHITE)  # 난간
+	_deco(Vector3(rx1 + 0.15, 0.45, cz), Vector3(0.3, 0.9, d), WHITE)
+	for k in 2:
+		var z := rz0 + 6.0 + k * 12.0
+		_deco(Vector3(rx0 - 0.5, 5.0, z), Vector3(0.4, 10.0, 0.4), SOFT)
+		_deco(Vector3(rx1 + 0.5, 5.0, z), Vector3(0.4, 10.0, 0.4), SOFT)
+	var n_panel := 10
+	var pd := d / n_panel
+	var falls := {1: 7.0, 3: 9.0, 6: 3.0}
+	for k in n_panel:
+		var z := rz0 + pd * (k + 0.5)
+		if falls.has(k):
+			_panel(z, pd, falls[k])
+		else:
+			_deco(Vector3(0, -0.15, z), Vector3(rx1 - rx0, 0.3, pd - 0.08), SOFT)
+	var hole_end := rz0 + pd * 7.0  # 일찍 꺼지는 판의 문 쪽 끝
+	safe_r = Rect2(rx0, hole_end + 0.3, rx1 - rx0, rz1 - 0.3 - hole_end - 0.3)
+	_car(-2.7, -13.0, 2.4, 4.0, 1.0)
+	_car(0.0, -13.3, 2.4, 4.0, 1.0)
+	_car(2.7, -12.8, 2.4, 4.6, 2.0)
+	for q in [Vector2(1.5, -10.4), Vector2(-2.6, -17.5), Vector2(0.5, -19.0), Vector2(2.8, -21.8), Vector2(-1.5, -24.5), Vector2(2.4, -25.0)]:
+		_person(q.x, q.y)
+
+
+func _car(x: float, z: float, w: float, l: float, m: float) -> void:
+	var c := n_car
+	n_car += 1
+	car_on[c] = true
+	car_r[c] = Rect2(x - w * 0.5, z - l * 0.5, w, l)
+	car_v[c] = Vector2.ZERO
+	car_m[c] = m
+	cars[c].visible = true
+	roofs[c].visible = true
+	cars[c].material_override = mat(A if m > 1.5 else D)
+	_car_place(c)
+
+
+func _car_place(c: int) -> void:
+	var r := car_r[c]
+	var ctr := r.get_center()
+	cars[c].position = Vector3(ctr.x, 0.5, ctr.y)
+	cars[c].scale = Vector3(r.size.x, 1.0, r.size.y)
+	roofs[c].position = Vector3(ctr.x, 1.25, ctr.y + r.size.y * 0.05)
+	roofs[c].scale = Vector3(r.size.x * 0.8, 0.5, r.size.y * 0.5)
+
+
 func _person(x: float, z: float) -> int:
 	var j := n_ppl
 	n_ppl += 1
@@ -443,6 +626,7 @@ func _move(dt: float) -> void:
 	var before := me_p
 	me_p += vel * dt
 	_push_out()
+	_push_cars()
 	var moved := me_p.distance_to(before)
 	if not snapped and moved > 0.0:
 		pw -= moved * COST * thrift
@@ -451,11 +635,43 @@ func _move(dt: float) -> void:
 		step_t = 0.28
 		beep(110.0 + carry.size() * 20.0, 0.04, 0.0, 0.12)
 	if kit_just("hit"):
-		_knock()
+		if room >= 4 and not carry.is_empty():
+			_throw()
+		else:
+			_knock()
 	_touch()
 	if not snapped and pw <= 0.0:
 		pw = 0.0
 		_snap()
+
+
+## 차에 부딪히면 미는 쪽 내 속도가 차로 옮겨 가고(무게로 나눔) 나는 그쪽으로 선다
+func _push_cars() -> void:
+	for c in MAXC:
+		if not car_on[c]:
+			continue
+		var g := car_r[c].grow(0.4)
+		if not g.has_point(me_p):
+			continue
+		var cc := g.get_center()
+		var dd := me_p - cc
+		var hx := g.size.x * 0.5
+		var hz := g.size.y * 0.5
+		var n: Vector2
+		if absf(dd.x) / hx > absf(dd.y) / hz:
+			me_p.x = cc.x + signf(dd.x) * hx
+			n = Vector2(signf(dd.x), 0.0)
+		else:
+			me_p.y = cc.y + signf(dd.y) * hz
+			n = Vector2(0.0, signf(dd.y))
+		var into := -vel.dot(n)
+		if into > 0.3:
+			vel += n * into
+			if not snapped:
+				car_v[c] += -n * into / car_m[c]
+				pw -= into * 0.6 * thrift
+				beep(70.0 + into * 12.0, 0.14, 40.0, 0.3)
+				msg("밀었다" if into < 6.0 else "세게!", 0.5)
 
 
 func _push_out() -> void:
@@ -508,7 +724,7 @@ func _touch() -> void:
 		carry.clear()
 	for k in 4:
 		arms[k].visible = k < carry.size()
-	if room == 0 and me_p.distance_to(ex) < _fire_r():
+	if (room == 0 or room == 3) and me_p.distance_to(ex) < _fire_r():
 		if snapped:
 			_die("불에 탔다")
 			return
@@ -520,11 +736,28 @@ func _touch() -> void:
 			beep(240.0, 0.08, 150.0, 0.2)
 	elif room == 1 and me_p.x > rx1 - 0.9 and absf(me_p.y - train_z) < 7.2:
 		_die("열차에 치였다")
-	elif room == 2:
-		for i in MAXR:
-			if rk_on[i] and rk_kind[i] == 2 and rk_down[i] and absf(me_p.y - rk_p[i].z) < rk_v[i].z * 0.5:
-				_die("다리가 꺼졌다")
-				return
+	elif (room == 2 or room == 5) and _over_hole(me_p):
+		_die("다리가 꺼졌다")
+		return
+	elif room == 4 and me_p.y < wave_z + 1.0:
+		if snapped:
+			_die("해일에 쓸렸다")
+			return
+		me_p.y = wave_z + 1.0
+		vel.y = maxf(vel.y, 0.0)
+		pw -= get_process_delta_time() * 30.0
+		if hot_t <= 0.0:
+			hot_t = 0.5
+			msg("앗 차가")
+			beep(300.0, 0.08, 200.0, 0.2)
+		hot_t -= get_process_delta_time()
+
+
+func _over_hole(q: Vector2) -> bool:
+	for i in MAXR:
+		if rk_on[i] and rk_kind[i] == 2 and rk_down[i] and absf(q.y - rk_p[i].z) < rk_v[i].z * 0.5:
+			return true
+	return false
 
 
 func _cam_update() -> void:
@@ -532,6 +765,19 @@ func _cam_update() -> void:
 	cam.rotation = Vector3(pitch, yaw, sin(stun * 40.0) * 0.08 if stun > 0.0 else 0.0)
 	var spd := vel.length() / TOP
 	cam.fov = lerpf(cam.fov, 75.0 + spd * 18.0, minf(1.0, 8.0 * get_process_delta_time()))
+	hand_ph += get_process_delta_time() * vel.length() * 1.7
+	var sw := minf(spd * 1.5, 1.0)
+	for k in 2:
+		var sg := 1.0 if k == 0 else -1.0
+		hands[k].position = Vector3((-0.34 if k == 0 else 0.34), -0.46 + cos(hand_ph) * 0.03 * sw, -0.72 + sin(hand_ph) * sg * 0.12 * sw)
+	# 멈춘 먼지가 내 진행 방향으로 늘어난다 (빠를수록 긴 줄)
+	var v := vel.length()
+	for m in dust:
+		if v > 2.0:
+			m.rotation = Vector3(0, atan2(vel.x, vel.y), 0)
+			m.scale = Vector3(0.05, 0.05, 0.05 + v * 0.09)
+		else:
+			m.scale = Vector3(0.08, 0.08, 0.08)
 
 
 func _world(wd: float, dt: float) -> void:
@@ -541,11 +787,13 @@ func _world(wd: float, dt: float) -> void:
 		beep(900.0 if snapped else 1600.0, 0.03, 0.0, 0.16)
 	_rocks(wd)
 	match room:
-		0: _fireball()
+		0, 3: _fireball()
 		1: _train(wd)
+		4: _wave(wd)
 		_: _panels(wd)
-	for m in dust:
-		m.rotation.y += wd * 0.6
+	if n_car > 0:
+		_cars(wd)
+	_fly(wd)
 	t = maxf(CLOCK - wt, 0.2)
 	if dead:
 		return
@@ -669,6 +917,7 @@ func _panels(wd: float) -> void:
 			rk[i].visible = rk_p[i].y > -9.5
 			continue
 		if left < 2.5:
+			rk[i].material_override = mat(BAD.lightened(0.45))  # 곧 꺼짐 = 붉게
 			var k := 1.0 - left / 2.5
 			rk[i].position = rk_p[i] + Vector3(0, sin(wt * 25.0) * 0.04 * k, 0)
 			rk[i].rotation.z = sin(wt * 19.0) * 0.02 * k
@@ -681,10 +930,142 @@ func _panels(wd: float) -> void:
 					_hurt(j, true)
 
 
+func _wave(wd: float) -> void:
+	# 멈춘 물의 벽이 부두를 따라 다가온다. 발밑 빨간 선 = 닿으면 쓸림
+	wave_z += wd * 1.7
+	var w := 13.0
+	fb[0].position = Vector3(1.5, 2.2, wave_z - 0.6)
+	fb[0].scale = Vector3(w, 4.4, 1.2)
+	fb[1].position = Vector3(1.5, 4.5, wave_z - 0.4)
+	fb[1].scale = Vector3(w + 0.2, 0.4, 1.4)
+	fb[2].position = Vector3(1.5, 0.03, wave_z + 0.5)
+	fb[2].scale = Vector3(w, 0.04, 0.5)
+	for j in MAXP:
+		if p_s[j] == 1 and p_xz[j].y < wave_z + 0.75:
+			_hurt(j, true)
+	crackle -= wd
+	if crackle <= 0.0:
+		crackle = 0.4
+		beep(60.0, 0.12, 45.0, 0.12)
+
+
+## 미끄러지는 차: 벽·다른 차에 막히면 선다(다른 차에는 속도를 넘긴다). 사람을 치고, 꺼진 판 위면 떨어진다
+func _cars(wd: float) -> void:
+	for c in MAXC:
+		if not car_on[c]:
+			continue
+		if room == 5 and _over_hole(car_r[c].get_center()):
+			car_on[c] = false
+			cars[c].visible = false
+			roofs[c].visible = false
+			beep(90.0, 0.4, 40.0, 0.25)
+			continue
+		var v := car_v[c]
+		if v.length() < 0.01:
+			continue
+		var r := car_r[c]
+		r.position += v * wd
+		var stop := r.position.x < rx0 or r.end.x > rx1 or r.position.y < rz0 or r.end.y > rz1
+		for b in blocks:
+			if b.intersects(r):
+				stop = true
+		for o in MAXC:
+			if o != c and car_on[o] and car_r[o].intersects(r):
+				car_v[o] += v * (car_m[c] / car_m[o]) * 0.9
+				stop = true
+		if stop:
+			car_v[c] = Vector2.ZERO
+			beep(80.0 + v.length() * 10.0, 0.12, 40.0, 0.25)
+			continue
+		car_r[c] = r
+		car_v[c] = v.move_toward(Vector2.ZERO, CAR_F * wd)
+		if v.length() > 0.8:
+			for j in MAXP:
+				if p_s[j] == 1 and r.grow(0.25).has_point(p_xz[j]):
+					_hurt(j, true)
+					msg("차에 치였다", 0.8)
+		if r.grow(0.4).has_point(me_p):
+			me_p += v * wd
+			if v.length() > 4.0 and stun <= 0.0:
+				stun = 0.4
+				pw -= 8.0
+				msg("치였다")
+		_car_place(c)
+
+
+## 업은 사람 하나를 내 속도 그대로(+ 위로 조금) 던진다
+func _throw() -> void:
+	var j: int = carry.pop_back()
+	var dirv := Vector3(vel.x, 0.0, vel.y)
+	p_s[j] = 5
+	f_from[j] = Vector3(me_p.x, 1.2, me_p.y) + (dirv.normalized() * 0.4 if dirv.length() > 0.1 else Vector3.ZERO)
+	f_v[j] = Vector3(vel.x, THROW_UP, vel.y)
+	f_t[j] = 0.0
+	var m := ppl[j]
+	m.visible = true
+	m.material_override = mat(B)
+	m.scale = Vector3(0.5, 1.1, 0.4)
+	m.position = f_from[j]
+	pw -= 2.0 * thrift
+	beep(420.0 + vel.length() * 60.0, 0.12, 900.0, 0.25)
+	msg("던짐 %d" % int(round(vel.length())), 0.6)
+
+
+func _fly(wd: float) -> void:
+	for j in MAXP:
+		if p_s[j] != 5:
+			continue
+		f_t[j] += wd
+		var tt := f_t[j]
+		var pp := f_from[j] + f_v[j] * tt + Vector3(0.0, -0.5 * GRAV_W * tt * tt, 0.0)
+		var p2 := Vector2(pp.x, pp.z)
+		if not fly_r.has_point(p2):
+			_land(j, p2, 99.0)
+		elif pp.y <= 0.55 and tt > 0.05:
+			_land(j, p2, Vector2(f_v[j].x, f_v[j].z).length())
+		else:
+			ppl[j].position = pp
+			ppl[j].rotation.x += wd * 6.0
+
+
+## 던진 사람이 닿은 곳: 초록 쪽이면 구함(너무 빠르면 다침), 디딜 데면 다시 섬, 물·구멍·벽이면 다침
+func _land(j: int, p2: Vector2, hs: float) -> void:
+	p_xz[j] = p2
+	ppl[j].rotation = Vector3.ZERO
+	if hs > THROW_HURT:
+		_hurt(j, true)
+		msg("너무 세게!" if hs < 90.0 else "쾅", 0.8)
+	elif safe_r.has_area() and safe_r.has_point(p2):
+		p_s[j] = 4
+		n_saved += 1
+		score += 1
+		ppl[j].position = Vector3(p2.x, 0.55 + (0.6 if room == 4 else 0.0), p2.y)
+		play("good")
+		msg("받았다!", 0.7)
+	elif _walkable(p2):
+		p_s[j] = 1
+		beep(300.0, 0.08, 0.0, 0.2)
+		msg("모자람", 0.6)
+	else:
+		_hurt(j, true)
+		msg("빠졌다", 0.8)
+
+
+func _walkable(q: Vector2) -> bool:
+	if q.x < rx0 or q.x > rx1 or q.y < rz0 or q.y > rz1:
+		return false
+	if room == 4 and q.y < wave_z + 0.75:
+		return false
+	return not _over_hole(q)
+
+
 func _place() -> void:
 	for j in MAXP:
 		if p_s[j] == 1:
 			ppl[j].position = Vector3(p_xz[j].x, 0.55, p_xz[j].y)
+		marks[j].visible = p_s[j] == 1 and mode == PLAY
+		if marks[j].visible:
+			marks[j].position = Vector3(p_xz[j].x, 1.55 + sin(wt * 6.0 + j) * 0.05, p_xz[j].y)
 
 
 # ---- 입력 ----
@@ -771,7 +1152,14 @@ func _die(why: String) -> void:
 
 
 func _finish() -> void:
-	# 시간이 제 속도로 돌아왔다: 안에 남은 사람은 모두 다친다
+	# 시간이 제 속도로 돌아왔다: 날던 사람은 떨어질 자리에 내려앉고, 안에 남은 사람은 모두 다친다
+	for j in MAXP:
+		if p_s[j] == 5:
+			var vy := f_v[j].y
+			var y0 := f_from[j].y - 0.55
+			var tl := (vy + sqrt(vy * vy + 2.0 * GRAV_W * y0)) / GRAV_W
+			var p2 := Vector2(f_from[j].x + f_v[j].x * tl, f_from[j].z + f_v[j].z * tl)
+			_land(j, p2, 99.0 if not fly_r.has_point(p2) else Vector2(f_v[j].x, f_v[j].z).length())
 	for j in MAXP:
 		if p_s[j] == 1 or p_s[j] == 2:
 			_hurt(j, false)
@@ -790,7 +1178,7 @@ func _after() -> void:
 		time_limit = 0.0  # 실패 소리가 나게
 		end()
 		return
-	if room >= 2:
+	if room >= LAST:
 		end()
 		return
 	mode = PICK

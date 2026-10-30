@@ -1,5 +1,5 @@
 extends Tofu
-## 늘어나는 돌 v2: 신전 돌이 저절로 구른다. 빠를수록 납작한 원반(낮고 좁고 길게), 느릴수록 둥근 공. 버튼 = 세우기(급제동). 끌기의 뜻·시점이 구역마다 바뀐다. 깃발을 지나면 죽어도 거기서 다시.
+## 늘어나는 돌 v3: 신전 돌이 저절로 구른다. 파랑=빨라야(납작) 지남, 주황=느려야(둥글게) 지남, 꼭대기 등이 초록이면 지금 몸으로 지난다. 둥근 채 파랑에 박히면 뒤로 튕겨 도움닫기부터 다시. 빠를수록 납작한 원반(낮고 좁고 길게), 느릴수록 둥근 공. 버튼 = 세우기(급제동). 끌기의 뜻·시점이 구역마다 바뀐다. 깃발을 지나면 죽어도 거기서 다시.
 ## 1 등뒤 신전길: 끌기=방향(손 떼면 길을 따라감). 아치는 납작해야, 커브는 둥글어야, 다리 바람은 원반을 날린다. 2 옆모습 수로: 끌기=기울이기, 물은 원반만 튕기고 턱은 공만 넘는다. 3 위에서 광장: 바람 띠 사이로 낮은 문에. 4 추락: 원반은 멀리 활강, 세우면 공이 되어 뚝(너무 높으면 깨짐). 5 1인칭 성문 터널: 오르내리는 창살 밑을 몸 높이로 통과.
 # 한 문장: 나는 신전에서 풀려난 돌로서 빠를수록 납작한 원반이 되는 몸으로 굴러 신전 밖으로 탈출하지만, 빨라질수록 꺾이지 않고 바람에 날리며 턱에 걸리는 대가를 감수한다.
 
@@ -46,7 +46,7 @@ const E4 := -53.0  # 광장 문 높이 (= _h3(200))
 const GATE_X := 10.0
 # 구역 1 신전길: [x, z, 높이, 다음 점까지 반폭]. z는 계속 줄어든다.
 const N1 := [
-	[0.0, 20.0, 42.0, 7.5], [0.0, -60.0, 37.0, 7.5], [0.0, -128.0, 31.0, 7.5],
+	[0.0, 20.0, 42.0, 7.5], [0.0, -60.0, 32.5, 7.5], [0.0, -128.0, 31.0, 7.5],
 	[-40.0, -156.0, 28.0, 7.5], [-50.0, -200.0, 25.0, 7.5], [-50.0, -250.0, 15.0, 7.5],
 	[-12.0, -288.0, 10.0, 7.5], [0.0, -305.0, 8.5, 3.8], [0.0, -385.0, 2.0, 7.5],
 	[0.0, -410.0, 2.5, 7.5], [0.0, -460.0, -4.5, 5.0], [0.0, -480.0, -5.0, 5.0],
@@ -126,6 +126,10 @@ var clouds: Array[MeshInstance3D] = []
 var cloud_x: Array[float] = []
 var bars: Array[MeshInstance3D] = []  # 터널 창살 판
 var pots: Array[Pot] = []
+var lamp_n: Array[MeshInstance3D] = []  # 장애물 등: 지금 몸이면 지나는지 (초록/빨강)
+var lamp_k: Array[int] = []  # 0 납작해야, 1 둥글어야
+var lamp_zn: Array[int] = []
+var build_zn := 1
 var pillars: Array[Vector2] = []
 var zroots := {}
 var zroot: Node3D
@@ -179,7 +183,7 @@ var cp_bonus := 0
 
 
 func _setup() -> void:
-	howto = "돌은 저절로 구른다. 빠를수록 납작한 원반, 느릴수록 둥근 공.\n아치·관·창살 밑은 납작해야, 커브·턱은 둥글어야 지난다. 원반은 물을 튕기고 멀리 날지만 바람에 날린다.\n끌기: 방향(손 떼면 길을 따라감, 옆모습·터널에선 앞뒤 기울이기). 세우기: 급제동.\n1.5초 넘게 느리거나 떨어지면 끝. 깃발부터 다시."
+	howto = "돌은 저절로 구른다. 빠를수록 납작한 원반, 느릴수록 둥근 공.\n파랑(아치·관·문)은 빨라야(납작), 주황(커브·턱)은 느려야(둥글게) 지난다. 꼭대기 등이 초록이면 지금 몸으로 지난다.\n끌기: 방향(손 떼면 길을 따라감, 옆모습·터널에선 앞뒤 기울이기). 세우기: 급제동.\n1.5초 넘게 느리거나 떨어지면 끝. 깃발부터 다시."
 	time_limit = 0.0
 	kit_button("brake", "세우기", Vector2(600, 1110), 100.0, A)
 	for k in 2:
@@ -236,6 +240,9 @@ func _reset() -> void:
 	free_t = 0.0
 	zroots.clear()
 	pots.clear()
+	lamp_n.clear()
+	lamp_k.clear()
+	lamp_zn.clear()
 	pillars.clear()
 	lane_marks.clear()
 	lane_info.clear()
@@ -435,6 +442,13 @@ func bx(p: Vector3, s: Vector3, col: Color) -> MeshInstance3D:
 	return box(p, s, col, zroot)
 
 
+## 장애물 위 등. kind 0 = 납작해야 지남, 1 = 둥글어야 지남. 매 프레임 지금 몸으로 지나면 초록.
+func _lamp(p: Vector3, s: Vector3, kind: int) -> void:
+	lamp_n.append(bx(p, s, GOOD))
+	lamp_k.append(kind)
+	lamp_zn.append(build_zn)
+
+
 func _slab(p0: Vector3, p1: Vector3, width: float, thick: float, col: Color, ext: float, above := false) -> MeshInstance3D:
 	var dir := p1 - p0
 	var bs := Basis.looking_at(dir.normalized(), Vector3.UP)
@@ -451,6 +465,7 @@ func _ensure(n: int) -> void:
 	zroot = Node3D.new()
 	world.add_child(zroot)
 	zroots[n] = zroot
+	build_zn = n
 	match n:
 		1: _build1()
 		2: _build2()
@@ -469,6 +484,11 @@ func _free(n: int) -> void:
 		if pt.zn != n:
 			keep.append(pt)
 	pots = keep
+	for i in range(lamp_n.size() - 1, -1, -1):
+		if lamp_zn[i] == n:
+			lamp_n.remove_at(i)
+			lamp_k.remove_at(i)
+			lamp_zn.remove_at(i)
 	if n == 3:
 		pillars.clear()
 		lane_marks.clear()
@@ -487,7 +507,7 @@ func _build1() -> void:
 		var hw := float(a[3])
 		var br := i == BRIDGE_SEG
 		var ext := 0.4 if br else hw * 1.2
-		var m := _slab(p0, p1, hw * 2.0, 0.6 if br else 3.0, A if br else STONE, ext)
+		var m := _slab(p0, p1, hw * 2.0, 0.6 if br else 3.0, A if br else STONE, ext)  # 다리 = 주황(둥글게 버텨)
 		var up := m.basis.y.normalized()
 		var rt := m.basis.x.normalized()
 		for sd: float in [-1.0, 1.0]:
@@ -498,22 +518,27 @@ func _build1() -> void:
 		if br:  # 다리 판자 줄무늬 = 속도 눈금
 			var zz := float(a[1]) - 5.0
 			while zz > float(b[1]):
-				bx(Vector3(0, _g(0, zz) + 0.04, zz), Vector3(hw * 2.0, 0.08, 0.5), D)
+				bx(Vector3(0, _g(0, zz) + 0.04, zz), Vector3(hw * 2.0, 0.08, 0.5), WHITE)
 				zz -= 10.0
 	for az: float in ARCH_Z:
 		var ax := _x1(az)
 		var ahw := float(_near1(ax, az)[2])
 		var ah := _g(ax, az)
 		for sd: float in [-1.0, 1.0]:
-			bx(Vector3(ax + sd * (ahw + 0.6), ah + (CLEAR + 1.2) * 0.5, az), Vector3(0.8, CLEAR + 1.2, 0.8), D)
-		bx(Vector3(ax, ah + CLEAR + 0.5, az), Vector3(ahw * 2.0 + 2.0, 1.0, 0.8), D)
-		bx(Vector3(ax, ah + CLEAR + 1.3, az), Vector3(ahw * 2.0 + 3.0, 0.6, 1.2), B)  # 파란 지붕 = 납작해야
+			bx(Vector3(ax + sd * (ahw + 0.6), ah + (CLEAR + 1.2) * 0.5, az), Vector3(0.8, CLEAR + 1.2, 0.8), B)
+		bx(Vector3(ax, ah + CLEAR + 0.5, az), Vector3(ahw * 2.0 + 2.0, 1.0, 0.8), B)  # 파랑 = 빨라야(납작해야)
+		_lamp(Vector3(ax, ah + CLEAR + 1.6, az), Vector3(ahw * 2.0 + 3.0, 1.2, 1.2), 0)
 	# 커브 앞 노란·흰 띠 (둥글게)
 	for cz: float in CORNER_Z:
 		for k in 3:
 			var zz := cz + 26.0 - k * 4.0
 			var xx := _x1(zz)
-			bx(Vector3(xx, _g(xx, zz) + 0.05, zz), Vector3(13.0, 0.1, 1.2), D if k % 2 == 0 else WHITE)
+			bx(Vector3(xx, _g(xx, zz) + 0.05, zz), Vector3(13.0, 0.1, 1.2), A if k % 2 == 0 else WHITE)  # 주황 = 둥글어야
+		var lz := cz + 26.0
+		var lx := _x1(lz)
+		for sd: float in [-1.0, 1.0]:
+			bx(Vector3(lx + sd * 7.6, _g(lx, lz) + 1.6, lz), Vector3(0.6, 3.2, 0.6), A)
+		_lamp(Vector3(lx, _g(lx, lz) + 3.6, lz), Vector3(16.0, 0.8, 0.8), 1)
 	# 깃발 (구역 안 체크포인트)
 	for i in range(1, CPS.size()):
 		var cp: Array = CPS[i]
@@ -569,9 +594,11 @@ func _build2() -> void:
 	for pp: Array in PIPES:
 		var a := float(pp[0])
 		var b := float(pp[1])
-		_slab(Vector3(0, _p2(a) + CLEAR, Z2 - a), Vector3(0, _p2(b) + CLEAR, Z2 - b), 7.0, 3.0, C, 0.0, true)
+		_slab(Vector3(0, _p2(a) + CLEAR, Z2 - a), Vector3(0, _p2(b) + CLEAR, Z2 - b), 7.0, 3.0, B, 0.0, true)
+		_lamp(Vector3(0, _p2(a) + CLEAR + 3.6, Z2 - a), Vector3(7.2, 1.2, 1.2), 0)
 	for st: float in STEPS:
-		bx(Vector3(0, _p2(st) - STEP_H * 0.5, Z2 - st + 0.15), Vector3(7.2, STEP_H, 0.3), D)
+		bx(Vector3(0, _p2(st) - STEP_H * 0.5, Z2 - st + 0.15), Vector3(7.2, STEP_H, 0.3), A)
+		_lamp(Vector3(-4.5, _p2(st) + 4.6, Z2 - st), Vector3(1.4, 1.4, 1.4), 1)
 	var dd := 0.0
 	while dd < 380.0:
 		if _pool(dd) < 0:
@@ -602,7 +629,7 @@ func _build3() -> void:
 	for ln: Array in LANES:
 		var a := float(ln[0])
 		var b := float(ln[1])
-		_slab(Vector3(0, _h3(a) + 0.02, Z3 - a), Vector3(0, _h3(b) + 0.02, Z3 - b), 50.0, 0.05, B, 0.0, true)
+		_slab(Vector3(0, _h3(a) + 0.02, Z3 - a), Vector3(0, _h3(b) + 0.02, Z3 - b), 50.0, 0.05, LILAC, 0.0, true)  # 바람 띠
 		for k in 5:
 			var mz := Z3 - lerpf(a + 3.0, b - 3.0, k / 4.0)
 			var mk := bx(Vector3(0, _h3(Z3 - mz) + 0.2, mz), Vector3(2.4, 0.15, 0.6), WHITE)
@@ -612,20 +639,20 @@ func _build3() -> void:
 		var z := Z3 - p.y
 		var h := _h3(p.y)
 		bx(Vector3(p.x, h + 3.0, z), Vector3(2.4, 6.0, 2.4), WHITE)
-		bx(Vector3(p.x, h + 6.2, z), Vector3(2.8, 0.4, 2.8), D)
+		bx(Vector3(p.x, h + 6.2, z), Vector3(2.8, 0.4, 2.8), ROCK)
 		pillars.append(Vector2(p.x, z))
 	var eh := _h3(200.0)
 	bx(Vector3((-25.0 + GATE_X - 3.6) * 0.5, eh + 1.5, ZEND), Vector3(GATE_X - 3.6 + 25.0, 3.0, 1.0), ROCK)
 	bx(Vector3((25.0 + GATE_X + 3.6) * 0.5, eh + 1.5, ZEND), Vector3(25.0 - GATE_X - 3.6, 3.0, 1.0), ROCK)
 	for sd: float in [-1.0, 1.0]:
-		bx(Vector3(GATE_X + sd * 4.0, eh + (CLEAR + 1.2) * 0.5, ZEND), Vector3(0.8, CLEAR + 1.2, 0.8), D)
-	bx(Vector3(GATE_X, eh + CLEAR + 0.5, ZEND), Vector3(8.8, 1.0, 0.8), D)
-	bx(Vector3(GATE_X, eh + CLEAR + 1.3, ZEND), Vector3(10.0, 0.6, 1.2), B)
+		bx(Vector3(GATE_X + sd * 4.0, eh + (CLEAR + 1.2) * 0.5, ZEND), Vector3(0.8, CLEAR + 1.2, 0.8), B)
+	bx(Vector3(GATE_X, eh + CLEAR + 0.5, ZEND), Vector3(8.8, 1.0, 0.8), B)
+	_lamp(Vector3(GATE_X, eh + CLEAR + 1.6, ZEND), Vector3(10.0, 1.2, 1.2), 0)
 	# 광장 가장자리 기둥 줄 (위에서 볼 때 흐르는 기준물)
 	var bd := 5.0
 	while bd < 200.0:
 		for sd: float in [-1.0, 1.0]:
-			bx(Vector3(sd * 27.0, _h3(bd) + 1.0, Z3 - bd), Vector3(1.6, 2.0, 1.6), [A, C][int(bd / 20.0) % 2])
+			bx(Vector3(sd * 27.0, _h3(bd) + 1.0, Z3 - bd), Vector3(1.6, 2.0, 1.6), [WHITE, ROCK][int(bd / 20.0) % 2])
 		bd += 20.0
 	for p: Vector2 in POTS3:
 		_pot(p.x, Z3 - p.y, 3)
@@ -641,7 +668,7 @@ func _build4() -> void:
 		var p0 := Vector3(x, _ih(i, d0), ZEND - d0)
 		var p1 := Vector3(x, _ih(i, d1), ZEND - d1)
 		var drop := int(s[6]) == 1
-		_slab(p0, p1, hw * 2.0, 1.2, D if drop else GRASS, 0.0)
+		_slab(p0, p1, hw * 2.0, 1.2, A if drop else GRASS, 0.0)  # 주황 = 둥글게(세워서) 꽂아라
 		var mid := (p0 + p1) * 0.5
 		bx(mid + Vector3(0, -4.0, 0), Vector3(hw * 1.5, 6.0, (d1 - d0) * 0.8), ROCK)
 		bx(mid + Vector3(0, -9.0, 0), Vector3(hw * 0.8, 5.0, (d1 - d0) * 0.4), STONE)
@@ -679,7 +706,7 @@ func _build5() -> void:
 	for sd: float in [-1.0, 1.0]:  # 긴 벽
 		bx(Vector3(sd * 4.6, _p5(L5 * 0.5) + 3.5, Z5 - L5 * 0.5), Vector3(0.4, 9.0, L5 + 20.0), Color("eebefa"))
 	for st: float in STEPS5:
-		bx(Vector3(0, _p5(st) - STEP_H * 0.5, Z5 - st + 0.15), Vector3(7.2, STEP_H, 0.3), D)
+		bx(Vector3(0, _p5(st) - STEP_H * 0.5, Z5 - st + 0.15), Vector3(7.2, STEP_H, 0.3), A)
 	for g: Array in GATES5:
 		var gz := Z5 - float(g[0])
 		var gy := _p5(float(g[0]))
@@ -699,7 +726,7 @@ func _pot(x: float, z: float, zn: int) -> void:
 	pt.base = _g(x, z)
 	if is_nan(pt.base):
 		pt.base = 0.0
-	pt.n = bx(Vector3(x, pt.base + 0.7, z), Vector3(1.4, 1.4, 1.4), [A, C, B][pots.size() % 3])
+	pt.n = bx(Vector3(x, pt.base + 0.7, z), Vector3(1.4, 1.4, 1.4), C)
 	pots.append(pt)
 
 
@@ -883,7 +910,7 @@ func _step(dt: float) -> void:
 			beep(260.0, 0.1, 200.0, 0.25)
 			msg("느려!", 0.35)
 		if slow_t > STOP_T:
-			msg("멈췄다", 2.0)
+			msg("멈췄다\n탭: 깃발부터" if cp_i > 0 else "멈췄다\n탭: 다시", 2.5)
 			end()
 			return
 	else:
@@ -924,9 +951,9 @@ func _tip(key: String, text: String) -> void:
 func _tips() -> void:
 	if zone == 1:
 		if pz < float(ARCH_Z[0]) + 30.0 and pz > float(ARCH_Z[0]):
-			_tip("arch", "아치: 납작해야 통과")
+			_tip("arch", "파랑 = 빨라야 통과\n등 초록 = 지금 지남")
 		elif pz < float(CORNER_Z[0]) + 30.0 and pz > float(CORNER_Z[0]):
-			_tip("corner", "커브! 세우기로 둥글게")
+			_tip("corner", "주황 커브! 세워서 둥글게")
 		elif pz < float(N1[BRIDGE_SEG][1]) + 6.0 and pz > float(N1[BRIDGE_SEG][1]) - 10.0:
 			_tip("bridge", "바람 다리: 둥글게 버텨")
 	elif zone == 2 and Z2 - pz > 30.0:
@@ -984,7 +1011,7 @@ func _features(ox: float, oz: float, fx: float, fz: float) -> void:
 		for az: float in ARCH_Z:
 			if oz > az and pz <= az:
 				if bh >= CLEAR:
-					_bonk(ox - fx * 0.6, oz - fz * 0.6, 0.25, "아치에 쿵!")
+					_runup(20.0, 22.0, "아치에 쿵! 뒤로 튕김")
 					return
 				bonus += 10
 				beep(1000.0, 0.08, 1500.0, 0.22)
@@ -1008,7 +1035,7 @@ func _features(ox: float, oz: float, fx: float, fz: float) -> void:
 			var a := float(pp[0])
 			var b := float(pp[1])
 			if od < a and d >= a and bh >= CLEAR:
-				_bonk(0.0, Z2 - (a - 1.0), 0.2, "관에 쿵!")
+				_runup(18.0, 22.0, "관에 쿵! 뒤로 튕김")
 				return
 			if d > a and d < b and bh > CLEAR + 0.08:
 				_die("끼임!", 0)
@@ -1020,9 +1047,9 @@ func _features(ox: float, oz: float, fx: float, fz: float) -> void:
 					bonus += 300
 					beep(1000.0, 0.1, 1800.0, 0.25)
 					return
-				_bonk(ox, oz + 0.8, 0.25, "문에 쿵!")
+				_runup(30.0, 14.0, "문에 쿵! 뒤로 튕김")
 			else:
-				_bonk(ox, oz + 0.8, 0.25, "벽!")
+				_runup(30.0, 14.0, "벽! 뒤로 튕김")
 			return
 		for p in pillars:
 			var me2 := Vector2(px, pz)
@@ -1091,6 +1118,50 @@ func _features(ox: float, oz: float, fx: float, fz: float) -> void:
 			bonus += 5
 			_burst(Vector3(pt.x, pt.base + 0.7, pt.z), 4, A, 5.0)
 			beep(480.0, 0.1, 110.0, 0.26)
+
+
+## 빨라야 지나는 것(파랑)에 둥근 채 박히면: 그 자리에 갇히지 않고 뒤로 튕겨 도움닫기 거리부터 다시 굴러온다
+func _runup(back: float, vnew: float, text: String) -> void:
+	_burst(Vector3(px, by + bh * 0.5, pz), 5, STONE, 7.0)
+	match zone:
+		1:
+			pz = minf(pz + back, float(N1[0][1]) - 2.0)
+			px = _x1(pz)
+			hd = _dir1(pz)
+			hd_goal = hd
+		2:
+			var nd := maxf(Z2 - pz - back, 1.0)
+			while _pool(nd) >= 0:
+				nd += 1.0
+			pz = Z2 - nd
+			px = 0.0
+		3:
+			pz = minf(pz + back, Z3 - 2.0)
+			px = clampf(px, -20.0, 20.0)
+			hd = 0.0
+			hd_goal = 0.0
+		_:
+			pz += back
+	var g := _g(px, pz)
+	if not is_nan(g):
+		by = g
+		last_g = g
+	vy = 0.0
+	lat_v = 0.0
+	on_ground = true
+	v = vnew
+	fl = clampf((v - V_ROUND) / (V_FLAT - V_ROUND), 0.0, 1.0)
+	bh = lerpf(H0, H1, fl)
+	bw = lerpf(W0, W1, fl)
+	bl = lerpf(L0, L1, fl)
+	was_flat = bh < CLEAR
+	slow_t = 0.0
+	hurt = 0.6
+	shake = 0.5
+	squash = 0.3
+	bonus = maxi(0, bonus - 20)
+	play("bad")
+	msg(text + "\n도움닫기!", 1.1)
 
 
 func _bonk(bx2: float, bz: float, keep: float, text: String) -> void:
@@ -1187,6 +1258,10 @@ func _place(dt: float) -> void:
 		bars[i].position.y = gy + (gp + 7.0) * 0.5
 		bars[i].scale.y = 7.0 - gp
 		bars[i].material_override = mat(GOOD if bh < gp - 0.05 else BAD)
+	# 장애물 등: 지금 몸이면 지나는지
+	for i in lamp_n.size():
+		var ok := bh < CLEAR if lamp_k[i] == 0 else bh >= STEP_NEED
+		lamp_n[i].material_override = mat(GOOD if ok else BAD)
 	# 카메라: 구역마다 시점이 바뀐다
 	cam_hd = lerp_angle(cam_hd, hd, minf(1.0, dt * 3.0))
 	var P := Vector3(px, by, pz)
@@ -1197,16 +1272,25 @@ func _place(dt: float) -> void:
 	var k2 := minf(1.0, dt * 4.0)
 	match zone:
 		1:
-			want = P - f3 * (8.0 + v * 0.12) + Vector3(0, 3.5 + bh, 0)
-			look = P + f3 * 14.0 + Vector3(0, -0.5, 0)
-			fov = clampf(55.0 + v * 0.6, 55.0, 88.0)
+			# 길을 따라 앞(속도에 비례)을 본다: 커브 너머가 먼저 보이고, 빠를수록 물러나 넓게
+			var la := 18.0 + v * 0.8
+			var ap := _aim1(la)
+			var ay := _g(ap.x, ap.y)
+			if is_nan(ay):
+				ay = by
+			want = P - f3 * (9.0 + v * 0.22) + Vector3(0, 4.5 + bh + v * 0.1, 0)
+			look = Vector3(ap.x, ay, ap.y).lerp(P + f3 * la, 0.3)
+			fov = clampf(58.0 + v * 0.6, 58.0, 90.0)
 		2:
-			want = P + Vector3(15.0 + v * 0.18, 2.5, -7.0)
-			look = P + Vector3(0, 0.6, -7.0)
+			# 옆모습: 빠를수록 물러나고, 돌은 화면 왼쪽에 두어 앞(오른쪽)을 넓게
+			var dist2 := 18.0 + v * 0.35
 			fov = 50.0 + v * 0.3
+			var ah2 := 0.3 * 2.0 * dist2 * tan(deg_to_rad(fov * 0.5))
+			want = P + Vector3(dist2, 3.5, -ah2)
+			look = P + Vector3(0, 0.6, -ah2)
 		3:
-			want = P + Vector3(0, 28.0 + v * 0.35, 9.0)
-			look = P + Vector3(0, 0, -6.0)
+			want = P + Vector3(0, 30.0 + v * 0.45, 6.0)
+			look = P + Vector3(0, 0, -(8.0 + v * 0.5))
 			fov = 50.0
 		4:
 			want = P + Vector3(0, 13.0, 13.0)

@@ -2,14 +2,13 @@ extends Node
 ## speed 두부게임 메뉴. 게임 하나 = g/<id>.gd (Tofu 를 extends).
 
 const GAMES := [
+	# ● 제출준비작 (v5를 넘긴 게임: 아트 스타일 확정 + Codex 담당)
+	["boulder", "● 굴러라 신전석"],
+	["screenrace", "● 화면 밖 경주 (옆모습)"],
 	# 합격 (10/30 판정)
-	["boulder", "★ 굴러라 신전석"],
-	["boulder_fp", "★ 신전석 (1인칭)"],
-	["screenrace", "★ 화면 밖 경주 (옆모습)"],
 	["overpower", "★ 과속 플랫포머 (옆모습)"],
 	["overpower_edit", "▶ 스테이지 제작 (PC)"],
 	["rain_slow", "★ 레인월드 × 느림 (옆모습)"],
-	["coming_fp", "★ 그가 온다 × 늦추기 (1인칭)"],
 	["deepsword", "★ 깊은 검 × 빠르면 고통 (옆모습)"],
 	# 새 종류 5 (부모 없음, 합격 유전자만으로)
 	["molten", "☆ 식는 바위 (옆모습)"],
@@ -20,29 +19,37 @@ const GAMES := [
 	["coming_boulder", "◇ 그가 온다 × 신전석 (등뒤)"],
 	# 메모 2차 7 (설계서 먼저 쓰고 첫 조각만 구현)
 	["snapshot", "◆ 순간 포착 (1인칭)"],
-	["fallcards", "◆ 낙하 카드 (등뒤)"],
-	["tooslow", "◆ 너무 느린 주인공"],
 	["tinyplanet", "◆ 작은 행성 (등뒤)"],
 	["bombcrawl", "◆ 폭탄 애벌레 (옆모습)"],
 	# 3세대 (유전 알고리즘: 평가 적합도 + Codex 아이디어 + 교배)
 	["scale_prison", "▲ 저울 감옥 (옆모습)"],
 	["compress", "▲ 압축 스프링 (옆모습)"],
 	["stretch_roll", "▲ 늘어나는 돌"],
-	["loud_race", "▲ 시끄러운 1등 (옆모습)"],
 	# 4세대
-	["tooslow_rpg", "▲ 너무 느린 주인공 (쯔꾸르)"],
 	# 4세대 번식: 별 4 이상 부모의 자식
-	["wheel_down", "▲ 넘어지면 끝 바퀴 (← 신전석)"],
-	["bounce_race", "▲ 고무공 경주 (← 경주×과속)"],
 	["phase_runner", "▲ 빠르면 투명 (← 과속 플랫포머)"],
 	["echo_bat", "▲ 초음파 박쥐 (← 레인월드)"],
 	["counterweight", "▲ 균형추 배달부 (← 저울 감옥)"],
-	["lantern_race", "▲ 등불 경주 (← 화면 밖 경주)"],
+	# 6세대 자식 (세대당 하나, 핵심 규칙을 바꾼 것)
+	["climb_race", "▲ 위로 경주 (세로)"],
 	# 5세대 번식
 	["speed_snake", "▲ 빠르면 긴 뱀 (← 과속 플랫포머)"],
 ]
+# 보류 (폐기 아님: 다른 목적으로 다시 볼 것 — 멀티플레이, 이전 판, 모드로 합쳐진 원본). 메뉴의 "보류" 폴더
+const HOLD := [
+	["loud_race", "▲ 시끄러운 1등 (옆모습)"],
+	["lantern_race", "▲ 등불 경주 (← 화면 밖 경주)"],
+	["overpower_map", "과속 플랫포머 v3 이어진 지도 (보류)"],
+]
 # 2차 폐기 (게임 안 평균 별점 2 이하). 메뉴의 "2차 폐기 (평가 낮음)" 폴더 안에서만 보인다
 const DROPPED2 := [
+	["bounce_race", "▲ 고무공 경주 (← 경주×과속)"],
+	["wheel_down", "▲ 넘어지면 끝 바퀴 (← 신전석)"],
+	["tooslow_rpg", "▲ 너무 느린 주인공 (쯔꾸르)"],
+	["boulder_fp", "★ 신전석 (1인칭)"],
+	["coming_fp", "★ 그가 온다 × 늦추기 (1인칭)"],
+	["fallcards", "◆ 낙하 카드 (등뒤)"],
+	["tooslow", "◆ 너무 느린 주인공"],
 	["bigball", "큰 공 굴리기 (강철코일)"],
 	["deepsword_fp", "◇ 깊은 검 (1인칭)"],
 	["glider", "☆ 활공 (1인칭)"],
@@ -58,10 +65,9 @@ const DROPPED2 := [
 	["taiji_speed", "◆ 흘러가는 퍼즐 판"],
 ]
 # 게임 버전: 강화할 때마다 올린다. 메뉴 글자 끝에 " v3" 로 붙고 평가 ver 에 "v3 <빌드>" 로 들어간다 (없으면 1)
-const GAME_VER := {"bigball": 3, "blade": 2, "blade_1p": 2, "blade_fp": 1, "blade_run": 2, "bombcrawl": 1, "boulder": 5, "boulder_fp": 1, "boulder_race": 2, "coaster": 1, "coil_side": 1, "coming_boulder": 2, "coming_fp": 2, "coming_top": 1, "compress": 1, "deepsword": 2, "deepsword_3d": 1, "deepsword_fp": 2, "fallcards": 1, "glider": 2, "hot": 2, "hot_side": 2, "hotpack": 2, "ice_courier": 2, "icecream": 1, "kitchen": 1, "lickghost": 1, "loud_race": 1, "magnet": 1, "matchspeed": 2, "molten": 2, "nerve": 3, "onedot": 1, "onlyfast": 2, "overpower": 4, "overpower_3d": 1, "overpower_edit": 1, "overpower_map": 3, "overpower_rain": 2, "pitcrew": 1, "piton": 1, "predict": 1, "puzzlerace": 1, "quicksilver": 2, "quicksilver_fp": 2, "quicksilver_tp": 1, "rain_coming": 2, "rain_flee": 1, "rain_fp": 2, "rain_slow": 3, "runaway": 2, "runaway_train": 2, "scale_prison": 2, "screenrace": 7, "screenrace_over": 3, "shockwave": 2, "slowbike": 2, "speed_snake": 1, "snapshot": 1, "speedcop": 2, "speedthief": 2, "stretch_roll": 2, "superhot": 2, "sword": 2, "synapse": 2, "taiji_speed": 1, "timedebt": 2, "tinyplanet": 2, "tooslow": 1, "tooslow_rpg": 1, "trafficwizard": 2, "wombat_dial": 1, "wombat_fast": 1}
+const GAME_VER := {"bigball": 3, "blade": 2, "blade_1p": 2, "blade_fp": 1, "blade_run": 2, "bombcrawl": 2, "boulder": 6, "boulder_fp": 1, "boulder_race": 2, "coaster": 1, "coil_side": 1, "coming_boulder": 2, "coming_fp": 2, "coming_top": 1, "compress": 2, "deepsword": 2, "deepsword_3d": 1, "deepsword_fp": 2, "fallcards": 1, "glider": 2, "hot": 2, "hot_side": 2, "hotpack": 2, "ice_courier": 2, "icecream": 1, "kitchen": 1, "lickghost": 1, "loud_race": 1, "magnet": 1, "matchspeed": 2, "molten": 2, "nerve": 3, "onedot": 1, "onlyfast": 2, "overpower": 5, "overpower_3d": 1, "overpower_edit": 1, "overpower_map": 3, "overpower_rain": 2, "pitcrew": 1, "piton": 1, "predict": 1, "puzzlerace": 1, "quicksilver": 2, "quicksilver_fp": 3, "quicksilver_tp": 1, "rain_coming": 2, "rain_flee": 1, "rain_fp": 2, "rain_slow": 3, "runaway": 2, "runaway_train": 2, "scale_prison": 2, "screenrace": 7, "screenrace_over": 3, "shockwave": 2, "slowbike": 2, "climb_race": 1, "phase_runner": 2, "counterweight": 2, "speed_snake": 1, "snapshot": 1, "speedcop": 2, "speedthief": 2, "stretch_roll": 3, "superhot": 2, "sword": 2, "synapse": 2, "taiji_speed": 1, "timedebt": 2, "tinyplanet": 3, "tooslow": 1, "tooslow_rpg": 1, "trafficwizard": 2, "wombat_dial": 1, "wombat_fast": 1}
 # 1차 폐기 (사용자 판정 탈락 + 첫 판 보존작). 메뉴의 "1차 폐기 (판정 탈락)" 폴더 안에서만 보인다
 const DROPPED := [
-	["overpower_map", "과속 플랫포머 v3 이어진 지도 (보류)"],
 	["quicksilver", "퀵실버 시티"],
 	["synapse", "시냅스 특급"],
 	["hot", "나만 빠르다 (1인칭)"],
@@ -96,6 +102,9 @@ const DROPPED := [
 ]
 const FOLDER := "__dropped"  # 1차 폐기 폴더
 const FOLDER2 := "__dropped2"  # 2차 폐기 폴더
+const FOLDER3 := "__hold"  # 보류 폴더
+# 제출준비작이 단독 프로젝트로 나가면 메뉴는 그 단독판 주소로 보낸다(웹에서만). 전담 세션이 여기에 한 줄 추가한다
+const STANDALONE := {"boulder": "../../shrine_stone/web/"}
 const UP := "__up"
 const IDEA := "__idea"  # 맨 아래 "아이디어 제출하기" -> window.prompt -> Firestore tofu_ideas (tools/tofu_fb.js)
 const INK := Color("3a2a1a")
@@ -157,13 +166,13 @@ func _ready() -> void:
 	_fill(0)
 
 
-## 목록을 채운다. folder 0 = 메인, 1 = 1차 폐기(판정 탈락), 2 = 2차 폐기(평가 낮음)
+## 목록을 채운다. folder 0 = 메인, 1 = 1차 폐기(판정 탈락), 2 = 2차 폐기(평가 낮음), 3 = 보류
 func _fill(folder: int) -> void:
 	for c in list.get_children():
 		c.queue_free()
 	buttons.clear()
 	var title := Label.new()
-	title.text = ["SPEED 두부", "1차 폐기 (판정 탈락)", "2차 폐기 (평가 낮음)"][folder]
+	title.text = ["SPEED 두부", "1차 폐기 (판정 탈락)", "2차 폐기 (평가 낮음)", "보류 (나중에 다시)"][folder]
 	title.add_theme_color_override("font_color", INK)
 	title.add_theme_font_size_override("font_size", 72 if folder == 0 else 56)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -171,9 +180,10 @@ func _fill(folder: int) -> void:
 	var rows: Array = []
 	if folder > 0:
 		rows.append([UP, "◀ 돌아가기"])
-		rows.append_array(DROPPED if folder == 1 else DROPPED2)
+		rows.append_array([DROPPED, DROPPED2, HOLD][folder - 1])
 	else:
 		rows.append_array(GAMES)
+		rows.append([FOLDER3, "▶ 보류 (나중에 다시) (%d)" % HOLD.size()])
 		rows.append([FOLDER, "▶ 1차 폐기 (판정 탈락) (%d)" % DROPPED.size()])
 		rows.append([FOLDER2, "▶ 2차 폐기 (평가 낮음) (%d)" % DROPPED2.size()])
 	rows.append([IDEA, "아이디어 제출하기"])
@@ -255,11 +265,14 @@ func _wake() -> void:
 
 
 func _open(id: String) -> void:
-	if id == FOLDER or id == FOLDER2 or id == UP:
-		_fill(1 if id == FOLDER else (2 if id == FOLDER2 else 0))
+	if id == FOLDER or id == FOLDER2 or id == FOLDER3 or id == UP:
+		_fill({FOLDER: 1, FOLDER2: 2, FOLDER3: 3}.get(id, 0))
 		return
 	if id == IDEA:
 		_idea()
+		return
+	if STANDALONE.has(id) and OS.has_feature("web"):
+		JavaScriptBridge.eval("window.location.href = %s" % JSON.stringify(STANDALONE[id]), true)
 		return
 	menu.visible = false
 	game = load("res://g/%s.gd" % id).new()
