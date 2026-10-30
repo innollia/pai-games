@@ -12,7 +12,8 @@ var from_tofu := false  # SPEED 두부 목록(?from=tofu)에서 왔으면 "<" �
 func _ready() -> void:
 	randomize()
 	if OS.has_feature("web"):
-		from_tofu = JavaScriptBridge.eval("location.search.indexOf('from=tofu') >= 0", true) == true
+		# 웹 JS 값은 bool로 안 올 수 있어 == true 가 스크립트 오류로 _ready 를 멈춘다(노란 빈 화면). 글자로 비교한다
+		from_tofu = str(JavaScriptBridge.eval("location.search.indexOf('from=tofu') >= 0 ? 'y' : 'n'", true)) == "y"
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_open()
 
