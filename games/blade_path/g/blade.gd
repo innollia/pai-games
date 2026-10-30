@@ -6,8 +6,8 @@ extends Tofu
 ## 켜면 튜토리얼부터: 맞는 쪽으로 밀 때까지 멈추고 알려 준다. 그다음 찌르기 → 속임수 → 베기 → 거합 검객이 두 바퀴 나오고
 ## (뒤로 갈수록 체력·공격력·빠르기가 오른다), 마지막은 쓰러뜨릴 수 없는 끝판왕 검귀. 간파하면 그 자리에서 내가 직접 벤다.
 ## 빈틈이 아닐 때 휘두르면 헛공격: 체력 -1, 잠깐 굳고, 상대가 바로 친다.
-## 막을 때마다 돈(간파는 3배). 쓰러지면 로비(아래 탭: 업그레이드 · 전투 · 캐릭터 · 도감)로 가서 강해진 뒤 [전투]로 첫 검객부터 다시.
-## 돈·업그레이드·기록·도감은 저장된다. 튜토리얼은 처음 한 번만(로비에서 다시 볼 수 있다).
+## 매 판 맨몸으로 시작. 검객을 쓰러뜨리면 능력 셋 중 하나를 고른다(이번 판에만, 체력 자동 회복 없음). 쓰러지면 로비(전투 · 캐릭터 · 도감)에서 [전투]로 처음부터.
+## 기록·도감·설정은 저장된다. 튜토리얼은 처음 한 번만(로비에서 다시 볼 수 있다).
 
 const SWIPE := 60.0
 const BTN_SWIPE := 38.0  # 버튼 위에서 이만큼 밀면 그 방향으로 바로 발동
@@ -38,7 +38,7 @@ const TIPS := [
 	"반쯤에 칼이 다른 쪽으로 옮겨 가요\n끝까지 보고 막기",
 	"같은 쪽으로 두 번 와요!\n흐린 칼이 두 자루면 한 번 더 막기",
 	"가만히 있다가 갑자기 뽑아요!\n눈이 번쩍하면 칼 쪽을 보고 막기. 먼저 베면 헛공격",
-	"쓰러뜨릴 수 없어요. 오래 버티며 돈을 벌어요",
+	"쓰러뜨릴 수 없어요. 오래 버티며 피해를 쌓아요",
 ]
 const BODY := [A, C, B, ME, INK]
 ## 파이가 보낸 효과음 (10/30). 막기 소리는 공격 모양(sty: 찌르기·속임수·베기·거합)마다 다르다
@@ -92,32 +92,34 @@ const PAT := [
 const TUT_MV := [[0, 0, 1.2], [2, 2, 1.4]]
 const TUT_SAY := [
 	"칼이 왼쪽에서 와요 (흐린 칼 = 지나갈 길)\n[막기]를 누른 채 왼쪽으로 밀어요!",
-	"막았어요! (실전에선 막을 때마다 돈 +1냥)\n초록 상자 = 빈틈. [베기]를 누른 채 오른쪽으로!",
+	"막았어요!\n초록 상자 = 빈틈. [베기]를 누른 채 오른쪽으로!",
 	"끝까지 기다렸다 막으면 '간파'!\n[막기]를 누른 채 위로!",
-	"간파: 돈 3배, 세상이 느려지고 빈틈이 길어요.\n[베기]를 누른 채 아래로!",
+	"간파: 세상이 느려지고 빈틈이 길어요.\n[베기]를 누른 채 아래로!",
 ]
 const ACT := ["막기", "베기"]
-## 업그레이드: 키, 이름, 첫 값, 최대 단계. 값은 단계마다 첫 값만큼 오른다.
-const UPS := [
-	["hp", "최대 체력", 5, 99],
-	["pow", "베기 힘", 8, 99],
-	["per", "간파 넓게", 10, 5],
-	["earn", "막기 돈", 10, 99],
+## 검객을 쓰러뜨리면 고르는 능력 (이번 판에만): 키, 이름, 설명, 최대 단계. 상점·돈은 없앴다(10/31).
+const PERKS := [
+	["hp", "단단한 몸", "최대 체력 +4 (지금 체력도 +4)", 99],
+	["pow", "날 선 칼", "베기 힘 +1", 99],
+	["per", "맑은 눈", "간파 판정이 0.02초 넓어져요", 4],
+	["mend", "상처 동여매기", "체력을 절반만큼 되찾아요", 99],
+	["leech", "숨 고르기", "간파할 때마다 체력 +1", 3],
+	["steady", "흔들림 없는 손", "헛공격해도 체력이 안 깎여요", 1],
+	["gap", "긴 빈틈", "빈틈(초록)이 30% 더 오래 열려요", 3],
 ]
 
-const TABS := ["업그레이드", "전투", "캐릭터", "도감"]
+## 아래 탭 줄: 칸 i 는 탭 i + 1 (탭 0 업그레이드는 없앴다)
+const TABS := ["전투", "캐릭터", "도감"]
 const DEX := ["찌르기", "속임수", "베기", "거합", "검귀"]
 const NAV_Y := 1150.0
 
 # 저장되는 것
-var gold := 0
 var tut_done := false
 var seen := [0, 0, 0, 0, 0]  # 도감: 종류별 만난 수
 var kills := [0, 0, 0, 0, 0]
 var runs := 0
 var blocks := 0
 var perfects := 0
-var up := {"hp": 0, "pow": 0, "per": 0, "earn": 0}
 var best_n := 0
 var best_dmg := 0  # 끝판왕에게 준 가장 큰 피해
 var vol := 8  # 설정: 소리 0~10
@@ -133,7 +135,8 @@ var foe_atk := 2
 var spd := 1.0
 var life := 6
 var max_life := 6
-var run_gold := 0
+var perk := {}  # 이번 판에 고른 능력 -> 단계
+var pick: Array = []  # 고르는 중인 능력 셋 (PERKS 번호)
 var boss_dmg := 0
 var cuts := 0  # 끝판왕: 벤 횟수 (단 오르기)
 # 장면
@@ -206,13 +209,12 @@ var tab := 1
 var pages: Array[Control] = []
 var nav_bg: Array[ColorRect] = []
 var nav_l: Array[Label] = []
-var badge: ColorRect
 var top_l: Label
 var home_l: Label
-var shop_head: Label
-var row_l: Array[Label] = []
-var row_c: Array[Label] = []
-var row_bg: Array[ColorRect] = []
+var pick_box: ColorRect  # 능력 고르기 창
+var pick_head: Label
+var pick_bg: Array[ColorRect] = []
+var pick_l: Array[Label] = []
 var play_bg: ColorRect
 var play_edge: ColorRect
 var tut_again: Label
@@ -243,12 +245,13 @@ func _set_r(i: int, plus: bool) -> Rect2:
 	return Rect2(570 if plus else 70, 470 + i * 200, 90, 90)
 
 
-func _row_r(i: int) -> Rect2:
-	return Rect2(50, 440 + i * 132, 620, 116)
+## 능력 고르기 카드 i (0~2)
+func _pick_r(i: int) -> Rect2:
+	return Rect2(40, 330 + i * 230, 640, 200)
 
 
 func _tab_r(i: int) -> Rect2:
-	return Rect2(i * 180, NAV_Y, 180, 1280 - NAV_Y)
+	return Rect2(i * 240, NAV_Y, 240, 1280 - NAV_Y)
 
 
 func _dex_r(i: int) -> Rect2:
@@ -265,7 +268,6 @@ func _load_save() -> void:
 	var d: Variant = JSON.parse_string(f.get_as_text())
 	if not d is Dictionary:
 		return
-	gold = int(d.get("gold", 0))
 	tut_done = bool(d.get("tut", false))
 	runs = int(d.get("runs", 0))
 	blocks = int(d.get("blocks", 0))
@@ -279,38 +281,26 @@ func _load_save() -> void:
 	best_dmg = int(d.get("dmg", 0))
 	vol = clampi(int(d.get("vol", 8)), 0, 10)
 	vib = clampi(int(d.get("vib", 8)), 0, 10)
-	var u: Variant = d.get("up", {})
-	if u is Dictionary:
-		for k: String in up:
-			up[k] = int(u.get(k, 0))
 
 
 func _save() -> void:
 	var f := FileAccess.open(FILE, FileAccess.WRITE)
 	if f:
-		f.store_string(JSON.stringify({"gold": gold, "up": up, "best": best_n, "dmg": best_dmg, "tut": tut_done, "runs": runs, "blocks": blocks, "perfects": perfects, "seen": seen, "kills": kills, "vol": vol, "vib": vib}))
+		f.store_string(JSON.stringify({"best": best_n, "dmg": best_dmg, "tut": tut_done, "runs": runs, "blocks": blocks, "perfects": perfects, "seen": seen, "kills": kills, "vol": vol, "vib": vib}))
 
 
 # ---- 능력치 ----
-func _max_hp(lv: int) -> int:
-	return 6 + 3 * lv
+func _lv(k: String) -> int:
+	return int(perk.get(k, 0))
 
 
-func _pow(lv: int) -> int:
-	return 1 + lv
+func _pow() -> int:
+	return 1 + _lv("pow")
 
 
-## 간파 판정: 칼이 닿기 전 이 시간 안에 막으면 간파. 업그레이드는 조금씩만 넓어진다 (11/1: 다섯 단계 0.40초 → 0.275초)
-func _per(lv: int) -> float:
-	return 0.2 + 0.015 * lv
-
-
-func _earn(lv: int) -> int:
-	return 1 + lv
-
-
-func _cost(i: int) -> int:
-	return int(UPS[i][2]) * (int(up[UPS[i][0]]) + 1)
+## 간파 판정: 칼이 닿기 전 이 시간 안에 막으면 간파. 능력 "맑은 눈"으로 조금씩만 넓어진다 (다 골라도 0.28초)
+func _per() -> float:
+	return 0.2 + 0.02 * _lv("per")
 
 
 # ---- 화면 글자 ----
@@ -371,7 +361,7 @@ func _white(l: Label) -> Label:
 	return l
 
 
-## 로비: 위 돈 띠, 가운데 탭 화면, 아래 탭 줄(업그레이드 · 전투 · 캐릭터 · 도감)
+## 로비: 위 기록 띠, 가운데 탭 화면, 아래 탭 줄(전투 · 캐릭터 · 도감)
 func _lobby_ui() -> void:
 	var sl := CanvasLayer.new()
 	sl.layer = 4
@@ -391,29 +381,7 @@ func _lobby_ui() -> void:
 		pg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		lobby.add_child(pg)
 		pages.append(pg)
-	# 0 업그레이드
-	_panel(pages[0], Rect2(0, 194, 720, NAV_Y - 194), Color(0.12, 0.08, 0.05, 0.8))
-	shop_head = _white(_label(pages[0], 38, 220, 190))
-	shop_head.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	for i in UPS.size():
-		var r := _row_r(i)
-		var bg := _panel(pages[0], r, SOFT)
-		row_bg.append(bg)
-		var l := _label(bg, 34, 0, r.size.y)
-		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-		l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		l.position.x = 24
-		l.size.x = 420
-		l.label_settings.outline_size = 0
-		row_l.append(l)
-		var c := _label(bg, 38, 0, r.size.y)
-		c.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		c.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		c.size.x = 596
-		c.label_settings.outline_size = 0
-		row_c.append(c)
-	var hint := _white(_label(pages[0], 30, 990, 120))
-	hint.text = "누르면 사요\n다 샀으면 아래 [전투] 탭에서 싸우러 가요"
+	# 0 업그레이드: 없앴다 (빈 쪽). 능력은 싸우다 검객을 쓰러뜨리면 고른다
 	# 1 전투 (뒤에 검객이 서 있다)
 	var title := _label(pages[1], 72, 210, 100)
 	title.text = "일격의 길"
@@ -463,7 +431,7 @@ func _lobby_ui() -> void:
 	dex_card.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	# 아래 탭 줄
 	_panel(lobby, Rect2(0, NAV_Y, 720, 1280 - NAV_Y), INK)
-	for i in 4:
+	for i in TABS.size():
 		var r := _tab_r(i)
 		var bg := _panel(lobby, r.grow(-4), Color("5a4632"))
 		nav_bg.append(bg)
@@ -472,12 +440,6 @@ func _lobby_ui() -> void:
 		l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		l.text = TABS[i]
 		nav_l.append(l)
-	badge = _panel(lobby, Rect2(140, NAV_Y + 8, 32, 32), BAD)
-	var bl := _white(_label(badge, 24, 0, 32))
-	bl.size.x = 32
-	bl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	bl.label_settings.outline_size = 0
-	bl.text = "!"
 	# 위 띠 오른쪽 [설정] → 소리·진동 창
 	set_btn = _panel(lobby, SET_R, Color("5a4632"))
 	var sl2 := _white(_label(set_btn, 30, 0, SET_R.size.y))
@@ -513,6 +475,25 @@ func _lobby_ui() -> void:
 	var sh := _white(_label(set_box, 28, 1010 - 194, 80))
 	sh.text = "진동은 안드로이드 폰에서만 울려요
 0이면 꺼져요"
+	# 검객을 쓰러뜨리면 뜨는 능력 고르기 (카드 셋)
+	var pl2 := CanvasLayer.new()
+	pl2.layer = 5
+	add_child(pl2)
+	pick_box = _panel(pl2, Rect2(0, 0, 720, 1280), Color(0.08, 0.05, 0.03, 0.82))
+	pick_box.visible = false
+	pick_head = _white(_label(pick_box, 44, 170, 140))
+	pick_head.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	for i in 3:
+		var r := _pick_r(i)
+		var edge := _panel(pick_box, r.grow(6), INK)
+		var bg := _panel(edge, Rect2(Vector2(6, 6), r.size), D)
+		pick_bg.append(edge)
+		var l := _label(bg, 34, 0, r.size.y)
+		l.size.x = r.size.x
+		l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		l.label_settings.outline_size = 0
+		pick_l.append(l)
 
 
 ## 설정 창 글자·막대
@@ -543,44 +524,21 @@ func _buttons() -> void:
 	kit_button("cut", "베기", CUT_P, BTN_R, A)
 
 
-func _can_buy() -> bool:
-	for i in UPS.size():
-		if up[UPS[i][0]] < int(UPS[i][3]) and gold >= _cost(i):
-			return true
-	return false
-
-
 func _lobby_refresh() -> void:
-	top_l.text = "돈 %d냥   ·   최고 %d명" % [gold, best_n]
-	badge.visible = _can_buy() and tab != 0
+	top_l.text = "최고 %d명 쓰러뜨림" % best_n
 	for i in 4:
 		pages[i].visible = i == tab
-		nav_bg[i].color = D if i == tab else Color("5a4632")
-		nav_l[i].label_settings.font_size = 36 if i == tab else 30
+	for i in TABS.size():
+		nav_bg[i].color = D if i + 1 == tab else Color("5a4632")
+		nav_l[i].label_settings.font_size = 36 if i + 1 == tab else 30
 	match tab:
-		0:
-			shop_head.text = "업그레이드\n가진 돈 %d냥" % gold
-			for i in UPS.size():
-				var k: String = UPS[i][0]
-				var lv: int = up[k]
-				var maxed := lv >= int(UPS[i][3])
-				var t := ""
-				match k:
-					"hp": t = "최대 체력 %d → %d" % [_max_hp(lv), _max_hp(lv + 1)]
-					"pow": t = "베기 힘 %d → %d" % [_pow(lv), _pow(lv + 1)]
-					"per": t = "간파 넓게 %.3f → %.3f초" % [_per(lv), _per(lv + 1)] if not maxed else "간파 넓게 %.3f초 (끝)" % _per(lv)
-					"earn": t = "막기 돈 %d → %d냥" % [_earn(lv), _earn(lv + 1)]
-				row_l[i].text = t
-				row_c[i].text = "끝" if maxed else "%d냥" % _cost(i)
-				row_bg[i].color = SOFT if maxed or gold < _cost(i) else D
 		1:
-			var h := last_run if last_run != "" else "막을 때마다 돈을 벌어요\n쓰러지면 업그레이드하고 다시!"
+			var h := last_run if last_run != "" else "매 판 맨몸으로 시작해요\n검객을 쓰러뜨릴 때마다 능력을 하나 골라요"
 			if best_dmg > 0:
 				h += "\n끝판왕 최고 피해 %d" % best_dmg
 			home_l.text = h
 		2:
-			char_l.text = "나 · 떠돌이 검객\n\n최대 체력 %d\n베기 힘 %d\n간파 시간 %.2f초\n막기 돈 %d냥 (간파 %d냥)\n\n— 기록 —\n최고 %d명 쓰러뜨림 · 끝판왕 최고 피해 %d\n싸운 판 %d · 막기 %d · 간파 %d" % [
-				_max_hp(up["hp"]), _pow(up["pow"]), _per(up["per"]), _earn(up["earn"]), _earn(up["earn"]) * 3,
+			char_l.text = "나 · 떠돌이 검객\n\n체력 6 · 베기 힘 1 · 간파 0.20초\n(판마다 맨몸으로 시작,\n검객을 쓰러뜨리면 능력을 골라요)\n\n— 기록 —\n최고 %d명 쓰러뜨림 · 끝판왕 최고 피해 %d\n싸운 판 %d · 막기 %d · 간파 %d" % [
 				best_n, best_dmg, runs, blocks, perfects]
 		3:
 			for i in 5:
@@ -652,7 +610,7 @@ func _reset() -> void:
 	cam_base = CAM_O
 	cam.position = cam_base
 	cam.look_at(Vector3.ZERO)
-	score = gold
+	score = n
 	slow = 0.0
 	sw_t = 0.0
 	flash_t = 0.0
@@ -885,9 +843,9 @@ func _start_run() -> void:
 	_save()
 	skip_l.visible = false
 	n = 0
-	max_life = _max_hp(up["hp"])
+	max_life = 6
+	perk = {}
 	life = max_life
-	run_gold = 0
 	stun = 0.0
 	my_col = WHITE
 	sword.material_override = mat(my_col)
@@ -1026,7 +984,7 @@ func _relax(dt: float) -> void:
 
 
 func _step(dt: float) -> void:
-	score = gold
+	score = n
 	# 막은 순간 잠깐 멈춤 (불꽃은 그 자리에 멈춰 보였다가 튄다)
 	if hitstop > 0.0:
 		hitstop -= dt
@@ -1064,7 +1022,7 @@ func _step(dt: float) -> void:
 			piv.rotation.x = lerpf(piv.rotation.x, -1.45, minf(1.0, dt * 5.0))
 			fl = fl.lerp(Vector3(-1.6, -1.3, -1.5), minf(1.0, dt * 5.0))
 			if mode_t <= 0.0:
-				_next_foe()
+				_open_pick()
 		"lobby":
 			_relax(dt)
 		"enter":
@@ -1076,9 +1034,9 @@ func _step(dt: float) -> void:
 			sword.rotation.z = lerpf(sword.rotation.z, -1.5, minf(1.0, dt * 4.0))
 			if mode_t <= 0.0:
 				if ftype == 4:
-					last_run = "지난 판: %d번째 상대에게 %d 피해\n번 돈 +%d냥" % [n + 1, boss_dmg, run_gold]
+					last_run = "지난 판: %d번째 상대에게 %d 피해\n%s" % [n + 1, boss_dmg, _perk_text()]
 				else:
-					last_run = "지난 판: %d번째 상대에게 쓰러짐\n번 돈 +%d냥" % [n + 1, run_gold]
+					last_run = "지난 판: %d번째 상대에게 쓰러짐\n%s" % [n + 1, _perk_text()]
 				lobby_k = n
 				_to_lobby(1)
 	piv.position = fl
@@ -1314,7 +1272,8 @@ func _damage(v: int) -> void:
 ## wrong = 빈틈은 열렸는데 엉뚱한 쪽으로 벰 (공격 실패 소리)
 func _whiff(wrong := false) -> void:
 	sfx(SND["miss"] if wrong else SND["whiff"])
-	msg("헛공격!  체력 -1\n빈틈을 보였어요", 0.9)
+	var steady := _lv("steady") > 0  # 능력 "흔들림 없는 손": 체력은 안 깎인다
+	msg("헛공격!\n빈틈을 보였어요" if steady else "헛공격!  체력 -1\n빈틈을 보였어요", 0.9)
 	stun = 0.55
 	whiff_t = 0.35
 	floor_m.material_override = mat(BAD)
@@ -1322,7 +1281,8 @@ func _whiff(wrong := false) -> void:
 		ci = (ci + 1) % _pat()[2].size()
 		mi = 0
 		_rest(0.12)
-	_damage(1)
+	if not steady:
+		_damage(1)
 
 
 ## 헛막기: 칼이 오지 않을 때 막기. 피해는 없지만 잠깐 굳어서 진짜 칼을 놓칠 수 있다
@@ -1337,7 +1297,7 @@ func _act(a: int) -> void:
 	if mode == "ready":
 		_start_run()
 		return
-	if mode == "dead" or mode == "lobby":
+	if mode == "dead" or mode == "lobby" or mode == "pick" or mode == "picked":
 		return
 	if stun > 0.0:
 		# 굳어서 못 휘두름: 베기는 헛공격 소리만 (벌은 없음)
@@ -1389,7 +1349,7 @@ func _act(a: int) -> void:
 		if fs == 1 and told:
 			var fooled := feint_at >= 0.0 and fs_t < feint_at
 			if d == rdir and not fooled:
-				_parry(win - fs_t <= _per(up["per"]))
+				_parry(win - fs_t <= _per())
 			else:
 				_hurt()
 		elif fs == 0 or fs == 1 or fs == 2:
@@ -1444,21 +1404,20 @@ func _parry(perfect: bool) -> void:
 	# 베기 검객의 두 번째 칼: 첫 칼을 간파해도 끊기지 않고 반드시 한 번 더 온다
 	var twice: bool = tut < 0 and mi < combos[ci].size() and _flag(combos[ci][mi]) == 1
 	if tut < 0:
-		var g: int = _earn(up["earn"]) * (3 if perfect else 1)
-		gold += g
-		run_gold += g
 		blocks += 1
 		if perfect:
 			perfects += 1
-		msg(("간파 +%d냥" if perfect else "+%d냥") % g, 0.6)
+			# 능력 "숨 고르기": 간파하면 체력이 조금 찬다
+			if _lv("leech") > 0 and life < max_life:
+				life = mini(max_life, life + _lv("leech"))
+		msg("간파!" if perfect else "막기", 0.6)
 	if perfect and twice:
-		msg("간파 +%d냥
-한 번 더 와요!" % (_earn(up["earn"]) * 3), 0.7)
+		msg("간파!\n한 번 더 와요!", 0.7)
 	elif perfect:
 		slow = 0.7
 		floor_m.material_override = mat(B)
 		if tut < 0:
-			msg("간파 +%d냥\n지금 초록 쪽으로 베요!" % (_earn(up["earn"]) * 3), 0.8)
+			msg("간파!\n지금 초록 쪽으로 베요!", 0.8)
 	# 간파하면 연속기 중간이라도 끊고 내가 벨 차례 (초록 상자)
 	if linked and mi < combos[ci].size():
 		fs = 0
@@ -1472,7 +1431,7 @@ func _parry(perfect: bool) -> void:
 	fs = 2
 	fs_t = 0.0
 	gp = perfect
-	win = float(_pat()[1]) * (1.8 if perfect else 1.0)
+	win = float(_pat()[1]) * (1.8 if perfect else 1.0) * (1.0 + 0.3 * _lv("gap"))
 	odir = OPP[rdir]
 	_path(-1)
 	_show(odir)
@@ -1488,20 +1447,17 @@ func _cut() -> void:
 	_clear()
 	if tut >= 0:
 		return
-	foe_hp -= _pow(up["pow"])
+	foe_hp -= _pow()
 	if ftype == 4:
-		boss_dmg += _pow(up["pow"])
+		boss_dmg += _pow()
 		foe_hp = maxi(foe_hp, 1)  # 끝판왕은 쓰러지지 않는다
 	_hp_bar()
 	if foe_hp <= 0:
-		var g := 5 + 3 * n
 		kills[ftype] += 1
-		gold += g
-		run_gold += g
 		_save()
 		mode = "fall"
 		mode_t = 1.4
-		msg("승리 +%d냥" % g, 1.2)
+		msg("승리!", 1.2)
 		play("win")
 		hp_back.visible = false
 		hp_fill.visible = false
@@ -1526,16 +1482,58 @@ func _cut() -> void:
 
 
 
-func _next_foe() -> void:
+## 검객을 쓰러뜨림: 능력 셋 중 하나를 고른다 (체력은 저절로 차지 않는다)
+func _open_pick() -> void:
 	n += 1
 	best_n = maxi(best_n, n)
 	_save()
-	life = max_life
+	var pool: Array = []
+	for i in PERKS.size():
+		var k: String = PERKS[i][0]
+		if _lv(k) >= int(PERKS[i][3]):
+			continue
+		if k == "mend" and life >= max_life:
+			continue
+		pool.append(i)
+	pool.shuffle()
+	pick = pool.slice(0, 3)
+	mode = "pick"
+	mode_t = 0.45  # 베기를 연타하다 카드를 잘못 누르지 않게 잠깐 막는다
+	_btns.clear()
+	pend.clear()
+	pick_head.text = "승리!  능력을 하나 골라요\n체력 %d/%d" % [life, max_life]
+	for i in 3:
+		pick_bg[i].visible = i < pick.size()
+		if i < pick.size():
+			var p: Array = PERKS[pick[i]]
+			var lv := _lv(p[0])
+			pick_l[i].text = "%s%s\n%s" % [p[1], "" if lv == 0 else " (+%d)" % lv, p[2]]
+			pick_bg[i].scale = Vector2.ONE
+	pick_box.visible = true
+	play("win")
+
+
+func _choose(i: int) -> void:
+	var k: String = PERKS[pick[i]][0]
+	perk[k] = _lv(k) + 1
+	if k == "hp":
+		max_life += 4
+		life += 4
+	elif k == "mend":
+		life = mini(max_life, life + ceili(max_life / 2.0))
+	play("good")
+	msg(PERKS[pick[i]][1], 0.8)
+	_press(pick_bg[i]).tween_callback(_next_foe)
+	mode = "picked"
+
+
+func _next_foe() -> void:
+	pick_box.visible = false
+	_buttons()
 	_spawn(n)
 	fl = Vector3(0, 0, -10)
 	mode = "enter"
 	mode_t = 1.2
-	msg("체력 회복", 0.8)
 
 
 func _tut_done() -> void:
@@ -1545,12 +1543,21 @@ func _tut_done() -> void:
 	hold = true
 	mode = "ready"
 	_clear()
-	tut_l.text = "준비 끝!\n막을 때마다 돈을 벌어요. 쓰러지면 그 돈으로\n강해져서 다시 싸워요. 갈수록 적이 세져요.\n\n탭해서 싸우러 가기"
+	tut_l.text = "준비 끝!\n검객을 쓰러뜨리면 능력을 하나 골라요.\n체력은 저절로 차지 않아요. 갈수록 적이 세져요.\n\n탭해서 싸우러 가기"
 
 
 func _tap(p: Vector2) -> void:
 	if mode == "lobby":
 		_lobby_tap(p)
+		return
+	if mode == "pick":
+		if mode_t <= 0.0:
+			for i in pick.size():
+				if _pick_r(i).has_point(p):
+					_choose(i)
+					return
+		return
+	if mode == "picked":
 		return
 	if tut >= 0 and SKIP_R.has_point(p):
 		_start_run()
@@ -1562,16 +1569,14 @@ func _tap(p: Vector2) -> void:
 	armed = true
 
 
-func _buy(i: int) -> void:
-	var k: String = UPS[i][0]
-	if up[k] >= int(UPS[i][3]) or gold < _cost(i):
-		beep(220.0, 0.12, 160.0, 0.2)
-		return
-	gold -= _cost(i)
-	up[k] += 1
-	_save()
-	play("good")
-	_lobby_refresh()
+## 지난 판에 고른 능력 한 줄
+func _perk_text() -> String:
+	var s: Array = []
+	for p: Array in PERKS:
+		var lv := _lv(p[0])
+		if lv > 0:
+			s.append(p[1] if lv == 1 else "%s+%d" % [p[1], lv])
+	return "고른 능력 없음" if s.is_empty() else "능력: " + ", ".join(s)
 
 
 func _lobby_tap(p: Vector2) -> void:
@@ -1602,20 +1607,14 @@ func _lobby_tap(p: Vector2) -> void:
 		_set_refresh()
 		set_box.visible = true
 		return
-	for i in 4:
+	for i in TABS.size():
 		if _tab_r(i).has_point(p):
 			_press(nav_bg[i])
-			if i != tab:
+			if i + 1 != tab:
 				play("tap")
-				_set_tab(i)
+				_set_tab(i + 1)
 			return
 	match tab:
-		0:
-			for i in UPS.size():
-				if _row_r(i).has_point(p):
-					_press(row_bg[i])
-					_buy(i)
-					return
 		1:
 			# 눌린 버튼이 다시 튀어 오르는 걸 보여 주고 출발
 			if PLAY_R.has_point(p):
