@@ -1,55 +1,62 @@
 extends Tofu
-## 화면 밖으로 밀리지 마 (옆모습 4인 배달 경주): 왼쪽 아래 조이스틱 좌우, 점프, 갈고리(앞쪽 고리에 자동으로 걸고 누르는 동안 매달림), 아이템(톡 = 쓰기, 꾹 = 태워서 대시).
-## 변형(절체절명의 순간): 카메라는 1등을 따라간다. 내가 1등이 되면 화면이 내 속도에 맞춰 앞으로 쏠려 나는 오른쪽 끝에 붙고, 앞의 벽·구덩이가 거의 안 보인 채 닥친다(짧은 경고음만). 뒤쫓는 쪽은 넓게 본다.
-## 화면 왼쪽 밖·구덩이로 떨어지면 탈락, 마지막까지 남으면 라운드 승. 3승이면 다음 코스(시장 → 공사장 → 지하철 → 옥상), 코스 사이에 특전 하나.
+## 짐 지고 화면 밖으로 밀리지 마 (옆모습 4인 배달 경주): 조이스틱 좌우, 점프, 짐(톡 = 하나 버리고 튀어나감). 짐이 많으면 느리고 낮게 뛰지만 화면 왼쪽 끝에 밀릴 때 짐 하나를 내주고 버틴다. 결승은 짐이 있어야 통과, 화면 폭은 모두가 든 짐의 합.
+# 한 문장: 나는 막내 배달부로서 "카메라는 1등만 따라가고 화면 폭은 모두의 짐만큼"인 길을 짐 지고 달려 배달하지만, 빨리 갈수록 앞이 안 보이고 가벼울수록 밀려나기 쉬운 대가를 감수한다.
+# 표절 점검 (SpeedRunners, 2016)
+#  같은 것: 옆모습 4인 · 카메라가 1등을 따라감 · 화면 왼쪽 밖 탈락 · 라운드 승수 · 점프 발판
+#  원작 것이라 뺀 것: 갈고리 · 아이템 상자(로켓·바나나, 원작은 로켓·얼음·상자 등) · 부스트 발판 · 시간 따라 좁아지는 화면
+#  원작에 없는 우리 것: 1등의 앞 시야가 자기 속도에 비례해 줄어듦(천천히 가면 보임) · 짐(무게=느림·낮은 점프, 왼쪽 끝 목숨, 결승은 짐 필수)
+#   · 화면 폭 = 모두가 든 짐의 합 · 앞사람 바람 · 끝이 있는 코스 · 코스마다 하는 방식(흐르는 바닥·정전·벽 없는 지붕)
+#  결론: 이전 판은 뼈대와 도구가 원작과 거의 같아 표절 소리 들을 만했다. 지금은 뼈대(옆모습 화면 경주)만 같고 이기는 방법이 다르다.
 
 const GRAV := 38.0
 const JUMP_V := 15.0
 const RUN_MAX := 11.0
 const GROUND_ACC := 45.0
 const AIR_ACC := 22.0
-const OVER_G := 7.0  # 최고 속도보다 빠를 때 땅에서 줄어드는 정도 (갈고리·부스트 속도가 조금 남는다)
+const OVER_G := 7.0  # 최고 속도보다 빠를 때 땅에서 줄어드는 정도
 const OVER_A := 1.5
 const FRICTION := 35.0
 const MAX_FALL := 26.0
 const PAD_V := 23.0
-const BOOST_V := 18.0
-const DASH_V := 21.0
-const DASH_T := 0.32
-const ROCKET_V := 22.0
-const ROCKET_T := 0.85
-const PUMP := 10.0
-const HOOK_RNG := 12.0
+const DASH_V := 16.0
+const DASH_T := 0.25
 const HW := 0.4
 const HH := 1.2
 const STEP := 0.55
 const COYOTE := 0.1
 const JBUF := 0.12
-const TRAIN_V := 18.0
 const CAM_D := 22.0
 const BX0 := -60.0
 const BK := 6.0
-const WIDE := 12.5  # 처음 화면 반폭
-const NARROW := 6.0  # 시간이 지나면 이만큼 좁아진다
-const BURN_HOLD := 0.28
-const PERKS := ["신발", "갈고리", "가방", "바람", "용수철"]
-const PERK_SAY := {"신발": "더 빨리", "갈고리": "멀리 걸기", "가방": "로켓 들고 출발", "바람": "바람 두 배", "용수철": "높이 뛰기"}
-const BOOSTC := Color("69db7c")
-const CRATEC := Color("e599f7")
-const PINK := Color("f783ac")
+const WIDE := 12.5  # 짐이 다 있을 때 화면 반폭
+const NARROW := 5.5  # 짐이 다 없어지면 이만큼
+const LOAD0 := 3  # 출발 짐
+const LOAD_MAX := 5
+const LOAD_SLOW := 0.06  # 짐 하나당 최고 속도 감소
+const LOAD_JUMP := 0.035  # 짐 하나당 점프 감소
+const FLOW := 5.5  # 흐르는 바닥 속도 (뒤로)
+const WINS := 2
+const PARCEL := Color("e0a96d")
+const NIGHT := Color("1b1f3b")
+const PERKS := ["신발", "끈", "용수철", "바람", "가벼운 상자"]
+const PERK_SAY := {"신발": "더 빨리", "끈": "짐 하나 더", "용수철": "높이 뛰기", "바람": "바람 두 배", "가벼운 상자": "짐 무게 40% 덜"}
 const COURSES := [
-	{"name": "시장", "gnd": Color("ffd8a8"), "top": Color("ff922b"), "wall": Color("e8590c"),
+	{"name": "시장", "rule": "", "say": "벽을 넘어라",
+		"gnd": Color("ffd8a8"), "top": Color("ff922b"), "wall": Color("e8590c"),
 		"bld": [Color("ffc9c9"), Color("ffec99"), Color("d3f9d8")],
-		"segs": ["flat", "stairs", "wall", "pit", "awning", "crates", "hookflat", "crates"]},
-	{"name": "공사장", "gnd": Color("ffe066"), "top": Color("fab005"), "wall": Color("fd7e14"),
-		"bld": [Color("dee2e6"), Color("ffe8cc"), Color("fff3bf")],
-		"segs": ["flat", "wall", "pit", "girder", "scaffold", "hookgap", "stairs", "girder"]},
-	{"name": "지하철", "gnd": Color("a5d8ff"), "top": Color("4dabf7"), "wall": Color("748ffc"),
-		"bld": [Color("d0ebff"), Color("e5dbff"), Color("c5f6fa")],
-		"segs": ["flat", "stairs", "train", "train", "pit", "wall", "hookflat", "boost"]},
-	{"name": "옥상", "gnd": Color("e5dbff"), "top": Color("cc5de8"), "wall": Color("9775fa"),
+		"segs": ["flat", "stairs", "wall", "pit", "awning", "crates", "flat", "crates"]},
+	{"name": "강변", "rule": "flow", "say": "바닥이 흐른다: 짐이 무거우면 덜 밀린다",
+		"gnd": Color("c5f6fa"), "top": Color("3bc9db"), "wall": Color("1098ad"),
+		"bld": [Color("d0ebff"), Color("e3fafc"), Color("d3f9d8")],
+		"segs": ["flat", "river", "river", "pit", "stairs", "river", "wall", "river"]},
+	{"name": "야시장", "rule": "dark", "say": "정전: 꺼지면 아무도 앞을 못 본다",
+		"gnd": Color("ffe8cc"), "top": Color("f76707"), "wall": Color("d9480f"),
+		"bld": [Color("ffdeeb"), Color("fff3bf"), Color("e5dbff")],
+		"segs": ["flat", "wall", "pit", "crates", "stairs", "awning", "wall", "pit"]},
+	{"name": "지붕", "rule": "roof", "say": "벽이 없다: 먼 틈은 짐을 버려야 넘는다",
+		"gnd": Color("e5dbff"), "top": Color("cc5de8"), "wall": Color("9775fa"),
 		"bld": [Color("f3d9fa"), Color("dbe4ff"), Color("ffdeeb")],
-		"segs": ["roofgap", "roofgap", "hookgap", "awning", "wall", "boost", "roofgap", "hookflat"]},
+		"segs": ["roofgap", "roofgap", "longgap", "stairs", "roofgap", "longgap"]},
 ]
 
 
@@ -57,50 +64,37 @@ class Courier:
 	var p := Vector2.ZERO  # 발 가운데
 	var v := Vector2.ZERO
 	var grounded := false
-	var sup := -1  # 밟은 것: 0 바닥 1 발판 2 부스트
-	var dyn := -1
+	var sup := -1  # 밟은 것: 0 바닥 1 발판 3 흐르는 바닥
 	var alive := true
 	var ai := true
 	var nick := ""
 	var col := Color.WHITE
 	var node: Node3D
-	var body: MeshInstance3D
-	var pack: MeshInstance3D
-	var rope: MeshInstance3D
 	var fire: MeshInstance3D
 	var poof: MeshInstance3D
+	var packs: Array[MeshInstance3D] = []
 	var streaks: Array[MeshInstance3D] = []
 	var pips: Array[MeshInstance3D] = []
-	var item := ""
+	var cargo := 0
 	var stun := 0.0
 	var dash := 0.0
-	var rocket := 0.0
-	var boost_t := 0.0
-	var hooked := false
-	var hook := Vector2.ZERO
-	var rope_len := 0.0
+	var drop_cd := 0.0
 	var slip := false
 	var coyote := 0.0
 	var jbuf := 0.0
 	var cut := true
-	var bonk := false
 	var skill := 1.0
 	var err := 0.2
 	var think := 0.0
 	var poof_t := 0.0
 	var immune := 0.0
 	var face := 1.0
-	var item_age := 0.0
 	var wins := 0
-	var on_boost := false
 	# 이번 프레임 입력
 	var mx := 0.0
 	var i_jump := false
 	var i_jheld := false
-	var i_hook := false
-	var i_hheld := false
-	var i_use := false
-	var i_burn := false
+	var i_drop := false
 
 
 var ci := 0  # 코스
@@ -113,13 +107,9 @@ var stage: Node3D
 var rects: Array[Rect2] = []
 var kinds := PackedInt32Array()
 var buckets: Array = []
-var hooks: Array[Vector2] = []
-var hook_nodes: Array[MeshInstance3D] = []
-var crates: Array = []
-var trains: Array = []
-var girders: Array = []
-var dyn_rects: Array[Rect2] = []
-var bananas: Array = []
+var spots: Array[Vector2] = []  # 코스에 놓인 짐 자리
+var parcels: Array = []  # 땅에 있는 짐 (돌려 쓴다)
+var flows: Array = []  # 흐르는 바닥 눈금
 var goal_x := 0.0
 var kill_y := -20.0
 var gx := 0.0
@@ -134,35 +124,35 @@ var camy := 0.0
 var hwv := WIDE
 var vhv := WIDE
 var shk := 0.0
+var lean := 0.0  # 1등인 내 속도 비율 (클수록 화면이 앞으로 쏠려 앞이 안 보인다)
+var load_all0 := 1
 var edge_strip: MeshInstance3D
-var train_warn: MeshInstance3D
+var curtain: MeshInstance3D
 var marker: MeshInstance3D
-var target_hook := -1
-var item_arm := false
-var item_t := 0.0
 var danger := false
 var tick := 0.0
 var was_slip := false
 var spd_mul := 1.0
-var hook_bonus := 0.0
 var jump_mul := 1.0
 var slip_mul := 1.0
-var bag := false
+var load_bonus := 0
+var load_w := 1.0
 var perk_offer: Array = []
-var btn_names := {}
-var lead_t := 0.0  # 내가 1등인 시간 (길수록 화면이 앞으로 쏠린다)
+var taken: Array = []
+var lead_t := 0.0
 var radar_t := 0.0
+var dark_t := 0.0
+var dark_on := false
+var dark_warn := false
 
 
 func _setup() -> void:
 	time_limit = 0.0
 	cam.keep_aspect = Camera3D.KEEP_WIDTH
-	howto = "막내 배달부 경주! 카메라는 1등만 따라간다. 화면 왼쪽 밖으로 밀리거나 구덩이에 빠지면 탈락.\n내가 1등이면 화면이 내 속도에 쏠려 나는 오른쪽 끝에 붙는다. 앞의 벽·구덩이는 거의 안 보이고 짧은 경고음만 난다. 뒤쫓을 땐 넓게 보인다.\n조이스틱 좌우, 점프, 갈고리(앞 고리에 자동, 누르는 동안 매달렸다 놓으면 휙). 아이템: 톡 = 쓰기, 꾹 = 태워서 대시. 남의 뒤에 붙으면 바람 타고 빨라진다.\n마지막까지 남으면 1승, 3승이면 다음 코스. 경쟁자가 먼저 3승하면 끝."
+	howto = "막내 배달부 경주! 카메라는 1등만 따라간다. 화면 왼쪽 끝에 밀리면 짐 하나를 내주고 버틴다. 짐이 없을 때 밀리거나 구덩이에 빠지면 탈락.\n짐이 많을수록 느리고 낮게 뛴다. [짐]을 누르면 하나 버리고 튀어나간다. 결승선은 짐이 있어야 통과. 화면 폭은 모두가 든 짐만큼이라 짐이 줄면 좁아진다.\n1등이면 빨리 달릴수록 화면이 쏠려 앞이 안 보인다(천천히 가면 보인다).\n코스마다 다르다: 강변은 바닥이 흐르고, 야시장은 정전, 지붕은 벽 없이 먼 틈. 2승이면 다음 코스."
 	kit_stick()
 	kit_button("jump", "점프", Vector2(600, 1120), 100.0, A)
-	kit_button("hook", "갈고리", Vector2(600, 890), 82.0, INK)
-	kit_button("item", "-", Vector2(420, 1000), 72.0, C)
-	btn_names = {"jump": "점프", "hook": "갈고리"}
+	kit_button("drop", "짐", Vector2(600, 890), 82.0, PARCEL)
 
 
 func _reset() -> void:
@@ -170,15 +160,14 @@ func _reset() -> void:
 	rnd = 0
 	stage = null
 	spd_mul = 1.0
-	hook_bonus = 0.0
 	jump_mul = 1.0
 	slip_mul = 1.0
-	bag = false
+	load_bonus = 0
+	load_w = 1.0
 	taken.clear()
 	game_seed = randi()
-	_restore_labels()
 	runners.clear()
-	var cols := [ME, A, B, PINK]
+	var cols := [ME, A, B, Color("f783ac")]
 	var nicks := ["나", "주황", "하늘", "분홍"]
 	for i in 4:
 		var r := Courier.new()
@@ -188,15 +177,17 @@ func _reset() -> void:
 		_make_body(r)
 		runners.append(r)
 	pl = runners[0]
-	bananas.clear()
-	for i in 6:
-		var n := box(Vector3(0, -50, 0), Vector3(0.7, 0.25, 0.7), D)
+	parcels.clear()
+	for i in 18:
+		var n := box(Vector3(0, -50, 0), Vector3(0.6, 0.5, 0.6), PARCEL)
 		n.visible = false
-		bananas.append({"node": n, "on": false, "p": Vector2.ZERO, "owner": null, "nm": false})
+		parcels.append({"node": n, "on": false, "p": Vector2.ZERO, "owner": null, "cd": 0.0})
 	edge_strip = box(Vector3.ZERO, Vector3(0.35, 1, 0.2), BAD)
-	train_warn = box(Vector3.ZERO, Vector3(0.6, 1.8, 0.2), BAD)
+	curtain = box(Vector3.ZERO, Vector3(1, 1, 0.2), NIGHT)
+	curtain.visible = false
 	marker = box(Vector3.ZERO, Vector3(0.36, 0.36, 0.36), ME)
 	marker.rotation.z = PI * 0.25
+	_restore_labels()
 	_build_course()
 	_start_round()
 
@@ -204,21 +195,22 @@ func _reset() -> void:
 func _make_body(r: Courier) -> void:
 	r.node = Node3D.new()
 	world.add_child(r.node)
-	r.body = box(Vector3(0, 0, 0), Vector3(HW * 2.0, HH * 0.75, 0.8), r.col, r.node)
+	box(Vector3(0, 0, 0), Vector3(HW * 2.0, HH * 0.75, 0.8), r.col, r.node)
 	box(Vector3(0, 0.63, 0), Vector3(0.42, 0.36, 0.5), SOFT, r.node)
 	box(Vector3(0.05, 0.88, 0), Vector3(0.6, 0.14, 0.6), WHITE if not r.ai else r.col.darkened(0.2), r.node)
-	r.pack = box(Vector3(-0.45, 0.05, 0), Vector3(0.55, 0.55, 0.6), Color("e0a96d"), r.node)
-	r.fire = box(Vector3(-0.9, 0, 0), Vector3(0.9, 0.35, 0.35), A, r.node)
+	for k in LOAD_MAX + 1:
+		var q := box(Vector3(-0.5, -0.2 + k * 0.4, 0), Vector3(0.5, 0.38, 0.6), PARCEL, r.node)
+		q.visible = false
+		r.packs.append(q)
+	r.fire = box(Vector3(-0.9, 0, 0), Vector3(0.9, 0.35, 0.35), C, r.node)
 	r.fire.visible = false
-	r.rope = box(Vector3.ZERO, Vector3(1, 0.07, 0.07), INK)
-	r.rope.visible = false
 	r.poof = box(Vector3.ZERO, Vector3(1, 1, 1), WHITE)
 	r.poof.visible = false
 	for k in 3:
 		var s := box(Vector3.ZERO, Vector3(1, 0.07, 0.07), WHITE)
 		s.visible = false
 		r.streaks.append(s)
-	for k in 3:
+	for k in WINS:
 		var q := box(Vector3.ZERO, Vector3(0.24, 0.24, 0.24), r.col)
 		q.visible = false
 		r.pips.append(q)
@@ -233,12 +225,8 @@ func _build_course() -> void:
 	cdef = COURSES[ci]
 	rects.clear()
 	kinds = PackedInt32Array()
-	hooks.clear()
-	hook_nodes.clear()
-	crates.clear()
-	trains.clear()
-	girders.clear()
-	dyn_rects.clear()
+	spots.clear()
+	flows.clear()
 	gen.seed = game_seed + ci * 7919
 	fy = 0.0
 	min_fy = 0.0
@@ -250,8 +238,8 @@ func _build_course() -> void:
 	var last := ""
 	while gx < goal:
 		var s: String = segs[gen.randi() % segs.size()]
-		if s == last and s != "flat":
-			s = "flat"
+		if s == last and s != "flat" and s != "roofgap" and s != "river":
+			s = "flat" if cdef.rule != "roof" else "roofgap"
 		last = s
 		_seg(s)
 	goal_x = gx + 2.0
@@ -295,8 +283,8 @@ func _seg(s: String) -> void:
 		"flat":
 			var w := gen.randf_range(6.0, 12.0)
 			_floor(gx, w)
-			if gen.randf() < 0.45:
-				_crate(gx + w * 0.5, fy + 1.4)
+			if gen.randf() < 0.4:
+				spots.append(Vector2(gx + w * 0.5, fy))
 			gx += w
 		"stairs":
 			var up := fy < -1.0 or (fy < 4.0 and gen.randf() < 0.55)
@@ -308,98 +296,57 @@ func _seg(s: String) -> void:
 			gx += 3.0
 		"wall":
 			_floor(gx, 9.0)
-			_solid(Rect2(gx + 4.0, fy, 0.9, gen.randf_range(1.3, 2.3)), wallc, 0)
+			_solid(Rect2(gx + 4.0, fy, 0.9, gen.randf_range(1.3, 2.2)), wallc, 0)
 			gx += 9.0
 		"pit":
 			_floor(gx, 2.0)
-			gx += 2.0 + gen.randf_range(3.0, 5.5)
+			gx += 2.0 + gen.randf_range(3.0, 5.0)
 			fy = clampf(fy + gen.randf_range(-1.0, 1.0), -3.0, 6.0)
 			_floor(gx, 5.0)
 			gx += 5.0
-		"hookgap":
-			_floor(gx, 3.0)
-			gx += 3.0
-			var g := gen.randf_range(9.0, 12.0)
-			_hook(gx + g * 0.5, fy + 7.5)
-			if gen.randf() < 0.4:
-				_plat(gx + g * 0.5 - 0.8, fy - 0.4, 1.6, wallc)
-			gx += g
-			_floor(gx, 5.0)
-			gx += 5.0
-		"hookflat":
-			_floor(gx, 14.0)
-			_hook(gx + 4.0, fy + 6.5)
-			_hook(gx + 10.0, fy + 6.5)
-			gx += 14.0
-		"boost":
-			_floor(gx, 10.0)
-			_solid(Rect2(gx + 3.0, fy, 4.0, 0.2), BOOSTC, 2, 2.5)
-			gx += 10.0
-		"awning":  # 노란 발판 → 위쪽 지름길(부스트), 아래는 상자벽
+		"awning":  # 노란 발판 → 위쪽 지름길(짐 하나), 아래는 상자벽
 			_floor(gx, 4.0)
 			_solid(Rect2(gx + 2.2, fy, 1.6, 0.4), D, 1, 2.5)
 			_plat(gx + 5.0, fy + 6.5, 17.0, wallc)
-			_solid(Rect2(gx + 6.0, fy + 6.5, 4.0, 0.2), BOOSTC, 2, 2.0)
+			spots.append(Vector2(gx + 12.0, fy + 6.5))
 			_floor(gx + 4.0, 18.0)
 			_solid(Rect2(gx + 9.0, fy, 1.2, 1.1), wallc, 0)
 			_solid(Rect2(gx + 15.0, fy, 1.2, 1.6), wallc, 0)
-			_hook(gx + 24.0, fy + 9.0)
 			gx += 22.0
 		"crates":
 			_floor(gx, 12.0)
 			_solid(Rect2(gx + 3.0, fy, 1.2, 1.0), wallc, 0)
 			_solid(Rect2(gx + 8.0, fy, 1.2, 1.7), wallc, 0)
 			if gen.randf() < 0.5:
-				_crate(gx + 6.0, fy + 1.4)
+				spots.append(Vector2(gx + 6.0, fy))
 			gx += 12.0
-		"girder":  # 오르내리는 크레인 철골
+		"river":  # 뒤로 흐르는 바닥 조각들, 사이는 물
+			for k in 3:
+				var w := gen.randf_range(7.0, 10.0)
+				_solid(Rect2(gx, fy - 14.0, w, 14.0), cdef.gnd, 3)
+				box(Vector3(gx + w * 0.5, fy - 0.1, 0), Vector3(w, 0.2, 2.5), cdef.top, stage)
+				var marks: Array = []
+				for m in 3:
+					marks.append(box(Vector3(gx, fy + 0.05, 0.9), Vector3(0.7, 0.12, 0.4), WHITE, stage))
+				flows.append({"x0": gx, "w": w, "y": fy, "marks": marks})
+				gx += w
+				if k < 2:
+					var g := gen.randf_range(2.5, 3.5)
+					box(Vector3(gx + g * 0.5, fy - 2.5, 0), Vector3(g, 0.3, 2.5), B, stage)
+					gx += g
 			_floor(gx, 3.0)
 			gx += 3.0
-			var top := fy - 0.6
-			dyn_rects.append(Rect2(gx + 5.5 - 1.6, top - 0.5, 3.2, 0.5))
-			girders.append({"cx": gx + 5.5, "base": top, "amp": 1.8, "ph": gen.randf() * TAU,
-				"node": box(Vector3(gx + 5.5, top - 0.25, 0), Vector3(3.2, 0.5, 1.6), wallc, stage)})
-			box(Vector3(gx + 5.5, fy + 10.0, -0.5), Vector3(0.1, 20.0, 0.1), INK, stage)
-			_hook(gx + 5.5, fy + 8.0)
-			gx += 11.0
-			_floor(gx, 5.0)
-			gx += 5.0
-		"scaffold":  # 비계 계단 위쪽 지름길
-			_floor(gx, 16.0)
-			_solid(Rect2(gx + 3.0, fy, 1.5, 1.2), wallc, 0)
-			_plat(gx + 6.0, fy + 2.6, 3.0, wallc)
-			_plat(gx + 10.0, fy + 4.4, 6.0, wallc)
-			_solid(Rect2(gx + 10.5, fy + 4.4, 3.0, 0.2), BOOSTC, 2, 2.0)
-			_solid(Rect2(gx + 12.5, fy, 0.9, 2.0), wallc, 0)
-			_hook(gx + 19.0, fy + 8.0)
-			gx += 16.0
-		"train":  # 아래 선로에는 열차, 위 승강장은 틈이 있다
-			var x0 := gx
-			var ty := fy - 3.2
-			min_fy = minf(min_fy, ty)
-			_solid(Rect2(x0, ty - 14.0, 34.0, 14.0), cdef.gnd, 0)
-			box(Vector3(x0 + 17.0, ty - 0.1, 0), Vector3(34.0, 0.2, 2.5), INK, stage)
-			for ab in [[0.0, 9.0], [12.0, 20.0], [23.5, 27.5]]:
-				_plat(x0 + ab[0], fy, ab[1] - ab[0], wallc)
-			_solid(Rect2(x0 + 30.0, ty, 2.0, 1.2), wallc, 0)
-			_solid(Rect2(x0 + 32.0, ty, 2.0, 2.4), wallc, 0)
-			var tn := box(Vector3(0, -50, 0), Vector3(4.5, 1.9, 2.0), B, stage)
-			box(Vector3(-1.6, 0.15, 0.55), Vector3(0.12, 0.25, 0.1), WHITE, tn)
-			tn.visible = false
-			var lamp := box(Vector3(x0 + 29.0, ty + 2.2, 1.2), Vector3(0.5, 0.5, 0.3), BAD, stage)
-			trains.append({"x0": x0, "x1": x0 + 30.0, "y": ty, "x": 0.0, "run": false, "wait": 1.0, "node": tn, "lamp": lamp, "nm": false})
-			gx = x0 + 34.0
-			_floor(gx, 6.0)
-			gx += 6.0
-		"roofgap":
+		"roofgap", "longgap":
 			_floor(gx, gen.randf_range(6.0, 10.0))
 			gx = rects[rects.size() - 1].end.x
-			var g := gen.randf_range(4.5, 7.5)
-			var ny := clampf(fy + gen.randf_range(-2.0, 1.5), -3.0, 6.0)
-			if ny > fy + 0.5:
+			if gen.randf() < 0.35:
+				spots.append(Vector2(gx - 3.0, fy))
+			var g := gen.randf_range(4.5, 6.2) if s == "roofgap" else gen.randf_range(6.8, 7.4)
+			var ny := clampf(fy + gen.randf_range(-2.0, 1.0), -3.0, 6.0)
+			if s == "longgap":
+				ny = minf(ny, fy - 0.5)
+			elif ny > fy + 0.5:
 				g = minf(g, 5.0)
-			if g > 6.0:
-				_hook(gx + g * 0.5, maxf(fy, ny) + 7.0)
 			gx += g
 			fy = ny
 			_floor(gx, 4.0)
@@ -423,16 +370,6 @@ func _solid(rc: Rect2, c: Color, kind: int, depth := 2.4) -> void:
 	box(Vector3(m.x, m.y, 0), Vector3(rc.size.x, rc.size.y, depth), c, stage)
 
 
-func _hook(x: float, y: float) -> void:
-	hooks.append(Vector2(x, y))
-	hook_nodes.append(box(Vector3(x, y, 0), Vector3(0.55, 0.55, 0.55), INK, stage))
-	box(Vector3(x, y + 4.0, -0.3), Vector3(0.08, 8.0, 0.08), INK, stage)
-
-
-func _crate(x: float, y: float) -> void:
-	crates.append({"p": Vector2(x, y), "cd": 0.0, "node": box(Vector3(x, y, 0), Vector3(0.8, 0.8, 0.8), CRATEC, stage)})
-
-
 func _bi(x: float) -> int:
 	return clampi(int(floor((x - BX0) / BK)), 0, buckets.size() - 1)
 
@@ -441,50 +378,61 @@ func _bi(x: float) -> int:
 func _start_round() -> void:
 	rnd += 1
 	var xs := [-2.2, -1.0, -3.4, -4.6]
+	load_all0 = 0
 	for i in 4:
 		var r := runners[i]
 		r.p = Vector2(xs[i], 0.0)
 		r.v = Vector2.ZERO
 		r.alive = true
-		r.item = "로켓" if (not r.ai and bag) else ""
+		r.cargo = LOAD0 + (0 if r.ai else load_bonus)
+		load_all0 += r.cargo
 		r.stun = 0.0
 		r.dash = 0.0
-		r.rocket = 0.0
-		r.boost_t = 0.0
-		r.hooked = false
+		r.drop_cd = 0.0
+		r.immune = 0.0
 		r.cut = true
 		r.face = 1.0
 		r.poof_t = 0.0
 		r.node.visible = true
 		r.node.rotation = Vector3.ZERO
-		r.rope.visible = false
 		r.poof.visible = false
-		r.item_age = 0.0
 		if r.ai:
 			r.skill = 0.93 + 0.025 * ci + (i - 2) * 0.02
-			r.err = 0.22 - 0.04 * ci
+			r.err = 0.2 - 0.03 * ci
 		_probe(r)
-	for c in crates:
-		c.cd = 0.0
-		(c.node as Node3D).visible = true
-	for b in bananas:
-		b.on = false
-		(b.node as Node3D).visible = false
-	for tr in trains:
-		tr.run = false
-		tr.wait = 1.0
-		(tr.node as Node3D).visible = false
+	for pc in parcels:
+		pc.on = false
+		(pc.node as Node3D).visible = false
+	for i in mini(spots.size(), parcels.size() - 6):
+		_put_parcel(spots[i], null)
 	rt = 0.0
 	lead_t = 0.0
+	lean = 0.0
+	dark_t = 0.0
+	dark_on = false
+	dark_warn = false
+	curtain.visible = false
 	hwv = WIDE
 	camx = 0.0
 	camy = 2.0
 	phase = "count"
 	pt = 1.4
 	danger = false
-	item_arm = false
-	msg("%s %d판" % [cdef.name, rnd], 1.2)
+	msg("%s %d판" % [cdef.name, rnd] if rnd > 1 else "%s: %s" % [cdef.name, cdef.say], 1.2 if rnd > 1 else 2.2)
 	beep(440.0, 0.12)
+
+
+func _put_parcel(at: Vector2, who: Courier) -> void:
+	for pc in parcels:
+		if not pc.on:
+			pc.on = true
+			pc.p = at
+			pc.owner = who
+			pc.cd = 0.8 if who else 0.0
+			var n: Node3D = pc.node
+			n.visible = true
+			n.position = Vector3(at.x, at.y + 0.25, 0)
+			return
 
 
 func _step(dt: float) -> void:
@@ -504,64 +452,58 @@ func _step(dt: float) -> void:
 			_race(dt)
 		"roundend":
 			pt -= dt
-			_tick_runners(dt, false)
 			if pt <= 0.0:
 				_after_round()
 		"perk":
 			msg("특전 고르기", 0.2)
-			for n in ["jump", "hook", "item"]:
+			for n in ["jump", "drop"]:
 				if kit_just(n):
 					_pick_perk(n)
 					break
-	_update_items(dt)
+	_update_parcels(dt)
 	_camera(dt)
-	_draw_all(dt)
-	_set_item_label()
+	_draw_all()
+	if phase != "perk" and _btns.has("drop"):
+		_btns["drop"].label = "짐 %d" % pl.cargo
 
 
 func _race(dt: float) -> void:
-	# 내 입력
 	pl.mx = kit_move.x
 	pl.i_jump = kit_just("jump")
 	pl.i_jheld = kit_held("jump")
-	pl.i_hook = kit_just("hook")
-	pl.i_hheld = kit_held("hook")
-	pl.i_use = false
-	pl.i_burn = false
-	if kit_just("item"):
-		item_arm = true
-		item_t = 0.0
-	if item_arm:
-		if kit_held("item"):
-			item_t += dt
-			if item_t >= BURN_HOLD:
-				pl.i_burn = true
-				item_arm = false
-		else:
-			pl.i_use = true
-			item_arm = false
+	pl.i_drop = kit_just("drop")
+	if cdef.rule == "dark":
+		_dark(dt)
 	for r in runners:
 		if r.alive and r.ai:
 			_ai(r, dt)
 	_slipstream()
-	_move_girders(dt)
-	_tick_runners(dt, true)
-	_trains(dt)
-	_bananas_hit()
+	for r in runners:
+		if r.alive:
+			_runner(r, dt)
 	_pickups()
-	# 탈락
+	# 화면 왼쪽 끝: 짐이 있으면 하나 내주고 버틴다, 없으면 탈락
 	var left := camx - hwv
 	for r in runners:
 		if not r.alive:
 			continue
-		if r.p.x + HW < left or r.p.y < kill_y or r.p.y < camy - vhv - 1.0:
-			_out(r)
+		if r.p.y < kill_y or r.p.y < camy - vhv - 1.0:
+			_out(r, "떨어졌다!")
+		elif r.p.x + HW < left + 0.15:
+			if r.immune > 0.0 and r.p.x + HW > left - 2.0:
+				pass
+			elif r.cargo > 0 and r.immune <= 0.0:
+				_shove(r, left)
+			else:
+				_out(r, "밀려났다!")
 	if phase != "race":
 		return
 	for r in runners:
 		if r.alive and r.p.x > goal_x:
-			_round_over(r)
-			return
+			if r.cargo > 0:
+				_round_over(r)
+				return
+			_out(r, "빈손이라 실격!")
 	if not pl.alive:
 		var w: Courier = null
 		for r in runners:
@@ -576,14 +518,14 @@ func _race(dt: float) -> void:
 	if n <= 1:
 		_round_over(pl)
 		return
-	# 1등이면 화면이 내 속도에 쏠린다: 앞이 안 보이니 벽·구덩이는 소리로만
+	# 1등이면 빠를수록 화면이 쏠린다: 앞이 안 보이니 벽·구덩이는 소리로만
 	radar_t -= dt
 	if _leader() == pl:
 		if lead_t == 0.0:
-			msg("선두! 앞이 안 보인다", 0.8)
+			msg("선두! 빠를수록 앞이 안 보인다", 0.9)
 			beep(900.0, 0.1, 1400.0, 0.2)
 		lead_t += dt
-		if lead_t > 0.4 and pl.grounded:
+		if lean > 0.35 and pl.grounded:
 			var ax := pl.p.x + HW + 2.2
 			var pit := _floor_top(ax, pl.p.y + 0.6) < pl.p.y - 2.0
 			var wall := _solid_in(Rect2(pl.p.x + HW + 0.6, pl.p.y + STEP + 0.05, 3.5, 2.0))
@@ -610,27 +552,46 @@ func _race(dt: float) -> void:
 	was_slip = pl.slip
 
 
-func _tick_runners(dt: float, live: bool) -> void:
-	for r in runners:
-		if r.alive:
-			if live:
-				_runner(r, dt)
-		elif r.poof_t > 0.0:
-			r.poof_t -= dt
+## 야시장: 6초마다 1.6초 정전. 꺼지면 1등 앞이 모두에게 가려진다
+func _dark(dt: float) -> void:
+	dark_t += dt
+	var cyc := fmod(dark_t, 6.0)
+	var warn := cyc > 3.6 and cyc < 4.4
+	var now := cyc >= 4.4
+	if warn and not dark_warn:
+		beep(520.0, 0.08, 0.0, 0.16)
+	if warn and fmod(cyc, 0.2) < dt:
+		beep(520.0, 0.04, 0.0, 0.1)
+	if now and not dark_on:
+		beep(180.0, 0.35, 90.0, 0.25)
+		msg("정전!", 0.6)
+	elif dark_on and not now:
+		beep(660.0, 0.1, 990.0, 0.18)
+	dark_warn = warn
+	dark_on = now
 
 
-func _out(r: Courier) -> void:
+func _shove(r: Courier, left: float) -> void:
+	r.cargo -= 1
+	r.immune = 0.7
+	_mx(r, left + HW + 0.6 - r.p.x)
+	r.v.x = maxf(r.v.x, 8.0)
+	_snd(r, 260.0, 0.18, 520.0, 0.25)
+	if r == pl:
+		shk = maxf(shk, 0.35)
+		msg("짐 하나 잃음" if r.cargo > 0 else "마지막 짐!", 0.7)
+
+
+func _out(r: Courier, why: String) -> void:
 	r.alive = false
-	r.hooked = false
 	r.node.visible = false
-	r.rope.visible = false
 	r.poof.visible = true
 	r.poof_t = 0.5
 	r.poof.position = Vector3(clampf(r.p.x, camx - hwv + 0.6, camx + hwv), maxf(r.p.y, camy - vhv + 2.0), 0.5)
 	if r == pl:
 		play("bad")
 		shk = 0.6
-		msg("밀려났다!", 1.0)
+		msg(why, 1.0)
 	else:
 		beep(300.0, 0.2, 120.0, 0.25)
 		shk = maxf(shk, 0.25)
@@ -640,22 +601,22 @@ func _out(r: Courier) -> void:
 func _round_over(w: Courier) -> void:
 	phase = "roundend"
 	pt = 1.8
-	pl.hooked = false
+	curtain.visible = false
 	if w == null:
 		msg("무승부", 1.6)
 		return
 	w.wins += 1
 	if w == pl:
-		score += 10
+		score += 10 + 5 * pl.cargo
 		play("win")
-		msg("라운드 승!", 1.6)
+		msg("배달 성공! 짐 %d" % pl.cargo, 1.6)
 	else:
 		beep(330.0, 0.3, 200.0, 0.25)
 		msg("%s 승" % w.nick, 1.6)
 
 
 func _after_round() -> void:
-	if pl.wins >= 3:
+	if pl.wins >= WINS:
 		score += 50
 		if ci >= COURSES.size() - 1:
 			msg("배달 완료!", 3.0)
@@ -664,40 +625,31 @@ func _after_round() -> void:
 		play("win")
 		var pool := []
 		for k in PERKS:
-			if not perk_taken(k):
+			if not taken.has(k):
 				pool.append(k)
 		pool.shuffle()
-		perk_offer = pool.slice(0, 3)
-		var names := ["jump", "hook", "item"]
-		for i in 3:
-			_btns[names[i]].label = perk_offer[i]
+		perk_offer = pool.slice(0, 2)
+		_btns["jump"].label = perk_offer[0]
+		_btns["drop"].label = perk_offer[1]
 		phase = "perk"
 		return
 	for r in runners:
-		if r.ai and r.wins >= 3:
+		if r.ai and r.wins >= WINS:
 			msg("%s 우승" % r.nick, 3.0)
 			end()
 			return
 	_start_round()
 
 
-var taken: Array = []
-
-
-func perk_taken(k: String) -> bool:
-	return taken.has(k)
-
-
 func _pick_perk(n: String) -> void:
-	var i := ["jump", "hook", "item"].find(n)
-	var k: String = perk_offer[i]
+	var k: String = perk_offer[0 if n == "jump" else 1]
 	taken.append(k)
 	match k:
 		"신발": spd_mul += 0.08
-		"갈고리": hook_bonus += 4.0
-		"가방": bag = true
-		"바람": slip_mul = 2.0
+		"끈": load_bonus += 1
 		"용수철": jump_mul += 0.12
+		"바람": slip_mul = 2.0
+		"가벼운 상자": load_w = 0.6
 	play("good")
 	msg("%s: %s" % [k, PERK_SAY[k]], 1.4)
 	_restore_labels()
@@ -713,119 +665,93 @@ func _pick_perk(n: String) -> void:
 func _restore_labels() -> void:
 	if _btns.has("jump"):
 		_btns["jump"].label = "점프"
-		_btns["hook"].label = "갈고리"
-
-
-func _set_item_label() -> void:
-	if phase == "perk" or not _btns.has("item"):
-		return
-	_btns["item"].label = pl.item if pl.item != "" else "-"
+		_btns["drop"].label = "짐"
 
 
 # ---- 달리기 한 명 ----
-func _runner(r: Courier, dt: float) -> void:
-	r.immune = maxf(r.immune - dt, 0.0)
-	r.bonk = false
-	var top := RUN_MAX * (r.skill if r.ai else spd_mul)
+func _weight(r: Courier) -> float:
+	return r.cargo * (1.0 if r.ai else load_w)
+
+
+func _top(r: Courier) -> float:
+	var top := RUN_MAX * (r.skill if r.ai else spd_mul) * (1.0 - LOAD_SLOW * _weight(r))
 	if r.slip:
 		top *= 1.0 + 0.12 * (1.0 if r.ai else slip_mul)
-	if r.boost_t > 0.0:
-		r.boost_t -= dt
-		top = maxf(top, BOOST_V)
+	return top
+
+
+func _jump_v(r: Courier) -> float:
+	return JUMP_V * (1.0 if r.ai else jump_mul) * (1.0 - LOAD_JUMP * _weight(r))
+
+
+func _runner(r: Courier, dt: float) -> void:
+	r.immune = maxf(r.immune - dt, 0.0)
+	r.drop_cd = maxf(r.drop_cd - dt, 0.0)
+	var top := _top(r)
 	var mx := r.mx
 	if r.stun > 0.0:
 		r.stun -= dt
 		mx = 0.0
 		r.i_jump = false
-		r.i_hook = false
-		r.i_use = false
-		r.i_burn = false
-	if r.item != "":
-		r.item_age += dt
-		if r.i_burn:
-			_burn(r)
-		elif r.i_use:
-			_use(r)
-	if r.i_hook and not r.hooked:
-		_try_hook(r)
-	if r.hooked and (not r.i_hheld or r.stun > 0.0):
-		_unhook(r)
+		r.i_drop = false
+	if r.i_drop and r.cargo > 0 and r.drop_cd <= 0.0:
+		_drop(r)
 	r.coyote = COYOTE if r.grounded else maxf(r.coyote - dt, 0.0)
 	r.jbuf = JBUF if r.i_jump else maxf(r.jbuf - dt, 0.0)
-	if r.jbuf > 0.0:
-		if r.hooked:
-			_unhook(r)
-			r.v.y = maxf(r.v.y, 0.0) + 6.0
-			r.jbuf = 0.0
-			r.cut = true
-			_snd(r, 900.0, 0.08, 1300.0)
-		elif r.coyote > 0.0:
-			r.v.y = JUMP_V * (1.0 if r.ai else jump_mul)
-			r.coyote = 0.0
-			r.jbuf = 0.0
-			r.grounded = false
-			r.cut = false
-			_snd(r, 600.0, 0.07, 900.0)
+	if r.jbuf > 0.0 and r.coyote > 0.0:
+		r.v.y = _jump_v(r)
+		r.coyote = 0.0
+		r.jbuf = 0.0
+		r.grounded = false
+		r.cut = false
+		_snd(r, 600.0 - r.cargo * 40.0, 0.07, 900.0 - r.cargo * 60.0)
 	if not r.cut and r.v.y > 0.0 and not r.i_jheld:
 		r.v.y *= 0.5
 		r.cut = true
-	if r.rocket > 0.0:
-		r.rocket -= dt
-		r.v = Vector2(ROCKET_V, 0.0)
-	elif r.dash > 0.0:
+	var acc := (GROUND_ACC if r.grounded else AIR_ACC) * (1.3 if r.slip else 1.0)
+	if absf(mx) > 0.15:
+		var want := signf(mx) * top
+		if signf(r.v.x) != signf(mx) or absf(r.v.x) < top:
+			r.v.x = move_toward(r.v.x, want, acc * dt)
+		else:
+			r.v.x = move_toward(r.v.x, want, (OVER_G if r.grounded else OVER_A) * dt)
+		r.face = signf(mx)
+	else:
+		r.v.x = move_toward(r.v.x, 0.0, (FRICTION if r.grounded else 4.0) * dt)
+	if r.dash > 0.0:
 		r.dash -= dt
 		r.v.x = maxf(r.v.x, DASH_V)
-		r.v.y = 0.0
-	else:
-		var acc := (GROUND_ACC if r.grounded else AIR_ACC) * (1.3 if r.slip else 1.0)
-		if absf(mx) > 0.15:
-			var want := signf(mx) * top
-			if signf(r.v.x) != signf(mx) or absf(r.v.x) < top:
-				r.v.x = move_toward(r.v.x, want, acc * dt)
-			else:
-				r.v.x = move_toward(r.v.x, want, (OVER_G if r.grounded else OVER_A) * dt)
-			r.face = signf(mx)
-		else:
-			r.v.x = move_toward(r.v.x, 0.0, (FRICTION if r.grounded else 4.0) * dt)
-		if r.hooked:
-			var n := (r.p + Vector2(0, HH * 0.5) - r.hook).normalized()
-			var tg := Vector2(-n.y, n.x)
-			if tg.x < 0.0:
-				tg = -tg
-			r.v += tg * PUMP * dt
-		r.v.y = maxf(r.v.y - GRAV * dt, -MAX_FALL)
+	r.v.y = maxf(r.v.y - GRAV * dt, -MAX_FALL)
+	# 흐르는 바닥: 짐이 무거울수록 덜 밀린다
+	if r.grounded and r.sup == 3:
+		_mx(r, -FLOW * clampf(1.0 - 0.15 * _weight(r), 0.2, 1.0) * dt)
 	for s in 2:
 		_mx(r, r.v.x * dt * 0.5)
 		_my(r, r.v.y * dt * 0.5)
-	if r.hooked:
-		var c := r.p + Vector2(0, HH * 0.5)
-		var d := c - r.hook
-		var L := d.length()
-		if L > r.rope_len and L > 0.01:
-			var nn := d / L
-			r.p = r.hook + nn * r.rope_len - Vector2(0, HH * 0.5)
-			var vr := r.v.dot(nn)
-			if vr > 0.0:
-				r.v -= nn * vr
-		if c.y > r.hook.y - 0.3 and r.v.y > 0.0:
-			_unhook(r)
-	if r.rocket > 0.0 and r.bonk:
-		r.rocket = 0.0
 	_probe(r)
-	if r.grounded:
-		if r.sup == 1:
-			r.v.y = PAD_V
-			r.grounded = false
-			r.cut = true
-			_snd(r, 300.0, 0.25, 1100.0, 0.25)
-			if r == pl:
-				shk = maxf(shk, 0.2)
-		elif r.sup == 2:
-			r.v.x = maxf(r.v.x, BOOST_V)
-			r.boost_t = 0.6
-			if not r.on_boost:
-				_snd(r, 500.0, 0.15, 1400.0)
-	r.on_boost = r.grounded and r.sup == 2
+	if r.grounded and r.sup == 1:
+		r.v.y = PAD_V * (1.0 - LOAD_JUMP * _weight(r))
+		r.grounded = false
+		r.cut = true
+		_snd(r, 300.0, 0.25, 1100.0, 0.25)
+		if r == pl:
+			shk = maxf(shk, 0.2)
+
+
+## 짐 하나를 뒤에 내려놓고 튀어나간다 (다른 사람이 주워 갈 수 있다)
+func _drop(r: Courier) -> void:
+	r.cargo -= 1
+	r.drop_cd = 0.4
+	r.dash = DASH_T
+	r.v.x = maxf(r.v.x, DASH_V)
+	var x := r.p.x - r.face * 1.2
+	var y := _floor_top(x, r.p.y + 0.5)
+	if y > r.p.y - 6.0:
+		_put_parcel(Vector2(x, y), r)
+	_snd(r, 420.0, 0.14, 1300.0, 0.22)
+	if r == pl:
+		shk = maxf(shk, 0.15)
+		msg("가볍게!", 0.4)
 
 
 func _box(r: Courier) -> Rect2:
@@ -846,25 +772,17 @@ func _mx(r: Courier, dx: float) -> void:
 				r.p.y = q.end.y
 				a = _box(r)
 				continue
-			_bump_x(r, q, dx)
+			if dx > 0.0:
+				r.p.x = q.position.x - HW - 0.001
+			else:
+				r.p.x = q.end.x + HW + 0.001
+			if absf(r.v.x) > 12.0:
+				_snd(r, 160.0, 0.1, 80.0, 0.25)
+				if r == pl:
+					shk = maxf(shk, 0.3)
+			if signf(r.v.x) == signf(dx):
+				r.v.x = 0.0
 			a = _box(r)
-	for q in dyn_rects:
-		if q.intersects(a):
-			_bump_x(r, q, dx)
-			a = _box(r)
-
-
-func _bump_x(r: Courier, q: Rect2, dx: float) -> void:
-	if dx > 0.0:
-		r.p.x = q.position.x - HW - 0.001
-	else:
-		r.p.x = q.end.x + HW + 0.001
-	if absf(r.v.x) > 13.0:
-		_snd(r, 160.0, 0.1, 80.0, 0.25)
-		if r == pl:
-			shk = maxf(shk, 0.3)
-	r.v.x = 0.0
-	r.bonk = true
 
 
 func _my(r: Courier, dy: float) -> void:
@@ -876,44 +794,30 @@ func _my(r: Courier, dy: float) -> void:
 		for i in buckets[b]:
 			var q: Rect2 = rects[i]
 			if q.intersects(a):
-				_bump_y(r, q, dy)
+				if dy < 0.0:
+					r.p.y = q.end.y
+					r.v.y = 0.0
+				else:
+					r.p.y = q.position.y - HH - 0.001
+					r.v.y = minf(r.v.y, 0.0)
 				a = _box(r)
-	for q in dyn_rects:
-		if q.intersects(a):
-			_bump_y(r, q, dy)
-			a = _box(r)
-
-
-func _bump_y(r: Courier, q: Rect2, dy: float) -> void:
-	if dy < 0.0:
-		r.p.y = q.end.y
-		r.v.y = 0.0
-	else:
-		r.p.y = q.position.y - HH - 0.001
-		r.v.y = minf(r.v.y, 0.0)
 
 
 func _probe(r: Courier) -> void:
 	var f := Rect2(r.p.x - HW + 0.05, r.p.y - 0.06, HW * 2.0 - 0.1, 0.07)
 	r.grounded = false
 	r.sup = -1
-	r.dyn = -1
 	var pad := false
-	var bst := false
+	var flow := false
 	for b in range(_bi(f.position.x), _bi(f.end.x) + 1):
 		for i in buckets[b]:
 			var q: Rect2 = rects[i]
 			if q.intersects(f) and q.end.y <= r.p.y + 0.02:
 				r.grounded = true
 				pad = pad or kinds[i] == 1
-				bst = bst or kinds[i] == 2
-	for j in dyn_rects.size():
-		var q := dyn_rects[j]
-		if q.intersects(f) and q.end.y <= r.p.y + 0.05:
-			r.grounded = true
-			r.dyn = j
+				flow = flow or kinds[i] == 3
 	if r.grounded:
-		r.sup = 1 if pad else (2 if bst else 0)
+		r.sup = 1 if pad else (3 if flow else 0)
 
 
 ## x 위에서 높이 ymax 아래 가장 높은 바닥 윗면 (없으면 아주 낮은 수)
@@ -921,9 +825,6 @@ func _floor_top(x: float, ymax: float) -> float:
 	var best_y := -1.0e9
 	for i in buckets[_bi(x)]:
 		var q: Rect2 = rects[i]
-		if x > q.position.x and x < q.end.x and q.end.y <= ymax:
-			best_y = maxf(best_y, q.end.y)
-	for q in dyn_rects:
 		if x > q.position.x and x < q.end.x and q.end.y <= ymax:
 			best_y = maxf(best_y, q.end.y)
 	return best_y
@@ -936,92 +837,6 @@ func _solid_in(a: Rect2) -> bool:
 			if q.intersects(a):
 				return true
 	return false
-
-
-# ---- 갈고리·아이템 ----
-func _hook_target(r: Courier) -> int:
-	var c := r.p + Vector2(0, HH * 0.5)
-	var rng := HOOK_RNG + (0.0 if r.ai else hook_bonus)
-	var pick := -1
-	var bs := 1.0e9
-	for i in hooks.size():
-		var h := hooks[i]
-		var dx := h.x - c.x
-		if dx < -1.0 or h.y < c.y + 1.5:
-			continue
-		var d := c.distance_to(h)
-		if d > rng:
-			continue
-		var s := d - dx * 0.3
-		if s < bs:
-			bs = s
-			pick = i
-	return pick
-
-
-func _try_hook(r: Courier) -> void:
-	var i := _hook_target(r)
-	if i < 0:
-		if r == pl:
-			beep(200.0, 0.06, 0.0, 0.12)
-		return
-	r.hooked = true
-	r.hook = hooks[i]
-	r.rope_len = maxf((r.p + Vector2(0, HH * 0.5)).distance_to(r.hook) * 0.92, 2.5)
-	r.v.x = maxf(r.v.x, 4.0)
-	r.rocket = 0.0
-	r.dash = 0.0
-	_snd(r, 1300.0, 0.06, 700.0)
-
-
-func _unhook(r: Courier) -> void:
-	if not r.hooked:
-		return
-	r.hooked = false
-	r.rope.visible = false
-	r.cut = true
-	_snd(r, 800.0, 0.05, 1200.0, 0.12)
-
-
-func _use(r: Courier) -> void:
-	var it := r.item
-	r.item = ""
-	if it == "바나나":
-		var x := r.p.x - r.face * 1.2
-		var y := _floor_top(x, r.p.y + 0.5)
-		if y > r.p.y - 6.0:
-			for b in bananas:
-				if not b.on:
-					b.on = true
-					b.p = Vector2(x, y)
-					b.owner = r
-					b.nm = false
-					(b.node as Node3D).visible = true
-					(b.node as Node3D).position = Vector3(x, y + 0.125, 0)
-					break
-		r.immune = 0.6
-		_snd(r, 500.0, 0.1, 250.0)
-	else:
-		_unhook(r)
-		r.rocket = ROCKET_T
-		r.v = Vector2(ROCKET_V, 0.0)
-		_snd(r, 200.0, 0.5, 900.0, 0.25)
-		if r == pl:
-			shk = maxf(shk, 0.25)
-			msg("로켓!", 0.5)
-
-
-## 아이템을 태워서 앞으로 대시 (네온 화이트처럼 쓰기 대신 이동)
-func _burn(r: Courier) -> void:
-	r.item = ""
-	_unhook(r)
-	r.dash = DASH_T
-	r.v.x = maxf(r.v.x, DASH_V)
-	r.v.y = 0.0
-	_snd(r, 400.0, 0.18, 1500.0, 0.22)
-	if r == pl:
-		shk = maxf(shk, 0.2)
-		msg("태워!", 0.4)
 
 
 func _snd(r: Courier, f: float, d: float, to := 0.0, vol := 0.18) -> void:
@@ -1053,120 +868,30 @@ func _slipstream() -> void:
 
 
 func _pickups() -> void:
-	for c in crates:
-		if c.cd > 0.0:
+	for pc in parcels:
+		if not pc.on:
 			continue
-		var cp: Vector2 = c.p
+		var cp: Vector2 = pc.p
 		for r in runners:
-			if r.alive and r.item == "" and absf(r.p.x - cp.x) < 0.9 and cp.y - r.p.y > -0.6 and cp.y - r.p.y < HH + 0.5:
-				r.item = "바나나" if randf() < 0.5 else "로켓"
-				r.item_age = 0.0
-				c.cd = 3.0
-				(c.node as Node3D).visible = false
-				_snd(r, 880.0, 0.1, 1320.0)
+			if not r.alive or (r == pc.owner and pc.cd > 0.0):
+				continue
+			if r.cargo >= LOAD_MAX + (0 if r.ai else load_bonus):
+				continue
+			if absf(r.p.x - cp.x) < 0.8 and r.p.y - cp.y > -0.6 and r.p.y - cp.y < HH:
+				r.cargo += 1
+				pc.on = false
+				(pc.node as Node3D).visible = false
+				_snd(r, 660.0, 0.1, 880.0)
+				if r == pl:
+					msg("짐 %d" % r.cargo, 0.4)
 				break
 
 
-func _update_items(dt: float) -> void:
-	for c in crates:
-		var n: Node3D = c.node
-		if c.cd > 0.0:
-			c.cd -= dt
-			if c.cd <= 0.0:
-				n.visible = true
-		n.rotation.y += dt * 2.0
-
-
-func _bananas_hit() -> void:
-	for b in bananas:
-		if not b.on:
-			continue
-		var bp: Vector2 = b.p
-		for r in runners:
-			if not r.alive or (r == b.owner and r.immune > 0.0):
-				continue
-			var dx := absf(r.p.x - bp.x)
-			var dy := r.p.y - bp.y
-			if dx < 0.7 and dy > -0.3 and dy < 0.4:
-				r.stun = 0.75
-				r.v = Vector2(r.v.x * 0.25, 4.0)
-				_unhook(r)
-				b.on = false
-				(b.node as Node3D).visible = false
-				_snd(r, 300.0, 0.25, 150.0, 0.25)
-				if r == pl:
-					msg("미끌!", 0.6)
-					shk = maxf(shk, 0.3)
-				break
-			if r == pl and not b.nm and dx < 0.6 and dy >= 0.4 and dy < 1.8:
-				b.nm = true
-				_close(r)
-
-
-func _move_girders(_dt: float) -> void:
-	for j in girders.size():
-		var g: Dictionary = girders[j]
-		var top: float = g.base + sin(rt * 1.5 + g.ph) * g.amp
-		var q := dyn_rects[j]
-		var dy := top - q.end.y
-		q.position.y = top - 0.5
-		dyn_rects[j] = q
-		(g.node as Node3D).position.y = top - 0.25
-		for r in runners:
-			if r.alive and r.dyn == j:
-				r.p.y += dy
-
-
-func _trains(dt: float) -> void:
-	var lead := _leader()
-	var right := camx + hwv
-	train_warn.visible = false
-	for tr in trains:
-		var tn: Node3D = tr.node
-		var lamp: Node3D = tr.lamp
-		var ty: float = tr.y
-		if not tr.run:
-			lamp.visible = true
-			if lead and lead.p.x > tr.x0 - 14.0:
-				tr.wait -= dt
-				lamp.visible = tr.wait > 0.9 or fmod(rt, 0.2) < 0.1
-				if tr.wait <= 0.9 and tr.x1 > right and tr.x0 < right + 30.0:
-					train_warn.visible = fmod(rt, 0.2) < 0.12
-					train_warn.position = Vector3(camx + hwv * (CAM_D - 1.6) / CAM_D - 0.4, ty + 1.0, 1.6)
-				if tr.wait <= 0.0:
-					tr.run = true
-					tr.x = tr.x1 + 2.25
-					tr.nm = false
-					tn.visible = true
-					if absf(tr.x1 - pl.p.x) < 25.0:
-						beep(700.0, 0.3, 500.0, 0.2)
-			continue
-		tr.x -= TRAIN_V * dt
-		var tx: float = tr.x
-		tn.position = Vector3(tx, ty + 0.95, 0)
-		if tx - 2.25 > right:
-			train_warn.visible = fmod(rt, 0.2) < 0.12
-			train_warn.position = Vector3(camx + hwv * (CAM_D - 1.6) / CAM_D - 0.4, ty + 1.0, 1.6)
-		if tx < tr.x0 - 2.5:
-			tr.run = false
-			tr.wait = randf_range(1.4, 2.8)
-			tn.visible = false
-			continue
-		var trc := Rect2(tx - 2.25, ty, 4.5, 1.9)
-		for r in runners:
-			if not r.alive:
-				continue
-			if trc.intersects(_box(r)) and r.stun <= 0.0:
-				r.stun = 0.6
-				r.v = Vector2(-7.0, 8.0)
-				_unhook(r)
-				_snd(r, 140.0, 0.3, 60.0, 0.3)
-				if r == pl:
-					shk = 0.6
-					msg("쾅!", 0.6)
-			elif r == pl and not tr.nm and absf(r.p.x - tx) < 2.4 and r.p.y > ty + 1.9 and r.p.y < ty + 3.4 and not r.grounded:
-				tr.nm = true
-				_close(r)
+func _update_parcels(dt: float) -> void:
+	for pc in parcels:
+		if pc.on:
+			pc.cd = maxf(pc.cd - dt, 0.0)
+			(pc.node as Node3D).rotation.y += dt * 1.5
 
 
 func _leader() -> Courier:
@@ -1178,19 +903,31 @@ func _leader() -> Courier:
 
 
 # ---- 경쟁자 ----
+## 지금 짐으로 뛸 수 있는 거리
+func _reach(r: Courier) -> float:
+	return _top(r) * 2.0 * _jump_v(r) / GRAV
+
+
+## 앞 구덩이 너비 (없으면 0)
+func _gap_len(r: Courier) -> float:
+	var x := r.p.x + HW
+	var start := -1.0
+	for k in 24:
+		var gtop := _floor_top(x, r.p.y + 0.6)
+		if gtop < r.p.y - 2.0:
+			if start < 0.0:
+				start = x
+		elif start >= 0.0:
+			return x - start
+		x += 0.4
+	return 0.0 if start < 0.0 else 9.0
+
+
 func _ai(r: Courier, dt: float) -> void:
 	r.mx = 1.0
 	r.i_jump = false
-	r.i_hook = false
-	r.i_use = false
-	r.i_burn = false
+	r.i_drop = false
 	r.i_jheld = true
-	if r.hooked:
-		var c := r.p + Vector2(0, HH * 0.5)
-		var land := _floor_top(c.x + 2.0, r.p.y + 0.5) > r.p.y - 3.0
-		r.i_hheld = not ((c.x > r.hook.x + 2.0 and r.v.y > 0.0) or c.y > r.hook.y - 1.0 or (land and c.x > r.hook.x + 0.5))
-	else:
-		r.i_hheld = true
 	r.think -= dt
 	if r.think > 0.0:
 		return
@@ -1199,36 +936,20 @@ func _ai(r: Courier, dt: float) -> void:
 	var ax := r.p.x + HW + 0.25 + absf(r.v.x) * 0.035
 	var pit := _floor_top(ax, r.p.y + 0.6) < r.p.y - 2.0
 	var wall := _solid_in(Rect2(r.p.x + HW, r.p.y + STEP + 0.05, look, 2.0))
-	var danger_ahead := false
-	for b in bananas:
-		if b.on and b.owner != r:
-			var bp: Vector2 = b.p
-			if bp.x - r.p.x > 0.4 and bp.x - r.p.x < 2.5 and absf(bp.y - r.p.y) < 0.5:
-				danger_ahead = true
-	for tr in trains:
-		if tr.run:
-			var dx: float = tr.x - r.p.x
-			var ty: float = tr.y
-			if dx > 2.5 and dx < 8.0 and absf(r.p.y - ty) < 0.6:
-				danger_ahead = true
-	if r.grounded and (pit or wall or danger_ahead) and randf() > r.err:
+	# 경쟁자도 1등이면 빠를수록 못 보고, 정전이면 못 본다
+	var miss := r.err
+	if _leader() == r:
+		miss += 0.4 * clampf((absf(r.v.x) - 4.0) / (RUN_MAX - 4.0), 0.0, 1.0)
+	if dark_on:
+		miss += 0.3
+	if r.grounded and (pit or wall) and randf() > miss:
 		r.i_jump = true
-	if not r.grounded and not r.hooked and r.v.y < 3.0:
-		var below := _floor_top(r.p.x + 1.5, r.p.y)
-		if (pit or below < r.p.y - 4.0) and _hook_target(r) >= 0 and randf() > r.err:
-			r.i_hook = true
-		elif randf() < 0.05 and _hook_target(r) >= 0:
-			r.i_hook = true
-	if r.item != "":
-		var lead := _leader()
-		if r.item == "바나나":
-			for o in runners:
-				if o != r and o.alive and r.p.x - o.p.x > 1.0 and r.p.x - o.p.x < 7.0:
-					r.i_use = true
-		elif r.item == "로켓" and lead != r and not pit and randf() < 0.25:
-			r.i_use = true
-		if not r.i_use and r.item_age > 3.0 and randf() < 0.15:
-			r.i_burn = true
+	# 짐 버리기: 먼 틈 앞, 또는 화면 끝에 몰렸을 때
+	if r.cargo >= 2 and r.drop_cd <= 0.0:
+		var far: bool = cdef.rule == "roof" and r.grounded and _gap_len(r) > _reach(r) * 0.95
+		var behind := r.p.x - (camx - hwv) < 3.0
+		if far or (behind and randf() < 0.25):
+			r.i_drop = true
 
 
 # ---- 카메라와 그리기 ----
@@ -1236,27 +957,35 @@ func _camera(dt: float) -> void:
 	var vs := get_viewport().get_visible_rect().size
 	var asp := vs.y / maxf(vs.x, 1.0)
 	if phase == "race":
-		hwv = lerpf(WIDE, NARROW, clampf((rt - 10.0) / 28.0, 0.0, 1.0))
+		# 화면 폭 = 모두가 든 짐의 합
+		var all := 0
+		for r in runners:
+			if r.alive:
+				all += r.cargo
+		var want := lerpf(NARROW, WIDE, clampf(float(all) / float(maxi(load_all0, 1)), 0.0, 1.0))
+		hwv = lerpf(hwv, want, 1.0 - exp(-1.5 * dt))
 	vhv = hwv * asp
 	var lead := _leader()
 	if lead and phase != "perk":
 		var k := 1.0 - exp(-9.0 * dt)
-		# 1등이 나면 화면이 내 속도에 맞춰 앞으로 쏠려 나는 오른쪽 끝에 붙는다
-		var off := 0.16
-		if lead == pl:
-			off = lerpf(0.16, 0.74, clampf(lead_t / 1.5, 0.0, 1.0))
-		camx = lerpf(camx, lead.p.x - hwv * off, k)
+		# 내가 1등이면 내 속도만큼 화면이 앞으로 쏠려 나는 오른쪽 끝에 붙는다
+		var f := 0.0
+		if lead == pl and phase == "race":
+			f = clampf((absf(pl.v.x) - 4.0) / (RUN_MAX - 4.0), 0.0, 1.0)
+		lean = lerpf(lean, f, 1.0 - exp(-3.0 * dt))
+		camx = lerpf(camx, lead.p.x - hwv * lerpf(0.16, 0.74, lean), k)
 		camy = lerpf(camy, lead.p.y + 2.0, 1.0 - exp(-4.0 * dt))
 	cam.fov = rad_to_deg(2.0 * atan(hwv / CAM_D))
 	cam.rotation = Vector3.ZERO
 	cam.position = Vector3(camx + randf_range(-1.0, 1.0) * shk * 0.4, camy + randf_range(-1.0, 1.0) * shk * 0.4, CAM_D)
 
 
-func _draw_all(_dt: float) -> void:
+func _draw_all() -> void:
 	var tm := Time.get_ticks_msec() * 0.001
 	for r in runners:
 		r.poof.visible = r.poof_t > 0.0
-		if r.poof.visible:
+		if r.poof_t > 0.0:
+			r.poof_t -= get_process_delta_time()
 			var s := 1.0 + (0.5 - r.poof_t) * 6.0
 			r.poof.scale = Vector3(s, s, s)
 		if not r.alive:
@@ -1268,19 +997,16 @@ func _draw_all(_dt: float) -> void:
 		var spd := absf(r.v.x)
 		var bob := sin(tm * (8.0 + spd)) * 0.06 if r.grounded and spd > 1.0 else 0.0
 		r.node.position = Vector3(r.p.x, r.p.y + HH * 0.375 + bob, 0)
-		r.node.rotation.z = (tm * 14.0 if r.stun > 0.0 else -clampf(r.v.x * 0.012, -0.2, 0.2))
-		r.pack.position.x = -0.45 * r.face
-		r.fire.visible = r.rocket > 0.0 or r.dash > 0.0
+		r.node.rotation.z = -clampf(r.v.x * 0.012, -0.2, 0.2)
+		r.node.visible = r.immune <= 0.0 or fmod(tm, 0.12) < 0.08
+		for k in r.packs.size():
+			var q := r.packs[k]
+			q.visible = k < r.cargo
+			q.position.x = -0.5 * r.face
+		r.fire.visible = r.dash > 0.0
+		r.fire.position.x = -0.9 * r.face
 		r.fire.scale.x = 0.9 + sin(tm * 50.0) * 0.3
-		r.fire.material_override = mat(A if r.rocket > 0.0 else C)
-		r.rope.visible = r.hooked
-		if r.hooked:
-			var a := r.p + Vector2(0, HH * 0.6)
-			var d := r.hook - a
-			r.rope.position = Vector3(a.x + d.x * 0.5, a.y + d.y * 0.5, 0)
-			r.rope.rotation.z = atan2(d.y, d.x)
-			r.rope.scale = Vector3(d.length(), 0.07, 0.07)
-		var ln := clampf((spd - 11.5) * 0.6, 0.0, 4.0)
+		var ln := clampf((spd - 10.0) * 0.6, 0.0, 4.0)
 		for k in 3:
 			var s3 := r.streaks[k]
 			s3.visible = ln > 0.1
@@ -1288,25 +1014,36 @@ func _draw_all(_dt: float) -> void:
 				s3.material_override = mat(B if r.slip else WHITE)
 				s3.scale = Vector3(ln * (1.0 - k * 0.2), 0.07, 0.07)
 				s3.position = Vector3(r.p.x - r.face * (HW + 0.3 + ln * 0.5 + k * 0.2), r.p.y + 0.25 + k * 0.35, 0.5)
-		for k in 3:
+		for k in r.pips.size():
 			var q := r.pips[k]
 			q.visible = k < r.wins
-			q.position = Vector3(r.p.x - 0.3 + k * 0.3, r.p.y + HH + 0.55, 0)
+			q.position = Vector3(r.p.x - 0.15 + k * 0.3, r.p.y + HH + 0.55, 0)
 	marker.visible = pl.alive
 	marker.position = Vector3(pl.p.x, pl.p.y + HH + 1.1 + sin(tm * 5.0) * 0.12, 0)
-	# 내가 걸 수 있는 고리
-	var ti := _hook_target(pl) if pl.alive and not pl.hooked else -1
-	if ti != target_hook:
-		if target_hook >= 0 and target_hook < hook_nodes.size():
-			hook_nodes[target_hook].material_override = mat(INK)
-			hook_nodes[target_hook].scale = Vector3(0.55, 0.55, 0.55)
-		if ti >= 0:
-			hook_nodes[ti].material_override = mat(GOOD)
-			hook_nodes[ti].scale = Vector3(0.9, 0.9, 0.9)
-		target_hook = ti
+	# 흐르는 바닥 눈금 (뒤로 흐른다)
+	for fl in flows:
+		var w: float = fl.w
+		var x0: float = fl.x0
+		var marks: Array = fl.marks
+		if absf(x0 - camx) > hwv + w + 4.0:
+			continue
+		for m in marks.size():
+			var mk: Node3D = marks[m]
+			mk.position.x = x0 + 0.4 + fposmod(w * m / 3.0 - tm * FLOW, w - 0.8)
+	var k2 := (CAM_D - 1.6) / CAM_D
+	# 정전: 1등 바로 앞부터 화면 오른쪽 끝까지 가린다
+	var lead := _leader()
+	curtain.visible = dark_on and phase == "race" and lead != null
+	if curtain.visible:
+		var l := camx + (lead.p.x + 1.2 - camx) * k2
+		var rgt := camx + (hwv + 1.0) * k2
+		if rgt > l:
+			curtain.position = Vector3((l + rgt) * 0.5, camy, 1.6)
+			curtain.scale = Vector3(rgt - l, vhv * 2.2, 0.2)
+		else:
+			curtain.visible = false
 	# 왼쪽 화면 끝 경고 띠
 	var ed := pl.p.x - (camx - hwv)
-	var k2 := (CAM_D - 1.6) / CAM_D
 	edge_strip.visible = phase == "race" and pl.alive and ed < 4.0 and (ed > 2.0 or fmod(tm, 0.16) < 0.1)
 	edge_strip.position = Vector3(camx - hwv * k2 + 0.18, camy, 1.6)
 	edge_strip.scale = Vector3(0.35 + maxf(0.0, 4.0 - ed) * 0.1, vhv * 2.0, 0.2)

@@ -1,0 +1,79 @@
+{
+ "ratings": [
+  {
+   "ua": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+   "stars": 1,
+   "score": 97,
+   "ts": "2026-10-30T05:52:11.241Z",
+   "ver": "2026-10-30 6ffb428",
+   "game": "shockwave",
+   "text": "뻔함",
+   "_id": "EEYR8uDhYyUZaZGpmJKl",
+   "_created": "2026-10-30T05:52:11.273287Z"
+  },
+  {
+   "text": "양산형 게임같은데 재미가 있음. 스킬은 버튼으로 주고 방향전환, 추락, 진행에 따른 시점전환된 지역 등 플레이 방식 자체가 다채로워지는 콘텐츠를 추가해서 게임 강화해줘",
+   "ver": "2026-10-30 6ffb428",
+   "score": 1985,
+   "stars": 5,
+   "game": "boulder",
+   "ts": "2026-10-30T05:44:38.500Z",
+   "ua": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+   "_id": "GjxzhAQL14cV8Zo3Ylx6",
+   "_created": "2026-10-30T05:44:38.526667Z"
+  },
+  {
+   "ts": "2026-10-30T05:49:11.171Z",
+   "ver": "2026-10-30 6ffb428",
+   "ua": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+   "text": "콘텐츠 늘려봐",
+   "game": "rain_slow",
+   "stars": 4,
+   "score": 1,
+   "_id": "MBiXvDQxJC30XnkaeCeY",
+   "_created": "2026-10-30T05:49:11.213761Z"
+  },
+  {
+   "ua": "feedback-check",
+   "game": "_test",
+   "ver": "rules-check",
+   "stars": 5,
+   "score": 0,
+   "text": "규칙 확인용",
+   "_id": "SQAIK4ZqHEh7vyuha8Vk",
+   "_created": "2026-10-30T05:34:17.495831Z"
+  },
+  {
+   "game": "screenrace",
+   "text": "갈고리 실효성 없음. 재밌는데 표절같음 한번 확인해주셈. 표절아니면 이거 강화해볼만함.",
+   "ua": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+   "ver": "2026-10-30 6ffb428",
+   "stars": 4,
+   "score": 20,
+   "ts": "2026-10-30T05:47:25.283Z",
+   "_id": "XGv8WoYpLy3A4yHipqZM",
+   "_created": "2026-10-30T05:47:25.337212Z"
+  },
+  {
+   "ts": "2026-10-30T05:59:46.468Z",
+   "stars": 1,
+   "score": 30,
+   "ver": "2026-10-30 6ffb428",
+   "ua": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+   "text": "사이클마다 달라지는게 없음",
+   "game": "rain_coming",
+   "_id": "twm0jnu0oikHoEGIlr4M",
+   "_created": "2026-10-30T05:59:46.515358Z"
+  }
+ ],
+ "ideas": [
+  {
+   "ua": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+   "ver": "2026-10-30 6ffb428",
+   "text": "활공 게임 뻔하고 재미없음",
+   "ts": "2026-10-30T05:53:09.955Z",
+   "_id": "4PAp4zkrIIHwUmCvsUWF",
+   "_created": "2026-10-30T05:53:09.992111Z"
+  }
+ ]
+}

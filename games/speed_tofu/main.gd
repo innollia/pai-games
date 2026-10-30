@@ -38,6 +38,12 @@ const GAMES := [
 	["taiji_speed", "◆ 흘러가는 퍼즐 판"],
 	["tinyplanet", "◆ 작은 행성 (등뒤)"],
 	["bombcrawl", "◆ 폭탄 애벌레 (옆모습)"],
+	# 3세대 (유전 알고리즘: 평가 적합도 + Codex 아이디어 + 교배)
+	["scale_prison", "▲ 저울 감옥 (옆모습)"],
+	["compress", "▲ 압축 스프링 (옆모습)"],
+	["magnet", "▲ 자석의 망명 (등뒤)"],
+	["stretch_roll", "▲ 늘어나는 돌"],
+	["loud_race", "▲ 시끄러운 1등 (옆모습)"],
 ]
 # 탈락 (보존). 메뉴의 "탈락 게임 모음" 폴더 안에서만 보인다
 const DROPPED := [
