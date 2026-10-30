@@ -11,8 +11,9 @@ Parcels are your shield and your weight: carry more and you run slower and jump 
 
 Each course plays differently: flowing riverbanks, a railway crossing with a train coming at you, blackouts in the night market, a rope bridge that cracks under heavy runners, rooftops with no walls. Between rounds pick the next route — low gate, ice slide or headwind — and your parcels and rank carry over.
 
-Modes: Classic, and Night Lantern (the leader holds the only light; run too fast and it shakes).
-<!-- 콘텐츠 작업(v7)이 끝나면 새 구간·모드·결과 화면을 여기 반영 -->
+New spots flip the answer: scales launch heavy runners up, updrafts lift light ones, trapdoors break under heavy feet, shutters slam on whoever leads. Right after you learn one, it is mixed with an older one.
+
+Three modes: Classic; Night Lantern (the leader holds the only light — run too fast and it shakes); Overspeed (drop to 2 parcels or fewer for ceiling boosts and wall bounces). Finish all six courses and the final delivery, earn gold/silver/bronze per course, and beat your best delivery record.
 
 Theme: Speed — speed wins the race but costs you: the leader can't see ahead, and the fastest way to go faster is to throw away the parcels that keep you alive.
 
@@ -24,8 +25,7 @@ Joystick left/right to run, JUMP button, PARCEL button (drop one for a burst). P
 # Tools used / AI disclosure
 Made by 핸섬가이즈 with AI tools.
 Tools used: Godot, Claude (Anthropic), Codex (OpenAI), GPT image generation (OpenAI), Blender.
-Code, planning and text were developed with Claude and Codex. Character/prop textures and course backdrops were generated with OpenAI image generation and applied to low-poly models made in Blender. Sound effects are synthesized by code; no generated audio files. UI font: Pretendard.
-<!-- 그림 작업 결과에 맞춰 도구 목록 확정 -->
+Code, planning and text were developed with Claude and Codex. Character and prop textures were painted with OpenAI image generation onto low-poly models built in Blender (texture3d pipeline); course backdrops are OpenAI-generated paintings. Sound effects are synthesized by code; no generated audio files. UI font: Pretendard.
 
 # Page settings
 Kind: HTML (embed 720×1280, mobile friendly, orientation: portrait, fullscreen button on). Classification: Games. Genre: Racing. Visibility: Public (set at submission time). Comments: enabled.
