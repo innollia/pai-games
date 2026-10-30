@@ -1,6 +1,6 @@
 extends Tofu
-## 늘어나는 돌 v3: 신전 돌이 저절로 구른다. 파랑=빨라야(납작) 지남, 주황=느려야(둥글게) 지남, 꼭대기 등이 초록이면 지금 몸으로 지난다. 둥근 채 파랑에 박히면 뒤로 튕겨 도움닫기부터 다시. 빠를수록 납작한 원반(낮고 좁고 길게), 느릴수록 둥근 공. 버튼 = 세우기(급제동). 끌기의 뜻·시점이 구역마다 바뀐다. 깃발을 지나면 죽어도 거기서 다시.
-## 1 등뒤 신전길: 끌기=방향(손 떼면 길을 따라감). 아치는 납작해야, 커브는 둥글어야, 다리 바람은 원반을 날린다. 2 옆모습 수로: 끌기=기울이기, 물은 원반만 튕기고 턱은 공만 넘는다. 3 위에서 광장: 바람 띠 사이로 낮은 문에. 4 추락: 원반은 멀리 활강, 세우면 공이 되어 뚝(너무 높으면 깨짐). 5 1인칭 성문 터널: 오르내리는 창살 밑을 몸 높이로 통과.
+## 늘어나는 돌 v4(옆모습 없앰 - 수로도 등뒤에서, 끌기 위아래=앞뒤 기울이기): 신전 돌이 저절로 구른다. 파랑=빨라야(납작) 지남, 주황=느려야(둥글게) 지남, 꼭대기 등이 초록이면 지금 몸으로 지난다. 둥근 채 파랑에 박히면 뒤로 튕겨 도움닫기부터 다시. 빠를수록 납작한 원반(낮고 좁고 길게), 느릴수록 둥근 공. 버튼 = 세우기(급제동). 끌기의 뜻·시점이 구역마다 바뀐다(옆모습 시점은 없다). 깃발을 지나면 죽어도 거기서 다시.
+## 1 등뒤 신전길: 끌기=방향(손 떼면 길을 따라감). 아치는 납작해야, 커브는 둥글어야, 다리 바람은 원반을 날린다. 2 등뒤 수로: 위로 끌기=앞으로 기울여 가속, 아래로=뒤로 기울여 감속. 물(물가 파랑 줄)은 원반만 튕기고 턱은 공만 넘는다(턱 양옆 등). 3 위에서 광장: 바람 띠 사이로 낮은 문에. 4 추락: 원반은 멀리 활강, 세우면 공이 되어 뚝(너무 높으면 깨짐). 5 1인칭 성문 터널: 오르내리는 창살 밑을 몸 높이로 통과(끌기는 수로와 같은 위아래 기울이기).
 # 한 문장: 나는 신전에서 풀려난 돌로서 빠를수록 납작한 원반이 되는 몸으로 굴러 신전 밖으로 탈출하지만, 빨라질수록 꺾이지 않고 바람에 날리며 턱에 걸리는 대가를 감수한다.
 
 const STONE := Color("efe1c4")
@@ -54,7 +54,7 @@ const N1 := [
 const BRIDGE_SEG := 7
 const ARCH_Z := [-75.0, -212.0, -224.0, -455.0]
 const CORNER_Z := [-128.0, -250.0]  # 노란 띠(둥글게) 표시
-# 구역 2 수로 (옆모습): [수로 안 거리, 높이]. 같은 거리가 두 번이면 턱.
+# 구역 2 수로 (등뒤): [수로 안 거리, 높이]. 같은 거리가 두 번이면 턱.
 const K2 := [
 	[0.0, -5.0], [40.0, -13.0], [50.0, -13.4], [66.0, -13.8], [90.0, -16.0], [90.0, -15.1],
 	[100.0, -15.3], [145.0, -22.0], [176.0, -24.0], [184.0, -24.6], [204.0, -25.2],
@@ -99,7 +99,7 @@ const CPS := [
 	[2, 0.0, Z2 - 2.0, 20.0], [3, 0.0, Z3 - 2.0, 16.0], [4, GATE_X, ZEND - 1.0, 23.0], [5, 0.0, Z5 - 2.0, 18.0], [5, 0.0, Z5 - 140.0, 18.0],
 ]
 const SKY := ["d8eeff", "d8eeff", "c5f6fa", "fff3bf", "d0ebff", "e5dbff"]
-const ZNAME := ["", "등뒤: 신전길", "옆모습: 수로", "위에서: 광장", "추락: 떠 있는 섬", "1인칭: 성문 터널"]
+const ZNAME := ["", "등뒤: 신전길", "등뒤: 수로", "위에서: 광장", "추락: 떠 있는 섬", "1인칭: 성문 터널"]
 
 
 class Pot:
@@ -165,6 +165,8 @@ var won := false
 var clock := 0.0
 var drag_x := 0.0
 var press_x := 0.0
+var drag_y := 0.0
+var press_y := 0.0
 var roll_ph := 0.0
 var roll_acc := 0.0
 var was_flat := false
@@ -183,7 +185,8 @@ var cp_bonus := 0
 
 
 func _setup() -> void:
-	howto = "돌은 저절로 구른다. 빠를수록 납작한 원반, 느릴수록 둥근 공.\n파랑(아치·관·문)은 빨라야(납작), 주황(커브·턱)은 느려야(둥글게) 지난다. 꼭대기 등이 초록이면 지금 몸으로 지난다.\n끌기: 방향(손 떼면 길을 따라감, 옆모습·터널에선 앞뒤 기울이기). 세우기: 급제동.\n1.5초 넘게 느리거나 떨어지면 끝. 깃발부터 다시."
+	howto = "돌은 저절로 구른다. 빠를수록 납작한 원반, 느릴수록 둥근 공.\n파랑(아치·관·문)은 빨라야(납작), 주황(커브·턱)은 느려야(둥글게) 지난다. 꼭대기 등이 초록이면 지금 몸으로 지난다.\n끌기: 방향(손 떼면 길을 따라감).
+수로·터널: 위로 끌면 앞으로 기울여 빨라지고, 아래로 끌면 느려진다. 세우기: 급제동.\n1.5초 넘게 느리거나 떨어지면 끝. 깃발부터 다시."
 	time_limit = 0.0
 	kit_button("brake", "세우기", Vector2(600, 1110), 100.0, A)
 	for k in 2:
@@ -591,6 +594,8 @@ func _build2() -> void:
 		var a := float(pl[0])
 		var b := float(pl[1])
 		bx(Vector3(0, float(pl[2]) - 3.0, Z2 - (a + b) * 0.5), Vector3(7.0, 6.0, b - a), WATER)
+		# 물가: 파랑 줄 = 빠르고 납작해야 물수제비
+		bx(Vector3(0, _p2(a) + 0.05, Z2 - a + 0.4), Vector3(7.0, 0.12, 0.8), B)
 	for pp: Array in PIPES:
 		var a := float(pp[0])
 		var b := float(pp[1])
@@ -598,19 +603,20 @@ func _build2() -> void:
 		_lamp(Vector3(0, _p2(a) + CLEAR + 3.6, Z2 - a), Vector3(7.2, 1.2, 1.2), 0)
 	for st: float in STEPS:
 		bx(Vector3(0, _p2(st) - STEP_H * 0.5, Z2 - st + 0.15), Vector3(7.2, STEP_H, 0.3), A)
-		_lamp(Vector3(-4.5, _p2(st) + 4.6, Z2 - st), Vector3(1.4, 1.4, 1.4), 1)
+		for sd: float in [-1.0, 1.0]:  # 턱 양옆 기둥 + 등 (등뒤에서 앞으로 보인다)
+			bx(Vector3(sd * 4.3, _p2(st) + 1.6, Z2 - st), Vector3(0.6, 3.2, 0.6), A)
+			_lamp(Vector3(sd * 4.3, _p2(st) + 3.8, Z2 - st), Vector3(1.4, 1.2, 1.2), 1)
 	var dd := 0.0
-	while dd < 380.0:
+	var sk := 0
+	while dd < 380.0:  # 양쪽 흰 말뚝 = 속도 기준물
 		if _pool(dd) < 0:
-			bx(Vector3(-4.5, _p2(dd) + 2.0, Z2 - dd), Vector3(0.6, 4.0, 0.6), WHITE)
-		dd += 12.0
-	# 먼 수도교 실루엣 (옆모습 배경)
-	var ad := 0.0
-	while ad < 400.0:
-		var hy := _p2(minf(ad, 379.0))
-		bx(Vector3(-45.0, hy + 4.0, Z2 - ad), Vector3(4.0, 30.0, 4.0), Color("99e9f2"))
-		bx(Vector3(-45.0, hy + 19.0, Z2 - ad - 15.0), Vector3(3.0, 2.0, 34.0), Color("99e9f2"))
-		ad += 34.0
+			bx(Vector3(-4.5 if sk % 2 == 0 else 4.5, _p2(dd) + 1.2, Z2 - dd), Vector3(0.5, 2.4, 0.5), WHITE)
+		dd += 8.0
+		sk += 1
+	# 아래 바다와 먼 언덕 (등뒤에서 보는 배경)
+	bx(Vector3(0, -70.0, Z2 - 200.0), Vector3(320, 1, 480), WATER)
+	for h: Array in [[-90.0, -80.0, HILL], [100.0, -170.0, LILAC], [-110.0, -280.0, LILAC], [90.0, -360.0, HILL]]:
+		bx(Vector3(float(h[0]), -40.0, Z2 + float(h[1])), Vector3(50, 60, 50), h[2])
 
 
 func _build3() -> void:
@@ -707,6 +713,7 @@ func _build5() -> void:
 		bx(Vector3(sd * 4.6, _p5(L5 * 0.5) + 3.5, Z5 - L5 * 0.5), Vector3(0.4, 9.0, L5 + 20.0), Color("eebefa"))
 	for st: float in STEPS5:
 		bx(Vector3(0, _p5(st) - STEP_H * 0.5, Z5 - st + 0.15), Vector3(7.2, STEP_H, 0.3), A)
+		_lamp(Vector3(0, _p5(st) + 6.4, Z5 - st), Vector3(6.0, 0.5, 0.5), 1)  # 턱 위 등: 지금 넘는가
 	for g: Array in GATES5:
 		var gz := Z5 - float(g[0])
 		var gy := _p5(float(g[0]))
@@ -793,8 +800,8 @@ func _step(dt: float) -> void:
 		hd_goal = hd
 		px = lerpf(px, 0.0, minf(1.0, dt * 5.0))
 		lat_v = 0.0
-		if held:
-			var ln := clampf((drag_x - press_x) / 160.0, -1.0, 1.0)
+		if held:  # 위로 끌기 = 앞으로 기울이기
+			var ln := clampf((press_y - drag_y) / 160.0, -1.0, 1.0)
 			lean_acc = ln * (3.0 if ln > 0.0 else 5.0)
 	else:
 		if not held:  # 손 떼면 길(섬) 쪽으로 천천히 돈다
@@ -957,7 +964,8 @@ func _tips() -> void:
 		elif pz < float(N1[BRIDGE_SEG][1]) + 6.0 and pz > float(N1[BRIDGE_SEG][1]) - 10.0:
 			_tip("bridge", "바람 다리: 둥글게 버텨")
 	elif zone == 2 and Z2 - pz > 30.0:
-		_tip("lean", "끌기 = 앞뒤 기울이기")
+		_tip("lean", "위로 끌기 = 앞으로(빨리)
+아래로 = 뒤로(느리게)")
 	elif zone == 4 and ZEND - pz > 3.0:
 		_tip("fall", "원반=멀리, 세우면 뚝\n노란 섬엔 꽂아라")
 	elif zone == 5 and Z5 - pz > 8.0:
@@ -1282,15 +1290,15 @@ func _place(dt: float) -> void:
 			look = Vector3(ap.x, ay, ap.y).lerp(P + f3 * la, 0.3)
 			fov = clampf(58.0 + v * 0.6, 58.0, 90.0)
 		2:
-			# 옆모습: 빠를수록 물러나고, 돌은 화면 왼쪽에 두어 앞(오른쪽)을 넓게
-			var dist2 := 18.0 + v * 0.35
-			fov = 50.0 + v * 0.3
-			var ah2 := 0.3 * 2.0 * dist2 * tan(deg_to_rad(fov * 0.5))
-			want = P + Vector3(dist2, 3.5, -ah2)
-			look = P + Vector3(0, 0.6, -ah2)
+			# 등뒤 수로: 구역 1처럼 뒤 위에서, 빠를수록 멀리 앞(물·관·턱)을 본다
+			var la2 := 16.0 + v * 0.8
+			var dl := minf(Z2 - pz + la2, 380.0)
+			want = P + Vector3(0, 4.5 + bh + v * 0.1, 9.0 + v * 0.22)
+			look = Vector3(0, _p2(dl), Z2 - dl).lerp(P + Vector3(0, 0, -la2), 0.3)
+			fov = clampf(58.0 + v * 0.6, 58.0, 90.0)
 		3:
 			want = P + Vector3(0, 30.0 + v * 0.45, 6.0)
-			look = P + Vector3(0, 0, -(8.0 + v * 0.5))
+			look = P + Vector3(0, 0, -(12.0 + v * 0.6))  # 앞을 조금 더 넓게
 			fov = 50.0
 		4:
 			want = P + Vector3(0, 13.0, 13.0)
@@ -1316,17 +1324,22 @@ func _place(dt: float) -> void:
 func _tap(p: Vector2) -> void:
 	drag_x = p.x
 	press_x = p.x
+	drag_y = p.y
+	press_y = p.y
 
 
 func _drag(p: Vector2) -> void:
 	if zone != 2 and zone != 5:
 		hd_goal -= (p.x - drag_x) * STEER
 	drag_x = p.x
+	drag_y = p.y
 
 
 func _lift(p: Vector2) -> void:
 	drag_x = p.x
 	press_x = p.x
+	drag_y = p.y
+	press_y = p.y
 
 
 func play(nm: String) -> void:
