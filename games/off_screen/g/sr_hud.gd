@@ -284,9 +284,12 @@ func _draw_rail(c: Control) -> void:
 	for m in _mbs:
 		var mx := RAIL_X0 + (RAIL_X1 - RAIL_X0) * float(m.x)
 		var full := float(m.y) > 0.5
+		var gold := float(m.y) < -0.5  # 빈 금색 우체통 (배달 x3)
 		var mr := Rect2(Vector2(mx - 5.0, y + 9.0), Vector2(10.0, 9.0))
+		if gold:
+			mr = mr.grow(2.0)
 		c.draw_rect(mr.grow(1.5), T.WHITE)
-		c.draw_rect(mr, T.KRAFT_SH if full else T.RED)
+		c.draw_rect(mr, T.KRAFT_SH if full else (T.GOLD if gold else T.RED))
 		c.draw_line(Vector2(mx, y + 18.0), Vector2(mx, y + 23.0), T.NAVY, 2.0)
 	# 결승 깃발 (이긴 판은 머리 위 표시와 판 끝 도장이 맡는다: 막대는 진행·순서만)
 	var fx := RAIL_X1 + 22.0

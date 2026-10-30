@@ -13,7 +13,8 @@ const OVER_A := 1.5
 const FRICTION := 35.0
 const MAX_FALL := 26.0
 const PAD_V := 23.0
-const DASH_V := 16.0
+const DASH_V := 32.0  # v13: 사용자가 실험판(대시 x2)에서 골랐다
+const RUSH_DASH := 40.0  # 과속 모드 가벼울 때 대시 (기본 대시가 32가 돼 과속은 40으로 한 단계 위)
 const DASH_T := 0.25
 const HW := 0.4
 const HH := 1.2
@@ -29,8 +30,12 @@ const BX0 := -60.0
 const BK := 6.0
 const WIDE := 12.5  # 짐이 다 있을 때 화면 반폭
 const NARROW := 5.5  # 짐이 다 없어지면 이만큼
-const LOAD0 := 4  # 판마다 출발 짐 (v12: 배달할 짐이 넉넉해야 우체통 다툼이 생긴다)
-const LOAD_MAX := 5
+const LOAD0 := 8  # 판마다 출발 짐 (v13: 실험판 짐 x2를 사용자가 골랐다, 4 -> 8)
+const LOAD_MAX := 10
+const HEAVY_N := 6  # 무거운 쪽 규칙 (저울 위로): 짐 이만큼 이상 (v12 3 -> v13 6, 출발 짐 두 배)
+const LIGHT_N := 4  # 가벼운 쪽 규칙 (상승풍·과속 가속): 짐 이만큼 이하 (v12 2 -> v13 4)
+const PACK_K := 0.85  # 등 짐 더미 크기 (두 줄로 쌓는다, 최대 10개)
+const MEDAL_GOT := 6  # 금메달: 2판 안에 이기고 이 코스에서 이만큼 배달 (v12 4 -> v13 6)
 const LOAD_SLOW := 0.06  # 짐 하나당 최고 속도 감소
 const LOAD_JUMP := 0.035  # 짐 하나당 점프 감소
 const FLOW := 5.5  # 흐르는 바닥 속도 (뒤로)
@@ -46,19 +51,19 @@ const TRAIN_V := 21.0  # 기차 속도 (왼쪽으로)
 const TRAIN_L := 7.0
 const TRAIN_H := 2.0
 const TRENCH := 3.2  # 선로 도랑 깊이
-const BREAK_W := 3.0  # 이 무게 이상이면 다리 판이 무너진다
+const BREAK_W := 6.0  # 이 무게 이상이면 다리 판이 무너진다 (v13: 짐 두 배라 3 -> 6)
 const BREAK_T := 0.42  # 금 간 판이 떨어지기까지
 const BOARD := Color("E3BA88")
 const CRACK := Color("E85244")
-const GATE_MAX := 2  # 낮은 문: 짐 이만큼까지만 지나간다
+const GATE_MAX := 4  # 낮은 문: 짐 이만큼까지만 지나간다 (v13: 2 -> 4)
 const GATE_H := 1.6
 const ICE := Color("B1C9E1")  # BLUE lightened 0.6
 const WIND_C := Color("77A0CB")  # BLUE lightened 0.3
 const WIND_K := 0.45  # 맞바람에 깎이는 최고 속도 (가벼울 때)
 # 판 변주: 구간 이름 -> [버튼 이름, 설명]
-const TWISTS := {"gate": ["낮은 문", "짐 2개까지만 지나간다"], "slide": ["얼음 내리막", "못 멈춘다, 무거울수록 빠르다"],
+const TWISTS := {"gate": ["낮은 문", "짐 4개까지만 지나간다"], "slide": ["얼음 내리막", "못 멈춘다, 무거울수록 빠르다"],
 	"wind": ["맞바람", "뒤에 붙으면 바람이 없다"]}
-const TWISTS_EN := {"gate": ["Low Gate", "only 2 boxes or fewer fit"], "slide": ["Ice Slope", "no stopping, heavier is faster"],
+const TWISTS_EN := {"gate": ["Low Gate", "only 4 boxes or fewer fit"], "slide": ["Ice Slope", "no stopping, heavier is faster"],
 	"wind": ["Headwind", "tuck in behind and it's calm"]}
 # 밤 등불 모드
 const NIGHT_SKY := Color("3D4156")  # NIGHT lightened 0.15
@@ -71,9 +76,9 @@ const ZF := 1.5  # 안개 막
 const FOG_N := 6
 const EDGE_N := 8
 const MODES := {"base": "기본", "lantern": "밤 등불", "over": "과속 배달"}
-const MODE_RULES := {"base": "우체통에 짐을 넣어라 · 1등은 앞이 안 보인다", "lantern": "빛 안의 우체통만 보인다 · 빛에 붙어라", "over": "짐 2개 이하: 천장 가속 / 벽 반동"}
+const MODE_RULES := {"base": "우체통에 짐을 넣어라 · 1등은 앞이 안 보인다", "lantern": "빛 안의 우체통만 보인다 · 빛에 붙어라", "over": "짐 4개 이하: 천장 가속 / 벽 반동"}
 const MODES_EN := {"base": "Classic", "lantern": "Lantern", "over": "Rush"}
-const MODE_RULES_EN := {"base": "post boxes in mailboxes · the leader can't see ahead", "lantern": "mailboxes show only in the light", "over": "≤2 boxes: ceiling boost / wall bounce"}
+const MODE_RULES_EN := {"base": "post boxes in mailboxes · the leader can't see ahead", "lantern": "mailboxes show only in the light", "over": "≤4 boxes: ceiling boost / wall bounce"}
 const RECORDS := "user://screenrace_v12.cfg"  # v12: 배달 규칙이 바뀌어 기록·연습 완료를 새로 센다
 const SrFront = preload("res://g/sr_front.gd")
 const SrMenus = preload("res://g/sr_menus.gd")
@@ -90,16 +95,16 @@ const SEG_RULES := {
 	"crates": "상자 경사: 뛰어넘으면 빠르다",
 	"river": "흐르는 바닥: 무거우면 덜 밀린다",
 	"track": "위 승강장 / 아래는 기차가 온다",
-	"bridge": "짐 3개 이상: 밟은 판이 무너진다",
-	"gate": "낮은 문: 짐 2개 이하만 통과",
+	"bridge": "짐 6개 이상: 밟은 판이 무너진다",
+	"gate": "낮은 문: 짐 4개 이하만 통과",
 	"slide": "얼음: 무거울수록 빠르고 못 멈춘다",
 	"wind": "맞바람: 앞사람 뒤에 붙어라",
 	"roofgap": "지붕 틈: 점프를 끝까지 눌러라",
 	"longgap": "먼 틈: 짐을 버리고 점프",
-	"ballast": "저울: 짐 3개면 위로 / 가벼우면 아래",
-	"updraft": "상승풍: 짐 2개 이하면 위로 뜬다",
+	"ballast": "저울: 짐 6개 이상 위로 / 가벼우면 아래",
+	"updraft": "상승풍: 짐 4개 이하면 위로 뜬다",
 	"shutter": "차단문: 선두가 닿으면 잠깐 뒤 열림",
-	"dropfloor": "낙하마루: 짐 3개로 잠깐 밟아 아래로",
+	"dropfloor": "낙하마루: 짐 6개로 잠깐 밟아 아래로",
 	"ballast_mix": "응용: 무거운 저울 위로 / 아래는 강물",
 	"updraft_mix": "응용: 가볍게 떠서 낮은 문 통과",
 	"shutter_mix": "응용: 맞바람 속 차단문은 뒤에 붙기",
@@ -112,16 +117,16 @@ const SEG_RULES_EN := {
 	"crates": "Crate slope: jump over to stay fast",
 	"river": "Moving floor: heavy loads drift less",
 	"track": "Platform above / trains come below",
-	"bridge": "3+ boxes: planks you step on fall",
-	"gate": "Low gate: 2 boxes or fewer only",
+	"bridge": "6+ boxes: planks you step on fall",
+	"gate": "Low gate: 4 boxes or fewer only",
 	"slide": "Ice: heavier is faster, no stopping",
 	"wind": "Headwind: tuck in behind someone",
 	"roofgap": "Roof gap: hold jump all the way",
 	"longgap": "Long gap: drop a box, then jump",
-	"ballast": "Scale: 3 boxes go up / light goes down",
-	"updraft": "Updraft: 2 boxes or fewer float up",
+	"ballast": "Scale: 6+ boxes go up / light goes down",
+	"updraft": "Updraft: 4 boxes or fewer float up",
 	"shutter": "Shutter: opens just after the leader",
-	"dropfloor": "Trapdoor: stand on it with 3 boxes",
+	"dropfloor": "Trapdoor: stand on it with 6 boxes",
 	"ballast_mix": "Combo: heavy up the scale / river below",
 	"updraft_mix": "Combo: float light through the low gate",
 	"shutter_mix": "Combo: headwind shutter, stay behind",
@@ -157,7 +162,7 @@ const COURSES := [
 		"gnd": Color("EBCFAC"), "top": Color("E85244"), "wall": Color("BA8E5C"),
 		"bld": [Color("F8CBC7"), Color("FDE8C3"), Color("F4E3CF")],
 		"segs": ["flat", "wall", "pit", "crates", "stairs", "awning", "wall", "pit"]},
-	{"name": "흔들다리", "rule": "bridge", "say": "짐 3개 이상이면 밟은 판이 무너진다",
+	{"name": "흔들다리", "rule": "bridge", "say": "짐 6개 이상이면 밟은 판이 무너진다",
 		"sky": Color("F7F5EE"), "far": Color("AAD4B6"),
 		"gnd": Color("F1DCC3"), "top": Color("6BB37F"), "wall": Color("2B9348"),
 		"bld": [Color("BFDFC8"), Color("F4E3CF"), Color("FDE8C3")],
@@ -174,7 +179,7 @@ const COURSES_EN := [
 	["Riverside", "The floor flows: heavy loads drift less"],
 	["Crossing", "Tracks below are fast. Trains come from ahead"],
 	["Night Market", "Blackouts: when it's dark, nobody sees ahead"],
-	["Rope Bridge", "3+ boxes and the planks you step on fall"],
+	["Rope Bridge", "6+ boxes and the planks you step on fall"],
 	["Rooftops", "No walls: drop a box to clear long gaps"]]
 const NICKS_EN := ["Me", "Red", "Mint", "Gold"]
 # Delivery stamps
@@ -212,12 +217,24 @@ const MB_R := 1.3  # 우체통에서 이만큼 안이면 짐 버튼 = 배달
 const BACK_T := 0.6  # 왼쪽 끝 밖으로 밀리면 이만큼 뒤 왼쪽 끝에서 다시 들어온다
 const BACK_IMM := 1.0  # 다시 들어온 뒤 무적 (깜빡임)
 const LAST_CALL := 3.0  # 첫 도착 뒤 마감까지
-const WALL_W := 34.0  # 화면 양옆 짐 벽 두께 (px). 벽 안쪽 면 = 진짜 떨어지는 끝
+const WALL_W := 56.0  # 화면 양옆 짐 벽 두께 (px). 벽 안쪽 면 = 진짜 떨어지는 끝 (v13: 34 -> 56, 폰에서 잘 안 보였다)
 const BRICK_H := 60.0
 const BRICK_GAP := 5.0
 const WALL_POPS := 10
 const MB_FREE := Color("E85244")
 const MB_FULL := Color("6E7391")  # 찬 우체통: 잿빛 남색 (골판지 땅·건물과 섞이지 않게)
+# v13 따라잡기 (뒤처지면 확정 패배 + 판이 안 끝나던 것)
+const CATCH_MAX := 0.25  # 선두보다 반 화면(hwv) 넘게 뒤면 최고 속도 +25%, 가속은 +50% (붙어 있으면 0)
+const CATCH_NEAR := 2.0  # 이만큼 안이면 보너스 없음
+const GOLD_VAL := 3  # 결승 앞 금색 우체통 하나 = 배달 3개
+const MB_GOLD := Color("F7B336")
+const FAR_SCREENS := 2.0  # 선두보다 화면 이만큼 넘게 뒤에서
+const FAR_T := 4.0  # 이만큼 있으면 왼쪽 끝으로 다시 들어온다
+const DECIDE_T := 1.0  # 승부가 정해지면 이만큼 뒤 판 끝 (도장을 읽을 틈)
+const ROUND_CAP := 120.0  # 안전 마감: 코스 길이 420 기준 이 초가 지나면 LAST CALL
+# run_loop (courier_*.glb, 24fps 16프레임 0.042..0.708 s): 다리가 모이는 때 / 가장 벌어진 때
+const ANIM_NEUTRAL := [0.042, 0.375]
+const ANIM_STRIDE := [0.208, 0.542]
 
 
 ## One screen-space overlay for speed lines, the torn page edge and floating numbers.
@@ -332,6 +349,13 @@ class Courier:
 	var fin := -1  # 결승 도착 순서 (0 = 처음)
 	var mb_seen := -1  # 경쟁자: 마지막으로 판단한 우체통
 	var mb_go := false
+	# v13 따라잡기·달리기 그림
+	var catch := 0.0  # 선두와 멀수록 붙는 최고 속도 보너스 (0 .. CATCH_MAX x tn("catchup"))
+	var gift := false  # 빈손으로 다시 들어와 돌려받은 짐 하나를 들고 있다 (반송되면 땅에 안 흘린다)
+	var far_t := 0.0  # 선두보다 화면 둘 넘게 뒤에 있은 시간
+	var anim: AnimationPlayer  # 모델의 run_loop (팔다리만 움직인다; 기울기·찌그러짐은 r.node 가 맡는다)
+	var anim_t := 0.0  # run_loop 안의 시간 (손으로 돌린다)
+	var anim_len := 0.0
 
 
 var ci := 0  # 코스
@@ -493,6 +517,35 @@ var wall_n := PackedInt32Array([0, 0, 0, 0])
 var wall_add := PackedFloat32Array([0, 0, 0, 0])  # 새 벽돌 튀어 들어오기 남은 시간
 var wall_pops: Array[Dictionary] = []  # 빠져나가는 벽돌 {on, p, v, rot, col, age}
 var kit_live := true  # stick + jump/box answer touches (false on title and menus)
+var end_t := -1.0  # >= 0: 모두 배달 / 승부 결정 도장 뒤 판 끝까지 남은 시간
+
+
+## 경제 실험판(screenrace_t_*.gd)이 바꾸는 배수. 비어 있으면 원래 게임
+var tune := {}
+
+
+func tn(k: String) -> float:
+	return float(tune.get(k, 1.0))
+
+
+func _load0() -> int:
+	return maxi(1, roundi(LOAD0 * tn("load")))
+
+
+func _load_max() -> int:
+	return maxi(1, roundi(LOAD_MAX * tn("load")))
+
+
+func _wide() -> float:
+	return WIDE * tn("view")
+
+
+func _narrow() -> float:
+	return NARROW * tn("view")
+
+
+func _mb_r() -> float:
+	return MB_R * tn("mb_r")
 
 
 func L(ko: String, en: String) -> String:
@@ -807,7 +860,7 @@ func _opening() -> bool:
 
 
 func _overpowered(r: Courier) -> bool:
-	return mode == "over" and r == pl and r.cargo <= 2 and not _opening()
+	return mode == "over" and r == pl and r.cargo <= LIGHT_N and not _opening()
 
 
 func _sign(x: float, y: float, ko: String, en: String, rule := "") -> void:
@@ -842,13 +895,13 @@ func _mechanisms(dt: float) -> void:
 		for r in runners:
 			if not r.alive or r.p.x < m.x0 or r.p.x > m.x1:
 				continue
-			if m.type == "ballast" and r.grounded and r.cargo >= 3 and absf(r.p.y - m.y) < 0.6:
+			if m.type == "ballast" and r.grounded and r.cargo >= HEAVY_N and absf(r.p.y - m.y) < 0.6:
 				r.v.y = 24.0
 				r.v.x = maxf(r.v.x, 8.5)
 				r.grounded = false
 				r.cut = true
 				_sfx("spring", r)
-			elif m.type == "updraft" and r.cargo <= 2 and r.p.y >= m.y - 0.1 and r.p.y < m.y + 4.8:
+			elif m.type == "updraft" and r.cargo <= LIGHT_N and r.p.y >= m.y - 0.1 and r.p.y < m.y + 4.8:
 				r.v.y = 18.0
 				r.grounded = false
 				r.cut = true
@@ -870,7 +923,7 @@ func _update_content_hud() -> void:
 		route_l.text = "%s\n%s: %s\n%s: %s" % [L("특전 고르기", "Pick a perk"), _perk(perk_offer[0]), _perk_say(perk_offer[0]), _perk(perk_offer[1]), _perk_say(perk_offer[1])]
 		return
 	if phase == "route":
-		route_l.text = "%s\n%s: %s\n%s: %s" % [L("다음 길? 내 짐 %d", "Next road? You carry %d") % (LOAD0 + load_bonus), _tw(route_offer[0], 0), _tw(route_offer[0], 1), _tw(route_offer[1], 0), _tw(route_offer[1], 1)]
+		route_l.text = "%s\n%s: %s\n%s: %s" % [L("다음 길? 내 짐 %d", "Next road? You carry %d") % (_load0() + load_bonus), _tw(route_offer[0], 0), _tw(route_offer[0], 1), _tw(route_offer[1], 0), _tw(route_offer[1], 1)]
 		return
 	if _opening():
 		# no text in the race: a skipper is taught by the torn edge itself (forced warning pulse, _fx_tick)
@@ -893,8 +946,8 @@ func _update_content_hud() -> void:
 
 
 func _record_course() -> void:
-	# 메달 = 배달: 금 = 2판 안에 이기고 이 코스에서 4개 이상 배달, 은 = 3판 안, 동 = 코스 통과
-	var medal := 3 if rnd <= 2 and course_got >= 4 else (2 if rnd <= 3 else 1)
+	# 메달 = 배달: 금 = 2판 안에 이기고 이 코스에서 MEDAL_GOT개 이상 배달, 은 = 3판 안, 동 = 코스 통과
+	var medal := 3 if rnd <= 2 and course_got >= MEDAL_GOT else (2 if rnd <= 3 else 1)
 	var row := {"ci": ci, "medal": medal, "time": course_time, "cargo": course_got}
 	course_results.append(row)
 	var key := "%s_%d" % [mode, ci]
@@ -942,9 +995,9 @@ func _finish(won: bool) -> void:
 			best_cargo = row.cargo
 			strongest = _cname(row.ci)
 	var best_time := float(records.get_value(mode, "time", 0.0))
-	var hint := L("다음엔 짐 3개로 저울 위 지름길!", "Next: take the scale shortcut with 3 boxes!")
+	var hint := L("다음엔 짐 6개로 저울 위 지름길!", "Next: take the scale shortcut with 6 boxes!")
 	if mode == "base":
-		hint = L("다음엔 과속 배달: 짐 2개로 천장 가속!", "Next: try Rush, ceiling boost with 2 boxes!")
+		hint = L("다음엔 과속 배달: 짐 4개로 천장 가속!", "Next: try Rush, ceiling boost with 4 boxes!")
 	elif mode == "over":
 		hint = L("다음엔 밤 등불: 선두의 빛에 붙어라!", "Next: try Lantern, stick to the leader's light!")
 	var medals := [0, 0, 0, 0, 0, 0]
@@ -953,10 +1006,10 @@ func _finish(won: bool) -> void:
 	var names := []
 	for i in COURSES.size():
 		names.append(_cname(i))
-	var res_f := L("%s · %d위\n배달한 짐 %d개 · 달린 시간 %.1f초\n최고 코스: %s\n%s\n로컬 최다 배달 %d개%s\n완주 최고 %s\n%s\n금: 2판 안에 승리 + 배달 4개\n은: 3판 안 / 동: 코스 완주\n별점 아래 빈 곳을 탭하면 다시 배달",
-		"%s · #%d\nDelivered %d · Time %.1fs\nBest course: %s\n%s\nMost delivered here: %d%s\nBest finish: %s\n%s\nGold: win in 2 rounds + 4 delivered\nSilver: in 3 rounds / Bronze: finish\nTap the empty space below the stars to go again")
+	var res_f := L("%s · %d위\n배달한 짐 %d개 · 달린 시간 %.1f초\n최고 코스: %s\n%s\n로컬 최다 배달 %d개%s\n완주 최고 %s\n%s\n금: 2판 안에 승리 + 배달 %d개\n은: 3판 안 / 동: 코스 완주\n별점 아래 빈 곳을 탭하면 다시 배달",
+		"%s · #%d\nDelivered %d · Time %.1fs\nBest course: %s\n%s\nMost delivered here: %d%s\nBest finish: %s\n%s\nGold: win in 2 rounds + %d delivered\nSilver: in 3 rounds / Bronze: finish\nTap the empty space below the stars to go again")
 	var best_s := (L("%.1f초", "%.1fs") % best_time) if best_time > 0.0 else L("도전 중", "not yet")
-	result_l.text = res_f % [L("여섯 동네 배달 완료!", "All six towns delivered!") if won else L("오늘 배달은 여기까지", "That's it for today"), placement, delivered, journey_time, strongest, rows, best_delivery, L(" · 새 기록!", " · New record!") if delivered > previous else "", best_s, hint]
+	result_l.text = res_f % [L("여섯 동네 배달 완료!", "All six towns delivered!") if won else L("오늘 배달은 여기까지", "That's it for today"), placement, delivered, journey_time, strongest, rows, best_delivery, L(" · 새 기록!", " · New record!") if delivered > previous else "", best_s, MEDAL_GOT, hint]
 	if not saved:
 		result_l.text += L("\n기록 저장 안 됨", "\nRecord not saved")
 	result_l.visible = false
@@ -1109,6 +1162,14 @@ func _setup() -> void:
 	cam.keep_aspect = Camera3D.KEEP_WIDTH
 	var layer := CanvasLayer.new()
 	add_child(layer)
+	if not tune.is_empty():  # 경제 실험판 표시 (오른쪽 아래 작게, 모든 화면 위)
+		var tl := CanvasLayer.new()
+		tl.layer = 40
+		add_child(tl)
+		var t := _label(tl, 22, 1240, 36)
+		t.text = "TEST " + ", ".join(tune.keys().map(func(k): return "%s x%s" % [k, str(tune[k])]))
+		t.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		t.size.x = 700
 	mode_l = _label(layer, 28, 130, 64)
 	route_l = _label(layer, 30, 250, 160)
 	result_l = _label(layer, 30, 240, 570)
@@ -1203,7 +1264,7 @@ func _reset() -> void:
 		runners.append(r)
 	pl = runners[0]
 	parcels.clear()
-	for i in 18:
+	for i in 28:  # v13: 짐이 두 배라 땅에 떨어진 짐도 많다
 		var n := box(Vector3(0, -50, 0), Vector3(0.6, 0.5, 0.6), PARCEL)
 		if _art_model("parcel", n, Vector3(0, -0.5, 0), 1.0):
 			n.mesh = null
@@ -1308,7 +1369,22 @@ func _make_body(r: Courier) -> void:
 			var nd: Node = pending.pop_back()
 			if nd is GeometryInstance3D:
 				r.meshes.append(nd as GeometryInstance3D)
+			elif nd is AnimationPlayer and r.anim == null:
+				r.anim = nd as AnimationPlayer
 			pending.append_array(nd.get_children())
+		# 달리기: run_loop 을 반복으로 두고 시간은 _anim_tick 이 손으로 돌린다 (주자마다 박자를 어긋나게)
+		# Godot 가져오기(이름 접미사 켬)는 "run_loop" 을 반복 애니메이션 "run" 으로 바꿔 둔다: 둘 다 찾는다
+		var an_name := "run_loop" if r.anim and r.anim.has_animation("run_loop") else "run"
+		if r.anim and r.anim.has_animation(an_name):
+			var an := r.anim.get_animation(an_name)
+			an.loop_mode = Animation.LOOP_LINEAR
+			r.anim_len = an.length
+			r.anim.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
+			r.anim.play(an_name)
+			r.anim_t = fposmod(0.19 * runners.size() + 0.05, r.anim_len)
+			r.anim.seek(r.anim_t, true)
+		else:
+			r.anim = null
 	else:
 		r.meshes.append(box(Vector3.ZERO, Vector3(HW * 2.0, HH * 0.75, 0.8), r.col, r.node))
 		r.meshes.append(box(Vector3(0, 0.63, 0), Vector3(0.42, 0.36, 0.5), SOFT, r.node))
@@ -1318,10 +1394,11 @@ func _make_body(r: Courier) -> void:
 		g.material_override = _fx_mat(r.col.lightened(0.15), 0.4 - k * 0.11)
 		g.visible = false
 		r.ghosts.append(g)
-	for k in LOAD_MAX + 1:
+	for k in _load_max() + 1:
 		var q := box(Vector3(-0.5, -0.2 + k * 0.4, 0), Vector3(0.5, 0.38, 0.6) * VIS_K, PARCEL, r.node)
 		if _art_model("parcel", q, Vector3(0, -0.5, 0), 1.0):
 			q.mesh = null
+		q.scale *= PACK_K  # 짐이 8~10개: 두 줄 더미라 조금 작게
 		q.visible = false
 		r.packs.append(q)
 	r.fire = box(Vector3(-0.9, 0, 0), Vector3(0.9, 0.35, 0.35), C, r.node)
@@ -1687,8 +1764,8 @@ func _seg(s: String) -> void:
 			gates.append(dx)
 			for z in [-1.3, 1.3]:
 				_vbox(Vector3(dx, fy + GATE_H * 0.5, z), Vector3(0.3, GATE_H, 0.3), INK)
-			for k in GATE_MAX:  # 간판: 짐 두 개 그림
-				_vbox(Vector3(dx + 0.9 + k * 0.75, fy + GATE_H + 0.55, 1.35), Vector3(0.55, 0.45, 0.2), PARCEL)
+			for k in GATE_MAX:  # 간판: 짐 GATE_MAX개 그림 (두 줄, 문 지붕 앞면 안에)
+				_vbox(Vector3(dx + 1.0 + (k % 2) * 0.7, fy + GATE_H + 0.45 + (k / 2) * 0.5, 1.35), Vector3(0.55, 0.4, 0.2), PARCEL)
 			spots.append(Vector2(gx + 13.0, fy))  # 문 뒤 짐 하나: 다시 주울지
 			gx += 15.0
 		"slide":  # 얼음 내리막: 못 멈추고, 무거울수록 빨리 미끄러진다. 끝은 구덩이
@@ -1853,7 +1930,14 @@ func _place_mailboxes() -> void:
 		return
 	var x0 := 24.0
 	var x1 := goal_x - 8.0
-	var want := gen.randi_range(7, 9)
+	# v13: 결승 조금 앞 금색 우체통 하나 = 배달 GOLD_VAL개 (뒤처진 사람의 마지막 기회). 먼저 자리를 잡는다
+	for k in 50:
+		var gxx := goal_x - 7.0 - float(k)
+		var gy := _mb_spot(gxx)
+		if gy > -1.0e8:
+			_add_mailbox(gxx, gy, true)
+			break
+	var want := maxi(1, roundi(gen.randi_range(7, 9) * tn("mail")))
 	var step := (x1 - x0) / float(want)
 	var offs := [0.0, 2.0, -2.0, 4.0, -4.0, 6.0, -6.0, 8.0, -8.0, 11.0, -11.0, 14.0]
 	for k in want:
@@ -1866,7 +1950,7 @@ func _place_mailboxes() -> void:
 				break
 	# 평평한 곳이 모자란 코스: 앞에서부터 더 찾아 6개는 채운다
 	var sx := x0
-	while mailboxes.size() < 6 and sx < x1:
+	while mailboxes.size() < mini(6, want) and sx < x1:
 		var sy := _mb_spot(sx)
 		if sy > -1.0e8:
 			_add_mailbox(sx, sy)
@@ -1909,16 +1993,30 @@ func _mb_spot(x: float) -> float:
 
 
 ## 종이 우체통: 남색 기둥 + 빨간 몸통 + 둥근 지붕 띠 + 투입구 + 옆 깃발 (배달되면 깃발이 서고 몸통이 골판지색).
-func _add_mailbox(x: float, y: float) -> void:
+func _add_mailbox(x: float, y: float, gold := false) -> void:
 	if y < -50.0:
 		return
 	var n := Node3D.new()
 	stage.add_child(n)
 	n.position = Vector3(x, y, -0.75)
-	n.scale = Vector3.ONE * 1.25  # 폰 화면에서 배달부만큼 크게
+	n.scale = Vector3.ONE * (1.4 if gold else 1.25)  # 폰 화면에서 배달부만큼 크게 (금색은 조금 더)
+	var col := MB_GOLD if gold else MB_FREE
 	box(Vector3(0, 0.5, 0), Vector3(0.16, 1.0, 0.16), P_NAVY, n)
-	var body := box(Vector3(0, 1.42, 0), Vector3(1.1, 0.86, 0.7), MB_FREE, n)
-	var top := box(Vector3(0, 1.9, 0), Vector3(1.18, 0.16, 0.76), MB_FREE.lightened(0.3), n)
+	var body := box(Vector3(0, 1.42, 0), Vector3(1.1, 0.86, 0.7), col, n)
+	var top := box(Vector3(0, 1.9, 0), Vector3(1.18, 0.16, 0.76), col.lightened(0.3), n)
+	if gold:
+		# 작은 "x3" 표: 지붕 위 막대에 꽂힌 크림 종이 (배달되면 짐이 그 아래 지붕에 꽂힌다)
+		box(Vector3(-0.45, 2.35, 0), Vector3(0.06, 0.9, 0.06), P_NAVY, n)
+		box(Vector3(-0.45, 2.62, 0.02), Vector3(0.62, 0.42, 0.05), P_CREAM, n)
+		var tag := Label3D.new()
+		tag.font = _font
+		tag.text = L("x%d" % GOLD_VAL, "x%d" % GOLD_VAL)
+		tag.font_size = 64
+		tag.pixel_size = 0.0055
+		tag.outline_size = 0
+		tag.modulate = P_NAVY
+		tag.position = Vector3(-0.45, 2.62, 0.06)
+		n.add_child(tag)
 	box(Vector3(0, 1.6, 0.36), Vector3(0.62, 0.1, 0.02), P_NAVY, n)
 	box(Vector3(0, 1.28, 0.36), Vector3(0.5, 0.26, 0.02), P_CREAM, n)  # 흰 주소 딱지
 	var flag := Node3D.new()
@@ -1932,7 +2030,7 @@ func _add_mailbox(x: float, y: float) -> void:
 		pc.mesh = null
 	pc.visible = false
 	mailboxes.append({"x": x, "y": y, "full": false, "owner": null, "node": n, "body": body, "top": top,
-		"flag": flag, "cloth": cloth, "parcel": pc, "t": 0.0})
+		"flag": flag, "cloth": cloth, "parcel": pc, "t": 0.0, "val": GOLD_VAL if gold else 1, "col": col})
 
 
 func _mb_reset() -> void:
@@ -1940,8 +2038,9 @@ func _mb_reset() -> void:
 		mb.full = false
 		mb.owner = null
 		mb.t = 0.0
-		(mb.body as MeshInstance3D).material_override = mat(MB_FREE)
-		(mb.top as MeshInstance3D).material_override = mat(MB_FREE.lightened(0.3))
+		var col: Color = mb.col
+		(mb.body as MeshInstance3D).material_override = mat(col)
+		(mb.top as MeshInstance3D).material_override = mat(col.lightened(0.3))
 		(mb.cloth as MeshInstance3D).material_override = mat(P_GOLD)
 		(mb.flag as Node3D).rotation.z = -PI * 0.5
 		(mb.parcel as Node3D).visible = false
@@ -1951,7 +2050,7 @@ func _mb_reset() -> void:
 func _mb_at(r: Courier) -> int:
 	for i in mailboxes.size():
 		var mb: Dictionary = mailboxes[i]
-		if not mb.full and absf(float(mb.x) - r.p.x) < MB_R and r.p.y - float(mb.y) > -0.6 and r.p.y - float(mb.y) < 2.2:
+		if not mb.full and absf(float(mb.x) - r.p.x) < _mb_r() and r.p.y - float(mb.y) > -0.6 and r.p.y - float(mb.y) < 2.2:
 			return i
 	return -1
 
@@ -1962,8 +2061,9 @@ func _deliver(r: Courier) -> bool:
 	if i < 0:
 		return false
 	var mb: Dictionary = mailboxes[i]
+	var val: int = mb.val
 	r.cargo -= 1
-	r.got += 1
+	r.got += val
 	r.drop_cd = 0.35
 	mb.full = true
 	mb.owner = r
@@ -1976,17 +2076,26 @@ func _deliver(r: Courier) -> bool:
 	pc.scale = Vector3.ONE * 0.2
 	_burst(Vector3(float(mb.x), float(mb.y) + 2.0, 0.4), 4, P_GREEN)
 	r.sq = 0.25
+	if val > 1:
+		_burst(Vector3(float(mb.x), float(mb.y) + 2.4, 0.4), 4, P_GOLD)
+	var plus := "+%d" % val
 	if r == pl:
-		delivered += 1
-		course_got += 1
-		score += 20
-		_stamp("배달 완료", "DELIVERED", ST_GOOD, pl)
-		pop_num(r, "+1", P_GREEN)
+		delivered += val
+		course_got += val
+		score += 20 * val
+		if val > 1:
+			_stamp("배달 완료 x%d" % val, "DELIVERED x%d" % val, ST_GOOD, pl)
+		else:
+			_stamp("배달 완료", "DELIVERED", ST_GOOD, pl)
+		pop_num(r, plus, P_GREEN)
 		_sfx("delivered", null, -4.0)
 		_sfx("stamp", null, -6.0)
 	elif absf(r.p.x - camx) < hwv:
-		pop_num(r, "+1", P_GREEN)
-		_stamp("%s 배달" % r.nick, "%s DELIVERED" % r.nick_en.to_upper(), ST_INK, r, 0.6)
+		pop_num(r, plus, P_GREEN)
+		if val > 1:
+			_stamp("%s 배달 x%d" % [r.nick, val], "%s DELIVERED x%d" % [r.nick_en.to_upper(), val], ST_INK, r, 0.6)
+		else:
+			_stamp("%s 배달" % r.nick, "%s DELIVERED" % r.nick_en.to_upper(), ST_INK, r, 0.6)
 		_sfx("stamp", r, -4.0)
 	return true
 
@@ -2015,7 +2124,7 @@ func mailbox_marks() -> Array:
 	var x0 := -2.0
 	var span := maxf(goal_x - x0, 1.0)
 	for mb in mailboxes:
-		out.append(Vector2(clampf((float(mb.x) - x0) / span, 0.0, 1.0), 1.0 if mb.full else 0.0))
+		out.append(Vector2(clampf((float(mb.x) - x0) / span, 0.0, 1.0), 1.0 if mb.full else (-1.0 if int(mb.val) > 1 else 0.0)))
 	return out
 
 
@@ -2052,12 +2161,15 @@ func _start_round() -> void:
 		r.v = Vector2.ZERO
 		r.alive = true
 		# v12: 판마다 짐을 새로 받는다 (배달할 짐이 넉넉해야 우체통 다툼이 생긴다)
-		r.cargo = LOAD0 + (0 if r.ai else load_bonus)
+		r.cargo = _load0() + (0 if r.ai else load_bonus)
 		r.got = 0
 		r.back_t = 0.0
 		r.fin = -1
 		r.mb_seen = -1
 		r.mb_go = false
+		r.catch = 0.0
+		r.gift = false
+		r.far_t = 0.0
 		r.stun = 0.0
 		r.dash = 0.0
 		r.drop_cd = 0.0
@@ -2115,6 +2227,7 @@ func _start_round() -> void:
 		_put_parcel(spots[i], null)
 	_mb_reset()
 	last_call = -1.0
+	end_t = -1.0
 	fin_n = 0
 	for i in 4:
 		wall_n[i] = runners[i].cargo if _in_play(runners[i]) else 0
@@ -2222,6 +2335,7 @@ func _race(dt: float) -> void:
 	pl.i_drop = kit_just("drop")
 	if cdef.rule == "dark" and mode != "lantern":
 		_dark(dt)
+	_catchup(dt)
 	for r in runners:
 		if r.alive and r.ai:
 			_ai(r, dt)
@@ -2272,8 +2386,23 @@ func _race(dt: float) -> void:
 		if r.fin >= 0 and r.p.x > goal_x + 26.0:
 			r.p.x = goal_x + 26.0  # 결승 뒤 마당 끝에서 멈춘다
 			r.v.x = minf(r.v.x, 0.0)
-	if last_call < 0.0 and (fin_n > 0 or rt > 240.0):
-		last_call = LAST_CALL
+	# v13: 우체통이 다 찼거나 승부가 정해지면 바로 판을 끝낸다 (뒤에서 못 이기는 판을 끝까지 달리지 않게)
+	if end_t < 0.0:
+		var why := _round_decided()
+		if why > 0:
+			end_t = DECIDE_T
+			if why == 1:
+				_stamp("모두 배달", "ALL DELIVERED", ST_INK, null, 1.0)
+			else:
+				_stamp("승부 결정", "ROUND DECIDED", ST_INK, null, 1.0)
+			_sfx("bell", null, -4.0)
+	else:
+		end_t -= dt
+		if end_t <= 0.0:
+			_round_over(_deliv_order()[0])
+			return
+	if last_call < 0.0 and (fin_n > 0 or rt > _round_cap()):
+		last_call = LAST_CALL * tn("last")
 		_stamp("마감 임박", "LAST CALL", ST_BAD, null, 1.2)
 		_sfx("bell")
 	elif last_call >= 0.0:
@@ -2512,7 +2641,9 @@ func _out(r: Courier, ko: String, en: String) -> void:
 ## 반송 (v12): 탈락 대신 짐 하나를 땅에 흘리고 (lose_box), 몸은 종이 밖으로 굴러 나갔다가 BACK_T 뒤 왼쪽 끝에서 다시 들어온다.
 func _send_back(r: Courier, ko: String, en: String, edge: bool) -> void:
 	var had := r.cargo > 0
-	if had:
+	if had and r.gift and r.cargo == 1:
+		r.cargo = 0  # 돌려받은 짐은 땅에 흘리지 않는다 (가만히 서서 짐을 계속 만들어 내지 못하게)
+	elif had:
 		r.cargo -= 1
 		# 흘린 짐: 화면 왼쪽 끝 조금 안쪽 땅에 놓인다 (뒤따르던 사람이 주울 수 있다, 본인은 잠깐 못 줍는다)
 		var px := camx - hwv + 2.6
@@ -2560,6 +2691,12 @@ func _reenter(r: Courier) -> void:
 	r.node.scale = Vector3.ONE
 	r.vis_dx = -1.2  # slides in from behind the parcel wall
 	r.mb_seen = -1
+	# v13 반송은 하나를 돌려준다: 빈손으로 다시 들어오면 짐 하나 (늘 다시 배달할 수 있다)
+	if r.cargo <= 0 and phase == "race":
+		r.cargo = 1
+		r.gift = true
+		if r == pl:
+			pop_num(r, "+1", P_GREEN)
 	_probe(r)
 	_dust_emit(Vector3(x - 0.4, y + 1.0, 0.6), Vector3(2.5, 2.0, 1.0), P_CREAM)
 	_dust_emit(Vector3(x - 0.4, y + 0.4, 0.6), Vector3(3.0, 1.2, 1.0), P_PARCEL)
@@ -2568,10 +2705,65 @@ func _reenter(r: Courier) -> void:
 		_sfx("land", null, -6.0)
 
 
+## 안전 마감 (v13): 코스 길이에 맞춘 시간이 지나면 아무도 결승에 못 닿아도 LAST CALL (판이 안 끝나는 일이 없게)
+func _round_cap() -> float:
+	return ROUND_CAP * clampf(goal_x / 420.0, 1.0, 1.8)
+
+
+## 0 = 아직, 1 = 우체통이 모두 찼다, 2 = 승부가 정해졌다: 배달 1등을 누구도 못 따라잡는다
+## (남은 빈 우체통 값을 혼자 다 가져가도). 화면 왼쪽 끝 뒤 우체통은 다시 못 가니 남은 값에서 뺀다.
+func _round_decided() -> int:
+	if _opening():
+		return 0
+	var any_free := false
+	var free_v := 0
+	var left := camx - hwv
+	for mb in mailboxes:
+		if mb.full:
+			continue
+		any_free = true
+		if float(mb.x) > left - 0.5:
+			free_v += int(mb.val)
+	if not any_free:
+		return 1
+	var o := _deliv_order()
+	var top: int = o[0].got
+	if top <= 0:
+		return 0
+	for k in range(1, o.size()):
+		if int(o[k].got) + free_v >= top:
+			return 0
+	return 2
+
+
+## 따라잡기 (v13): 선두보다 뒤일수록 최고 속도 보너스 (CATCH_NEAR 안이면 0, 반 화면 = hwv 뒤면 CATCH_MAX).
+## 화면 둘 넘게 뒤에서 FAR_T 넘게 있으면 왼쪽 끝으로 다시 들어온다 (늘 화면 안에서 다툰다).
+func _catchup(dt: float) -> void:
+	var ld := _leader()
+	for r in runners:
+		r.catch = 0.0
+		if not r.alive or ld == null or r == ld or r.fin >= 0 or _opening():
+			r.far_t = 0.0
+			continue
+		var behind := ld.p.x - r.p.x
+		r.catch = clampf((behind - CATCH_NEAR) / maxf(hwv - CATCH_NEAR, 1.0), 0.0, 1.0) * CATCH_MAX * tn("catchup")
+		if behind > hwv * 2.0 * FAR_SCREENS:
+			r.far_t += dt
+			if r.far_t > FAR_T:
+				r.far_t = 0.0
+				r.poof.visible = true
+				r.poof_t = 0.5
+				r.poof.position = Vector3(r.p.x, r.p.y + 1.0, 0.5)
+				_reenter(r)
+		else:
+			r.far_t = 0.0
+
+
 func _round_over(w: Courier) -> void:
 	phase = "roundend"
 	pt = 1.8
 	last_call = -1.0
+	end_t = -1.0
 	curtain.visible = false
 	for r in runners:
 		if not r.alive and r.back_t > 0.0:
@@ -2629,7 +2821,7 @@ func _after_round() -> void:
 	routes.shuffle()
 	route_offer = routes.slice(0, 2)
 	phase = "route"
-	menus.show_routes(route_offer, LOAD0 + load_bonus)  # v12: 다음 판은 짐을 새로 받는다
+	menus.show_routes(route_offer, _load0() + load_bonus)  # v12: 다음 판은 짐을 새로 받는다
 
 
 func _pick_route(n: String) -> void:
@@ -2677,7 +2869,8 @@ func _weight(r: Courier) -> float:
 
 
 func _top(r: Courier) -> float:
-	var top := RUN_MAX * (r.skill if r.ai else spd_mul) * (1.0 - LOAD_SLOW * _weight(r))
+	var top := RUN_MAX * tn("speed") * (r.skill if r.ai else spd_mul) * (1.0 - LOAD_SLOW * tn("weight") * _weight(r))
+	top *= 1.0 + r.catch  # v13 따라잡기: 뒤처질수록 빠르다
 	if r.slip:
 		top *= 1.0 + 0.12 * (1.0 if r.ai else slip_mul)
 	elif _in_wind(r):  # 맞바람: 무거우면 덜 밀린다, 앞사람 뒤(바람 타기)면 바람이 없다
@@ -2693,7 +2886,7 @@ func _in_wind(r: Courier) -> bool:
 
 
 func _jump_v(r: Courier) -> float:
-	return (24.0 if _overpowered(r) else JUMP_V) * (1.0 if r.ai else jump_mul) * (1.0 - LOAD_JUMP * _weight(r))
+	return (24.0 if _overpowered(r) else JUMP_V) * (1.0 if r.ai else jump_mul) * (1.0 - LOAD_JUMP * tn("weight") * _weight(r))
 
 
 func _runner(r: Courier, dt: float) -> void:
@@ -2728,7 +2921,7 @@ func _runner(r: Courier, dt: float) -> void:
 		r.v.y *= 0.5
 		r.cut = true
 	var ice := r.grounded and r.sup == 5
-	var acc := (GROUND_ACC if r.grounded else AIR_ACC) * (1.3 if r.slip else 1.0) * (0.2 if ice else 1.0)
+	var acc := (GROUND_ACC if r.grounded else AIR_ACC) * (1.3 if r.slip else 1.0) * (0.2 if ice else 1.0) * (1.0 + 2.0 * r.catch)
 	if absf(mx) > 0.15:
 		var want := mx * top
 		if signf(r.v.x) != signf(mx) or absf(r.v.x) < absf(want):
@@ -2744,7 +2937,7 @@ func _runner(r: Courier, dt: float) -> void:
 			r.v.x = minf(r.v.x + (4.0 + 1.8 * _weight(r)) * dt, cap)
 	if r.dash > 0.0:
 		r.dash -= dt
-		r.v.x = maxf(r.v.x, 32.0 if _overpowered(r) else DASH_V)
+		r.v.x = maxf(r.v.x, RUSH_DASH if _overpowered(r) else DASH_V * tn("dash"))
 	if r.grounded and up > 0.0:  # 오르막: 딱 멈추지 않고 경사·짐만큼 깎인다
 		r.v.x = move_toward(r.v.x, 0.0, RAMP_DRAG * up * (1.0 + 0.2 * _weight(r)) * dt)
 	r.v.y = maxf(r.v.y - GRAV * dt, -MAX_FALL)
@@ -2766,7 +2959,7 @@ func _runner(r: Courier, dt: float) -> void:
 		_land_fx(r, vy0)
 	r.sq = move_toward(r.sq, 0.0, dt * 2.5)
 	if r.grounded and r.sup == 1:
-		r.v.y = PAD_V * (1.0 - LOAD_JUMP * _weight(r))
+		r.v.y = PAD_V * (1.0 - LOAD_JUMP * tn("weight") * _weight(r))
 		r.grounded = false
 		r.cut = true
 		_sfx("spring", r)
@@ -2779,10 +2972,10 @@ func _drop(r: Courier) -> void:
 	r.cargo -= 1
 	r.drop_cd = 0.4
 	r.dash = DASH_T
-	r.v.x = maxf(r.v.x, 32.0 if _overpowered(r) else DASH_V)
+	r.v.x = maxf(r.v.x, RUSH_DASH if _overpowered(r) else DASH_V * tn("dash"))
 	var x := r.p.x - r.face * 1.2
 	var y := _floor_top(x, r.p.y + 0.5)
-	var from := Vector3(r.p.x - r.face * 0.5, r.p.y + 0.6 + r.cargo * 0.4, 0.0)
+	var from := Vector3(r.p.x - r.face * 0.5, r.p.y + 0.6 + ceili(r.cargo / 2.0) * 0.4 * PACK_K, 0.0)
 	if y > r.p.y - 6.0:
 		_put_parcel(Vector2(x, y), r)
 		if not last_put.is_empty():  # the dropped box flies back spinning to where it lands
@@ -3001,10 +3194,11 @@ func _pickups() -> void:
 		for r in runners:
 			if not r.alive or (r == pc.owner and pc.cd > 0.0):
 				continue
-			if r.cargo >= LOAD_MAX + (0 if r.ai else load_bonus):
+			if r.cargo >= _load_max() + (0 if r.ai else load_bonus):
 				continue
 			if absf(r.p.x - cp.x) < 0.8 and r.p.y - cp.y > -0.6 and r.p.y - cp.y < HH:
 				r.cargo += 1
+				r.gift = false
 				pc.on = false
 				(pc.node as Node3D).visible = false
 				_sfx("pickup", r)
@@ -3086,14 +3280,14 @@ func _ai(r: Courier, dt: float) -> void:
 		for i in mailboxes.size():
 			var mb: Dictionary = mailboxes[i]
 			var d: float = float(mb.x) - r.p.x
-			if not mb.full and d > -MB_R and d < 6.0:
+			if not mb.full and d > -_mb_r() and d < 6.0:
 				mi = i
 				break
 		if mi >= 0:
 			var mb: Dictionary = mailboxes[mi]
 			if r.mb_seen != mi:
 				r.mb_seen = mi
-				var p := 0.55 + 2.0 * (r.skill - 0.93)  # 기술만큼 (0.5 ~ 0.75)
+				var p := minf((0.55 + 2.0 * (r.skill - 0.93)) * tn("ai"), 0.98)  # 기술만큼 (0.5 ~ 0.75), 실험판 배수
 				var fast := clampf((absf(r.v.x) - RUN_MAX * 0.7) / (RUN_MAX * 0.4), 0.0, 1.0)
 				if _leader() == r:
 					p -= 0.35 * fast + 0.1
@@ -3103,13 +3297,15 @@ func _ai(r: Courier, dt: float) -> void:
 					p = 0.12  # 안개 속 우체통은 거의 못 본다
 				if dark_on:
 					p -= 0.25
+				if int(mb.val) > 1:
+					p += 0.35  # 금색 우체통 (x3): 경쟁자도 노린다
 				r.mb_go = randf() < clampf(p, 0.05, 0.9)
 			if r.mb_go:
 				aim = true
 				var dx: float = float(mb.x) - r.p.x
 				if dx > 0.4:
 					r.mx = minf(r.mx, clampf(dx / 4.5, 0.3, 1.0))  # 다가가며 늦춘다
-				if absf(dx) < MB_R * 0.8 and r.drop_cd <= 0.0:
+				if absf(dx) < _mb_r() * 0.8 and r.drop_cd <= 0.0:
 					r.i_drop = true  # 배달 (_runner -> _deliver)
 	r.think -= dt
 	if r.think > 0.0:
@@ -3169,7 +3365,7 @@ func _want_w() -> float:
 	for r in runners:
 		if _in_play(r):
 			all += r.cargo
-	return lerpf(NARROW, WIDE, clampf(float(all) / float(LOAD0 * 4), 0.0, 1.0))
+	return lerpf(_narrow(), _wide(), clampf(float(all) / float(_load0() * 4), 0.0, 1.0))
 
 
 func _camera(dt: float) -> void:
@@ -3270,7 +3466,10 @@ func _draw_all() -> void:
 		var spd := absf(r.v.x)
 		# run cycle bob + forward lean by speed; idle breathing when nearly stopped
 		var run_k := clampf(spd / 8.0, 0.0, 1.0)
-		if r.grounded and spd > 1.0:
+		if r.anim:
+			_anim_tick(r, spd, fdt)
+			r.run_ph = (r.anim_t - float(ANIM_NEUTRAL[0])) / maxf(r.anim_len, 0.01) * TAU  # bob/sway follow the steps
+		elif r.grounded and spd > 1.0:
 			r.run_ph += fdt * (6.0 + spd * 0.9)
 		var bob := absf(sin(r.run_ph)) * 0.1 * run_k if r.grounded and spd > 1.0 else 0.0
 		var sq := r.sq
@@ -3300,13 +3499,16 @@ func _draw_all() -> void:
 			r.sway = clampf(r.sway + r.sway_v * fdt, -0.22, 0.22)
 			r.jig_v += (-160.0 * r.jig - 11.0 * r.jig_v) * fdt
 			r.jig = clampf(r.jig + r.jig_v * fdt, -0.3, 0.3)
+		# v13: 짐 최대 10개 = 두 줄 더미 (등 쪽 줄부터, 한 층에 둘). 줄이 바뀌지 않게 늘 같은 배치
 		for k in r.packs.size():
 			var q := r.packs[k]
 			q.visible = k < r.cargo
 			if q.visible:
-				var hk := float(k + 1)
-				q.position.x = -0.5 * VIS_K * r.face + r.sway * hk * 0.45
-				q.position.y = -0.12 + k * 0.4 * VIS_K * (1.0 + r.jig)
+				var row := k / 2
+				var hk := float(row + 1)
+				q.position.x = -(0.5 + 0.44 * float(k % 2)) * VIS_K * r.face + r.sway * hk * 0.45
+				q.position.y = -0.12 + row * 0.4 * VIS_K * PACK_K * (1.0 + r.jig)
+				q.position.z = -0.04 * float(k % 2)
 				q.rotation.z = -r.sway * hk * 0.5
 		# dash afterimages
 		r.trail = maxf(r.trail - fdt, 0.0)
@@ -3335,11 +3537,16 @@ func _draw_all() -> void:
 		r.fire.position.x = -1.1 * r.face
 		r.fire.scale.x = 0.9 + sin(tm * 50.0) * 0.3
 		var ln := clampf((spd - 10.0) * 0.6, 0.0, 4.0)
+		# 따라잡기 바람: 뒤처진 주자 뒤에 짧은 금빛 줄 (보너스만큼 길게)
+		var ck := clampf(r.catch / CATCH_MAX, 0.0, 1.5) if phase == "race" and spd > 3.0 else 0.0
+		var catching := ck > 0.25 and ln < ck * 1.6
+		if catching:
+			ln = ck * 1.6
 		for k in 3:
 			var s3 := r.streaks[k]
 			s3.visible = ln > 0.1
 			if s3.visible:
-				s3.material_override = mat(B if r.slip else WHITE)
+				s3.material_override = mat(B if r.slip else (MB_GOLD if catching else WHITE))
 				s3.scale = Vector3(ln * (1.0 - k * 0.2), 0.07, 0.07)
 				s3.position = _fz(r.p.x - r.face * (HW + 0.3 + ln * 0.5 + k * 0.2), r.p.y + 0.25 + k * 0.35, 0.5)
 		for k in r.pips.size():
@@ -3349,10 +3556,10 @@ func _draw_all() -> void:
 	marker.visible = pl.alive and MARKER_PHASES.has(phase)
 	if marker.visible:
 		# box() keeps the mesh size in scale: keep the 0.36 base so it stays ~30 px at any view width
-		var mk := maxf(0.36 * (hwv / NARROW) * 0.8, 0.6)
+		var mk := maxf(0.36 * (hwv / _narrow()) * 0.8, 0.6)
 		marker.scale = Vector3(mk, mk, 0.05)
 		# just above the head / top box of the stack (whichever is higher), never floating among posts
-		var stack_top := 0.33 + 0.4 * VIS_K * pl.cargo
+		var stack_top := 0.33 + 0.4 * VIS_K * PACK_K * ceili(pl.cargo / 2.0)
 		marker.position = _fz(pl.p.x, pl.p.y + maxf(BODY_H, stack_top) + 0.3 + mk * 0.5 + sin(tm * 5.0) * 0.06)
 	# 흐르는 바닥 눈금 (뒤로 흐른다)
 	for fl in flows:
@@ -3447,6 +3654,34 @@ func _draw_all() -> void:
 			curtain.visible = false
 	# 왼쪽 화면 끝 경고: the torn paper edge is drawn in screen space by _fx_draw now
 	edge_strip.visible = false
+
+
+## 달리기 그림 (v13): run_loop 시간을 손으로 돌린다. 땅에서 달리면 속도만큼 빨리 (발이 땅을 따라가게),
+## 거의 멈추면 다리가 모이는 때까지 걸어 가 서고, 공중에서는 가장 벌어진 보폭에서 멈춘다. 제목 화면은 제자리 뛰기.
+func _anim_tick(r: Courier, spd: float, fdt: float) -> void:
+	var t := r.anim_t
+	var stops: Array = []
+	if phase == "title":
+		t += fdt
+	elif not r.grounded:
+		stops = ANIM_STRIDE
+	elif spd < 0.8:
+		stops = ANIM_NEUTRAL
+	else:
+		t += fdt * clampf(spd / RUN_MAX * 1.6, 0.4, 2.2)
+	if not stops.is_empty():
+		# 다음 멈춤 자리까지 앞으로만 간다 (되감지 않아 다리가 튀지 않는다)
+		var nxt := 1.0e9
+		for s0 in stops:
+			var s := float(s0)
+			if s < t - 0.0005:
+				s += r.anim_len
+			nxt = minf(nxt, s)
+		t = minf(t + fdt * 2.5, nxt)
+	t = fposmod(t, r.anim_len)
+	if absf(t - r.anim_t) > 0.0001:
+		r.anim_t = t
+		r.anim.seek(t, true)
 
 
 # ---- 밤 등불 모드 ----
@@ -3969,8 +4204,8 @@ func _brick_rect(side: int, slot: float, n_side: int) -> Rect2:
 	var st := minf(BRICK_H + BRICK_GAP, (y0 - PF_TOP - 20.0) / float(maxi(n_side, 1)))
 	var bh := st - BRICK_GAP
 	var ex := edge_screen_x() if side < 0 else right_screen_x()
-	var w := clampf((ex if side < 0 else 720.0 - ex) - 9.0, 16.0, 40.0)
-	var x := 3.0 if side < 0 else 720.0 - 3.0 - w
+	var w := clampf((ex if side < 0 else 720.0 - ex) - 12.0, 20.0, WALL_W - 8.0)
+	var x := 4.0 if side < 0 else 720.0 - 4.0 - w
 	return Rect2(x, y0 - (slot + 1.0) * st, w, bh)
 
 
@@ -4023,7 +4258,7 @@ func _wall_tick(dt: float) -> void:
 			var pp: Vector2 = e.p
 			e.p = pp + v * dt
 			e.rot = float(e.rot) + dt * 9.0 * signf(v.x)
-			if float(e.age) > 0.55:
+			if float(e.age) > 0.7:
 				e.on = false
 		elif float(e.age) > 0.3:
 			e.on = false
@@ -4049,15 +4284,19 @@ func _wall_pop(kind: int, at: Vector2, v: Vector2, col: Color) -> Dictionary:
 	return slot
 
 
-## 종이 소포 벽돌 하나: 그림자 + 흰 테두리 + 골판지 몸 + 오른쪽 그늘 + 주인 색 테이프 가로띠
+## 종이 소포 벽돌 하나 (v13: 폰에서 읽히게): 그림자 + 남색 테두리 + 밝은 골판지 몸 + 아래 그늘
+## + 주인 색 굵은 테이프 가로띠(흰 테두리) + 세로 봉합 테이프
 func _draw_brick(c: Control, br: Rect2, col: Color, a: float) -> void:
-	c.draw_rect(Rect2(br.position + Vector2(2, 3), br.size), Color(P_NAVY, 0.25 * a))
-	c.draw_rect(br.grow(1.5), Color(P_CREAM, a))
-	c.draw_rect(br, Color(P_PARCEL, a))
-	c.draw_rect(Rect2(br.end.x - 5.0, br.position.y, 5.0, br.size.y), Color(P_KRAFT_SH, a))
-	var th := clampf(br.size.y * 0.24, 6.0, 13.0)
-	c.draw_rect(Rect2(br.position.x, br.get_center().y - th * 0.5, br.size.x, th), Color(col, a))
-	c.draw_rect(Rect2(br.get_center().x - 1.5, br.position.y, 3.0, br.size.y), Color(P_KRAFT_SH.darkened(0.15), a * 0.7))
+	c.draw_rect(Rect2(br.position + Vector2(3, 4), br.size), Color(P_NAVY, 0.35 * a))
+	c.draw_rect(br.grow(2.0), Color(P_NAVY, a))
+	c.draw_rect(br, Color(P_KRAFT, a))
+	c.draw_rect(Rect2(br.position.x, br.end.y - 6.0, br.size.x, 6.0), Color(P_PARCEL, a))
+	c.draw_rect(Rect2(br.position.x, br.position.y, br.size.x, 3.0), Color(P_CREAM, a * 0.7))
+	c.draw_rect(Rect2(br.get_center().x - 2.0, br.position.y, 4.0, br.size.y), Color(P_KRAFT_SH, a))
+	var th := clampf(br.size.y * 0.3, 7.0, 16.0)
+	var tape := Rect2(br.position.x, br.get_center().y - th * 0.5, br.size.x, th)
+	c.draw_rect(tape.grow_individual(0, 2, 0, 2), Color(P_CREAM, a))
+	c.draw_rect(tape, Color(col, a))
 
 
 func _fx_draw_walls(c: Control) -> void:
@@ -4065,9 +4304,18 @@ func _fx_draw_walls(c: Control) -> void:
 		return
 	var ex := edge_screen_x()
 	var rx := right_screen_x()
-	# 벽 바탕: 맨 골판지 (종이 밖)
-	c.draw_rect(Rect2(-2.0, -10.0, ex + 2.0, 1300.0), P_KRAFT_SH)
-	c.draw_rect(Rect2(rx, -10.0, 722.0 - rx, 1300.0), P_KRAFT_SH)
+	# 벽 바탕 (v13): 크림 종이 띠 + 골판지 결 + 안쪽 남색 선. 배경 그림·하늘과 섞이지 않는다
+	c.draw_rect(Rect2(-2.0, -10.0, ex + 2.0, 1300.0), P_CREAM)
+	c.draw_rect(Rect2(rx, -10.0, 722.0 - rx, 1300.0), P_CREAM)
+	for k in 3:
+		var fx_l := 8.0 + k * 16.0
+		if fx_l < ex - 4.0:
+			c.draw_rect(Rect2(fx_l, -10.0, 3.0, 1300.0), Color(P_KRAFT, 0.55))
+		var fx_r := 720.0 - 11.0 - k * 16.0
+		if fx_r > rx + 4.0:
+			c.draw_rect(Rect2(fx_r, -10.0, 3.0, 1300.0), Color(P_KRAFT, 0.55))
+	c.draw_rect(Rect2(ex - 4.0, -10.0, 4.0, 1300.0), P_NAVY)
+	c.draw_rect(Rect2(rx, -10.0, 4.0, 1300.0), P_NAVY)
 	for side in [-1, 1]:
 		var n_side := 0
 		for k in 4:
@@ -4087,16 +4335,15 @@ func _fx_draw_walls(c: Control) -> void:
 					br = Rect2(ctr - br.size * s * 0.5, br.size * s)
 				_draw_brick(c, br, col, 1.0)
 			below += wall_lv[i]
-	# 오른쪽 벽 안쪽 면: 얇은 크림 띠 + 그림자 (왼쪽은 찢긴 종이 끝이 덮는다)
-	c.draw_rect(Rect2(rx - 7.0, -10.0, 6.0, 1300.0), Color(P_NAVY, 0.16))
-	c.draw_rect(Rect2(rx - 3.0, -10.0, 4.0, 1300.0), P_CREAM)
+	# 오른쪽 벽 안쪽 면: 그림자 (왼쪽은 찢긴 종이 끝이 덮는다)
+	c.draw_rect(Rect2(rx - 7.0, -10.0, 7.0, 1300.0), Color(P_NAVY, 0.16))
 	for e in wall_pops:
 		if not e.on:
 			continue
-		var bw := 26.0
-		var bh := BRICK_H * 0.7
-		if int(e.kind) == 0:
-			var a := 1.0 - clampf((float(e.age) - 0.25) / 0.3, 0.0, 1.0)
+		var bw := WALL_W - 10.0
+		var bh := BRICK_H * 0.8
+		if int(e.kind) == 0:  # 빠지는 벽돌: 안쪽으로 톡 튀며 돌고 흐려진다
+			var a := 1.0 - clampf((float(e.age) - 0.35) / 0.35, 0.0, 1.0)
 			c.draw_set_transform(e.p, float(e.rot), Vector2.ONE)
 			_draw_brick(c, Rect2(-bw * 0.5, -bh * 0.5, bw, bh), e.col, a)
 		else:

@@ -15,7 +15,7 @@ Each course plays differently: flowing riverbanks, a railway crossing with a tra
 
 New spots flip the answer: scales launch heavy runners up, updrafts lift light ones, trapdoors break under heavy feet, shutters slam on whoever leads. Right after you learn one, it is mixed with an older one.
 
-Three modes: Classic; Night Lantern (the leader holds the only light — run too fast and it shakes); Overspeed (drop to 2 parcels or fewer for ceiling boosts and wall bounces). Finish all six courses and the final delivery, earn gold/silver/bronze per course, and beat your best delivery record.
+Three modes: Classic; Night Lantern (the leader holds the only light — run too fast and it shakes); Overspeed (drop to 4 parcels or fewer for ceiling boosts and wall bounces). Finish all six courses and the final delivery, earn gold/silver/bronze per course, and beat your best delivery record.
 
 Theme: Speed — speed costs you: the leader can't see the mailboxes ahead, and the fastest way to go faster is to throw away the parcels you're supposed to deliver.
 

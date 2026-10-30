@@ -24,7 +24,7 @@ const MODE_ICON := {"base": "icon_parcel", "lantern": "icon_lantern", "over": "i
 ## 카드에는 한 줄 규칙만 (좁은 카드에서 줄이 넘치지 않게)
 const MODE_SHORT := {"base": ["우체통에 배달하기", "Post boxes in mailboxes"],
 	"lantern": ["빛 안의 우체통 찾기", "Find mailboxes in the light"],
-	"over": ["짐 2개 이하: 천장 부스트", "2 boxes or less: ceiling boost"]}
+	"over": ["짐 4개 이하: 천장 부스트", "4 boxes or less: ceiling boost"]}
 const MODE_GLYPH := {"base": "parcel", "lantern": "lantern", "over": "rush"}
 const PERK_ICON := {"신발": "icon_shoe", "끈": "icon_strap", "용수철": "icon_spring", "바람": "icon_wind",
 	"가벼운 상자": "icon_feather_box", "단단한 몸": "icon_shield"}
@@ -747,8 +747,9 @@ func _route_advice(id: String) -> Array:
 	var n := maxi(_ch_n, 1)
 	match id:
 		"gate":
-			var say := _L("짐 2개 이하만 통과 · 지금 %d개", "Only 2 boxes or fewer fit · you have %d") % n
-			return [say, T.GREEN if n <= 2 else T.RED]
+			var gm: int = game.GATE_MAX
+			var say := _L("짐 %d개 이하만 통과 · 지금 %d개", "Only %d boxes or fewer fit · you have %d") % [gm, n]
+			return [say, T.GREEN if n <= gm else T.RED]
 		"slide":
 			return [_L("얼음: 무거울수록 빠르다", "Ice: heavier = faster"), T.BLUE]
 		"wind":
