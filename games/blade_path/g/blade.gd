@@ -41,6 +41,15 @@ const TIPS := [
 	"쓰러뜨릴 수 없어요. 오래 버티며 돈을 벌어요",
 ]
 const BODY := [A, C, B, ME, INK]
+## 파이가 보낸 효과음 (10/30). 막기 소리는 공격 모양(sty: 찌르기·속임수·베기·거합)마다 다르다
+const SND := {
+	"hit": preload("res://sfx/hit.mp3"),
+	"miss": preload("res://sfx/miss.mp3"),
+	"whiff": preload("res://sfx/whiff.mp3"),
+	"parry": preload("res://sfx/parry.mp3"),
+	"death": preload("res://sfx/death.mp3"),
+}
+const BLOCK_SND := [preload("res://sfx/block_thrust.mp3"), preload("res://sfx/block_trick.mp3"), preload("res://sfx/block_slash.mp3"), preload("res://sfx/block_iai.mp3")]
 const BOSS_AT := 8  # 이 번째(0부터)부터 끝판왕
 const BOSS_HP := 9999
 const SLOW := 0.3
@@ -1220,6 +1229,7 @@ func _damage(v: int) -> void:
 	hurt_t = 0.3
 	shake_t = 0.22
 	if life <= 0:
+		sfx(SND["death"])
 		mode = "dead"
 		mode_t = 1.4
 		msg("쓰러짐", 1.4)
@@ -1231,7 +1241,7 @@ func _damage(v: int) -> void:
 
 ## 빈틈이 아닐 때 휘두름: 체력 -1, 잠깐 굳고, 상대가 바로 친다
 func _whiff() -> void:
-	beep(180.0, 0.25, 70.0, 0.3)
+	sfx(SND["whiff"])
 	msg("헛공격!  체력 -1\n빈틈을 보였어요", 0.9)
 	stun = 0.55
 	whiff_t = 0.35
@@ -1323,7 +1333,7 @@ func _act(a: int) -> void:
 
 ## 간파 빈틈에 엉뚱한 쪽으로 휘두름: 피해 없이 간파만 끝난다
 func _lose_chance() -> void:
-	beep(240.0, 0.12, 160.0, 0.2)
+	sfx(SND["miss"])
 	msg("간파 놓침", 0.6)
 	gp = false
 	slow = 0.0
@@ -1338,8 +1348,8 @@ func _parry(perfect: bool) -> void:
 	_burst(blade_m.global_position, 26 if perfect else 14, perfect)
 	hitstop = 0.09 if perfect else 0.05
 	shake_t = maxf(shake_t, 0.12 if perfect else 0.06)
-	beep(1500.0, 0.05, 0.0, 0.25)
-	beep(2100.0, 0.09, 1600.0, 0.15)
+	# 간파 = 패링 소리, 그냥 막기 = 이번 칼 모양의 막기 소리
+	sfx(SND["parry"] if perfect else BLOCK_SND[sty])
 	body.material_override = mat(WHITE)
 	flash_t = 0.1
 	fl = Vector3(0, 0, -0.4)
@@ -1362,7 +1372,6 @@ func _parry(perfect: bool) -> void:
 	elif perfect:
 		slow = 0.7
 		floor_m.material_override = mat(B)
-		beep(200.0, 0.4, 90.0, 0.22)
 		if tut < 0:
 			msg("간파 +%d냥\n지금 초록 쪽으로 베요!" % (_earn(up["earn"]) * 3), 0.8)
 	# 간파하면 연속기 중간이라도 끊고 내가 벨 차례 (초록 상자)
@@ -1381,7 +1390,7 @@ func _parry(perfect: bool) -> void:
 
 
 func _cut() -> void:
-	play("good")
+	sfx(SND["hit"])
 	body.material_override = mat(GOOD)
 	flash_t = 0.15
 	fl = Vector3(0, 0, -1.2)
@@ -1641,3 +1650,11 @@ func _input(event: InputEvent) -> void:
 		KEY_DOWN, KEY_S: _aim(3)
 		KEY_J, KEY_Z: _act(0)
 		KEY_K, KEY_X: _act(1)
+
+
+## 효과음 한 번 (tofu 의 소리 줄을 같이 쓴다. 소리 크기 설정은 버스 0 에 걸려 있다)
+func sfx(st: AudioStream) -> void:
+	var p: AudioStreamPlayer = _players[_np]
+	_np = (_np + 1) % _players.size()
+	p.stream = st
+	p.play()
