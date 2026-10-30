@@ -95,22 +95,26 @@ func _title_open() -> void:
 	if ui:
 		# 제목 = 신전 문 위 돌 상인방: 위에서 떨어져 쿵 박히고 천천히 흔들린다
 		lintel = Control.new()
-		lintel.position = Vector2(40, 150)
-		lintel.size = Vector2(640, 250)
-		lintel.pivot_offset = Vector2(320, 125)
+		lintel.position = Vector2(20, 150)
+		lintel.size = Vector2(680, 250)
+		lintel.pivot_offset = Vector2(340, 125)
 		lintel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		title.add_child(lintel)
-		game.call("ui_slab", lintel, Vector2.ZERO, Vector2(640, 250), 0, STONE, "title")  # GPT 가 그린 신전 상인방
-		var fs: int = game.call("fit_fs", tr("굴러라 신전석"), 104, 580)
+		game.call("ui_slab", lintel, Vector2.ZERO, Vector2(680, 250), 0, STONE, "title")  # GPT 가 그린 신전 상인방
+		# 글은 양 끝 기둥머리 사이 돌면 안에만 (가로 420)
+		var fs: int = game.call("fit_fs", tr("굴러라 신전석"), 84, 420)
 		var tl: Label = game.call("ui_glyph", lintel, fs)
 		tl.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
-		tl.position = Vector2(0, 18)
-		tl.size = Vector2(640, 132)
+		tl.position = Vector2(130, 70)
+		tl.size = Vector2(420, 104)
 		tl.text = tr("굴러라 신전석")
-		var sl: Label = game.call("ui_glyph", lintel, 36, GLYPH_SUB)
+		# 한 줄 소개는 상인방 아래에 (흰 테로 3D 위에서도 읽히게)
+		var sl: Label = game.call("ui_glyph", lintel, 34, GLYPH_SUB)
 		sl.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
-		sl.position = Vector2(0, 146)
-		sl.size = Vector2(640, 50)
+		sl.position = Vector2(0, 258)
+		sl.size = Vector2(680, 50)
+		sl.label_settings.outline_size = 10
+		sl.label_settings.outline_color = Color.WHITE
 		sl.text = sub
 		var li := lintel
 		lintel.position.y = -280.0

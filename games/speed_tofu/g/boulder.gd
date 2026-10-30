@@ -674,7 +674,19 @@ func _reset() -> void:
 	for i in 6:
 		var a := TAU * i / 6.0 + 0.4
 		var r := 230.0 + 30.0 * (i % 3)
-		box(Vector3(cos(a) * r, 70.0 + 14.0 * (i % 3), sin(a) * r), Vector3(46, 6, 20), WHITE, clouds)
+		# 구름: 납작한 둥근 덩이 셋을 겹친다 (흰 상자로 보이지 않게)
+		var cc := Vector3(cos(a) * r, 70.0 + 14.0 * (i % 3), sin(a) * r)
+		for q in 3:
+			var puff := MeshInstance3D.new()
+			var sp := SphereMesh.new()
+			sp.radial_segments = 12
+			sp.rings = 6
+			puff.mesh = sp
+			puff.material_override = mat(WHITE)
+			puff.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			clouds.add_child(puff)
+			puff.position = cc + Vector3((q - 1) * 14.0, (6.0 if q == 1 else 0.0), 0.0).rotated(Vector3.UP, -a)
+			puff.scale = Vector3(24, 10, 16) * (1.25 if q == 1 else 1.0)
 	var k0 := 0
 	start_st = {"x": 0.0, "z": 0.0, "yw": 0.0, "h": 60.0}
 	score_base = 0
@@ -3619,7 +3631,7 @@ const UI_GPT := {
 	"slab": ["panel", 56, 56, 56, 64], "card": ["panel", 56, 56, 56, 64],
 	"btn": ["button", 48, 48, 48, 72], "btn_dn": ["button_down", 48, 48, 48, 48],
 	"btn_s": ["button_s", 24, 24, 24, 36], "btn_dn_s": ["button_down_s", 24, 24, 24, 24],
-	"title": ["title", 160, 104, 160, 112], "plaque": ["plaque", 96, 48, 96, 48],
+	"title": ["title_s", 120, 78, 120, 84], "plaque": ["plaque", 96, 48, 96, 48],
 	"seal": ["seal", 0, 0, 0, 0], "gauge": ["gauge_s", 32, 20, 32, 20],
 }
 
