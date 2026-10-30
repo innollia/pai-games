@@ -104,7 +104,7 @@ const FOLDER := "__dropped"  # 1차 폐기 폴더
 const FOLDER2 := "__dropped2"  # 2차 폐기 폴더
 const FOLDER3 := "__hold"  # 보류 폴더
 # 제출준비작이 단독 프로젝트로 나가면 메뉴는 그 단독판 주소로 보낸다(웹에서만). 전담 세션이 여기에 한 줄 추가한다
-const STANDALONE := {"boulder": "../../shrine_stone/web/"}
+const STANDALONE := {"boulder": "../../shrine_stone/web/?from=tofu"}
 const UP := "__up"
 const IDEA := "__idea"  # 맨 아래 "아이디어 제출하기" -> window.prompt -> Firestore tofu_ideas (tools/tofu_fb.js)
 const INK := Color("3a2a1a")

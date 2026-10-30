@@ -6,10 +6,13 @@ const GAME := "boulder"
 const GVER := 6  # speed_tofu main.gd GAME_VER["boulder"] (tools/sync.ps1 이 맞춘다). 평가 ver = "v<GVER> <빌드>"
 
 var game: Tofu
+var from_tofu := false  # SPEED 두부 목록(?from=tofu)에서 왔으면 "<" 가 목록으로 돌아간다
 
 
 func _ready() -> void:
 	randomize()
+	if OS.has_feature("web"):
+		from_tofu = JavaScriptBridge.eval("location.search.indexOf('from=tofu') >= 0", true) == true
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_open()
 
@@ -21,9 +24,21 @@ func _open() -> void:
 	game.gver = GVER
 	game.back.connect(_close)
 	add_child(game)
+	if from_tofu:
+		_relabel(game)
+
+
+func _relabel(n: Node) -> void:
+	for c in n.get_children():
+		if c is Label and c.text == "< 처음부터":
+			c.text = "< 목록"
+		_relabel(c)
 
 
 func _close() -> void:
+	if from_tofu:
+		JavaScriptBridge.eval("window.location.href = '../../speed_tofu/web/'", true)
+		return
 	game.queue_free()
 	game = null
 	_open.call_deferred()
