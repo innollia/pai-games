@@ -30,6 +30,14 @@ const GAMES := [
 	["overpower_rain", "◇ 과속 플랫포머 × 레인월드"],
 	["coming_boulder", "◇ 그가 온다 × 신전석 (등뒤)"],
 	["blade_run", "◇ 일격의 길 × 화면 밖 경주"],
+	# 메모 2차 7 (설계서 먼저 쓰고 첫 조각만 구현)
+	["snapshot", "◆ 순간 포착 (1인칭)"],
+	["fallcards", "◆ 낙하 카드 (등뒤)"],
+	["tooslow", "◆ 너무 느린 주인공"],
+	["puzzlerace", "◆ 퍼즐 레이싱"],
+	["taiji_speed", "◆ 흘러가는 퍼즐 판"],
+	["tinyplanet", "◆ 작은 행성 (등뒤)"],
+	["bombcrawl", "◆ 폭탄 애벌레 (옆모습)"],
 ]
 # 탈락 (보존). 메뉴의 "탈락 게임 모음" 폴더 안에서만 보인다
 const DROPPED := [
