@@ -111,6 +111,8 @@ var perfects := 0
 var up := {"hp": 0, "pow": 0, "per": 0, "earn": 0}
 var best_n := 0
 var best_dmg := 0  # 끝판왕에게 준 가장 큰 피해
+var vol := 8  # 설정: 소리 0~10
+var vib := 8  # 설정: 진동 0~10
 # 한 판
 var tut := 0  # 0~3 튜토리얼 단계, 4 끝 카드, -1 실전
 var hold := false  # 튜토리얼: 맞는 손짓을 할 때까지 멈춤
@@ -207,6 +209,10 @@ var dex_card: Label
 var dex_pick := 0
 var last_run := ""
 var lobby_k := 0  # 전투 탭 뒤에 서 있는 검객 (마지막에 진 상대)
+var set_box: ColorRect  # 설정 창 (로비 위 [설정])
+var set_btn: ColorRect
+var set_fill: Array[ColorRect] = []
+var set_val: Array[Label] = []
 
 const SKIP_R := Rect2(470, 296, 250, 90)
 const GUARD_P := Vector2(185, 1150)
@@ -214,6 +220,13 @@ const CUT_P := Vector2(535, 1150)
 const BTN_R := 105.0
 const PLAY_R := Rect2(110, 880, 500, 150)
 const TUT_R := Rect2(200, 1050, 320, 80)
+const SET_R := Rect2(586, 118, 124, 68)
+const SET_CLOSE := Rect2(210, 860, 300, 100)
+
+
+## 설정 창 줄 i(0 소리, 1 진동)의 [-] [+] 칸
+func _set_r(i: int, plus: bool) -> Rect2:
+	return Rect2(570 if plus else 70, 470 + i * 200, 90, 90)
 
 
 func _row_r(i: int) -> Rect2:
@@ -250,6 +263,8 @@ func _load_save() -> void:
 				(seen if key == "seen" else kills)[i] = int(a[i])
 	best_n = int(d.get("best", 0))
 	best_dmg = int(d.get("dmg", 0))
+	vol = clampi(int(d.get("vol", 8)), 0, 10)
+	vib = clampi(int(d.get("vib", 8)), 0, 10)
 	var u: Variant = d.get("up", {})
 	if u is Dictionary:
 		for k: String in up:
@@ -259,7 +274,7 @@ func _load_save() -> void:
 func _save() -> void:
 	var f := FileAccess.open(FILE, FileAccess.WRITE)
 	if f:
-		f.store_string(JSON.stringify({"gold": gold, "up": up, "best": best_n, "dmg": best_dmg, "tut": tut_done, "runs": runs, "blocks": blocks, "perfects": perfects, "seen": seen, "kills": kills}))
+		f.store_string(JSON.stringify({"gold": gold, "up": up, "best": best_n, "dmg": best_dmg, "tut": tut_done, "runs": runs, "blocks": blocks, "perfects": perfects, "seen": seen, "kills": kills, "vol": vol, "vib": vib}))
 
 
 # ---- 능력치 ----
@@ -288,6 +303,7 @@ func _setup() -> void:
 	howto = ""
 	time_limit = 0.0
 	_load_save()
+	_apply_vol()
 	var hud := CanvasLayer.new()
 	hud.layer = 2
 	add_child(hud)
@@ -348,6 +364,7 @@ func _lobby_ui() -> void:
 	var top := _panel(lobby, Rect2(0, 110, 720, 84), Color(0.12, 0.08, 0.05, 0.85))
 	top_l = _white(_label(top, 38, 0, 84))
 	top_l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	top_l.size.x = 580  # 오른쪽은 [설정] 자리
 	for i in 4:
 		var pg := Control.new()
 		pg.size = Vector2(720, 1280)
@@ -441,6 +458,63 @@ func _lobby_ui() -> void:
 	bl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	bl.label_settings.outline_size = 0
 	bl.text = "!"
+	# 위 띠 오른쪽 [설정] → 소리·진동 창
+	set_btn = _panel(lobby, SET_R, Color("5a4632"))
+	var sl2 := _white(_label(set_btn, 30, 0, SET_R.size.y))
+	sl2.size.x = SET_R.size.x
+	sl2.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	sl2.text = "설정"
+	set_box = _panel(lobby, Rect2(0, 194, 720, NAV_Y - 194), Color(0.08, 0.05, 0.03, 0.94))
+	set_box.visible = false
+	var st := _white(_label(set_box, 48, 120, 90))
+	st.text = "설정"
+	for i in 2:
+		var y := 470.0 + i * 200.0 - 194.0
+		var nm := _white(_label(set_box, 34, y - 70, 60))
+		nm.text = ["소리 크기", "진동 세기"][i]
+		for plus in [false, true]:
+			var r := _set_r(i, plus)
+			var b := _panel(set_box, Rect2(r.position - Vector2(0, 194), r.size), D)
+			var bl2 := _label(b, 56, 0, r.size.y)
+			bl2.size.x = r.size.x
+			bl2.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			bl2.label_settings.outline_size = 0
+			bl2.text = "+" if plus else "-"
+		var back := _panel(set_box, Rect2(180, y + 25, 360, 40), SOFT)
+		var fill := _panel(back, Rect2(0, 0, 360, 40), GOOD)
+		set_fill.append(fill)
+		var v := _white(_label(set_box, 30, y + 92, 50))
+		set_val.append(v)
+	var close := _panel(set_box, Rect2(SET_CLOSE.position - Vector2(0, 194), SET_CLOSE.size), Color("5a4632"))
+	var cl := _white(_label(close, 38, 0, SET_CLOSE.size.y))
+	cl.size.x = SET_CLOSE.size.x
+	cl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	cl.text = "닫기"
+	var sh := _white(_label(set_box, 28, 1010 - 194, 80))
+	sh.text = "진동은 안드로이드 폰에서만 울려요
+0이면 꺼져요"
+
+
+## 설정 창 글자·막대
+func _set_refresh() -> void:
+	for i in 2:
+		var v: int = vol if i == 0 else vib
+		set_fill[i].size.x = 360.0 * v / 10.0
+		set_val[i].text = "끔" if v == 0 else "%d%%" % (v * 10)
+
+
+## 소리 크기: 전체 소리 길(버스)에 건다
+func _apply_vol() -> void:
+	AudioServer.set_bus_mute(0, vol == 0)
+	AudioServer.set_bus_volume_db(0, linear_to_db(maxf(vol, 1) / 10.0))
+
+
+## 진동: 설정 세기만큼 길이·세기를 줄인다. 0이면 안 울린다
+func _buzz(ms: int, amp: float) -> void:
+	if vib == 0:
+		return
+	var k := vib / 10.0
+	Input.vibrate_handheld(maxi(10, int(ms * (0.4 + 0.6 * k))), clampf(amp * k, 0.05, 1.0))
 
 
 ## 막기·베기 버튼 (여러 손가락: 한 손가락으로 밀면서 다른 손가락으로 누른다). 상점에서는 뺀다.
@@ -510,6 +584,7 @@ func _to_lobby(t: int) -> void:
 	tut_box.visible = false
 	skip_l.visible = false
 	lobby.visible = true
+	set_box.visible = false
 	slow = 0.0
 	stun = 0.0
 	floor_m.material_override = mat(SOFT)
@@ -762,7 +837,8 @@ func _intro() -> void:
 		seen[ftype] += 1
 		mode_t = 2.6
 		var hp_s := "∞" if ftype == 4 else str(foe_max)
-		msg("%d번째 · %s\n체력 %s · 공격 %d\n%s" % [n + 1, NAMES[ftype], hp_s, foe_atk, TIPS[ftype]], 2.6)
+		# 상대가 누구인지는 글로 알려 주지 않는다 (로비 도감에서만)
+		msg("%d번째 상대\n체력 %s · 공격 %d" % [n + 1, hp_s, foe_atk], 2.0)
 
 
 func _start_run() -> void:
@@ -930,9 +1006,9 @@ func _step(dt: float) -> void:
 			sword.rotation.z = lerpf(sword.rotation.z, -1.5, minf(1.0, dt * 4.0))
 			if mode_t <= 0.0:
 				if ftype == 4:
-					last_run = "지난 판: 끝판왕에게 %d 피해\n번 돈 +%d냥" % [boss_dmg, run_gold]
+					last_run = "지난 판: %d번째 상대에게 %d 피해\n번 돈 +%d냥" % [n + 1, boss_dmg, run_gold]
 				else:
-					last_run = "지난 판: %d번째 %s에게 쓰러짐\n번 돈 +%d냥" % [n + 1, NAMES[ftype], run_gold]
+					last_run = "지난 판: %d번째 상대에게 쓰러짐\n번 돈 +%d냥" % [n + 1, run_gold]
 				lobby_k = n
 				_to_lobby(1)
 	piv.position = fl
@@ -977,9 +1053,9 @@ func _step(dt: float) -> void:
 	else:
 		gauge(float(life) / float(max_life), GOOD if life > foe_atk else BAD)
 		if ftype == 4:
-			info_l.text = "나 %d/%d   ·   끝판왕 피해 %d · 공격 %d" % [maxi(life, 0), max_life, boss_dmg, foe_atk]
+			info_l.text = "나 %d/%d   ·   %d번째 · 준 피해 %d · 공격 %d" % [maxi(life, 0), max_life, n + 1, boss_dmg, foe_atk]
 		else:
-			info_l.text = "나 %d/%d   ·   %d번째 %s %d/%d · 공격 %d" % [maxi(life, 0), max_life, n + 1, NAMES[ftype], maxi(foe_hp, 0), foe_max, foe_atk]
+			info_l.text = "나 %d/%d   ·   %d번째 %d/%d · 공격 %d" % [maxi(life, 0), max_life, n + 1, maxi(foe_hp, 0), foe_max, foe_atk]
 
 
 func _fight(dt: float) -> void:
@@ -1099,7 +1175,11 @@ func _attack() -> void:
 		return
 	win = float(mv[2]) * (1.0 if tut >= 0 else spd)
 	if _flag(mv) == 1:
-		win = maxf(0.22, win)
+		# 두 번째 칼: 튕겨 나간 칼을 바로 다시 크게 젖혀 들고, 막을 틈은 남긴다
+		win = maxf(0.4, win)
+		blade_m.position = _bpos(sdir, 0.0)
+		blade_m.rotation = _brot(sdir, 0.0)
+		fl = Vector3(0, 0, -0.3)
 	show_at = 0.0
 	tell_at = -1.0
 	told = true
@@ -1253,7 +1333,7 @@ func _lose_chance() -> void:
 
 func _parry(perfect: bool) -> void:
 	# 칼이 막히면 폰 진동, 간파는 더 길고 세게
-	Input.vibrate_handheld(160 if perfect else 45, 1.0 if perfect else 0.5)
+	_buzz(160 if perfect else 45, 1.0 if perfect else 0.5)
 	# 진동과 같은 순간: 칼 부딪친 자리에 불꽃, 화면 잠깐 멈춤 (간파는 더 많이·더 길게)
 	_burst(blade_m.global_position, 26 if perfect else 14, perfect)
 	hitstop = 0.09 if perfect else 0.05
@@ -1266,6 +1346,8 @@ func _parry(perfect: bool) -> void:
 	_eyes()
 	var combos: Array = _pat()[2]
 	mi += 1
+	# 베기 검객의 두 번째 칼: 첫 칼을 간파해도 끊기지 않고 반드시 한 번 더 온다
+	var twice: bool = tut < 0 and mi < combos[ci].size() and _flag(combos[ci][mi]) == 1
 	if tut < 0:
 		var g: int = _earn(up["earn"]) * (3 if perfect else 1)
 		gold += g
@@ -1274,15 +1356,18 @@ func _parry(perfect: bool) -> void:
 		if perfect:
 			perfects += 1
 		msg(("간파 +%d냥" if perfect else "+%d냥") % g, 0.6)
-	if perfect:
+	if perfect and twice:
+		msg("간파 +%d냥
+한 번 더 와요!" % (_earn(up["earn"]) * 3), 0.7)
+	elif perfect:
 		slow = 0.7
 		floor_m.material_override = mat(B)
 		beep(200.0, 0.4, 90.0, 0.22)
 		if tut < 0:
 			msg("간파 +%d냥\n지금 초록 쪽으로 베요!" % (_earn(up["earn"]) * 3), 0.8)
 	# 간파하면 연속기 중간이라도 끊고 내가 벨 차례 (초록 상자)
-	if tut < 0 and not perfect and mi < combos[ci].size():
-		_rest(0.03 if _flag(combos[ci][mi]) == 1 else 0.12)
+	if twice or (tut < 0 and not perfect and mi < combos[ci].size()):
+		_rest(0.03 if twice else 0.12)
 		return
 	ci = (ci + 1) % combos.size()
 	mi = 0
@@ -1393,6 +1478,31 @@ func _buy(i: int) -> void:
 
 func _lobby_tap(p: Vector2) -> void:
 	if going:
+		return
+	if set_box.visible:
+		for i in 2:
+			for plus in [false, true]:
+				if _set_r(i, plus).has_point(p):
+					var dv := 1 if plus else -1
+					if i == 0:
+						vol = clampi(vol + dv, 0, 10)
+						_apply_vol()
+					else:
+						vib = clampi(vib + dv, 0, 10)
+						_buzz(160, 1.0)  # 바뀐 세기를 바로 느껴 본다
+					play("tap")
+					_save()
+					_set_refresh()
+					return
+		if SET_CLOSE.has_point(p) or SET_R.has_point(p) or p.y >= NAV_Y:
+			play("tap")
+			set_box.visible = false
+		return
+	if SET_R.has_point(p):
+		_press(set_btn)
+		play("tap")
+		_set_refresh()
+		set_box.visible = true
 		return
 	for i in 4:
 		if _tab_r(i).has_point(p):
