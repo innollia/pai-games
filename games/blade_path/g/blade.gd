@@ -160,6 +160,7 @@ var stun := 0.0  # 헛공격 뒤 굳은 시간
 var whiff_t := 0.0
 var fl := Vector3.ZERO
 var slow := 0.0
+var gp := false  # 지금 빈틈이 간파로 연 것인가 (헛공격하면 피해 없이 간파만 끝남)
 var sw_t := 0.0
 var flash_t := 0.0
 var hurt_t := 0.0
@@ -1157,6 +1158,8 @@ func _act(a: int) -> void:
 			if d == odir:
 				_cut()
 				msg("베기!", 0.35)
+			elif gp:
+				_lose_chance()
 			else:
 				_whiff()
 		0, 1:
@@ -1165,7 +1168,19 @@ func _act(a: int) -> void:
 			beep(300.0, 0.05, 150.0, 0.1)
 
 
+## 간파 빈틈에 엉뚱한 쪽으로 휘두름: 피해 없이 간파만 끝난다
+func _lose_chance() -> void:
+	beep(240.0, 0.12, 160.0, 0.2)
+	msg("간파 놓침", 0.6)
+	gp = false
+	slow = 0.0
+	floor_m.material_override = mat(SOFT)
+	_rest(0.12)
+
+
 func _parry(perfect: bool) -> void:
+	# 칼이 막히면 폰 진동, 간파는 더 길고 세게
+	Input.vibrate_handheld(160 if perfect else 45, 1.0 if perfect else 0.5)
 	beep(1500.0, 0.05, 0.0, 0.25)
 	beep(2100.0, 0.09, 1600.0, 0.15)
 	body.material_override = mat(WHITE)
@@ -1196,6 +1211,7 @@ func _parry(perfect: bool) -> void:
 	mi = 0
 	fs = 2
 	fs_t = 0.0
+	gp = perfect
 	win = float(_pat()[1]) * (1.8 if perfect else 1.0)
 	odir = OPP[rdir]
 	_path(-1)
