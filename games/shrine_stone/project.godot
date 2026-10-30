@@ -1,0 +1,35 @@
+; 굴러라 신전석 — speed_tofu 의 boulder 를 떼어 낸 독립 기반 프로젝트
+config_version=5
+
+[application]
+
+config/name="Shrine Stone"
+run/main_scene="res://main.tscn"
+config/features=PackedStringArray("4.7", "GL Compatibility")
+run/max_fps=60
+
+[audio]
+
+general/default_playback_type.web=0
+
+[display]
+
+window/size/viewport_width=720
+window/size/viewport_height=1280
+window/size/window_width_override=360
+window/size/window_height_override=640
+window/stretch/mode="canvas_items"
+window/stretch/aspect="keep"
+window/handheld/orientation=1
+
+[input_devices]
+
+pointing/emulate_mouse_from_touch=true
+pointing/emulate_touch_from_mouse=false
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+environment/defaults/default_clear_color=Color(1, 0.956863, 0.839216, 1)
+textures/vram_compression/import_etc2_astc=false
