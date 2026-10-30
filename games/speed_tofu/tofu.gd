@@ -471,8 +471,36 @@ func mat(color: Color) -> StandardMaterial3D:
 	if not _mats.has(k):
 		var s := StandardMaterial3D.new()
 		s.albedo_color = color
+		s.next_pass = OUTLINE
 		_mats[k] = s
 	return _mats[k]
+
+
+## 모든 상자에 붙는 진한 외곽선: 상자를 모서리 방향으로 조금 키운 뒷면만 그린다.
+## 축마다 크기로 나눠 늘어난 상자도 두께가 같고, 멀수록 두꺼워져 화면에서 굵기가 비슷하다.
+static var OUTLINE := _outline()
+
+
+static func _outline() -> ShaderMaterial:
+	var sh := Shader.new()
+	sh.code = """
+shader_type spatial;
+render_mode unshaded, cull_front, shadows_disabled;
+uniform vec4 ink : source_color = vec4(0.227, 0.165, 0.102, 1.0);
+void vertex() {
+	vec3 sc = vec3(length(MODEL_MATRIX[0].xyz), length(MODEL_MATRIX[1].xyz), length(MODEL_MATRIX[2].xyz));
+	vec3 wp = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	float d = distance(wp, (INV_VIEW_MATRIX * vec4(0.0, 0.0, 0.0, 1.0)).xyz);
+	float th = clamp(d * 0.006, 0.015, 0.6);
+	VERTEX += sign(VERTEX) * th / max(sc, vec3(0.0001));
+}
+void fragment() {
+	ALBEDO = ink.rgb;
+}
+"""
+	var m := ShaderMaterial.new()
+	m.shader = sh
+	return m
 
 
 ## 화면 점 p 아래의 높이 y 평면 위 점
