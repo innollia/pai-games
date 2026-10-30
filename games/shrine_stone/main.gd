@@ -56,6 +56,7 @@ func _title_open() -> void:
 	title_tws.clear()
 	lintel = null
 	game.set_process_unhandled_input(false)  # 버튼을 누른 터치가 게임 시작으로 새지 않게
+	_back_label(false)  # 타이틀 위에서는 '< 처음부터' 를 숨긴다
 	if game._howto_box:  # 설명 카드가 떠 있는 동안 게임이 멈춘다: 카드는 투명하게 두고 멈춤만 쓴다
 		game._howto_box.visible = true
 		game._howto_box.modulate.a = 0.0
@@ -247,6 +248,7 @@ func _title_close() -> void:
 			t.kill()
 	title_tws.clear()
 	game.set_process_unhandled_input(true)
+	_back_label(true)
 	if game._howto_box:
 		game._howto_box.visible = false
 	game.play("tap")
@@ -300,3 +302,13 @@ func _notification(what: int) -> void:
 	elif what == NOTIFICATION_APPLICATION_FOCUS_IN or what == NOTIFICATION_WM_WINDOW_FOCUS_IN:
 		get_tree().paused = false
 		AudioServer.set_bus_mute(0, false)
+
+
+## 게임 왼쪽 위 "< 처음부터"/"< 목록" 글자 보이기·숨기기
+func _back_label(on: bool, n: Node = null) -> void:
+	if n == null:
+		n = game
+	for c in n.get_children():
+		if c is Label and (c as Label).text.begins_with("< "):
+			(c as Label).visible = on
+		_back_label(on, c)
