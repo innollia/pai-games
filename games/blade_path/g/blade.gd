@@ -6,7 +6,8 @@ extends Tofu
 ## 켜면 튜토리얼부터: 맞는 쪽으로 밀 때까지 멈추고 알려 준다. 그다음 찌르기 → 속임수 → 베기 → 거합 검객이 두 바퀴 나오고
 ## (뒤로 갈수록 체력·공격력·빠르기가 오른다), 마지막은 쓰러뜨릴 수 없는 끝판왕 검귀. 간파하면 그 자리에서 내가 직접 벤다.
 ## 빈틈이 아닐 때 휘두르면 헛공격: 체력 -1, 잠깐 굳고, 상대가 바로 친다.
-## 막을 때마다 돈(간파는 3배). 쓰러지면 상점에서 업그레이드하고 "플레이"로 첫 검객부터 다시. 돈·업그레이드는 저장된다.
+## 막을 때마다 돈(간파는 3배). 쓰러지면 로비(아래 탭: 업그레이드 · 전투 · 캐릭터 · 도감)로 가서 강해진 뒤 [전투]로 첫 검객부터 다시.
+## 돈·업그레이드·기록·도감은 저장된다. 튜토리얼은 처음 한 번만(로비에서 다시 볼 수 있다).
 
 const SWIPE := 60.0
 const BTN_SWIPE := 38.0  # 버튼 위에서 이만큼 밀면 그 방향으로 바로 발동
@@ -89,8 +90,18 @@ const UPS := [
 	["earn", "막기 돈", 10, 99],
 ]
 
+const TABS := ["업그레이드", "전투", "캐릭터", "도감"]
+const DEX := ["찌르기", "속임수", "베기", "거합", "검귀"]
+const NAV_Y := 1150.0
+
 # 저장되는 것
 var gold := 0
+var tut_done := false
+var seen := [0, 0, 0, 0, 0]  # 도감: 종류별 만난 수
+var kills := [0, 0, 0, 0, 0]
+var runs := 0
+var blocks := 0
+var perfects := 0
 var up := {"hp": 0, "pow": 0, "per": 0, "earn": 0}
 var best_n := 0
 var best_dmg := 0  # 끝판왕에게 준 가장 큰 피해
@@ -162,22 +173,46 @@ var info_l: Label
 var tut_box: ColorRect
 var tut_l: Label
 var skip_l: Label
-var shop: Control
+# 로비 (쓰러진 뒤, 다시 켤 때)
+var lobby: Control
+var tab := 1
+var pages: Array[Control] = []
+var nav_bg: Array[ColorRect] = []
+var nav_l: Array[Label] = []
+var badge: ColorRect
+var top_l: Label
+var home_l: Label
 var shop_head: Label
 var row_l: Array[Label] = []
 var row_c: Array[Label] = []
 var row_bg: Array[ColorRect] = []
 var play_bg: ColorRect
+var char_l: Label
+var dex_bg: Array[ColorRect] = []
+var dex_l: Array[Label] = []
+var dex_card: Label
+var dex_pick := 0
+var last_run := ""
+var lobby_k := 0  # 전투 탭 뒤에 서 있는 검객 (마지막에 진 상대)
 
 const SKIP_R := Rect2(470, 296, 250, 90)
 const GUARD_P := Vector2(185, 1150)
 const CUT_P := Vector2(535, 1150)
 const BTN_R := 105.0
-const PLAY_R := Rect2(160, 1110, 400, 120)
+const PLAY_R := Rect2(110, 880, 500, 150)
+const TUT_R := Rect2(200, 1050, 320, 80)
 
 
 func _row_r(i: int) -> Rect2:
-	return Rect2(50, 420 + i * 132, 620, 116)
+	return Rect2(50, 440 + i * 132, 620, 116)
+
+
+func _tab_r(i: int) -> Rect2:
+	return Rect2(i * 180, NAV_Y, 180, 1280 - NAV_Y)
+
+
+func _dex_r(i: int) -> Rect2:
+	return Rect2(16 + i * 139, 210, 131, 84)
 
 
 # ---- 저장 ----
@@ -191,6 +226,15 @@ func _load_save() -> void:
 	if not d is Dictionary:
 		return
 	gold = int(d.get("gold", 0))
+	tut_done = bool(d.get("tut", false))
+	runs = int(d.get("runs", 0))
+	blocks = int(d.get("blocks", 0))
+	perfects = int(d.get("perfects", 0))
+	for key in ["seen", "kills"]:
+		var a: Variant = d.get(key, [])
+		if a is Array:
+			for i in mini(a.size(), 5):
+				(seen if key == "seen" else kills)[i] = int(a[i])
 	best_n = int(d.get("best", 0))
 	best_dmg = int(d.get("dmg", 0))
 	var u: Variant = d.get("up", {})
@@ -202,7 +246,7 @@ func _load_save() -> void:
 func _save() -> void:
 	var f := FileAccess.open(FILE, FileAccess.WRITE)
 	if f:
-		f.store_string(JSON.stringify({"gold": gold, "up": up, "best": best_n, "dmg": best_dmg}))
+		f.store_string(JSON.stringify({"gold": gold, "up": up, "best": best_n, "dmg": best_dmg, "tut": tut_done, "runs": runs, "blocks": blocks, "perfects": perfects, "seen": seen, "kills": kills}))
 
 
 # ---- 능력치 ----
@@ -259,32 +303,51 @@ func _setup() -> void:
 	skip_l.text = "건너뛰기 >"
 	skip_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	skip_l.size.x = 696
-	# 상점 (쓰러진 뒤)
+	_lobby_ui()
+
+
+func _panel(parent: Node, r: Rect2, c: Color) -> ColorRect:
+	var bg := ColorRect.new()
+	bg.color = c
+	bg.position = r.position
+	bg.size = r.size
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(bg)
+	return bg
+
+
+func _white(l: Label) -> Label:
+	l.label_settings.font_color = WHITE
+	l.label_settings.outline_color = INK
+	return l
+
+
+## 로비: 위 돈 띠, 가운데 탭 화면, 아래 탭 줄(업그레이드 · 전투 · 캐릭터 · 도감)
+func _lobby_ui() -> void:
 	var sl := CanvasLayer.new()
 	sl.layer = 4
 	add_child(sl)
-	shop = Control.new()
-	shop.size = Vector2(720, 1280)
-	shop.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	shop.visible = false
-	sl.add_child(shop)
-	var dim := ColorRect.new()
-	dim.color = Color(0.12, 0.08, 0.05, 0.78)
-	dim.position = Vector2(0, 110)
-	dim.size = Vector2(720, 1170)
-	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	shop.add_child(dim)
-	shop_head = _label(shop, 40, 150, 250)
-	shop_head.label_settings.font_color = WHITE
-	shop_head.label_settings.outline_color = INK
+	lobby = Control.new()
+	lobby.size = Vector2(720, 1280)
+	lobby.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	lobby.visible = false
+	sl.add_child(lobby)
+	var top := _panel(lobby, Rect2(0, 110, 720, 84), Color(0.12, 0.08, 0.05, 0.85))
+	top_l = _white(_label(top, 38, 0, 84))
+	top_l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	for i in 4:
+		var pg := Control.new()
+		pg.size = Vector2(720, 1280)
+		pg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		lobby.add_child(pg)
+		pages.append(pg)
+	# 0 업그레이드
+	_panel(pages[0], Rect2(0, 194, 720, NAV_Y - 194), Color(0.12, 0.08, 0.05, 0.8))
+	shop_head = _white(_label(pages[0], 38, 220, 190))
 	shop_head.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	for i in UPS.size():
 		var r := _row_r(i)
-		var bg := ColorRect.new()
-		bg.position = r.position
-		bg.size = r.size
-		bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		shop.add_child(bg)
+		var bg := _panel(pages[0], r, SOFT)
 		row_bg.append(bg)
 		var l := _label(bg, 34, 0, r.size.y)
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
@@ -299,16 +362,72 @@ func _setup() -> void:
 		c.size.x = 596
 		c.label_settings.outline_size = 0
 		row_c.append(c)
-	play_bg = ColorRect.new()
-	play_bg.color = GOOD
-	play_bg.position = PLAY_R.position
-	play_bg.size = PLAY_R.size
-	play_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	shop.add_child(play_bg)
-	var pl := _label(play_bg, 56, 0, PLAY_R.size.y)
+	var hint := _white(_label(pages[0], 30, 990, 120))
+	hint.text = "누르면 사요\n다 샀으면 아래 [전투] 탭에서 싸우러 가요"
+	# 1 전투 (뒤에 검객이 서 있다)
+	var title := _label(pages[1], 72, 210, 100)
+	title.text = "일격의 길"
+	var card := _panel(pages[1], Rect2(60, 320, 600, 150), Color(0.12, 0.08, 0.05, 0.7))
+	home_l = _white(_label(card, 30, 0, 150))
+	home_l.size.x = 600
+	home_l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_panel(pages[1], Rect2(PLAY_R.position + Vector2(-8, -8), PLAY_R.size + Vector2(16, 24)), INK)
+	play_bg = _panel(pages[1], PLAY_R, D)
+	var pl := _label(play_bg, 80, 0, PLAY_R.size.y)
 	pl.size.x = PLAY_R.size.x
 	pl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	pl.text = "▶ 플레이"
+	pl.text = "전투"
+	var tl := _label(pages[1], 30, TUT_R.position.y, TUT_R.size.y)
+	tl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	tl.text = "튜토리얼 다시 보기"
+	# 2 캐릭터: 상자 검객 그림 + 능력치 + 기록
+	_panel(pages[2], Rect2(0, 194, 720, NAV_Y - 194), Color(0.12, 0.08, 0.05, 0.8))
+	var fig := Control.new()
+	fig.position = Vector2(310, 220)
+	fig.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	pages[2].add_child(fig)
+	var sw := _panel(fig, Rect2(118, -10, 16, 190), WHITE)
+	sw.rotation = 0.5
+	_panel(fig, Rect2(10, 40, 60, 56), Color("3b2a20"))
+	_panel(fig, Rect2(-6, 26, 92, 20), INK)
+	_panel(fig, Rect2(-10, 96, 100, 120), ME)
+	_panel(fig, Rect2(-10, 150, 100, 14), INK)
+	_panel(fig, Rect2(4, 216, 30, 44), INK)
+	_panel(fig, Rect2(46, 216, 30, 44), INK)
+	_panel(fig, Rect2(90, 120, 40, 26), ME)
+	char_l = _white(_label(pages[2], 32, 500, 640))
+	char_l.label_settings.line_spacing = 4
+	# 3 도감: 위 칩 다섯, 가운데 검객(3D), 아래 설명 카드
+	for i in 5:
+		var bg := _panel(pages[3], _dex_r(i), SOFT)
+		dex_bg.append(bg)
+		var l := _label(bg, 30, 0, 84)
+		l.size.x = 131
+		l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		l.label_settings.outline_size = 0
+		dex_l.append(l)
+	var dc := _panel(pages[3], Rect2(30, 860, 660, 270), Color(0.12, 0.08, 0.05, 0.8))
+	dex_card = _white(_label(dc, 30, 0, 270))
+	dex_card.size.x = 660
+	dex_card.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	dex_card.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	# 아래 탭 줄
+	_panel(lobby, Rect2(0, NAV_Y, 720, 1280 - NAV_Y), INK)
+	for i in 4:
+		var r := _tab_r(i)
+		var bg := _panel(lobby, r.grow(-4), Color("5a4632"))
+		nav_bg.append(bg)
+		var l := _white(_label(bg, 32, 0, r.size.y - 8))
+		l.size.x = r.size.x - 8
+		l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		l.text = TABS[i]
+		nav_l.append(l)
+	badge = _panel(lobby, Rect2(140, NAV_Y + 8, 32, 32), BAD)
+	var bl := _white(_label(badge, 24, 0, 32))
+	bl.size.x = 32
+	bl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	bl.label_settings.outline_size = 0
+	bl.text = "!"
 
 
 ## 막기·베기 버튼 (여러 손가락: 한 손가락으로 밀면서 다른 손가락으로 누른다). 상점에서는 뺀다.
@@ -317,30 +436,90 @@ func _buttons() -> void:
 	kit_button("cut", "베기", CUT_P, BTN_R, A)
 
 
-func _shop_refresh(dead: bool) -> void:
-	var head := ""
-	if dead:
-		if ftype == 4:
-			head = "쓰러졌어요\n끝판왕에게 %d 피해 · 이번 판 +%d냥\n" % [boss_dmg, run_gold]
-		else:
-			head = "쓰러졌어요\n%d번째 · %s · 이번 판 +%d냥\n" % [n + 1, NAMES[ftype], run_gold]
-	head += "가진 돈 %d냥 · 최고 %d명" % [gold, best_n]
-	if best_dmg > 0:
-		head += " · 끝판왕 %d 피해" % best_dmg
-	shop_head.text = head
+func _can_buy() -> bool:
 	for i in UPS.size():
-		var k: String = UPS[i][0]
-		var lv: int = up[k]
-		var maxed := lv >= int(UPS[i][3])
-		var t := ""
-		match k:
-			"hp": t = "최대 체력 %d → %d" % [_max_hp(lv), _max_hp(lv + 1)]
-			"pow": t = "베기 힘 %d → %d" % [_pow(lv), _pow(lv + 1)]
-			"per": t = "간파 넓게 %.2f → %.2f초" % [_per(lv), _per(lv + 1)] if not maxed else "간파 넓게 %.2f초 (끝)" % _per(lv)
-			"earn": t = "막기 돈 %d → %d냥" % [_earn(lv), _earn(lv + 1)]
-		row_l[i].text = t
-		row_c[i].text = "끝" if maxed else "%d냥" % _cost(i)
-		row_bg[i].color = SOFT if maxed or gold < _cost(i) else D
+		if up[UPS[i][0]] < int(UPS[i][3]) and gold >= _cost(i):
+			return true
+	return false
+
+
+func _lobby_refresh() -> void:
+	top_l.text = "돈 %d냥   ·   최고 %d명" % [gold, best_n]
+	badge.visible = _can_buy() and tab != 0
+	for i in 4:
+		pages[i].visible = i == tab
+		nav_bg[i].color = D if i == tab else Color("5a4632")
+		nav_l[i].label_settings.font_size = 36 if i == tab else 30
+	match tab:
+		0:
+			shop_head.text = "업그레이드\n가진 돈 %d냥" % gold
+			for i in UPS.size():
+				var k: String = UPS[i][0]
+				var lv: int = up[k]
+				var maxed := lv >= int(UPS[i][3])
+				var t := ""
+				match k:
+					"hp": t = "최대 체력 %d → %d" % [_max_hp(lv), _max_hp(lv + 1)]
+					"pow": t = "베기 힘 %d → %d" % [_pow(lv), _pow(lv + 1)]
+					"per": t = "간파 넓게 %.2f → %.2f초" % [_per(lv), _per(lv + 1)] if not maxed else "간파 넓게 %.2f초 (끝)" % _per(lv)
+					"earn": t = "막기 돈 %d → %d냥" % [_earn(lv), _earn(lv + 1)]
+				row_l[i].text = t
+				row_c[i].text = "끝" if maxed else "%d냥" % _cost(i)
+				row_bg[i].color = SOFT if maxed or gold < _cost(i) else D
+		1:
+			var h := last_run if last_run != "" else "막을 때마다 돈을 벌어요\n쓰러지면 업그레이드하고 다시!"
+			if best_dmg > 0:
+				h += "\n끝판왕 최고 피해 %d" % best_dmg
+			home_l.text = h
+		2:
+			char_l.text = "나 · 떠돌이 검객\n\n최대 체력 %d\n베기 힘 %d\n간파 시간 %.2f초\n막기 돈 %d냥 (간파 %d냥)\n\n— 기록 —\n최고 %d명 쓰러뜨림 · 끝판왕 최고 피해 %d\n싸운 판 %d · 막기 %d · 간파 %d" % [
+				_max_hp(up["hp"]), _pow(up["pow"]), _per(up["per"]), _earn(up["earn"]), _earn(up["earn"]) * 3,
+				best_n, best_dmg, runs, blocks, perfects]
+		3:
+			for i in 5:
+				dex_l[i].text = DEX[i] if seen[i] > 0 else "???"
+				dex_bg[i].color = D if i == dex_pick else (SOFT if seen[i] > 0 else Color("8a7a66"))
+			var i := dex_pick
+			if seen[i] == 0:
+				dex_card.text = "???\n아직 못 만났어요\n싸우다 보면 열려요"
+			else:
+				var rec := "만남 %d번 · 쓰러뜨림 %d번" % [seen[i], kills[i]] if i < 4 else "만남 %d번 · 준 피해 최고 %d" % [seen[i], best_dmg]
+				dex_card.text = "%s\n%s\n%s" % [NAMES[i], TIPS[i].replace("\n", " "), rec]
+
+
+## 로비로 (t = 탭). 막기·베기 버튼은 뺀다.
+func _to_lobby(t: int) -> void:
+	mode = "lobby"
+	tut = -1
+	hold = false
+	_btns.clear()
+	pend.clear()
+	tut_box.visible = false
+	skip_l.visible = false
+	lobby.visible = true
+	slow = 0.0
+	stun = 0.0
+	floor_m.material_override = mat(SOFT)
+	_set_tab(t)
+
+
+func _set_tab(t: int) -> void:
+	tab = t
+	# 전투 탭 = 마지막 상대, 도감 = 고른 검객(못 만났으면 검은 그림자)
+	if t == 3:
+		_spawn(BOSS_AT if dex_pick == 4 else dex_pick)
+		if seen[dex_pick] == 0:
+			for c in piv.get_children():
+				if c is MeshInstance3D:
+					c.material_override = mat(INK)
+	else:
+		_spawn(lobby_k)
+	_clear()
+	hp_back.visible = false
+	hp_fill.visible = false
+	fl = Vector3.ZERO
+	piv.rotation = Vector3.ZERO
+	_lobby_refresh()
 
 
 # ---- 판 ----
@@ -375,7 +554,20 @@ func _reset() -> void:
 	stun = 0.0
 	whiff_t = 0.0
 	stance = -1
-	# 켜면 튜토리얼부터
+	if tut_done:
+		_to_lobby(1)
+		return
+	_begin_tut()
+
+
+## 처음 켜면(또는 로비에서 다시 보기) 튜토리얼
+func _begin_tut() -> void:
+	lobby.visible = false
+	tut_box.visible = true
+	skip_l.visible = true
+	_buttons()
+	pend.clear()
+	stance = -1
 	tut = 0
 	hold = false
 	n = 0
@@ -553,6 +745,7 @@ func _intro() -> void:
 	mode_t = 1.6
 	piv.rotation = Vector3.ZERO
 	if tut < 0:
+		seen[ftype] += 1
 		mode_t = 2.6
 		var hp_s := "∞" if ftype == 4 else str(foe_max)
 		msg("%d번째 · %s\n체력 %s · 공격 %d\n%s" % [n + 1, NAMES[ftype], hp_s, foe_atk, TIPS[ftype]], 2.6)
@@ -561,8 +754,11 @@ func _intro() -> void:
 func _start_run() -> void:
 	tut = -1
 	hold = false
-	shop.visible = false
+	lobby.visible = false
 	tut_box.visible = false
+	tut_done = true
+	runs += 1
+	_save()
 	skip_l.visible = false
 	n = 0
 	max_life = _max_hp(up["hp"])
@@ -666,6 +862,8 @@ func _step(dt: float) -> void:
 			fl = fl.lerp(Vector3(-1.6, -1.3, -1.5), minf(1.0, dt * 5.0))
 			if mode_t <= 0.0:
 				_next_foe()
+		"lobby":
+			_relax(dt)
 		"enter":
 			fl = fl.lerp(Vector3.ZERO, minf(1.0, dt * 4.0))
 			if mode_t <= 0.0:
@@ -674,10 +872,12 @@ func _step(dt: float) -> void:
 			sword.position = sword.position.lerp(Vector3(0.3, -3.0, 2.5), minf(1.0, dt * 4.0))
 			sword.rotation.z = lerpf(sword.rotation.z, -1.5, minf(1.0, dt * 4.0))
 			if mode_t <= 0.0:
-				mode = "shop"
-				_shop_refresh(true)
-				shop.visible = true
-				_btns.clear()
+				if ftype == 4:
+					last_run = "지난 판: 끝판왕에게 %d 피해\n번 돈 +%d냥" % [boss_dmg, run_gold]
+				else:
+					last_run = "지난 판: %d번째 %s에게 쓰러짐\n번 돈 +%d냥" % [n + 1, NAMES[ftype], run_gold]
+				lobby_k = n
+				_to_lobby(1)
 	piv.position = fl
 	mark.position = piv.position
 	mark.rotation.z = piv.rotation.z
@@ -689,11 +889,12 @@ func _step(dt: float) -> void:
 		# 헛공격: 칼이 아래로 처진다
 		sword.position = sword.position.lerp(Vector3(0.2, -1.9, 2.5), minf(1.0, dt * 10.0))
 		sword.rotation.z = lerpf(sword.rotation.z, -1.2, minf(1.0, dt * 10.0))
-	elif mode != "dead" and mode != "shop":
+	elif mode != "dead" and mode != "lobby":
 		# 밀어서 잡은 방향에 칼을 대고 있는다
 		sword.position = sword.position.lerp(REST_P if stance < 0 else POSE[stance], minf(1.0, dt * 16.0))
 		sword.rotation.z = lerpf(sword.rotation.z, REST_R if stance < 0 else TURN[stance], minf(1.0, dt * 16.0))
-	stance_l.visible = mode != "shop"
+	stance_l.visible = mode != "lobby"
+	_score_l.visible = mode != "lobby"
 	stance_l.text = "버튼을 누른 채 칼이 오는 쪽으로 밀기" if stance < 0 else "버튼을 밀어 방향 · 지금 %s" % ARROW[stance]
 	if flash_t > 0.0:
 		flash_t -= dt
@@ -713,7 +914,7 @@ func _step(dt: float) -> void:
 		info_l.text = "튜토리얼"
 		blink += dt
 		tut_l.modulate.a = 0.55 + 0.45 * absf(cos(blink * 4.0)) if hold or tut == 4 else 1.0
-	elif mode == "shop":
+	elif mode == "lobby":
 		_bar_bg.visible = false
 		info_l.text = ""
 	else:
@@ -900,7 +1101,7 @@ func _act(a: int) -> void:
 	if mode == "ready":
 		_start_run()
 		return
-	if mode == "dead" or mode == "shop" or stun > 0.0:
+	if mode == "dead" or mode == "lobby" or stun > 0.0:
 		return
 	var d := stance
 	if d >= 0:
@@ -977,6 +1178,9 @@ func _parry(perfect: bool) -> void:
 		var g: int = _earn(up["earn"]) * (3 if perfect else 1)
 		gold += g
 		run_gold += g
+		blocks += 1
+		if perfect:
+			perfects += 1
 		msg(("간파 +%d냥" if perfect else "+%d냥") % g, 0.6)
 	if perfect:
 		slow = 0.7
@@ -1015,6 +1219,7 @@ func _cut() -> void:
 	_hp_bar()
 	if foe_hp <= 0:
 		var g := 5 + 3 * n
+		kills[ftype] += 1
 		gold += g
 		run_gold += g
 		_save()
@@ -1058,6 +1263,8 @@ func _next_foe() -> void:
 
 
 func _tut_done() -> void:
+	tut_done = true
+	_save()
 	tut = 4
 	hold = true
 	mode = "ready"
@@ -1066,13 +1273,8 @@ func _tut_done() -> void:
 
 
 func _tap(p: Vector2) -> void:
-	if mode == "shop":
-		for i in UPS.size():
-			if _row_r(i).has_point(p):
-				_buy(i)
-				return
-		if PLAY_R.has_point(p):
-			_start_run()
+	if mode == "lobby":
+		_lobby_tap(p)
 		return
 	if tut >= 0 and SKIP_R.has_point(p):
 		_start_run()
@@ -1093,7 +1295,35 @@ func _buy(i: int) -> void:
 	up[k] += 1
 	_save()
 	play("good")
-	_shop_refresh(true)
+	_lobby_refresh()
+
+
+func _lobby_tap(p: Vector2) -> void:
+	for i in 4:
+		if _tab_r(i).has_point(p):
+			if i != tab:
+				play("tap")
+				_set_tab(i)
+			return
+	match tab:
+		0:
+			for i in UPS.size():
+				if _row_r(i).has_point(p):
+					_buy(i)
+					return
+		1:
+			if PLAY_R.has_point(p):
+				_start_run()
+			elif TUT_R.has_point(p):
+				play("tap")
+				_begin_tut()
+		3:
+			for i in 5:
+				if _dex_r(i).has_point(p):
+					dex_pick = i
+					play("tap")
+					_set_tab(3)
+					return
 
 
 ## 밀면 칼 방향만 정한다 (막기·베기는 버튼). 손을 떼지 않고 계속 밀어 방향을 또 바꿀 수 있다.
@@ -1111,7 +1341,7 @@ func _drag(p: Vector2) -> void:
 
 
 func _aim(d: int) -> void:
-	if mode == "shop" or mode == "dead" or d == stance:
+	if mode == "lobby" or mode == "dead" or d == stance:
 		return
 	stance = d
 	beep(900.0, 0.03, 0.0, 0.1)
