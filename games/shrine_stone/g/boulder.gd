@@ -190,7 +190,7 @@ var gems: Array = []        # [거리, 높이(동굴 바닥 위), 노드]
 
 func _setup() -> void:
 	_lang()
-	howto = "굴러라 신전석\n끌어 조향. 항아리는 깔고 빨강은 피해!\n커지면 무거워진다. 1.5초 느리면 끝.\n\n버튼은 구역마다 하나씩 열린다.\n쪼개기 = 1초 돌진 (집·얼음벽 관통)\n파란 머리 탑 = 공중에서 버티기로 쾅\n초록 조준선 = 던져서 보라 수정 깨기\n흰 눈 = 커짐 / 노란 길 = 녹음\n\n11구역 끝 바다 신전까지! 금 3분 · 은 4분"
+	howto = "굴러라 신전석\n끌어서 조향 · 느려지면 끝\n바다 신전까지 굴러가자!"
 	time_limit = 0.0
 	if TranslationServer.get_locale() == "en":
 		howto = HOWTO_EN
@@ -2307,7 +2307,7 @@ func _lang() -> void:
 	TranslationServer.set_locale("en")
 
 
-const HOWTO_EN := "Roll, Temple Stone!\nDrag to steer. Crush pots, dodge red!\nBigger = heavier. Too slow 1.5s = out.\n\nA new button opens in each region.\nSPLIT = 1s dash through houses & ice\nBlue caps = HOLD in mid-air to SLAM\nGreen line = THROW at purple crystal\nWhite snow = grow / yellow = melt\n\nReach the sea temple! Gold 3:00 · Silver 4:00"
+const HOWTO_EN := "Roll, Temple Stone!\nDrag to steer · too slow = out\nRoll all the way to the sea temple!"
 
 const EN := {
 	# tofu.gd (공통 화면)
