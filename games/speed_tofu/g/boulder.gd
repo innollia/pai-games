@@ -1630,7 +1630,8 @@ func _zones_tick() -> void:
 			cams.remove_at(i)
 	for i in range(says.size() - 1, -1, -1):
 		if dist >= float(says[i][0]):
-			msg(says[i][1], 2.2)
+			if not underground:  # 지하에서는 위 수로 안내를 띄우지 않는다
+				msg(says[i][1], 2.2)
 			says.remove_at(i)
 
 
