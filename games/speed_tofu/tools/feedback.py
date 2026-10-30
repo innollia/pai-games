@@ -104,6 +104,8 @@ def build_md(ratings, ideas):
     by_game = defaultdict(list)
     for r in ratings:
         g = str(r.get("game") or "?")
+        if g.startswith("_"):  # _test 같은 확인용 기록은 집계에서 뺀다
+            continue
         s = r.get("stars")
         if isinstance(s, int) and 1 <= s <= 5:
             by_game[g].append(r)
