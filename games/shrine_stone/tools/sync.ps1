@@ -17,6 +17,14 @@ if (Test-Path $art) {
 	Copy-Item $art $dst -Recurse -Force
 	Get-ChildItem $dst -Recurse -Filter *.import | Remove-Item -Force  # 가져오기 정보는 이 프로젝트에서 새로 만든다
 }
+# 영어 글꼴(Cinzel, OFL): 가져오기 정보는 이 프로젝트에서 새로 만든다
+$fsrc = Join-Path $src 'fonts\cinzel'
+$fdst = Join-Path $kit 'fonts\cinzel'
+if (Test-Path $fsrc) {
+	New-Item -ItemType Directory -Force $fdst | Out-Null
+	Copy-Item (Join-Path $fsrc '*') $fdst -Force
+	Get-ChildItem $fdst -Filter *.import | Remove-Item -Force
+}
 $gver = [regex]::Match([IO.File]::ReadAllText((Join-Path $src 'main.gd'), $utf8), '"boulder":\s*(\d+)').Groups[1].Value
 $m = [IO.File]::ReadAllText((Join-Path $kit 'main.gd'), $utf8)
 $m = [regex]::Replace($m, 'const GVER := \d+', "const GVER := $gver")

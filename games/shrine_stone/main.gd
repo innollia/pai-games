@@ -59,6 +59,7 @@ func _ui_ok() -> bool:
 
 
 func _title_open() -> void:
+	_font = game._font  # 영어면 Cinzel, 한국어면 Pretendard
 	if title:
 		title.queue_free()
 	title_tws.clear()

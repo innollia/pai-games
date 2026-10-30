@@ -293,6 +293,19 @@ const AIR := {"dust": [Color("fff3d6"), Vector3(0, 0.3, 0), 0.3, 1.0, 0.7, 1.3],
 const AIR_OF := {"rock": "dust", "aq": "pollen", "village": "pollen", "cliff": "dust", "plaza": "petal", "snow": "snow", "canyon": "sand", "coast": "spray"}
 
 
+
+## 글꼴은 Tofu 가 라벨을 만들기(_ready) 전에 정해야 해서 _init 에서 언어부터 고른다
+func _init() -> void:
+	_lang()
+	if TranslationServer.get_locale() == "en":
+		var base := load("res://fonts/cinzel/Cinzel-VF.ttf") as FontFile
+		var fv := FontVariation.new()
+		fv.base_font = base
+		fv.variation_opentype = {TextServerManager.get_primary_interface().name_to_tag("wght"): 800}
+		fv.fallbacks = [_font]
+		_font = fv
+
+
 func _setup() -> void:
 	_lang()
 	howto = "굴러라 신전석\n끌어서 조향 · 느려지면 끝\n바다 신전까지 굴러가자!"
@@ -3641,7 +3654,8 @@ func _sb_fill(sb: StyleBox, col: Color) -> void:
 func ui_box(fill: Color, r := 24, bw := 5, shadow := true) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = fill
-	sb.set_corner_radius_all(r)
+	sb.set_corner_radius_all(mini(r, 9))
+	sb.corner_detail = 1  # 둥근 모서리 대신 비스듬히 깎은 모서리
 	sb.set_border_width_all(bw)
 	sb.border_color = INK
 	sb.anti_aliasing = true
@@ -4374,12 +4388,10 @@ func _tutorial_list() -> Array:
 # ---- English: 폰·브라우저 언어가 한국어가 아니면(또는 주소에 ?lang=en) 영어로 ----
 # 라벨은 Godot 자동 번역(같은 글이면 바뀜), 그려지는 버튼·서식 글은 tr() 로 감싼다.
 func _lang() -> void:
-	var en := OS.get_locale_language() != "ko"
+	var en := true
 	if OS.has_feature("web"):
 		var q := str(JavaScriptBridge.eval("location.search", true))
-		if q.contains("lang=en"):
-			en = true
-		elif q.contains("lang=ko"):
+		if q.contains("lang=ko"):
 			en = false
 	if not en:
 		TranslationServer.set_locale("ko")
