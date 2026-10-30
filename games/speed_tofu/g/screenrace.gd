@@ -1,19 +1,7 @@
 extends Tofu
-## 짐 지고 화면 밖으로 밀리지 마 (옆모습 4인 배달 경주, 코스 6개): 조이스틱 좌우, 점프, 짐(톡 = 하나 버리고 튀어나감). 짐이 많으면 느리고 낮게 뛰지만 화면 왼쪽 끝에 밀릴 때 짐 하나를 내주고 버틴다. 결승은 짐이 있어야 통과, 화면 폭은 모두가 든 짐의 합. 판이 끝나면 다음 판 길(낮은 문·얼음 내리막·맞바람)을 골라 새 지도에서 달리고, 짐 수와 순위(출발 줄)는 다음 판으로 이어진다.
-# (v5, 한마디 "반복") 원인: 코스마다 지도를 한 번만 같은 시드로 만들고 매 판 짐 3개·같은 출발 줄로 되돌려, 2승까지 같은 판을 처음부터 반복했다.
-#  고침: 판마다 지도를 새로 깔고, 2판부터 고른 변주 구간이 코스 규칙 사이에 섞인다. 낮은 문(짐 2개 이하만 통과 → 미리 버린다),
-#  얼음 내리막(못 멈추고 무거울수록 빠름 → 짐이 속도), 맞바람(뒤에 붙으면 바람 없음, 무거우면 덜 밀림 → 1등이 손해).
-#  지난 판 끝의 짐이 다음 판 짐(화면 폭도), 지난 판 순위가 출발 줄(이긴 사람이 맨 앞 = 앞이 안 보임). 짐 수가 다음 길 고르기의 답을 바꾼다.
-# 한 문장: 나는 막내 배달부로서 "카메라는 1등만 따라가고 화면 폭은 모두의 짐만큼"인 길을 짐 지고 달려 배달하지만, 빨리 갈수록 앞이 안 보이고 가벼울수록 밀려나기 쉬운 대가를 감수한다.
-# 표절 점검 (SpeedRunners, 2016)
-#  같은 것: 옆모습 4인 · 카메라가 1등을 따라감 · 화면 왼쪽 밖 탈락 · 라운드 승수 · 점프 발판
-#  원작 것이라 뺀 것: 갈고리 · 아이템 상자(로켓·바나나, 원작은 로켓·얼음·상자 등) · 부스트 발판 · 시간 따라 좁아지는 화면
-#  원작에 없는 우리 것: 1등의 앞 시야가 자기 속도에 비례해 줄어듦(천천히 가면 보임) · 짐(무게=느림·낮은 점프, 왼쪽 끝 목숨, 결승은 짐 필수)
-#   · 화면 폭 = 모두가 든 짐의 합 · 앞사람 바람 · 끝이 있는 코스 · 코스마다 하는 방식(흐르는 바닥·정전·벽 없는 지붕)
-#   · (5판) 건널목: 아래 도랑 선로는 벽 없이 빠르지만 앞쪽에서 기차가 달려온다. 2등은 기차가 보이고 1등은 종소리만 듣는다 → 시야 규칙의 답이 "선두면 위 승강장, 2등이면 선로"로 갈린다. 가벼우면 기차를 뛰어넘는다.
-#   · (5판) 흔들다리: 짐 3개 이상(무게)으로 밟은 판은 금이 가 곧 떨어진다 → 무거우면 멈추지 말고 달려야 하고, 무거운 1등은 뒷사람 앞에 구멍을 낸다. 짐 규칙의 답이 "다리 앞에서 짐을 버려 가볍게 / 일부러 무겁게 다리를 부순다"로 바뀐다.
-#   · (5판) 비주얼: 코스마다 하늘색·먼 산 실루엣, 떠가는 구름, 선두 속도 바람 줄, 착지 찌그러짐, 충돌·붕괴 파편(돌려 쓰기). 상자 수를 300 아래로: 코스 상자는 화면 근처만 돌려 쓰는 풀로 그린다.
-#  결론: 이전 판은 뼈대와 도구가 원작과 거의 같아 표절 소리 들을 만했다. 지금은 뼈대(옆모습 화면 경주)만 같고 이기는 방법이 다르다.
+## v7: 무거운 저울·가벼운 상승풍·선두 차단문·낙하마루 + 바로 이어지는 응용 구간.
+## 기본 / 밤 등불 / 과속 배달. 안전한 첫 10초 → 6코스 2승 → 마지막 배달 → 순위·짐·시간·코스 메달·로컬 기록.
+## 짐=느림·목숨·화면 폭, 선두 카메라·왼쪽 탈락 유지. 아트는 _art_model / _build_backdrop 훅에서 교체한다.
 
 const GRAV := 38.0
 const JUMP_V := 15.0
@@ -54,7 +42,7 @@ const TRENCH := 3.2  # 선로 도랑 깊이
 const BREAK_W := 3.0  # 이 무게 이상이면 다리 판이 무너진다
 const BREAK_T := 0.42  # 금 간 판이 떨어지기까지
 const BOARD := Color("c99a6e")
-const CRACK := Color("f08c00")
+const CRACK := Color("f03e3e")
 const GATE_MAX := 2  # 낮은 문: 짐 이만큼까지만 지나간다
 const GATE_H := 1.6
 const ICE := Color("d0ebff")
@@ -63,6 +51,49 @@ const WIND_K := 0.45  # 맞바람에 깎이는 최고 속도 (가벼울 때)
 # 판 변주: 구간 이름 -> [버튼 이름, 설명]
 const TWISTS := {"gate": ["낮은 문", "짐 2개까지만 지나간다"], "slide": ["얼음 내리막", "못 멈춘다, 무거울수록 빠르다"],
 	"wind": ["맞바람", "뒤에 붙으면 바람이 없다"]}
+# 밤 등불 모드
+const NIGHT_SKY := Color("5b70d9")
+const FOG := Color("e4e8f7")
+const GLOW := Color("ffe066")
+const LIGHT_R := 5.0
+const LOST_T := 1.5  # 빛 밖에서 이만큼 있으면 짐 하나를 잃는다 (없으면 탈락)
+const ZR := 2.2  # 등불 모드: 주자는 안개 앞에 그린다
+const ZF := 1.5  # 안개 막
+const FOG_N := 6
+const EDGE_N := 8
+const MODES := {"base": "기본", "lantern": "밤 등불", "over": "과속 배달"}
+const MODE_RULES := {"base": "짐을 지키거나 버려서 앞서라", "lantern": "선두의 빛에 붙어라 · 빠르면 빛이 뒤로", "over": "짐 2개 이하: 천장 가속 / 벽 반동"}
+const RECORDS := "user://screenrace_v7.cfg"
+const SEG_RULES := {
+	"flat": "짐은 느림과 목숨 · 빈손 결승은 실격",
+	"stairs": "계단: 점프를 아껴 달려 올라가라",
+	"wall": "빨간 벽: 점프로 넘겨라", "pit": "빨간 틈: 끝에서 점프",
+	"awning": "노란 발판: 위 지름길 / 아래 상자",
+	"crates": "상자: 앞사람 뒤에서 길을 읽어라",
+	"river": "흐르는 바닥: 무거우면 덜 밀린다",
+	"track": "위 승강장 / 아래는 기차가 온다",
+	"bridge": "짐 3개 이상: 밟은 판이 무너진다",
+	"gate": "낮은 문: 짐 2개 이하만 통과",
+	"slide": "얼음: 무거울수록 빠르고 못 멈춘다",
+	"wind": "맞바람: 앞사람 뒤에 붙어라",
+	"roofgap": "지붕 틈: 점프를 끝까지 눌러라",
+	"longgap": "먼 틈: 짐을 버리고 점프",
+	"ballast": "저울: 짐 3개면 위로 / 가벼우면 아래",
+	"updraft": "상승풍: 짐 2개 이하면 위로 뜬다",
+	"shutter": "차단문: 선두가 닿으면 잠깐 뒤 열림",
+	"dropfloor": "낙하마루: 짐 3개로 잠깐 밟아 아래로",
+	"ballast_mix": "응용: 무거운 저울 위로 / 아래는 강물",
+	"updraft_mix": "응용: 가볍게 떠서 낮은 문 통과",
+	"shutter_mix": "응용: 맞바람 속 차단문은 뒤에 붙기",
+	"dropfloor_mix": "응용: 무겁게 마루를 뚫고 얼음 질주"}
+# 순서는 도입 → 같은 규칙과 앞서 배운 지형의 결합. 이후 익숙한 조각을 새로 섞는다.
+const LESSONS := [
+	["wall", "river", "ballast", "ballast_mix"],
+	["river", "gate", "updraft", "updraft_mix"],
+	["wind", "shutter", "shutter_mix", "track"],
+	["bridge", "slide", "dropfloor", "dropfloor_mix"],
+	["ballast", "ballast_mix", "bridge", "shutter", "shutter_mix"],
+	["updraft", "updraft_mix", "roofgap", "dropfloor", "dropfloor_mix"]]
 const POOL_N := 100  # 코스 상자를 그리는 풀 (화면 근처만)
 const BITS_N := 12
 const COURSES := [
@@ -128,9 +159,12 @@ class Courier:
 	var poof_t := 0.0
 	var immune := 0.0
 	var face := 1.0
+	var art: Node3D  # 그림 모델 (있으면 바라보는 쪽으로 돌린다)
 	var wins := 0
 	var sq := 0.0  # 찌그러짐 (+ 납작, - 길쭉)
 	var dive := false  # 경쟁자: 건널목에서 선로로 내려갈지
+	var lost := 0.0  # 등불 모드: 빛 밖에 있은 시간
+	var bold := 0.5  # 등불 모드 경쟁자: 등불을 들고 얼마나 빨리 달리나
 	# 이번 프레임 입력
 	var mx := 0.0
 	var i_jump := false
@@ -209,21 +243,286 @@ var bit_i := 0
 var clouds: Array = []
 var winds: Array[MeshInstance3D] = []
 var wind_x := 0.0
+# 모드
+var mode := "base"
+var mode_l: Label
+var bearer: Courier
+var lantern: Node3D
+var lamp_lean := 0.0  # 등불 든 사람의 속도 비율 (클수록 뒤로 젖고 크게 흔들린다)
+var swing_t := 0.0
+var swing_sign := 1.0
+var light_c := 0.0
+var lit: Array[Vector2] = []
+var fogs: Array[MeshInstance3D] = []
+var edges: Array[MeshInstance3D] = []
+var hold_acc := 0.0
+var was_bearer := false
+var mechanisms: Array = []
+var shutter_of := {}
+var signs: Array = []
+var seen_rules := {}
+var journey_time := 0.0
+var course_time := 0.0
+var delivered := 0
+var course_results: Array = []
+var records := ConfigFile.new()
+var finale := false
+var result_l: Label
+var route_l: Label
+var backdrop: Sprite3D
+
+
+func _opening() -> bool:
+	return ci == 0 and rnd == 1 and not finale and rt < 10.0
+
+
+func _overpowered(r: Courier) -> bool:
+	return mode == "over" and r == pl and r.cargo <= 2 and not _opening()
+
+
+func _sign(x: float, y: float, words: String, rule := "") -> void:
+	var label := Label3D.new()
+	label.font = _font
+	label.text = words
+	label.font_size = 48
+	label.pixel_size = 0.012
+	label.outline_size = 10
+	label.modulate = WHITE
+	label.outline_modulate = INK
+	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	label.position = Vector3(x + 3.0, y, 0.2)
+	stage.add_child(label)
+	signs.append({"x": x, "words": words, "rule": rule, "node": label})
+
+
+func _mechanisms(dt: float) -> void:
+	for m in mechanisms:
+		if m.type == "shutter":
+			if m.t >= 0.0:
+				m.t += dt
+				(m.node as Node3D).visible = m.t < 0.75
+			else:
+				for r in runners:
+					if r.alive and r.p.x > m.x0 and r.p.x < m.x1 + 0.6 and absf(r.p.y - m.y) < 3.6:
+						m.t = 0.0
+						_snd(r, 250.0, 0.12, 900.0)
+						break
+			continue
+		for r in runners:
+			if not r.alive or r.p.x < m.x0 or r.p.x > m.x1:
+				continue
+			if m.type == "ballast" and r.grounded and r.cargo >= 3 and absf(r.p.y - m.y) < 0.6:
+				r.v.y = 24.0
+				r.v.x = maxf(r.v.x, 8.5)
+				r.grounded = false
+				r.cut = true
+				_snd(r, 300.0, 0.18, 1400.0)
+			elif m.type == "updraft" and r.cargo <= 2 and r.p.y >= m.y - 0.1 and r.p.y < m.y + 4.8:
+				r.v.y = 18.0
+				r.grounded = false
+				r.cut = true
+
+
+func _update_content_hud() -> void:
+	route_l.visible = not over and not _rating
+	if phase == "mode":
+		route_l.text = "기본: %s\n밤 등불: %s\n과속: %s\n최다 배달: 기본 %d / 등불 %d / 과속 %d" % [MODE_RULES.base, MODE_RULES.lantern, MODE_RULES.over, int(records.get_value("base", "delivered", 0)), int(records.get_value("lantern", "delivered", 0)), int(records.get_value("over", "delivered", 0))]
+		return
+	if phase == "perk":
+		route_l.text = "%s: %s\n%s: %s" % [perk_offer[0], PERK_SAY[perk_offer[0]], perk_offer[1], PERK_SAY[perk_offer[1]]]
+		return
+	if phase == "route":
+		route_l.text = "%s: %s\n%s: %s" % [TWISTS[route_offer[0]][0], TWISTS[route_offer[0]][1], TWISTS[route_offer[1]][0], TWISTS[route_offer[1]][1]]
+		return
+	if _opening():
+		var lesson := mini(int(rt / 3.3), 2)
+		route_l.text = ["← 빨간 끝 밖: 짐 하나 / 빈손 탈락", "짐 = 느림 + 목숨 · 함께 든 짐이 화면 폭", "[짐] 하나 버려 가속! 마지막 하나는 남겨라"][lesson]
+		return
+	route_l.text = ""
+	if phase != "race":
+		return
+	# World signs are repeated at the next encounter until actually approached.
+	for signpost in signs:
+		(signpost.node as Node3D).visible = absf(signpost.x - camx) < hwv + 8.0
+		if pl.p.x > signpost.x - 7.0 and pl.p.x < signpost.x + 6.0:
+			route_l.text = signpost.words
+			if signpost.rule != "" and not seen_rules.has(signpost.rule):
+				seen_rules[signpost.rule] = true
+				beep(740.0, 0.06, 990.0, 0.12)
+			break
+
+
+func _record_course() -> void:
+	var medal := 3 if rnd <= 2 and pl.cargo >= 3 else (2 if rnd <= 3 else 1)
+	var row := {"name": cdef.name, "medal": medal, "time": course_time, "cargo": pl.cargo}
+	course_results.append(row)
+	var key := "%s_%d" % [mode, ci]
+	records.set_value(key, "medal", maxi(medal, int(records.get_value(key, "medal", 0))))
+	records.set_value(key, "time", minf(course_time, float(records.get_value(key, "time", 1.0e9))))
+	records.set_value(key, "cargo", maxi(pl.cargo, int(records.get_value(key, "cargo", 0))))
+	records.save(RECORDS)
+
+
+func _start_finale() -> void:
+	finale = true
+	rnd = 0
+	fresh = false
+	twist = ""
+	_build_course()
+	_start_round()
+	msg("마지막 배달! 배운 길을 모두 써라", 2.4)
+	# Keep the last round's parcels, grid and upgrades for the final delivery.
+
+
+func _finish(won: bool) -> void:
+	if over:
+		return
+	var placement := 1 if won else maxi(2, grid.find(pl) + 1)
+	if won:
+		delivered += pl.cargo
+		score += 100 + pl.cargo * 20
+	var previous := int(records.get_value(mode, "delivered", 0))
+	var best_delivery := maxi(delivered, previous)
+	records.set_value(mode, "delivered", best_delivery)
+	if won:
+		records.set_value(mode, "time", minf(journey_time, float(records.get_value(mode, "time", 1.0e9))))
+	var saved := records.save(RECORDS) == OK
+	var strongest := "아직 없음"
+	var best_medal := 0
+	var best_cargo := -1
+	var rows := ""
+	var row_count := 0
+	for row in course_results:
+		rows += "%s %s  " % [row.name, ["", "동", "은", "금"][row.medal]]
+		row_count += 1
+		if row_count == 3:
+			rows += "\n"
+		if row.medal > best_medal or (row.medal == best_medal and row.cargo > best_cargo):
+			best_medal = row.medal
+			best_cargo = row.cargo
+			strongest = row.name
+	var best_time := float(records.get_value(mode, "time", 0.0))
+	var hint := "다음엔 짐 3개로 저울 위 지름길!"
+	if mode == "base":
+		hint = "다음엔 과속 배달: 짐 2개로 천장 가속!"
+	elif mode == "over":
+		hint = "다음엔 밤 등불: 선두의 빛에 붙어라!"
+	result_l.text = "%s · %d위\n배달한 짐 %d개 · 달린 시간 %.1f초\n최고 코스: %s\n%s\n로컬 최다 배달 %d개%s\n완주 최고 %s\n%s\n금: 2판 안에 승리 + 남은 짐 3개\n은: 3판 안 / 동: 코스 완주\n별점 아래 빈 곳을 탭하면 다시 배달" % ["여섯 동네 배달 완료!" if won else "오늘 배달은 여기까지", placement, delivered, journey_time, strongest, rows, best_delivery, " · 새 기록!" if delivered > previous else "", "%.1f초" % best_time if best_time > 0.0 else "도전 중", hint]
+	if not saved:
+		result_l.text += "\n기록 저장 안 됨"
+	result_l.visible = true
+	phase = "results"
+	end() # Tofu owns stars, feedback, score save and tap-to-restart.
+	play("win" if won else "bad")
+
+
+func _process(dt: float) -> void:
+	super._process(dt)
+	if result_l:
+		result_l.visible = over and not _rating
+		if over:
+			_over_l.visible = false
+			route_l.visible = false
+
+
+# Art contract: art/screenrace/{name}.glb or models/{name}.glb, Y-up, auto-height.
+# A holder keeps visual scale separate from collision and courier animation.
+func _art_model(asset: String, parent: Node3D, pos := Vector3.ZERO, height := 1.0) -> bool:
+	for path in ["res://art/screenrace/%s.glb" % asset, "res://art/screenrace/models/%s.glb" % asset]:
+		if not ResourceLoader.exists(path):
+			continue
+		var resource := load(path)
+		if not resource is PackedScene:
+			continue
+		var model := (resource as PackedScene).instantiate()
+		if not model is Node3D:
+			model.free()
+			continue
+		var holder := Node3D.new()
+		parent.add_child(holder)
+		holder.add_child(model)
+		var pending: Array = [[model, Transform3D.IDENTITY]]
+		var bounds := AABB()
+		var found := false
+		while not pending.is_empty():
+			var entry: Array = pending.pop_back()
+			var node: Node3D = entry[0]
+			var transform: Transform3D = entry[1] * node.transform
+			if node is MeshInstance3D and (node as MeshInstance3D).mesh:
+				var ab: AABB = transform * (node as MeshInstance3D).get_aabb()
+				bounds = bounds.merge(ab) if found else ab
+				found = true
+			for child in node.get_children():
+				if child is Node3D:
+					pending.append([child, transform])
+		if not found or bounds.size.y <= 0.001:
+			holder.queue_free()
+			return false
+		var scale_factor := height / bounds.size.y
+		holder.scale = Vector3.ONE * scale_factor
+		holder.position = pos - Vector3(bounds.get_center().x, bounds.position.y, bounds.get_center().z) * scale_factor
+		return true
+	return false
+
+
+func _build_backdrop() -> void:
+	var names := ["market", "riverside", "crossing", "night_market", "bridge", "rooftops"]
+	var keys: Array = ["night", "night_market"] if mode == "lantern" else [names[ci]]
+	for path in keys.map(func(k): return "res://art/screenrace/bg_%s.webp" % k):
+		if ResourceLoader.exists(path):
+			var texture := load(path) as Texture2D
+			if texture:
+				backdrop = Sprite3D.new()
+				backdrop.texture = texture
+				backdrop.pixel_size = 65.0 / maxf(texture.get_width(), 1.0)
+				backdrop.shaded = false
+				stage.add_child(backdrop)
+				return
+
+
+func _swap_visual(asset: String, parent: Node3D, pos: Vector3, height: float) -> void:
+	var fallback := parent.get_children()
+	if _art_model(asset, parent, pos, height):
+		for child in fallback:
+			if child is Node3D:
+				(child as Node3D).visible = false
 
 
 func _setup() -> void:
 	time_limit = 0.0
 	cam.keep_aspect = Camera3D.KEEP_WIDTH
-	howto = "막내 배달부 경주! 카메라는 1등만 따라간다. 화면 왼쪽 끝에 밀리면 짐 하나를 내주고 버틴다. 짐이 없을 때 밀리거나 구덩이에 빠지면 탈락.\n짐이 많을수록 느리고 낮게 뛴다. [짐]을 누르면 하나 버리고 튀어나간다. 결승선은 짐이 있어야 통과. 화면 폭은 모두가 든 짐만큼.\n1등이면 빨리 달릴수록 화면이 쏠려 앞이 안 보인다. 판이 끝나면 다음 판 길을 고른다: 낮은 문(짐 2개까지만), 얼음 내리막(무거울수록 빠름), 맞바람(뒤에 붙으면 바람 없음). 남은 짐과 순위(출발 줄)는 다음 판으로 이어진다.\n코스 6개(강변·건널목·야시장·흔들다리·지붕), 2승이면 다음 코스."
+	var layer := CanvasLayer.new()
+	add_child(layer)
+	mode_l = _label(layer, 28, 130, 64)
+	route_l = _label(layer, 30, 250, 160)
+	result_l = _label(layer, 30, 240, 570)
+	result_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	result_l.position.x = 30
+	result_l.size.x = 660
+	result_l.visible = false
+	howto = "왼쪽 스틱으로 달리고 [점프]로 넘는다.\n짐은 느리지만 목숨이다. [짐]은 하나 버리고 가속.\n여섯 동네를 지나 마지막 배달까지!"
 	kit_stick()
 	kit_button("jump", "점프", Vector2(600, 1120), 100.0, A)
 	kit_button("drop", "짐", Vector2(600, 890), 82.0, PARCEL)
+	kit_button("mode_over", "과속", Vector2(420, 690), 80.0, BAD)
+	_btns["mode_over"].r = 0.0
 
 
 func _reset() -> void:
 	ci = 0
 	rnd = 0
+	journey_time = 0.0
+	course_time = 0.0
+	delivered = 0
+	course_results.clear()
+	seen_rules.clear()
+	finale = false
+	result_l.visible = false
+	records = ConfigFile.new()
+	if FileAccess.file_exists(RECORDS):
+		records.load(RECORDS)
 	stage = null
+	mode = "base"
 	spd_mul = 1.0
 	jump_mul = 1.0
 	slip_mul = 1.0
@@ -249,6 +548,8 @@ func _reset() -> void:
 	parcels.clear()
 	for i in 18:
 		var n := box(Vector3(0, -50, 0), Vector3(0.6, 0.5, 0.6), PARCEL)
+		if _art_model("parcel", n, Vector3(0, -0.5, 0), 1.0):
+			n.mesh = null
 		n.visible = false
 		parcels.append({"node": n, "on": false, "p": Vector2.ZERO, "owner": null, "cd": 0.0})
 	edge_strip = box(Vector3.ZERO, Vector3(0.35, 1, 0.2), BAD)
@@ -275,7 +576,44 @@ func _reset() -> void:
 		var m := box(Vector3(0, -80, 4.0), Vector3(2.5, 0.06, 0.06), WHITE)
 		m.visible = false
 		winds.append(m)
+	lantern = Node3D.new()
+	world.add_child(lantern)
+	box(Vector3(0, 0.45, 0), Vector3(0.08, 0.9, 0.08), INK, lantern)
+	box(Vector3(0, 1.05, 0), Vector3(0.5, 0.55, 0.5), GLOW, lantern)
+	box(Vector3(0, 1.05, 0.28), Vector3(0.24, 0.3, 0.05), WHITE, lantern)
+	box(Vector3(0, 1.38, 0), Vector3(0.6, 0.1, 0.6), INK.lightened(0.2), lantern)
+	_swap_visual("lantern", lantern, Vector3(0, 0.3, 0), 1.2)
+	lantern.visible = false
+	fogs.clear()
+	for i in FOG_N:
+		var m := box(Vector3(0, -80, ZF), Vector3.ONE, FOG)
+		m.visible = false
+		fogs.append(m)
+	edges.clear()
+	for i in EDGE_N:
+		var m := box(Vector3(0, -80, ZF + 0.05), Vector3.ONE, GLOW)
+		m.visible = false
+		edges.append(m)
+	lit.clear()
+	bearer = null
 	_restore_labels()
+	_build_course()
+	_start_round()
+	# 모드 고르기: 버튼 셋
+	phase = "mode"
+	_btns["jump"].label = MODES.base
+	_btns["drop"].label = MODES.lantern
+	_btns["mode_over"].r = 80.0
+
+
+func _pick_mode(n: String) -> void:
+	mode = "base" if n == "jump" else ("lantern" if n == "drop" else "over")
+	_btns["mode_over"].r = 0.0
+	play("good")
+	_restore_labels()
+	_kit_clear()
+	rnd = 0
+	fresh = true
 	_build_course()
 	_start_round()
 
@@ -283,11 +621,17 @@ func _reset() -> void:
 func _make_body(r: Courier) -> void:
 	r.node = Node3D.new()
 	world.add_child(r.node)
-	box(Vector3(0, 0, 0), Vector3(HW * 2.0, HH * 0.75, 0.8), r.col, r.node)
-	box(Vector3(0, 0.63, 0), Vector3(0.42, 0.36, 0.5), SOFT, r.node)
-	box(Vector3(0.05, 0.88, 0), Vector3(0.6, 0.14, 0.6), WHITE if not r.ai else r.col.darkened(0.2), r.node)
+	var skins := ["courier_coral", "courier_blue", "courier_mint", "courier_gold"]
+	if _art_model(skins[runners.size() % 4], r.node, Vector3(0, -0.45, 0), 1.5):
+		r.art = r.node.get_child(r.node.get_child_count() - 1)
+	else:
+		box(Vector3.ZERO, Vector3(HW * 2.0, HH * 0.75, 0.8), r.col, r.node)
+		box(Vector3(0, 0.63, 0), Vector3(0.42, 0.36, 0.5), SOFT, r.node)
+		box(Vector3(0.05, 0.88, 0), Vector3(0.6, 0.14, 0.6), WHITE if not r.ai else r.col.darkened(0.2), r.node)
 	for k in LOAD_MAX + 1:
 		var q := box(Vector3(-0.5, -0.2 + k * 0.4, 0), Vector3(0.5, 0.38, 0.6), PARCEL, r.node)
+		if _art_model("parcel", q, Vector3(0, -0.5, 0), 1.0):
+			q.mesh = null
 		q.visible = false
 		r.packs.append(q)
 	r.fire = box(Vector3(-0.9, 0, 0), Vector3(0.9, 0.35, 0.35), C, r.node)
@@ -320,6 +664,10 @@ func _build_course() -> void:
 	board_of.clear()
 	gates.clear()
 	gusts.clear()
+	mechanisms.clear()
+	shutter_of.clear()
+	signs.clear()
+	backdrop = null
 	vspecs.clear()
 	vslot.clear()
 	vfree.clear()
@@ -329,13 +677,25 @@ func _build_course() -> void:
 	v_last = Vector3(1e9, 0, 0)
 	for e in get_children():
 		if e is WorldEnvironment:
-			(e as WorldEnvironment).environment.background_color = cdef.sky
+			(e as WorldEnvironment).environment.background_color = NIGHT_SKY if mode == "lantern" else cdef.sky
 	gen.seed = game_seed + ci * 7919 + rnd * 131  # 판마다 새 지도
 	fy = 0.0
 	min_fy = 0.0
 	gx = -40.0
 	_floor(gx, 44.0)
 	gx = 4.0
+	if ci == 0 and rnd == 0 and not finale:
+		_floor(gx, 90.0)
+		_sign(1.0, fy + 3.6, "왼쪽 밖: 짐 하나 · 빈손이면 탈락")
+		_sign(26.0, fy + 3.6, "짐이 많으면 느리지만 안전하다")
+		_sign(52.0, fy + 3.6, "[짐] 하나 버리면 앞으로 튀어나간다")
+		gx = 94.0
+	if finale:
+		for part in ["ballast", "ballast_mix", "updraft", "updraft_mix", "shutter", "shutter_mix", "dropfloor", "dropfloor_mix"]:
+			_seg(part)
+	else:
+		for part in LESSONS[ci]:
+			_seg(part)
 	var goal := 380.0 + mini(ci, 3) * 45.0
 	var segs: Array = cdef.segs
 	var last := ""
@@ -343,7 +703,7 @@ func _build_course() -> void:
 	var n_bridge := 0
 	var n_tw := 0
 	var since := 0
-	while gx < goal:
+	while gx < goal and not finale:
 		var s: String = segs[gen.randi() % segs.size()]
 		if s == last and s != "flat" and s != "roofgap" and s != "river":
 			s = "flat" if cdef.rule != "roof" else "roofgap"
@@ -364,7 +724,12 @@ func _build_course() -> void:
 		n_bridge += 1 if s == "bridge" else 0
 		last = s
 		_seg(s)
-	goal_x = gx + 2.0
+	goal_x = gx + (24.0 if finale else 2.0)
+	if finale:
+		_sign(gx + 7.0, fy + 3.0, "마지막 집! 짐 하나는 남겨라")
+		_vbox(Vector3(goal_x + 6.0, fy + 3.0, -3.0), Vector3(7, 6, 3), SOFT)
+		_vbox(Vector3(goal_x + 6.0, fy + 6.3, -3.0), Vector3(8, 0.6, 4), cdef.top)
+		_vbox(Vector3(goal_x + 4.0, fy + 1.4, -1.4), Vector3(1.6, 2.8, 0.2), GOOD)
 	_floor(gx, 60.0)
 	for z in [-1.4, 1.4]:
 		_vbox(Vector3(goal_x, fy + 2.6, z), Vector3(0.3, 5.2, 0.3), GOOD)
@@ -380,6 +745,7 @@ func _build_course() -> void:
 		var rc := rects[i]
 		for b in range(_bi(rc.position.x), _bi(rc.end.x) + 1):
 			buckets[b].append(i)
+	_build_backdrop()
 	# 뒤 건물 (원근 때문에 느리게 지나간다)
 	var bx := -40.0
 	var bld: Array = cdef.bld
@@ -414,8 +780,70 @@ func _build_course() -> void:
 
 
 func _seg(s: String) -> void:
-	var wallc: Color = cdef.wall
+	var wallc: Color = BAD
+	if SEG_RULES.has(s):
+		_sign(gx + 1.0, fy + 4.2, SEG_RULES[s], s)
 	match s:
+		"ballast", "ballast_mix":
+			# 무거운 짐이 열쇠. 낮은 길도 열려 있지만 장애물/강물 때문에 늦다.
+			_floor(gx, 26.0)
+			_solid(Rect2(gx + 4.0, fy, 2.0, 0.25), D, 0)
+			mechanisms.append({"type": "ballast", "x0": gx + 3.5, "x1": gx + 6.5, "y": fy + 0.25})
+			_plat(gx + 8.0, fy + 5.0, 12.0, GOOD)
+			spots.append(Vector2(gx + 14.0, fy + 5.0))
+			if s == "ballast_mix":
+				_solid(Rect2(gx + 7.0, fy - 0.3, 16.0, 0.3), B, 3)
+			else:
+				_solid(Rect2(gx + 11.0, fy, 1.2, 1.5), BAD, 0)
+				_solid(Rect2(gx + 18.0, fy, 1.2, 1.5), BAD, 0)
+			gx += 26.0
+		"updraft", "updraft_mix":
+			_floor(gx, 28.0)
+			mechanisms.append({"type": "updraft", "x0": gx + 3.0, "x1": gx + 8.0, "y": fy})
+			for k in 4:
+				_vbox(Vector3(gx + 3.5 + k, fy + 2.0, -0.8), Vector3(0.12, 4.0, 0.12), WIND_C)
+			_plat(gx + 9.0, fy + 5.0, 12.0, GOOD)
+			_solid(Rect2(gx + 12.0, fy, 1.2, 1.8), BAD, 0)
+			_solid(Rect2(gx + 19.0, fy, 1.2, 1.8), BAD, 0)
+			if s == "updraft_mix":
+				# 위층의 낮은 문은 상승풍 입구에서 떨어뜨려 둔다.
+				_solid(Rect2(gx + 15.0, fy + 6.6, 5.0, 2.0), BAD, 0)
+				spots.append(Vector2(gx + 23.0, fy))
+			gx += 28.0
+		"shutter", "shutter_mix":
+			_floor(gx, 26.0)
+			if s == "shutter_mix":
+				gusts.append(Vector2(gx, gx + 26.0))
+			var dx := gx + 10.0
+			rects.append(Rect2(dx, fy, 0.5, 3.5))
+			kinds.append(7)
+			shutter_of[rects.size() - 1] = mechanisms.size()
+			var door := box(Vector3(dx + 0.25, fy + 1.75, 0), Vector3(0.5, 3.5, 2.5), BAD, stage)
+			mechanisms.append({"type": "shutter", "x0": dx - 2.5, "x1": dx, "y": fy, "t": -1.0, "node": door})
+			_solid(Rect2(dx - 1.0, fy + 3.5, 3.0, 2.0), BAD, 0)
+			gx += 26.0
+		"dropfloor", "dropfloor_mix":
+			_floor(gx, 4.0)
+			var low := fy - 4.5
+			_solid(Rect2(gx + 4.0, low - 10.0, 24.0, 10.0), cdef.gnd, 0)
+			# 위는 장애물 길, 무거운 선두가 아래를 열면 뒤도 같은 구멍을 쓴다.
+			for k in 4:
+				var rc := Rect2(gx + 4.0 + k * 1.5, fy - 0.3, 1.5, 0.3)
+				rects.append(rc)
+				kinds.append(4)
+				var bn := box(Vector3(rc.get_center().x, rc.get_center().y, 0), Vector3(1.5, 0.3, 2.4), BOARD, stage)
+				var bd := {"i": rects.size() - 1, "node": bn, "home": bn.position, "t": -1.0, "gone": false, "vy": 0.0}
+				boards.append(bd)
+				board_of[rects.size() - 1] = bd
+			_plat(gx + 10.0, fy, 14.0, cdef.top)
+			_solid(Rect2(gx + 13.0, fy, 1.0, 1.8), BAD, 0)
+			_solid(Rect2(gx + 19.0, fy, 1.0, 1.8), BAD, 0)
+			if s == "dropfloor_mix":
+				_solid(Rect2(gx + 4.0, low - 0.2, 20.0, 0.2), ICE, 5)
+			# lower route becomes the next segment's floor; no invisible fatal pit.
+			fy = low
+			_floor(gx + 28.0, 5.0)
+			gx += 33.0
 		"flat":
 			var w := gen.randf_range(6.0, 12.0)
 			_floor(gx, w)
@@ -436,6 +864,7 @@ func _seg(s: String) -> void:
 			gx += 9.0
 		"pit":
 			_floor(gx, 2.0)
+			_danger_edge(gx + 1.7, fy)
 			gx += 2.0 + gen.randf_range(3.0, 5.0)
 			fy = clampf(fy + gen.randf_range(-1.0, 1.0), -3.0, 6.0)
 			_floor(gx, 5.0)
@@ -468,6 +897,7 @@ func _seg(s: String) -> void:
 				gx += w
 				if k < 2:
 					var g := gen.randf_range(2.5, 3.5)
+					_danger_edge(gx - 0.3, fy)
 					_vbox(Vector3(gx + g * 0.5, fy - 2.5, 0), Vector3(g, 0.3, 2.5), B)
 					gx += g
 			_floor(gx, 3.0)
@@ -497,7 +927,7 @@ func _seg(s: String) -> void:
 				_solid(Rect2(x, fy - 0.8, w, 0.8), cdef.gnd.darkened(0.04), 0)
 				_vbox(Vector3(x + w * 0.5, fy - 0.08, 0), Vector3(w, 0.16, 2.5), cdef.top)
 				if not first and w > 5.0 and gen.randf() < 0.6:
-					_solid(Rect2(x + w * 0.5, fy, 1.1, gen.randf_range(1.0, 1.6)), cdef.wall, 0)
+					_solid(Rect2(x + w * 0.5, fy, 1.1, gen.randf_range(1.0, 1.6)), BAD, 0)
 				elif gen.randf() < 0.4:
 					spots.append(Vector2(x + w * 0.5, fy))
 				first = false
@@ -512,6 +942,7 @@ func _seg(s: String) -> void:
 			for k in 3:
 				box(Vector3(1.6 + k * 2.0, TRAIN_H * 0.62, 0.92), Vector3(1.1, 0.6, 0.05), WHITE, tn)
 			box(Vector3(-0.05, TRAIN_H * 0.35, 0), Vector3(0.12, 0.35, 1.0), D, tn)
+			_swap_visual("train", tn, Vector3(TRAIN_L * 0.5, 0, 0), TRAIN_H)
 			tn.position = Vector3(x0 + ln + 2.0, yb, 0)
 			var lamp := box(Vector3(x0 + ln + 0.6, fy + 1.6, 1.3), Vector3(0.5, 0.5, 0.3), WHITE, stage)
 			box(Vector3(x0 + ln + 0.6, fy + 0.7, 1.3), Vector3(0.14, 1.4, 0.14), INK, stage)
@@ -542,7 +973,7 @@ func _seg(s: String) -> void:
 		"gate":  # 낮은 문: 짐 GATE_MAX개 이하만 문틀 밑으로 지나간다. 문 앞에서 뛰면 지붕에 찧는다
 			_floor(gx, 15.0)
 			var dx := gx + 6.0
-			_solid(Rect2(dx, fy + GATE_H, 5.0, 7.0), cdef.wall, 0)
+			_solid(Rect2(dx, fy + GATE_H, 5.0, 7.0), BAD, 0)
 			rects.append(Rect2(dx, fy, 0.4, GATE_H))  # 짐이 많으면 걸리는 문틀 (안 보인다)
 			kinds.append(6)
 			gates.append(dx)
@@ -562,6 +993,7 @@ func _seg(s: String) -> void:
 				if k < 4:
 					fy -= 0.45
 					min_fy = minf(min_fy, fy)
+			_danger_edge(gx - 0.3, fy)
 			gx += gen.randf_range(3.5, 4.5)
 			fy = minf(fy + 1.0, 6.0)
 			_floor(gx, 5.0)
@@ -570,7 +1002,7 @@ func _seg(s: String) -> void:
 			var ln := gen.randf_range(18.0, 24.0)
 			_floor(gx, ln)
 			gusts.append(Vector2(gx, gx + ln))
-			_solid(Rect2(gx + ln * 0.5, fy, 1.2, 1.1), cdef.wall, 0)
+			_solid(Rect2(gx + ln * 0.5, fy, 1.2, 1.1), BAD, 0)
 			var wx := gx + 1.5
 			while wx < gx + ln:
 				_vbox(Vector3(wx, fy + 1.6, -1.5), Vector3(0.14, 3.2, 0.14), INK)
@@ -588,11 +1020,17 @@ func _seg(s: String) -> void:
 				ny = minf(ny, fy - 0.5)
 			elif ny > fy + 0.5:
 				g = minf(g, 5.0)
+			_danger_edge(gx - 0.3, fy)
 			gx += g
 			fy = ny
 			_floor(gx, 4.0)
 			gx += 4.0
 	min_fy = minf(min_fy, fy)
+
+
+func _danger_edge(x: float, y: float) -> void:
+	_vbox(Vector3(x, y + 0.08, 0), Vector3(0.6, 0.16, 2.6), BAD)
+	_vbox(Vector3(x - 0.8, y + 0.05, 0), Vector3(0.35, 0.1, 2.6), BAD)
 
 
 func _floor(x: float, w: float) -> void:
@@ -683,6 +1121,8 @@ func _start_round() -> void:
 			r.skill = 0.93 + 0.025 * lv + (runners.find(r) - 2) * 0.02
 			r.err = 0.2 - 0.03 * lv
 			r.dive = randf() < 0.45
+			r.bold = randf()
+		r.lost = 0.0
 		_probe(r)
 	for bd in boards:
 		bd.t = -1.0
@@ -722,6 +1162,9 @@ func _start_round() -> void:
 	phase = "count"
 	pt = 1.4
 	danger = false
+	bearer = null
+	hold_acc = 0.0
+	was_bearer = false
 	if twist != "":
 		msg("%s %d판: %s" % [TWISTS[twist][0], rnd, TWISTS[twist][1]], 2.2)
 	else:
@@ -756,6 +1199,8 @@ func _step(dt: float) -> void:
 				play("good")
 		"race":
 			rt += dt
+			journey_time += dt
+			course_time += dt
 			_race(dt)
 		"roundend":
 			pt -= dt
@@ -767,6 +1212,11 @@ func _step(dt: float) -> void:
 				if kit_just(n):
 					_pick_perk(n)
 					break
+		"mode":
+			for n in ["jump", "drop", "mode_over"]:
+				if kit_just(n):
+					_pick_mode(n)
+					break
 		"route":
 			msg("다음 길? 내 짐 %d" % maxi(pl.cargo, 1), 0.2)
 			for n in ["jump", "drop"]:
@@ -774,9 +1224,16 @@ func _step(dt: float) -> void:
 					_pick_route(n)
 					break
 	_update_parcels(dt)
+	if mode == "lantern" and phase != "mode":
+		_pass_lantern()
+		_lantern(dt)
+		_lights()
 	_camera(dt)
 	_draw_all()
-	if phase != "perk" and phase != "route" and _btns.has("drop"):
+	if mode_l:
+		mode_l.text = "세 가지 배달 · 버튼을 눌러 선택" if phase == "mode" else "%s · %s %d판 · 짐 %d" % [MODES[mode], "마지막 배달" if finale else cdef.name, rnd, pl.cargo]
+	_update_content_hud()
+	if phase != "perk" and phase != "route" and phase != "mode" and _btns.has("drop"):
 		_btns["drop"].label = "짐 %d" % pl.cargo
 
 
@@ -785,12 +1242,13 @@ func _race(dt: float) -> void:
 	pl.i_jump = kit_just("jump")
 	pl.i_jheld = kit_held("jump")
 	pl.i_drop = kit_just("drop")
-	if cdef.rule == "dark":
+	if cdef.rule == "dark" and mode != "lantern":
 		_dark(dt)
 	for r in runners:
 		if r.alive and r.ai:
 			_ai(r, dt)
 	_slipstream()
+	_mechanisms(dt)
 	for r in runners:
 		if r.alive:
 			_runner(r, dt)
@@ -808,6 +1266,8 @@ func _race(dt: float) -> void:
 			continue
 		if r.p.y < kill_y or r.p.y < camy - vhv - 1.0:
 			_out(r, "떨어졌다!")
+		elif _opening() and r.p.x + HW < left + 0.15:
+			r.p.x = left + 1.0
 		elif r.p.x + HW < left + 0.15:
 			if r.immune > 0.0 and r.p.x + HW > left - 2.0:
 				pass
@@ -815,6 +1275,8 @@ func _race(dt: float) -> void:
 				_shove(r, left)
 			else:
 				_out(r, "밀려났다!")
+	if mode == "lantern":
+		_fog_check(dt)
 	if phase != "race":
 		return
 	for r in runners:
@@ -830,18 +1292,14 @@ func _race(dt: float) -> void:
 				w = r
 		_round_over(w)
 		return
-	var n := 0
-	for r in runners:
-		if r.alive:
-			n += 1
-	if n <= 1:
-		_round_over(pl)
-		return
+	# 마지막 생존자도 짐을 들고 결승까지 배달해야 한다. 응용 구간을 건너뛰지 않는다.
 	# 1등이면 빠를수록 화면이 쏠린다: 앞이 안 보이니 벽·구덩이는 소리로만
 	radar_t -= dt
-	if _leader() == pl:
+	if mode == "lantern":
+		_lantern_hud(dt)
+	elif _leader() == pl:
 		if lead_t == 0.0:
-			msg("선두! 빠를수록 앞이 안 보인다", 0.9)
+			msg("선두! 빠르면 앞 시야가 짧다", 0.9)
 			beep(900.0, 0.1, 1400.0, 0.2)
 		lead_t += dt
 		if lean > 0.35 and pl.grounded:
@@ -853,9 +1311,13 @@ func _race(dt: float) -> void:
 				beep(240.0 if pit else 420.0, 0.05, 0.0, 0.18)
 	else:
 		lead_t = 0.0
-	# 화면 끝 압박
+	# 화면 끝 압박 (등불 모드에서 빛 밖이면 길 잃기 압박)
 	var ed := pl.p.x - left
-	gauge(ed / (hwv * 2.0), GOOD if ed > hwv * 0.6 else (A if ed > 2.5 else BAD))
+	if mode == "lantern" and pl.lost > 0.0:
+		var safe := 1.0 - pl.lost / LOST_T
+		gauge(safe, A if safe > 0.4 else BAD)
+	else:
+		gauge(ed / (hwv * 2.0), GOOD if ed > hwv * 0.6 else (A if ed > 2.5 else BAD))
 	if ed < 1.6:
 		danger = true
 	elif danger and ed > 4.0:
@@ -1050,11 +1512,15 @@ func _round_over(w: Courier) -> void:
 	if w != null:
 		grid.erase(w)
 		grid.push_front(w)
+	if finale:
+		_finish(w == pl)
+		return
 	if w == null:
 		msg("무승부", 1.6)
 		return
 	w.wins += 1
 	if w == pl:
+		delivered += pl.cargo
 		score += 10 + 5 * pl.cargo
 		play("win")
 		msg("배달 성공! 짐 %d" % pl.cargo, 1.6)
@@ -1066,9 +1532,9 @@ func _round_over(w: Courier) -> void:
 func _after_round() -> void:
 	if pl.wins >= WINS:
 		score += 50
+		_record_course()
 		if ci >= COURSES.size() - 1:
-			msg("배달 완료!", 3.0)
-			end()
+			_start_finale()
 			return
 		play("win")
 		var pool := []
@@ -1084,7 +1550,7 @@ func _after_round() -> void:
 	for r in runners:
 		if r.ai and r.wins >= WINS:
 			msg("%s 우승" % r.nick, 3.0)
-			end()
+			_finish(false)
 			return
 	# 다음 판 길 고르기: 방금 달린 변주 말고 둘 중 하나 (내 짐 수가 답을 바꾼다)
 	var routes := []
@@ -1122,6 +1588,7 @@ func _pick_perk(n: String) -> void:
 	_restore_labels()
 	_kit_clear()
 	ci += 1
+	course_time = 0.0
 	rnd = 0
 	twist = ""
 	fresh = true
@@ -1159,7 +1626,7 @@ func _in_wind(r: Courier) -> bool:
 
 
 func _jump_v(r: Courier) -> float:
-	return JUMP_V * (1.0 if r.ai else jump_mul) * (1.0 - LOAD_JUMP * _weight(r))
+	return (24.0 if _overpowered(r) else JUMP_V) * (1.0 if r.ai else jump_mul) * (1.0 - LOAD_JUMP * _weight(r))
 
 
 func _runner(r: Courier, dt: float) -> void:
@@ -1190,8 +1657,8 @@ func _runner(r: Courier, dt: float) -> void:
 	var ice := r.grounded and r.sup == 5
 	var acc := (GROUND_ACC if r.grounded else AIR_ACC) * (1.3 if r.slip else 1.0) * (0.2 if ice else 1.0)
 	if absf(mx) > 0.15:
-		var want := signf(mx) * top
-		if signf(r.v.x) != signf(mx) or absf(r.v.x) < top:
+		var want := mx * top
+		if signf(r.v.x) != signf(mx) or absf(r.v.x) < absf(want):
 			r.v.x = move_toward(r.v.x, want, acc * dt)
 		elif not ice:
 			r.v.x = move_toward(r.v.x, want, (OVER_G if r.grounded else OVER_A) * dt)
@@ -1204,7 +1671,7 @@ func _runner(r: Courier, dt: float) -> void:
 			r.v.x = minf(r.v.x + (4.0 + 1.8 * _weight(r)) * dt, cap)
 	if r.dash > 0.0:
 		r.dash -= dt
-		r.v.x = maxf(r.v.x, DASH_V)
+		r.v.x = maxf(r.v.x, 32.0 if _overpowered(r) else DASH_V)
 	r.v.y = maxf(r.v.y - GRAV * dt, -MAX_FALL)
 	# 흐르는 바닥: 짐이 무거울수록 덜 밀린다
 	if r.grounded and r.sup == 3:
@@ -1234,7 +1701,7 @@ func _drop(r: Courier) -> void:
 	r.cargo -= 1
 	r.drop_cd = 0.4
 	r.dash = DASH_T
-	r.v.x = maxf(r.v.x, DASH_V)
+	r.v.x = maxf(r.v.x, 32.0 if _overpowered(r) else DASH_V)
 	var x := r.p.x - r.face * 1.2
 	var y := _floor_top(x, r.p.y + 0.5)
 	if y > r.p.y - 6.0:
@@ -1254,6 +1721,8 @@ func _hard(i: int, r: Courier) -> bool:
 	var k := kinds[i]
 	if k < 0:
 		return false
+	if k == 7:
+		return mechanisms[shutter_of[i]].t < 0.75
 	if k == 6:
 		return r != null and r.cargo > GATE_MAX
 	return true
@@ -1289,7 +1758,13 @@ func _mx(r: Courier, dx: float) -> void:
 				if r == pl:
 					_burst(Vector3(r.p.x + HW, r.p.y + 0.8, 0.6), 2, cdef.wall)
 					shk = maxf(shk, 0.3)
-			if signf(r.v.x) == signf(dx):
+			if _overpowered(r) and absf(r.v.x) > 20.0:
+				r.v.x *= -0.25
+				r.stun = 0.4
+				r.dash = 0.0
+				if r == pl:
+					msg("꽝! 벽 앞에서는 가속을 참아", 1.0)
+			elif signf(r.v.x) == signf(dx):
 				r.v.x = 0.0
 			a = _box(r)
 
@@ -1310,6 +1785,12 @@ func _my(r: Courier, dy: float) -> void:
 					r.v.y = 0.0
 				else:
 					r.p.y = q.position.y - HH - 0.001
+					if _overpowered(r) and r.v.y > 3.0:
+						r.v.x = minf(maxf(r.v.x, 8.0) * 1.3, 34.0)
+						r.stun = 0.18
+						_snd(r, 230.0, 0.12, 1200.0)
+						if r == pl:
+							msg("쾅! 천장을 박아 앞으로!", 0.8)
 					r.v.y = minf(r.v.y, 0.0)
 				a = _box(r)
 
@@ -1323,7 +1804,7 @@ func _probe(r: Courier) -> void:
 	var ice := false
 	for b in range(_bi(f.position.x), _bi(f.end.x) + 1):
 		for i in buckets[b]:
-			if kinds[i] < 0 or kinds[i] == 6:
+			if kinds[i] < 0 or kinds[i] == 6 or kinds[i] == 7:
 				continue
 			var q: Rect2 = rects[i]
 			if q.intersects(f) and q.end.y <= r.p.y + 0.02:
@@ -1341,7 +1822,7 @@ func _probe(r: Courier) -> void:
 func _floor_top(x: float, ymax: float) -> float:
 	var best_y := -1.0e9
 	for i in buckets[_bi(x)]:
-		if kinds[i] < 0 or kinds[i] == 6:
+		if kinds[i] < 0 or kinds[i] == 6 or kinds[i] == 7:
 			continue
 		var q: Rect2 = rects[i]
 		if x > q.position.x and x < q.end.x and q.end.y <= ymax:
@@ -1453,6 +1934,10 @@ func _track_at(x: float) -> Dictionary:
 
 func _ai(r: Courier, dt: float) -> void:
 	r.mx = 1.0
+	if _opening() and r.p.x > pl.p.x + 2.0:
+		r.mx = 0.0
+	if mode == "lantern" and r == bearer and goal_x - r.p.x > 40.0:
+		r.mx = lerpf(0.5, 1.0, r.bold)  # 등불을 들면 대담한 만큼만 달린다
 	r.i_jump = false
 	r.i_drop = false
 	r.i_jheld = true
@@ -1466,7 +1951,11 @@ func _ai(r: Courier, dt: float) -> void:
 	var wall := _solid_in(Rect2(r.p.x + HW, r.p.y + STEP + 0.05, look, 0.9))
 	# 경쟁자도 1등이면 빠를수록 못 보고, 정전이면 못 본다
 	var miss := r.err
-	if _leader() == r:
+	if mode == "lantern":
+		# 빛 안이면 잘 보고, 안개 속이면 거의 못 본다. 등불을 들면 대담한 만큼만 달린다
+		if not _lit(ax + 1.0):
+			miss = 0.7
+	elif _leader() == r:
 		miss += 0.4 * clampf((absf(r.v.x) - 4.0) / (RUN_MAX - 4.0), 0.0, 1.0)
 	if dark_on:
 		miss += 0.3
@@ -1497,7 +1986,7 @@ func _ai(r: Courier, dt: float) -> void:
 				break
 	# 짐 버리기: 먼 틈 앞, 또는 화면 끝에 몰렸을 때
 	if r.cargo >= 2 and r.drop_cd <= 0.0:
-		var far: bool = cdef.rule == "roof" and r.grounded and _gap_len(r) > _reach(r) * 0.95
+		var far: bool = r.grounded and _gap_len(r) > _reach(r) * 0.95
 		var behind := r.p.x - (camx - hwv) < 3.0
 		if far or (behind and randf() < 0.25):
 			r.i_drop = true
@@ -1525,10 +2014,13 @@ func _camera(dt: float) -> void:
 		var k := 1.0 - exp(-9.0 * dt)
 		# 내가 1등이면 내 속도만큼 화면이 앞으로 쏠려 나는 오른쪽 끝에 붙는다
 		var f := 0.0
-		if lead == pl and phase == "race":
+		if lead == pl and phase == "race" and mode != "lantern" and not _opening():
 			f = clampf((absf(pl.v.x) - 4.0) / (RUN_MAX - 4.0), 0.0, 1.0)
 		lean = lerpf(lean, f, 1.0 - exp(-3.0 * dt))
-		camx = lerpf(camx, lead.p.x - hwv * lerpf(0.16, 0.74, lean), k)
+		var tx := lead.p.x
+		if mode == "lantern" and bearer and bearer.alive:
+			tx = lerpf(bearer.p.x, light_c, 0.3)  # 등불 모드: 화면은 등불 빛 쪽으로
+		camx = lerpf(camx, tx - hwv * lerpf(-0.18, 0.32, lean), k)
 		camy = lerpf(camy, lead.p.y + 2.0, 1.0 - exp(-4.0 * dt))
 	cam.fov = rad_to_deg(2.0 * atan(hwv / CAM_D))
 	cam.rotation = Vector3.ZERO
@@ -1551,9 +2043,15 @@ func _draw_all() -> void:
 			continue
 		var spd := absf(r.v.x)
 		var bob := sin(tm * (8.0 + spd)) * 0.06 if r.grounded and spd > 1.0 else 0.0
-		r.node.position = Vector3(r.p.x, r.p.y + HH * 0.375 + bob, 0)
+		r.node.position = _fz(r.p.x, r.p.y + HH * 0.375 + bob)
+		if mode == "lantern":
+			r.node.scale = Vector3.ONE * ((CAM_D - ZR) / CAM_D)
 		r.node.rotation.z = -clampf(r.v.x * 0.012, -0.2, 0.2)
+		if r.art:
+			r.art.rotation.y = 0.0 if r.face > 0.0 else PI
 		r.node.visible = r.immune <= 0.0 or fmod(tm, 0.12) < 0.08
+		if mode == "lantern" and r.lost > 0.3 and fmod(tm, 0.2) > 0.13:
+			r.node.visible = false  # 길을 잃어 가면 깜빡인다
 		for k in r.packs.size():
 			var q := r.packs[k]
 			q.visible = k < r.cargo
@@ -1568,13 +2066,13 @@ func _draw_all() -> void:
 			if s3.visible:
 				s3.material_override = mat(B if r.slip else WHITE)
 				s3.scale = Vector3(ln * (1.0 - k * 0.2), 0.07, 0.07)
-				s3.position = Vector3(r.p.x - r.face * (HW + 0.3 + ln * 0.5 + k * 0.2), r.p.y + 0.25 + k * 0.35, 0.5)
+				s3.position = _fz(r.p.x - r.face * (HW + 0.3 + ln * 0.5 + k * 0.2), r.p.y + 0.25 + k * 0.35, 0.5)
 		for k in r.pips.size():
 			var q := r.pips[k]
 			q.visible = k < r.wins
-			q.position = Vector3(r.p.x - 0.15 + k * 0.3, r.p.y + HH + 0.55, 0)
+			q.position = _fz(r.p.x - 0.15 + k * 0.3, r.p.y + HH + 0.55)
 	marker.visible = pl.alive
-	marker.position = Vector3(pl.p.x, pl.p.y + HH + 1.1 + sin(tm * 5.0) * 0.12, 0)
+	marker.position = _fz(pl.p.x, pl.p.y + HH + 1.1 + sin(tm * 5.0) * 0.12)
 	# 흐르는 바닥 눈금 (뒤로 흐른다)
 	for fl in flows:
 		var w: float = fl.w
@@ -1618,6 +2116,9 @@ func _draw_all() -> void:
 			w.position = Vector3(camx + hwv * wk + 3.0 - fposmod(wind_x + k * 7.3, ww), camy + vhv * wk * (0.75 - k * 0.33), 4.0)
 			w.scale = Vector3(1.0 + (ls - 7.5) * 0.6, 0.06, 0.06)
 	_vis()
+	_draw_lantern()
+	if backdrop:
+		backdrop.position = Vector3(camx * 0.94, camy * 0.94, -18.0)
 	var k2 := (CAM_D - 1.6) / CAM_D
 	# 정전: 1등 바로 앞부터 화면 오른쪽 끝까지 가린다
 	var lead := _leader()
@@ -1632,6 +2133,155 @@ func _draw_all() -> void:
 			curtain.visible = false
 	# 왼쪽 화면 끝 경고 띠
 	var ed := pl.p.x - (camx - hwv)
-	edge_strip.visible = phase == "race" and pl.alive and ed < 4.0 and (ed > 2.0 or fmod(tm, 0.16) < 0.1)
+	edge_strip.visible = phase == "race" and pl.alive and (_opening() or (ed < 4.0 and (ed > 2.0 or fmod(tm, 0.16) < 0.1)))
 	edge_strip.position = Vector3(camx - hwv * k2 + 0.18, camy, 1.6)
 	edge_strip.scale = Vector3(0.35 + maxf(0.0, 4.0 - ed) * 0.1, vhv * 2.0, 0.2)
+
+
+# ---- 밤 등불 모드 ----
+## 등불 모드면 주자·표시를 안개 앞(ZR)에 같은 화면 자리로 옮겨 그린다
+func _fz(x: float, y: float, z := 0.0) -> Vector3:
+	if mode != "lantern":
+		return Vector3(x, y, z)
+	var k := (CAM_D - ZR) / CAM_D
+	return Vector3(camx + (x - camx) * k, camy + (y - camy) * k, ZR)
+
+
+## 맨 앞 주자가 0.5m 넘게 앞지르면 등불이 넘어간다. 든 사람이 탈락하면 다음 1등에게.
+func _pass_lantern() -> void:
+	var lead := _leader()
+	if lead == null:
+		return
+	if bearer == null or not bearer.alive or (lead != bearer and lead.p.x > bearer.p.x + 0.5):
+		var had := bearer != null and bearer.alive
+		bearer = lead
+		if had and phase == "race":
+			_snd(lead, 880.0, 0.08, 1320.0, 0.2)
+			if lead != pl:
+				msg("%s가 등불을 가져갔다" % lead.nick, 0.6)
+
+
+## 등불 든 사람이 빠를수록 빛이 뒤로 젖고 크게 흔들린다 (짐이 무거우면 느려서 덜 흔들린다)
+func _lantern(dt: float) -> void:
+	if bearer == null:
+		return
+	var f := 0.0
+	if phase == "race" or phase == "roundend":
+		f = clampf((absf(bearer.v.x) - 3.0) / (RUN_MAX - 3.0), 0.0, 1.0)
+	lamp_lean = lerpf(lamp_lean, f, 1.0 - exp(-4.0 * dt))
+	var amp := lerpf(0.4, 3.2, lamp_lean)
+	swing_t += dt * lerpf(2.2, 8.0, lamp_lean)
+	var sw := sin(swing_t) * amp
+	light_c = bearer.p.x + lerpf(3.0, -4.0, lamp_lean) + sw
+	# 흔들림 끝마다 삐걱 (빠를수록 박자가 빠르다)
+	var sg := signf(cos(swing_t))
+	if sg != swing_sign:
+		swing_sign = sg
+		if lamp_lean > 0.25 and phase == "race" and absf(bearer.p.x - camx) < hwv:
+			beep(260.0 + lamp_lean * 260.0, 0.04, 0.0, 0.08 + lamp_lean * 0.06)
+
+
+func _lights() -> void:
+	lit.clear()
+	if bearer and bearer.alive:
+		lit.append(Vector2(light_c - LIGHT_R, light_c + LIGHT_R))
+
+
+func _lit(x: float) -> bool:
+	for iv in lit:
+		if x >= iv.x and x <= iv.y:
+			return true
+	return false
+
+
+## 빛 밖 안개에 LOST_T 있으면 짐 하나를 안개에 떨군다. 짐이 없으면 길을 잃고 탈락 (등불 든 사람은 빼고)
+func _fog_check(dt: float) -> void:
+	if rt < 2.0 or _opening():
+		return  # 출발 직후는 줄이 길어 봐 준다
+	for r in runners:
+		if not r.alive:
+			continue
+		if r == bearer or _lit(r.p.x):
+			r.lost = maxf(r.lost - dt * 1.5, 0.0)
+			continue
+		r.lost += dt
+		if r.lost < LOST_T:
+			continue
+		r.lost = 0.0
+		if r.cargo > 0:
+			r.cargo -= 1
+			_burst(Vector3(r.p.x - 0.5, r.p.y + 1.0, 0.6), 3, PARCEL)
+			_snd(r, 300.0, 0.2, 150.0, 0.25)
+			if r == pl:
+				shk = maxf(shk, 0.3)
+				msg("안개에 짐 하나 떨궜다! 빛 안으로", 0.9)
+		else:
+			_out(r, "안개에 길을 잃었다!")
+
+
+func _lantern_hud(dt: float) -> void:
+	if bearer == pl:
+		hold_acc += dt
+		if hold_acc >= 1.0:
+			hold_acc -= 1.0
+			score += 1
+		if not was_bearer:
+			msg("등불! 빨리 달리면 앞이 안 보인다", 1.1)
+			beep(990.0, 0.1, 1480.0, 0.24)
+	elif was_bearer and pl.alive:
+		msg("등불을 뺏겼다: 빛 안에 붙어라", 1.0)
+		beep(500.0, 0.2, 260.0, 0.22)
+	if pl.lost > 0.0 and radar_t <= 0.0:
+		var safe := 1.0 - pl.lost / LOST_T
+		radar_t = 0.08 + safe * 0.25
+		beep(1100.0 - safe * 400.0, 0.04, 0.0, 0.15)
+	was_bearer = bearer == pl
+
+
+## 등불(든 사람 손에서 빛 쪽으로 기운다)과, 밝은 구간 사이를 덮는 안개 막 + 빛 끝 노란 선
+func _draw_lantern() -> void:
+	var on := mode == "lantern" and phase != "mode" and not _opening()
+	lantern.visible = on and bearer != null and bearer.alive
+	if lantern.visible:
+		var lp := _fz(bearer.p.x + 0.3 * bearer.face, bearer.p.y + HH * 0.7)
+		lp.z += 0.1
+		lantern.position = lp
+		lantern.scale = Vector3.ONE * ((CAM_D - ZR) / CAM_D)
+		lantern.rotation.z = clampf(-(light_c - bearer.p.x) * 0.16, -1.1, 1.1)
+	if not on:
+		for m in fogs:
+			m.visible = false
+		for e in edges:
+			e.visible = false
+		return
+	var kf := (CAM_D - ZF) / CAM_D
+	var sl := camx - hwv - 2.0
+	var sr := camx + hwv + 2.0
+	var gaps: Array[Vector2] = []
+	var x := sl
+	var ei := 0
+	for iv in lit:
+		if iv.y < sl or iv.x > sr:
+			continue
+		if iv.x > x:
+			gaps.append(Vector2(x, iv.x))
+		x = maxf(x, iv.y)
+		for ex in [iv.x, iv.y]:
+			if ex > sl and ex < sr and ei < edges.size():
+				var e := edges[ei]
+				ei += 1
+				e.visible = true
+				e.position = Vector3(camx + (ex - camx) * kf, camy, ZF + 0.05)
+				e.scale = Vector3(0.16, vhv * 2.6, 0.1)
+	if x < sr:
+		gaps.append(Vector2(x, sr))
+	for k in range(ei, edges.size()):
+		edges[k].visible = false
+	for k in fogs.size():
+		var m := fogs[k]
+		m.visible = k < gaps.size()
+		if m.visible:
+			var l := camx + (gaps[k].x - camx) * kf
+			var r := camx + (gaps[k].y - camx) * kf
+			m.position = Vector3((l + r) * 0.5, camy, ZF)
+			m.scale = Vector3(maxf(r - l, 0.01), vhv * 2.6, 0.1)
