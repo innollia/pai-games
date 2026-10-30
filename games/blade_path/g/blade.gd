@@ -1,5 +1,7 @@
 extends Tofu
-## 일격의 길 (단독판): 빨간 쪽으로 밀어 막고, 초록 쪽으로 밀어 벤다. 끝까지 기다렸다 막으면 '간파'(세상이 느려짐).
+## 일격의 길 (단독판): 화면을 밀어 칼 방향(왼·오·위·아래)을 잡고, 아래 [막기]·[베기] 버튼으로 막고 벤다.
+## 적 칼은 그쪽으로 들어 올려지고 흐린 잔상이 지나갈 길을 보여 준다(색 없이 칼 모양만 봐도 안다). 초록 상자 = 빈틈.
+## 끝까지 기다렸다 막으면 '간파'(세상이 느려짐).
 ## 켜면 튜토리얼부터: 맞는 쪽으로 밀 때까지 멈추고 알려 준다. 그다음 찌르기 → 속임수 → 베기 → 거합 검객이 두 바퀴 나오고
 ## (뒤로 갈수록 체력·공격력·빠르기가 오른다), 마지막은 쓰러뜨릴 수 없는 끝판왕 검귀. 간파하면 그 자리에서 내가 직접 벤다.
 ## 빈틈이 아닐 때 휘두르면 헛공격: 체력 -1, 잠깐 굳고, 상대가 바로 친다.
@@ -9,6 +11,11 @@ const SWIPE := 60.0
 const OFF := [Vector3(-1.5, 0, 0.7), Vector3(1.5, 0, 0.7), Vector3(0, 1.75, 0.7), Vector3(0, -1.75, 0.7)]
 const LEAN := [Vector3(-1, 0, 0), Vector3(1, 0, 0), Vector3(0, 1, 0), Vector3(0, -1, 0)]
 const OPP := [1, 0, 3, 2]
+## 적 칼 (검객 기준): 들어 올린 자리 → 내게 닿는 자리, z 회전. 좌우는 세운 칼, 위아래는 눕힌 칼.
+const WIND := [Vector3(-1.9, 0.5, 0.3), Vector3(1.9, 0.5, 0.3), Vector3(0, 2.4, 0.3), Vector3(0, -1.6, 0.4)]
+const HIT := [Vector3(-0.6, 0.0, 0.9), Vector3(0.6, 0.0, 0.9), Vector3(0, 0.4, 0.9), Vector3(0, -0.7, 0.9)]
+const ROT := [0.2, -0.2, PI / 2, PI / 2]
+const ARROW := ["←", "→", "↑", "↓"]
 ## 내 칼 자세 (카메라 기준): 위치, z 회전 (왼·오·위·아래)
 const POSE := [Vector3(-0.8, -0.1, 2.5), Vector3(0.8, -0.1, 2.5), Vector3(0, 0.55, 2.5), Vector3(0, -0.85, 2.5)]
 const TURN := [0.25, -0.25, PI / 2, PI / 2]
@@ -17,10 +24,10 @@ const REST_R := -0.6
 const CAM_O := Vector3(0, 0.3, 5)
 const NAMES := ["찌르기 검객", "속임수 검객", "베기 검객", "거합 검객", "끝판왕 검귀"]
 const TIPS := [
-	"빨간 쪽으로 밀어 막아요",
-	"반쯤에 방향이 바뀌어요. 끝까지 보고 막아요",
-	"같은 쪽으로 두 번 와요!\n빨간 상자가 두 겹이면 한 번 더 막아요",
-	"가만히 있다가 갑자기 뽑아요!\n눈이 번쩍하면 칼 쪽을 막아요. 먼저 치면 헛공격",
+	"칼이 오는 쪽으로 밀고 막기",
+	"반쯤에 칼이 다른 쪽으로 옮겨 가요\n끝까지 보고 막기",
+	"같은 쪽으로 두 번 와요!\n흐린 칼이 두 자루면 한 번 더 막기",
+	"가만히 있다가 갑자기 뽑아요!\n눈이 번쩍하면 칼 쪽을 보고 막기. 먼저 베면 헛공격",
 	"쓰러뜨릴 수 없어요. 오래 버티며 돈을 벌어요",
 ]
 const BODY := [A, C, B, ME, INK]
@@ -65,11 +72,12 @@ const PAT := [
 ## 튜토리얼 공격: 왼쪽(막기 연습), 위(간파 연습)
 const TUT_MV := [[0, 0, 1.2], [2, 2, 1.4]]
 const TUT_SAY := [
-	"빨간 상자 = 칼이 오는 쪽\n화면을 왼쪽으로 밀어서 막아요!",
-	"막았어요! (실전에선 막을 때마다 돈 +1냥)\n초록 상자 쪽, 오른쪽으로 밀어서 베요!",
-	"끝까지 기다렸다 막으면 '간파'!\n지금 위로 밀어요!",
-	"간파: 돈 3배, 세상이 느려지고 빈틈이 길어요.\n아래로 밀어서 베요!",
+	"칼이 왼쪽에서 와요 (흐린 칼 = 지나갈 길)\n화면을 왼쪽으로 밀어 칼을 대고 [막기]!",
+	"막았어요! (실전에선 막을 때마다 돈 +1냥)\n초록 상자 = 빈틈. 오른쪽으로 밀고 [베기]!",
+	"끝까지 기다렸다 막으면 '간파'!\n위로 밀고 [막기]!",
+	"간파: 돈 3배, 세상이 느려지고 빈틈이 길어요.\n아래로 밀고 [베기]!",
 ]
+const ACT := ["막기", "베기"]
 ## 업그레이드: 키, 이름, 첫 값, 최대 단계. 값은 단계마다 첫 값만큼 오른다.
 const UPS := [
 	["hp", "최대 체력", 5, 99],
@@ -106,10 +114,12 @@ var hp_fill: MeshInstance3D
 var hp_back: MeshInstance3D
 var floor_m: MeshInstance3D
 var mark: Node3D
-var ind: Array[Node3D] = []  # 공격 표시: 검은 테두리 + 색 면
-var ind_c: Array[MeshInstance3D] = []  # 색 면 (앞, 두 겹째)
-var ind_2: Array[Node3D] = []  # 두 겹째 (같은 쪽 한 번 더)
+var ind: Array[Node3D] = []  # 빈틈 표시: 검은 테두리 + 초록 면
+var ghosts: Array[MeshInstance3D] = []  # 적 칼이 지나갈 길 (흐린 잔상 셋 + 두 번째 칼)
 var blade_rest := Vector3(0.95, -0.3, 0.6)
+var blade_rr := Vector3(0, 0, 0.5)
+var stance := -1  # 내가 밀어서 잡은 칼 방향 (-1 = 아직)
+var stance_l: Label
 var rig: Node3D
 var sword: MeshInstance3D
 var my_col := WHITE
@@ -155,7 +165,10 @@ var row_c: Array[Label] = []
 var row_bg: Array[ColorRect] = []
 var play_bg: ColorRect
 
-const SKIP_R := Rect2(470, 1170, 250, 110)
+const SKIP_R := Rect2(470, 296, 250, 90)
+const GUARD_P := Vector2(185, 1150)
+const CUT_P := Vector2(535, 1150)
+const BTN_R := 105.0
 const PLAY_R := Rect2(160, 1110, 400, 120)
 
 
@@ -218,17 +231,19 @@ func _setup() -> void:
 	hud.layer = 2
 	add_child(hud)
 	info_l = _label(hud, 34, 236, 60)
+	stance_l = _label(hud, 32, 1012, 50)
+	_buttons()
 	# 튜토리얼 안내 (아래쪽 띠, 깜빡임)
 	var tl := CanvasLayer.new()
 	tl.layer = 3
 	add_child(tl)
 	tut_box = ColorRect.new()
 	tut_box.color = Color(0.1, 0.07, 0.04, 0.82)
-	tut_box.position = Vector2(0, 860)
-	tut_box.size = Vector2(720, 300)
+	tut_box.position = Vector2(0, 740)
+	tut_box.size = Vector2(720, 270)
 	tut_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tl.add_child(tut_box)
-	tut_l = _label(tut_box, 38, 0, 300)
+	tut_l = _label(tut_box, 36, 0, 270)
 	tut_l.label_settings.font_color = WHITE
 	tut_l.label_settings.outline_color = INK
 	tut_l.label_settings.line_spacing = 6
@@ -236,7 +251,7 @@ func _setup() -> void:
 	tut_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	tut_l.position.x = 20
 	tut_l.size.x = 680
-	skip_l = _label(tl, 32, 1200, 60)
+	skip_l = _label(tl, 32, 310, 60)
 	skip_l.text = "건너뛰기 >"
 	skip_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	skip_l.size.x = 696
@@ -292,6 +307,12 @@ func _setup() -> void:
 	pl.text = "▶ 플레이"
 
 
+## 막기·베기 버튼 (여러 손가락: 한 손가락으로 밀면서 다른 손가락으로 누른다). 상점에서는 뺀다.
+func _buttons() -> void:
+	kit_button("guard", "막기", GUARD_P, BTN_R, B)
+	kit_button("cut", "베기", CUT_P, BTN_R, A)
+
+
 func _shop_refresh(dead: bool) -> void:
 	var head := ""
 	if dead:
@@ -324,25 +345,14 @@ func _reset() -> void:
 	mark = Node3D.new()
 	world.add_child(mark)
 	ind.clear()
-	ind_c.clear()
-	ind_2.clear()
 	for i in 4:
 		var g := Node3D.new()
 		g.position = OFF[i]
 		g.visible = false
 		mark.add_child(g)
-		# 두 겹째: 오른쪽 위 뒤로 살짝 비켜서
-		var g2 := Node3D.new()
-		g2.position = Vector3(0.24, 0.24, -0.12)
-		g.add_child(g2)
-		box(Vector3.ZERO, Vector3(0.82, 0.82, 0.06), Color.BLACK, g2)
-		var c2 := box(Vector3(0, 0, 0.04), Vector3(0.6, 0.6, 0.06), BAD, g2)
 		box(Vector3.ZERO, Vector3(0.82, 0.82, 0.06), Color.BLACK, g)
-		var c := box(Vector3(0, 0, 0.04), Vector3(0.6, 0.6, 0.06), BAD, g)
+		box(Vector3(0, 0, 0.04), Vector3(0.6, 0.6, 0.06), GOOD, g)
 		ind.append(g)
-		ind_c.append(c)
-		ind_c.append(c2)
-		ind_2.append(g2)
 	rig = Node3D.new()
 	world.add_child(rig)
 	sword = box(REST_P, Vector3(0.12, 1.7, 0.12), WHITE, rig)
@@ -359,6 +369,7 @@ func _reset() -> void:
 	armed = false
 	stun = 0.0
 	whiff_t = 0.0
+	stance = -1
 	# 켜면 튜토리얼부터
 	tut = 0
 	hold = false
@@ -425,6 +436,7 @@ func _spawn(k: int) -> void:
 	world.add_child(piv)
 	eyes.clear()
 	blade_rest = Vector3(0.95, -0.3, 0.6)
+	blade_rr = Vector3(0, 0, 0.5)
 	var hp_y := 2.0
 	var eye_y := 0.6
 	match ftype:
@@ -446,6 +458,7 @@ func _spawn(k: int) -> void:
 			box(Vector3(0, 0.85, 0), Vector3(1.6, 0.12, 1.2), INK, piv)
 			box(Vector3(0.7, -0.55, 0.15), Vector3(0.18, 0.18, 1.3), INK, piv)
 			blade_rest = Vector3(0.7, -0.55, 0.45)
+			blade_rr = Vector3(PI / 2, 0, 0)  # 칼집 안에 눕혀 둠
 		4:
 			# 끝판왕: 크고 검다, 붉은 눈, 금관
 			body = box(Vector3(0, 0.1, 0), Vector3(2.4, 3.4, 1.2), col, piv)
@@ -460,7 +473,19 @@ func _spawn(k: int) -> void:
 			box(Vector3((i - (mini(k / 2, 5) - 1) * 0.5) * 0.36, 1.5, 0), Vector3(0.22, 0.3, 0.22), D, piv)
 	for s in [-1.0, 1.0]:
 		eyes.append(box(Vector3(s * 0.33, eye_y, 0.6 if ftype == 4 else 0.5), Vector3(0.24, 0.24, 0.06), INK, piv))
-	blade_m = box(blade_rest, Vector3(0.12, 0.12, 2.0 if ftype == 2 else 1.6), WHITE, piv)
+	# 칼은 세로로 긴 막대: 좌우 공격은 세운 칼, 위아래 공격은 눕힌 칼로 보인다
+	blade_m = box(blade_rest, Vector3(0.16, 2.0 if ftype == 2 else 1.7, 0.16), WHITE, piv)
+	blade_m.rotation = blade_rr
+	ghosts.clear()
+	for i in 4:
+		var gm := StandardMaterial3D.new()
+		gm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		gm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		gm.albedo_color = Color(1, 1, 1, [0.22, 0.34, 0.5, 0.5][i])
+		var gh := box(Vector3.ZERO, blade_m.scale, WHITE, piv)
+		gh.material_override = gm
+		gh.visible = false
+		ghosts.append(gh)
 	hp_back = box(Vector3(0, hp_y, 0), Vector3(2.0, 0.22, 0.2), INK, piv)
 	hp_fill = box(Vector3(0, hp_y, 0.08), Vector3(1.9, 0.16, 0.16), BAD, piv)
 	foe_max = BOSS_HP if ftype == 4 else 6 + 4 * k
@@ -518,8 +543,10 @@ func _start_run() -> void:
 	sword.visible = true
 	slow = 0.0
 	floor_m.material_override = mat(SOFT)
-	_show(-1, BAD)
 	_spawn(0)
+	_clear()
+	stance = -1
+	_buttons()
 	fl = Vector3(0, 0, -10)
 	mode = "enter"
 	mode_t = 1.0
@@ -530,27 +557,46 @@ func _pat() -> Array:
 	return PAT[ftype][ph]
 
 
-func _show(d: int, color: Color, twice := false) -> void:
+## 빈틈 상자 (내가 벨 쪽). -1 이면 숨김
+func _show(d: int) -> void:
 	for i in 4:
 		ind[i].visible = i == d
 	if d >= 0:
 		ind[d].scale = Vector3.ONE
-		ind_c[d * 2].material_override = mat(color)
-		ind_c[d * 2 + 1].material_override = mat(color)
-		ind_2[d].visible = twice
+
+
+## 적 칼이 d 쪽에서 올 길: 흐린 잔상 셋(멀리서 가까이), twice 면 들어 올린 칼 옆에 두 번째 칼. -1 이면 숨김
+func _path(d: int, twice := false) -> void:
+	for i in 4:
+		ghosts[i].visible = d >= 0 and (i < 3 or twice)
+	if d < 0:
+		return
+	var w: Vector3 = WIND[d]
+	var h: Vector3 = HIT[d]
+	for i in 3:
+		ghosts[i].position = w.lerp(h, [0.35, 0.68, 1.0][i])
+		ghosts[i].rotation = Vector3(0, 0, ROT[d])
+	ghosts[3].position = w + (Vector3(0.38, 0, -0.1) if d < 2 else Vector3(0, 0.38, -0.1)) * (-1.0 if d == 1 else 1.0)
+	ghosts[3].rotation = Vector3(0, 0, ROT[d])
+
+
+func _clear() -> void:
+	_show(-1)
+	_path(-1)
 
 
 func _rest(g: float) -> void:
 	fs = 0
 	fs_t = 0.0
 	gap = g * spd
-	_show(-1, BAD)
+	_clear()
 
 
 func _relax(dt: float) -> void:
 	fl = fl.lerp(Vector3.ZERO, minf(1.0, dt * 10.0))
 	piv.rotation.z = lerpf(piv.rotation.z, 0.0, minf(1.0, dt * 10.0))
 	blade_m.position = blade_m.position.lerp(blade_rest, minf(1.0, dt * 10.0))
+	blade_m.rotation = blade_m.rotation.lerp(blade_rr, minf(1.0, dt * 10.0))
 
 
 func _step(dt: float) -> void:
@@ -568,6 +614,10 @@ func _step(dt: float) -> void:
 		if whiff_t <= 0.0:
 			floor_m.material_override = mat(B if slow > 0.0 else SOFT)
 	mode_t -= dt
+	if kit_just("guard"):
+		_act(0)
+	if kit_just("cut"):
+		_act(1)
 	match mode:
 		"intro", "shift":
 			_relax(dt)
@@ -593,6 +643,7 @@ func _step(dt: float) -> void:
 				mode = "shop"
 				_shop_refresh(true)
 				shop.visible = true
+				_btns.clear()
 	piv.position = fl
 	mark.position = piv.position
 	mark.rotation.z = piv.rotation.z
@@ -605,8 +656,11 @@ func _step(dt: float) -> void:
 		sword.position = sword.position.lerp(Vector3(0.2, -1.9, 2.5), minf(1.0, dt * 10.0))
 		sword.rotation.z = lerpf(sword.rotation.z, -1.2, minf(1.0, dt * 10.0))
 	elif mode != "dead" and mode != "shop":
-		sword.position = sword.position.lerp(REST_P, minf(1.0, dt * 12.0))
-		sword.rotation.z = lerpf(sword.rotation.z, REST_R, minf(1.0, dt * 12.0))
+		# 밀어서 잡은 방향에 칼을 대고 있는다
+		sword.position = sword.position.lerp(REST_P if stance < 0 else POSE[stance], minf(1.0, dt * 16.0))
+		sword.rotation.z = lerpf(sword.rotation.z, REST_R if stance < 0 else TURN[stance], minf(1.0, dt * 16.0))
+	stance_l.visible = mode != "shop"
+	stance_l.text = "화면을 밀어 칼 방향 정하기" if stance < 0 else "칼 방향  %s" % ARROW[stance]
 	if flash_t > 0.0:
 		flash_t -= dt
 		if flash_t <= 0.0:
@@ -665,8 +719,9 @@ func _fight(dt: float) -> void:
 						e.material_override = mat(WHITE)
 					beep(1700.0, 0.04, 0.0, 0.16)
 				if told:
-					var o2: Vector3 = OFF[sdir]
-					blade_m.position = blade_m.position.lerp(Vector3(o2.x * 0.3, o2.y * 0.3 - 0.2, 0.6), minf(1.0, dt * 4.0))
+					# 칼집에서 칼이 그쪽으로 빠져나온다: 칼만 보고도 방향을 안다
+					blade_m.position = blade_m.position.lerp(WIND[sdir], minf(1.0, dt * 9.0))
+					blade_m.rotation = blade_m.rotation.lerp(Vector3(0, 0, ROT[sdir]), minf(1.0, dt * 9.0))
 					fl = fl.lerp(Vector3(0, -0.15, 0), minf(1.0, dt * 6.0))
 				else:
 					_relax(dt)
@@ -674,24 +729,27 @@ func _fight(dt: float) -> void:
 					return
 				shown = true
 				_eyes()
-				_show(sdir, BAD)
+				_path(sdir)
 				beep(1200.0, 0.05, 2400.0, 0.25)
 			if feint_at >= 0.0 and fs_t >= feint_at and sdir != rdir:
 				sdir = rdir
-				_show(rdir, BAD, _twice_next())
+				_path(rdir, _twice_next())
 				beep(880.0, 0.06, 500.0, 0.2)
 			k = clampf((fs_t - show_at) / (win - show_at), 0.0, 1.0)
 			var l: Vector3 = LEAN[sdir]
 			fl = Vector3(l.x * 0.35 * k, l.y * 0.25 * k, 1.8 * k * k)
 			piv.rotation.z = -l.x * 0.25 * k
-			var o: Vector3 = OFF[sdir]
-			blade_m.position = blade_m.position.lerp(Vector3(o.x * 0.6, o.y * 0.6, 0.9), minf(1.0, dt * 14.0))
-			ind[sdir].scale = Vector3.ONE * (1.2 - 0.6 * k)
+			# 칼은 들어 올린 자리에서 버티다 끝에 몰아쳐 잔상 길을 따라 내게 온다
+			blade_m.position = blade_m.position.lerp(WIND[sdir].lerp(HIT[sdir], k * k * k), minf(1.0, dt * 22.0))
+			blade_m.rotation = blade_m.rotation.lerp(Vector3(0, 0, ROT[sdir]), minf(1.0, dt * 18.0))
 			if fs_t >= win:
 				_hurt()
 		2:
 			k = clampf(fs_t / win, 0.0, 1.0)
 			fl = fl.lerp(Vector3(0, 0, -0.7), minf(1.0, dt * 14.0))
+			# 막힌 칼은 온 쪽 바깥으로 튕겨 나가 반대쪽이 빈다
+			blade_m.position = blade_m.position.lerp(WIND[rdir] * 1.15 + Vector3(0, 0.3, -0.3), minf(1.0, dt * 12.0))
+			blade_m.rotation.z = lerpf(blade_m.rotation.z, ROT[rdir] + 0.7, minf(1.0, dt * 12.0))
 			ind[odir].scale = Vector3.ONE * (1.2 - 0.6 * k)
 			if fs_t >= win:
 				beep(260.0, 0.1, 200.0, 0.15)
@@ -713,7 +771,7 @@ func _attack() -> void:
 	if tut >= 0:
 		mv = TUT_MV[0 if tut < 2 else 1]
 		if tut == 2:
-			tut_l.text = "이번엔 빨간 상자가 작아질 때까지\n기다려요…"
+			tut_l.text = "이번엔 칼이 거의 닿을 때까지\n기다려요…"
 	else:
 		mv = _pat()[2][ci][mi]
 	sdir = mv[0]
@@ -728,7 +786,7 @@ func _attack() -> void:
 		told = false
 		shown = false
 		feint_at = -1.0
-		_show(-1, BAD)
+		_clear()
 		return
 	win = float(mv[2]) * (1.0 if tut >= 0 else spd)
 	if _flag(mv) == 1:
@@ -738,7 +796,7 @@ func _attack() -> void:
 	told = true
 	shown = true
 	feint_at = win * 0.5 if sdir != rdir else -1.0
-	_show(sdir, BAD, _twice_next())
+	_path(sdir, _twice_next())
 	# 느린 예비 동작은 낮은 소리, 갑작스러운 건 높은 소리
 	beep(lerpf(760.0, 300.0, clampf((win - 0.3) / 0.9, 0.0, 1.0)), 0.06, 0.0, 0.17)
 
@@ -760,7 +818,7 @@ func _hurt() -> void:
 	msg("맞음 -%d" % foe_atk, 0.5)
 	fs = 3
 	fs_t = 0.0
-	_show(-1, BAD)
+	_clear()
 	_eyes()
 	ci = (ci + 1) % _pat()[2].size()
 	mi = 0
@@ -796,18 +854,43 @@ func _whiff() -> void:
 	_damage(1)
 
 
-func _swing(d: int) -> void:
+## 헛막기: 칼이 오지 않을 때 막기. 피해는 없지만 잠깐 굳어서 진짜 칼을 놓칠 수 있다
+func _empty_guard() -> void:
+	beep(240.0, 0.12, 160.0, 0.2)
+	msg("헛막기", 0.5)
+	stun = 0.35
+
+
+## 버튼: a 0 = 막기, 1 = 베기. 방향은 밀어서 잡아 둔 stance.
+func _act(a: int) -> void:
+	if mode == "ready":
+		_start_run()
+		return
 	if mode == "dead" or mode == "shop" or stun > 0.0:
 		return
-	sword.position = POSE[d]
-	sword.rotation.z = TURN[d]
-	sw_t = 0.16
+	var d := stance
+	if d >= 0:
+		if a == 0:
+			# 막기: 잡은 자리에서 칼을 앞으로 내민다
+			sword.position = POSE[d] + Vector3(0, 0, -0.35)
+			sword.rotation.z = TURN[d]
+		else:
+			# 베기: 잡은 쪽에서 반대쪽으로 휘두른다
+			var o: Vector3 = POSE[OPP[d]]
+			sword.position = Vector3(o.x * 0.5, o.y * 0.5, 2.2)
+			sword.rotation.z = TURN[d] - 0.9
+		sw_t = 0.16
 	if tut >= 0:
 		if not hold:
 			return
 		var want: int = rdir if fs == 1 else odir
+		var want_a := 0 if fs == 1 else 1
 		if d != want:
-			msg("다른 쪽이에요!", 0.6)
+			msg("먼저 %s 쪽으로 밀어요!" % ARROW[want], 0.8)
+			beep(300.0, 0.05, 150.0, 0.1)
+			return
+		if a != want_a:
+			msg("[%s]를 눌러요!" % ACT[want_a], 0.8)
 			beep(300.0, 0.05, 150.0, 0.1)
 			return
 		hold = false
@@ -822,23 +905,26 @@ func _swing(d: int) -> void:
 	if mode != "fight":
 		beep(300.0, 0.05, 150.0, 0.1)
 		return
-	match fs:
-		1:
-			if not told:
-				_whiff()
-				return
+	if a == 0:
+		# 막기: 칼이 보일 때만. 잡은 방향이 다르거나 속임수에 먼저 막으면 맞는다
+		if fs == 1 and told:
 			var fooled := feint_at >= 0.0 and fs_t < feint_at
 			if d == rdir and not fooled:
 				_parry(win - fs_t <= _per(up["per"]))
 			else:
 				_hurt()
+		elif fs == 0 or fs == 1 or fs == 2:
+			_empty_guard()
+		return
+	# 베기: 빈틈에 맞는 쪽만. 그 밖에는 헛공격
+	match fs:
 		2:
 			if d == odir:
 				_cut()
 				msg("베기!", 0.35)
 			else:
 				_whiff()
-		0:
+		0, 1:
 			_whiff()
 		_:
 			beep(300.0, 0.05, 150.0, 0.1)
@@ -874,7 +960,8 @@ func _parry(perfect: bool) -> void:
 	fs_t = 0.0
 	win = float(_pat()[1]) * (1.8 if perfect else 1.0)
 	odir = OPP[rdir]
-	_show(odir, GOOD)
+	_path(-1)
+	_show(odir)
 
 
 func _cut() -> void:
@@ -884,7 +971,7 @@ func _cut() -> void:
 	fl = Vector3(0, 0, -1.2)
 	fs = 4
 	fs_t = 0.0
-	_show(-1, BAD)
+	_clear()
 	if tut >= 0:
 		return
 	foe_hp -= _pow(up["pow"])
@@ -940,7 +1027,7 @@ func _tut_done() -> void:
 	tut = 4
 	hold = true
 	mode = "ready"
-	_show(-1, BAD)
+	_clear()
 	tut_l.text = "준비 끝!\n막을 때마다 돈을 벌어요. 쓰러지면 그 돈으로\n강해져서 다시 싸워요. 갈수록 적이 세져요.\n\n탭해서 싸우러 가기"
 
 
@@ -975,18 +1062,39 @@ func _buy(i: int) -> void:
 	_shop_refresh(true)
 
 
+## 밀면 칼 방향만 정한다 (막기·베기는 버튼). 손을 떼지 않고 계속 밀어 방향을 또 바꿀 수 있다.
 func _drag(p: Vector2) -> void:
 	if not armed:
 		return
 	var v := p - start
 	if v.length() < SWIPE:
 		return
-	armed = false
+	start = p
 	if absf(v.x) > absf(v.y):
-		_swing(0 if v.x < 0.0 else 1)
+		_aim(0 if v.x < 0.0 else 1)
 	else:
-		_swing(2 if v.y < 0.0 else 3)
+		_aim(2 if v.y < 0.0 else 3)
+
+
+func _aim(d: int) -> void:
+	if mode == "shop" or mode == "dead" or d == stance:
+		return
+	stance = d
+	beep(900.0, 0.03, 0.0, 0.1)
 
 
 func _lift(_p: Vector2) -> void:
 	armed = false
+
+
+## PC: 방향키/WASD = 칼 방향, J = 막기, K = 베기
+func _input(event: InputEvent) -> void:
+	if not event is InputEventKey or not event.pressed or event.echo or over or _rating:
+		return
+	match event.keycode:
+		KEY_LEFT, KEY_A: _aim(0)
+		KEY_RIGHT, KEY_D: _aim(1)
+		KEY_UP, KEY_W: _aim(2)
+		KEY_DOWN, KEY_S: _aim(3)
+		KEY_J, KEY_Z: _act(0)
+		KEY_K, KEY_X: _act(1)
