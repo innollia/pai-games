@@ -1,5 +1,5 @@
 extends Tofu
-## 신전 돌이 저절로 구른다. 끌어서 방향, 깔면 커지고 무거워지며 1.5초 느리거나 떨어지면 끝. 여덟 구역마다 카메라와 하는 법이 바뀐다: 계곡(등뒤) → 수로(옆, 뛰기 버튼으로 틈·담 넘기) → 갈림길(등뒤, 큰 회전에서 무거우면 바깥으로 밀림, 쪼개기로 가벼워지며 가속) → 절벽(위뒤, 떨어지며 조종, 버티기로 내려찍어 착지 충격으로 부수기) → 광장(위에서, 길 고르기와 좁은 문) → 설산(비스듬히 위, 흰 눈 줄에서 커지고 노란 길에서 녹는다: 얼음벽은 커야 깨지고 오르막은 작아야 넘는다) → 협곡(낮은 등뒤, 던지기 버튼으로 덩이를 앞으로 던져 수정을 깨고, 다리 앞 기둥보다 크면 흔들다리가 끊어진다) → 해안(돌 앞 정면, 뒤에서 오는 돌을 받거나 피하기). 구역마다 하늘·먼 실루엣 색이 바뀐다. 죽으면 그 구역 처음부터.
+## 신전 돌이 저절로 구른다. 끌어서 방향, 깔면 커지고 무거워지며 1.5초 느리거나 떨어지면 끝. 여덟 구역마다 카메라와 동작이 하나씩 늘고(계곡 → 수로·뛰기 → 갈림길·쪼개기 → 절벽·버티기 → 광장 → 설산·눈 굴리기 → 협곡·던지기 → 해안·뒤에서 오는 돌), 구역 뒷부분 "섞기"는 새 동작과 이전 동작을 함께 써야 넘는다. 던지기는 내 몸 한 덩이를 앞으로 던져 보라 수정 벽을 깨고 작아진다: 수정이 보이면 땅 위 점선(지금 속도로 닿는 거리)이 초록일 때 던진다. 마지막은 등뒤 카메라로 다 섞기. 죽으면 그 구역 처음부터.
 # 한 문장: 나는 신전에서 풀려난 거대한 돌로서 "멈추면 끝" 속에서 깔고 꺾고 뛰고 쪼개어 바다까지 굴러가지만, 깔수록 무거워져 오르막·점프·회전에서 속도를 잃는 대가를 감수한다.
 
 const STONE := Color("efe1c4")
@@ -67,6 +67,7 @@ var zones: Array = []  # 지어진 구역
 var things: Array = []
 var holes: Array = []  # [거리0, 거리1, 옆0, 옆1] 땅이 없는 곳
 var says: Array = []   # [거리, 글]
+var cams: Array = []   # [거리, 카메라] 조각마다 카메라 바꾸기 (해안 끝 다 섞기)
 var cur_k := -1
 var mode := "back"
 var goal_d := -1.0
@@ -126,6 +127,12 @@ var shot_d := 0.0
 var shot_x := 0.0
 var shot_v := 0.0
 var shot_t := 0.0
+var shot_hit := false
+# 조준: 수정이 앞에 있으면 땅에 점선(지금 속도로 닿는 거리)과 수정 위 깨질 너비 막대
+var aim_dots: Array = []
+var aim_bar: MeshInstance3D
+var aim_legs: Array = []
+var aim_ok := false
 # 비주얼: 하늘색, 먼 실루엣, 파편, 바람 줄, 찌그러짐
 var sky_env: Environment
 var sky_to := Color("d8eeff")
@@ -139,7 +146,10 @@ var streaks: Array = []
 
 
 func _setup() -> void:
-	howto = "끌어서 방향. 돌은 저절로 구르고, 깔면 커지고 무거워진다.\n구역마다 카메라와 하는 법이 바뀌고 버튼이 하나씩 열린다: 뛰기 · 쪼개기(작아지며 가속) · 버티기(제동, 공중에선 내려찍기) · 던지기(덩이를 앞으로).\n설산: 흰 눈에서 커지고 노란 길에서 녹는다. 협곡: 다리 앞 기둥보다 크면 다리가 끊어진다.\n1.5초 넘게 느리거나 떨어지면 끝. 다시 하면 그 구역 처음부터."
+	howto = "끌어서 방향. 돌은 저절로 구르고, 깔면 커지고 무거워진다. 1.5초 넘게 느리거나 떨어지면 끝.
+구역마다 버튼이 하나씩 열린다: 뛰기 · 쪼개기(작아지며 가속) · 버티기(제동, 공중에선 내려찍기) · 던지기.
+던지기 = 내 몸 한 덩이를 앞으로. 보라 수정 벽만 깨진다. 땅 위 점선이 초록이면 닿는다(빠를수록 멀리). 던지면 작아져 흔들다리를 건널 수 있다.
+구역 끝 \"섞기\"는 배운 동작을 함께 써야 넘는다. 다시 하면 그 구역 처음부터."
 	time_limit = 0.0
 	for c in get_children():
 		if c is WorldEnvironment:
@@ -187,7 +197,12 @@ func _zones_list() -> Array:
 				[30, -3, 2.2, 0, "aq"], [15, 0, 4]],
 				"put": [["pot", 38, 0], ["pot", 48, 0], ["pot", 60, 0], ["wall", 125, 0], ["pot", 148, 0], ["pot", 153, 0],
 					["wall", 222, 0], ["pot", 240, 0], ["pot", 246, 0], ["statue", 310, 0], ["pot", 322, 0]],
-				"say": [[60, "틈! 뛰기"], [112, "담도 뛰어"], [296, "석상!\n뛰거나 깔거나"]]}]},
+				"say": [[60, "틈! 뛰기"], [112, "담도 뛰어"], [296, "석상!\n뛰거나 깔거나"]]},
+				# 섞기: 항아리로 커져야 석상을 깐다. 석상 바로 뒤가 틈이라 튕기면 빠진다. 담 바로 뒤도 틈.
+				{"legs": [[30, -4, 2.2, 0, "aq"], [40, -8, 2.2, 0, "aq"], [16, -1, 2.2, 0, "gap"], [40, -6, 2.2, 0, "aq"],
+					[12, -1, 2.2, 0, "gap"], [40, -6, 2.2, 0, "aq"], [15, 0, 4]],
+					"put": [["pot", 10, 0], ["pot", 18, 0], ["pot", 26, 0], ["statue", 62, 0], ["wall", 121, 0]],
+					"say": [[2, "섞기: 깔고 뛰기"], [46, "석상 뒤에 틈!\n깔고 뛰거나 넘거나"], [104, "담과 틈:\n한 번에!"]]}]},
 		{"msg": "갈림길 · 쪼개기", "mode": "back", "skill": "split", "road": GRASS, "floor": GRASS, "accent": A, "posts": true, "scen": "village",
 			"items": [
 				{"legs": [[30, -6, 7], [30, -5, 8]], "put": [["house", 18, -4.5], ["pot", 28, 2], ["pot", 32, 4], ["house", 45, 4], ["pot", 52, -2]],
@@ -201,7 +216,11 @@ func _zones_list() -> Array:
 					{"legs": [[22, -2, 6, 100], [50, -10, 7]], "put": [["house", 30, 3], ["house", 40, -3], ["house", 52, 2], ["statue", 60, -2]]},
 					{"legs": [[22, -2, 6, -100], [26, -6, 6], [10, 4, 6, 0, "ramp"], [12, -4, 6, 0, "gap"], [22, -4, 6]],
 						"put": [["pot", 30, 0], ["pot", 80, -2], ["pot", 82, 2]]}]},
-				{"legs": [[40, -8, 7], [30, 3, 7]], "put": [["house", 15, -3.5], ["house", 30, 3.5], ["pot", 50, 0]], "fence": [60]}]},
+				{"legs": [[40, -8, 7], [30, 3, 7]], "put": [["house", 15, -3.5], ["house", 30, 3.5], ["pot", 50, 0]], "fence": [60]},
+				# 섞기: 집을 깔아 무거워진 뒤 큰 회전(무거우면 밀려 떨어짐) → 쪼개기, 곧바로 경사대 틈 → 뛰기
+				{"legs": [[20, -4, 7], [40, -8, 6, 70], [10, 4, 6, 0, "ramp"], [14, -4, 6, 0, "gap"], [30, -6, 7]],
+					"put": [["house", 6, -3], ["pot", 10, 0], ["house", 14, 3]],
+					"say": [[2, "섞기: 깔면 무거워\n회전에서 밀린다"], [22, "쪼개서 가볍게!"], [64, "뛰어!"]]}]},
 		{"msg": "절벽 · 버티기", "mode": "fall", "skill": "hold", "road": ROCK, "floor": WATER, "accent": WHITE, "posts": true, "scen": "cliff",
 			"items": [
 				{"legs": [[40, -6, 7], [30, -5, 7]], "put": [["pot", 20, -2], ["pot", 25, 2]], "say": [[50, "떨어지며 조종"]]},
@@ -210,7 +229,13 @@ func _zones_list() -> Array:
 					"holes": [[30, 42, -12.3, -2], [44, 54, 2, 12.3]], "say": [[70, "버티기로 내려찍기"]]},
 				{"legs": [[3, -30, 8, 0, "drop"], [60, -8, 12], [30, -5, 7]],
 					"put": [["house", 20, -5], ["house", 34, 5], ["statue", 48, 0], ["pot", 56, -6], ["pot", 58, 6]],
-					"holes": [[25, 35, -4, 4], [44, 55, -12.3, -3]]}]},
+					"holes": [[25, 35, -4, 4], [44, 55, -12.3, -3]]},
+				# 섞기: 틈 뛰기 → 떨어지며 구멍 피해 집 내려찍기 → 착지 뒤 큰 회전(버티기 또는 쪼개기)
+				{"legs": [[20, -4, 8], [10, 4, 6, 0, "ramp"], [16, -6, 6, 0, "gap"], [30, -4, 8], [3, -30, 12, 0, "drop"], [50, -6, 12],
+					[30, -5, 7, 60], [20, -3, 7]],
+					"put": [["house", 92, -6], ["pot", 96, 0], ["house", 100, 6], ["house", 118, -4]],
+					"holes": [[86, 98, 0, 12.3], [102, 114, -12.3, 0]],
+					"say": [[2, "섞기: 뛰고\n내려찍고"], [70, "구멍 피해\n집을 내려찍어"], [124, "회전!\n버티거나 쪼개"]]}]},
 		{"msg": "광장 · 위에서", "mode": "top", "skill": "", "road": SOFT, "floor": GRASS, "accent": C, "posts": false, "scen": "plaza",
 			"items": [{"legs": [[25, -4, 7], [150, -15, 22, 0, "plaza"], [14, -1, 4, 0, "gate"], [25, -4, 6]],
 				"put": [["pillar", 55, -8], ["pillar", 55, 8], ["pillar", 70, 0], ["pillar", 88, -10], ["pillar", 88, 10],
@@ -218,7 +243,10 @@ func _zones_list() -> Array:
 					["pot", 60, 14], ["pot", 64, 17], ["pot", 68, 13], ["pot", 74, 16], ["pot", 80, 14], ["pot", 84, 18],
 					["house", 135, -18], ["house", 135, -12], ["house", 135, -6], ["house", 135, 6], ["house", 135, 12], ["house", 135, 18],
 					["pot", 145, -2], ["pot", 160, 2], ["post", 177, -3.6], ["post", 177, 3.6]],
-				"fence": [102], "holes": [[115, 121, -6, 0], [150, 156, 6, 12]], "say": [[40, "길을 골라"], [158, "좁은 문!"]]}]},
+				"fence": [102], "holes": [[115, 121, -6, 0], [150, 156, 6, 12]], "say": [[40, "길을 골라"], [158, "좁은 문!"]]},
+				# 섞기: 집 두 채가 길을 막는다(커서 깔거나, 뛰어 내려찍거나) → 바로 틈 뛰기
+				{"legs": [[20, -4, 8], [14, -1, 8, 0, "gap"], [30, -6, 8]], "put": [["house", 8, -3.5], ["house", 8, 3.5]],
+					"say": [[0, "섞기: 깔고 뛰기"]]}]},
 		# 설산: 굴리는 길 자체가 자원. 흰 눈 줄에서 커지고(얼음벽을 깰 자격) 노란 길에서 녹는다(오르막을 넘을 가벼움).
 		{"msg": "설산 · 눈 굴리기", "mode": "iso", "skill": "", "road": ICE, "floor": Color("eef8ff"), "accent": B, "posts": false, "scen": "snow",
 			"items": [{"legs": [[20, -3, 8], [130, -24, 9], [24, -1, 9], [70, -13, 9], [14, -1, 9], [55, 19, 8], [10, -1, 8],
@@ -228,7 +256,11 @@ func _zones_list() -> Array:
 				"put": [["pot", 50, 5], ["pot", 72, 4], ["pot", 96, 6], ["pot", 122, 4], ["pot", 200, 5], ["pot", 226, 6], ["pot", 350, 0]],
 				"row": [[164, "ice"], [422, "ice"]],
 				"holes": [[205, 214, -2.5, 2.5]],
-				"say": [[8, "흰 눈 위를 구르면\n커진다"], [140, "얼음벽만큼 커야\n깬다"], [176, "오르막 전에\n노란 길에서 녹여"], [312, "다시 키워!"], [428, "녹는 길"]]}]},
+				"say": [[8, "흰 눈 위를 구르면\n커진다"], [140, "얼음벽만큼 커야\n깬다"], [176, "오르막 전에\n노란 길에서 녹여"], [312, "다시 키워!"], [428, "녹는 길"]]},
+				# 섞기: 눈으로 키워 얼음벽 깨기 → 커진(무거운) 몸으로 틈 뛰기 → 오르막 앞 쪼개기
+				{"legs": [[20, -4, 9], [90, -16, 9], [14, -1, 9], [12, -1, 8, 0, "gap"], [30, -4, 8], [30, 6, 8], [20, -3, 8]],
+					"snow": [[2, 108, -9, 9]], "row": [[114, "ice"]], "put": [["pot", 40, 5], ["pot", 60, -5], ["pot", 80, 3]],
+					"say": [[2, "섞기: 눈으로 키워\n얼음벽 깨기"], [116, "무거운 몸으로\n뛰어!"], [150, "오르막!\n쪼개서 가볍게"]]}]},
 		# 협곡: 던지기(크기 1을 앞으로 던져 수정을 깬다). 흔들다리는 입구 기둥 높이보다 크면 끊어진다. 무게가 탄약이자 죄.
 		{"msg": "협곡 · 던지기", "mode": "low", "skill": "throw", "road": STONE, "floor": WATER, "accent": A, "posts": false, "scen": "canyon",
 			"items": [{"legs": [[20, -3, 7], [60, -10, 7], [20, -2, 7], [45, -3, 4, 0, "rope", 3.6], [15, -1, 7], [50, -9, 7], [20, -2, 7],
@@ -237,11 +269,29 @@ func _zones_list() -> Array:
 					["pot", 165, -4], ["pot", 168, 0], ["pot", 171, 4], ["house", 182, -3.5], ["statue", 186, 3.5], ["pot", 194, -4], ["pot", 197, 0],
 					["pot", 200, 4], ["statue", 206, 0], ["pot", 310, 0]],
 				"row": [[90, "crystal"], [222, "crystal"]],
-				"say": [[6, "던지기:\n덩이를 앞으로"], [76, "보라 수정은\n던져서 깨"], [96, "기둥보다 크면\n다리가 끊어진다"], [150, "다시 키워"], [212, "또 수정!"], [228, "더 좁은 다리"]]}]},
+				"say": [[6, "던지기 = 내 몸 한 덩이를\n앞으로 (작아진다)"], [50, "보라 벽은 몸으로 못 지나간다\n점선이 초록이면 던져"], [96, "기둥보다 크면\n다리가 끊어진다"], [150, "다시 키워"], [206, "빠를수록 멀리 닿는다"], [228, "더 좁은 다리"]]},
+				# 섞기: 깔아서 커지고 → 수정에 던지면 작아져 → 바로 뒤 좁은 흔들다리를 건넌다 → 경사대 틈 뛰기
+				{"legs": [[20, -4, 7], [40, -8, 7], [16, -1, 7], [45, -3, 3.4, 0, "rope", 3.2], [12, -1, 7], [10, 4, 6, 0, "ramp"], [14, -4, 6, 0, "gap"], [30, -5, 7]],
+					"put": [["pot", 8, -3], ["pot", 12, 3], ["house", 30, -3], ["statue", 44, 3], ["pot", 50, 0]],
+					"row": [[66, "crystal"]],
+					"say": [[2, "섞기: 커지고, 던져서\n작아지고, 건너기"], [128, "뛰어!"]]}]},
 		{"msg": "해안 · 정면", "mode": "front", "skill": "", "road": STONE, "floor": WATER, "accent": B, "posts": true, "scen": "coast",
-			"items": [{"legs": [[20, -4, 7], [260, -46, 7], [20, 0, 8], [3, -30, 8, 0, "drop"], [40, -2, 8, 0, "gap"]],
-				"put": [["pot", 60, -3], ["pot", 62, 3], ["pot", 130, 0], ["pot", 200, -4], ["pot", 202, 4]],
-				"rocks": [30, 262], "goal": 300, "say": [[22, "노랑은 받고\n빨강은 피해"]]}]},
+			"items": [
+				# 길이 좁아지면 빨강 돌을 피할 수 없다 → 쪼개기(떼어낸 덩이가 뒤 돌을 막는다)
+				{"legs": [[20, -4, 7], [140, -25, 7], [60, -11, 3.5], [60, -10, 7], [20, 0, 8]],
+					"put": [["pot", 60, -3], ["pot", 62, 3], ["pot", 130, 0], ["pot", 230, -3], ["pot", 232, 3]],
+					"rocks": [30, 282], "say": [[22, "노랑은 받고\n빨강은 피해"], [150, "좁다! 빨강은\n쪼개서 막아"]]},
+				# 마지막 다 섞기: 등뒤 카메라로 돌아와 지금까지 배운 것을 전부
+				{"cam": [[0, "back"]],
+					"legs": [[20, -3, 8], [60, -12, 8], [14, -1, 8], [45, -4, 3.4, 0, "rope", 3.4], [15, -1, 8], [50, -9, 8, 50],
+						[10, 4, 6, 0, "ramp"], [14, -4, 6, 0, "gap"], [3, -28, 12, 0, "drop"], [50, -6, 12], [30, -6, 8],
+						[3, -30, 8, 0, "drop"], [40, -2, 8, 0, "gap"]],
+					"snow": [[22, 78, -8, 8]], "row": [[86, "crystal"]],
+					"put": [["pot", 30, -4], ["pot", 40, 4], ["pot", 50, 0], ["pot", 60, -4], ["house", 246, -6], ["pot", 254, 0], ["house", 262, 6], ["pot", 290, 0]],
+					"holes": [[238, 252, 0, 12.3], [256, 270, -12.3, 0]],
+					"goal": 311,
+					"say": [[0, "마지막: 다 섞어!"], [20, "눈으로 키우고"], [62, "수정은 던져\n작아져야 다리를 건넌다"], [150, "회전! 버티기"],
+						[200, "뛰어!"], [226, "구멍 피해\n내려찍기"]]}]},
 	]
 
 
@@ -281,6 +331,7 @@ func _reset() -> void:
 	things.clear()
 	holes.clear()
 	says.clear()
+	cams.clear()
 	pads.clear()
 	ropes.clear()
 	crack_t = 0.0
@@ -319,9 +370,23 @@ func _reset() -> void:
 	chunk = box(Vector3.ZERO, Vector3.ONE * 1.3, STONE)
 	chunk.visible = false
 	chunk_t = 0.0
-	shot = box(Vector3.ZERO, Vector3.ONE * 1.4, A)
-	box(Vector3.ZERO, Vector3(1.06, 0.3, 1.06), ME, shot)
+	# 던진 덩이 = 내 몸 한 조각: 돌과 같은 색, 같은 흰 띠
+	shot = box(Vector3.ZERO, Vector3.ONE * 1.4, ME)
+	box(Vector3.ZERO, Vector3(1.04, 1.04, 0.22), WHITE, shot)
 	shot.visible = false
+	aim_dots.clear()
+	for i in 10:
+		var n := box(Vector3.ZERO, Vector3(0.7, 0.16, 0.7), GOOD)
+		n.visible = false
+		aim_dots.append(n)
+	aim_bar = box(Vector3.ZERO, Vector3(8.4, 0.5, 0.5), GOOD)
+	aim_bar.visible = false
+	aim_legs.clear()
+	for i in 2:
+		var n := box(Vector3.ZERO, Vector3(0.4, 1.6, 0.4), GOOD)
+		n.visible = false
+		aim_legs.append(n)
+	aim_ok = false
 	# 파편·바람 줄은 미리 만들어 돌려 쓴다
 	bits.clear()
 	for i in 16:
@@ -716,6 +781,9 @@ func _make_things(it: Dictionary, o: Dictionary, loc0: float, d0: float, z: Dict
 		for hl: Array in it.holes:
 			holes.append([d0 + float(hl[0]), d0 + float(hl[1]), float(hl[2]), float(hl[3])])
 			_plate(o, loc0 + float(hl[0]), loc0 + float(hl[1]), float(hl[2]), float(hl[3]), WATER, z.node, 0.08)
+	if it.has("cam"):
+		for cm: Array in it.cam:
+			cams.append([d0 + float(cm[0]), cm[1]])
 	if it.has("say"):
 		for sy: Array in it.say:
 			says.append([d0 + float(sy[0]), sy[1]])
@@ -822,6 +890,10 @@ func _zones_tick() -> void:
 			gone = true
 	if gone:
 		_relist()
+	for i in range(cams.size() - 1, -1, -1):
+		if dist >= float(cams[i][0]) and cur_k >= 0:
+			mode = cams[i][1]
+			cams.remove_at(i)
 	for i in range(says.size() - 1, -1, -1):
 		if dist >= float(says[i][0]):
 			msg(says[i][1], 1.4)
@@ -965,6 +1037,7 @@ func _step(dt: float) -> void:
 	if kit_just("throw"):
 		_throw()
 	_shot(dt)
+	_aim()
 	if mode == "side":
 		x_goal = 0.0
 	var rope := _rope_at(dist)
@@ -1131,10 +1204,11 @@ func _throw() -> void:
 		return
 	s_goal = maxf(2.0, s_goal - 1.0)
 	cool = 0.4
-	shot_t = 1.6
 	shot_d = dist + s * 0.5 + 0.8
 	shot_x = bx
-	shot_v = v + 30.0
+	shot_v = v + 25.0
+	shot_t = _throw_range() / shot_v
+	shot_hit = false
 	shot.visible = true
 	sq = maxf(sq, 0.18)
 	beep(260.0, 0.12, 1000.0, 0.28)
@@ -1162,15 +1236,88 @@ func _shot(dt: float) -> void:
 				play("good")
 				shake = maxf(shake, 0.3)
 				shot_t = 0.0
+				shot_hit = true
 			elif float(th.kd.need) < 90.0 and not th.kd.get("nodive", false):
 				_smash(th)
 			else:
 				shot_t = 0.0
-				_burst(shot.position, A, 4, 6.0)
+				shot_hit = true
+				_burst(shot.position, ME, 4, 6.0)
 			break
 	if shot_t <= 0.0 or shot_d > _len() - 1.0:
+		if shot_t <= 0.0 and not shot_hit:
+			# 닿기 전에 떨어졌다: 몸만 작아졌다
+			_burst(shot.position, ME, 4, 5.0)
+			beep(220.0, 0.15, 120.0, 0.2)
+			msg("안 닿았다!
+더 빨리, 더 가까이", 0.8)
 		shot_t = 0.0
 		shot.visible = false
+
+
+## 던지는 거리: 구르는 속도에 비례한다 (점선 길이 = 이 거리)
+func _throw_range() -> float:
+	return 12.0 + v * 1.3
+
+
+## 조준: 90m 안 가장 가까운 수정까지 땅에 점선, 수정 위에 깨질 너비 막대.
+## 초록 = 지금 던지면 닿는다, 노랑 = 아직 멀다(더 빨리 또는 더 가까이), 빨강 = 몸이 너무 작다.
+func _aim() -> void:
+	var tgt: Thing = null
+	if _btns.has("throw") and not fallen and not won:
+		for th: Thing in things:
+			if th.flat or not th.kd.get("shot", false):
+				continue
+			var dd := th.d - dist
+			if dd > 0.0 and dd < 90.0 and (tgt == null or th.d < tgt.d):
+				tgt = th
+	if tgt == null:
+		for n: MeshInstance3D in aim_dots:
+			n.visible = false
+		aim_bar.visible = false
+		for n: MeshInstance3D in aim_legs:
+			n.visible = false
+		aim_ok = false
+		if _btns.has("throw"):
+			_btns["throw"].color = A
+		return
+	var sz: Vector3 = tgt.kd.size
+	var gap := tgt.d - sz.z * 0.5 - dist
+	var reach := gap <= _throw_range()
+	var big := s_goal >= 2.6
+	var col := GOOD if reach else D
+	if not big:
+		col = BAD
+	var a := dist + s * 0.5 + 1.0
+	var e := dist + minf(_throw_range(), gap)
+	for i in aim_dots.size():
+		var n: MeshInstance3D = aim_dots[i]
+		var dd := lerpf(a, e, (i + 0.5) / aim_dots.size())
+		n.visible = dd < e and shot_t <= 0.0
+		n.position = _pos(dd, bx, _h(dd) + 0.12)
+		n.rotation.y = _yaw(dd)
+		n.material_override = mat(col)
+	# 막대: 덩이가 맞으면 열리는 틈 너비 (돌이 지금 있는 옆 위치 기준)
+	var top := tgt.base + sz.y + 1.6 + 0.3 * sin(clock * 9.0)
+	var yw := _yaw(tgt.d)
+	aim_bar.visible = true
+	aim_bar.position = _pos(tgt.d, bx, top)
+	aim_bar.rotation.y = yw
+	aim_bar.material_override = mat(col)
+	for i in 2:
+		var n: MeshInstance3D = aim_legs[i]
+		n.visible = true
+		n.position = _pos(tgt.d, bx + (-4.0 if i == 0 else 4.0), top - 0.8)
+		n.rotation.y = yw
+		n.material_override = mat(col)
+	var ready := reach and big and shot_t <= 0.0
+	_btns["throw"].color = GOOD if ready else (A if big else BAD)
+	if ready and not aim_ok:
+		aim_ok = true
+		beep(880.0, 0.08, 1320.0, 0.22)
+		msg("닿는다! 던져", 0.6)
+	elif not reach:
+		aim_ok = false
 
 
 ## 덩이에 맞아 부서짐: 점수만, 커지지 않는다

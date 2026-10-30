@@ -1,6 +1,8 @@
 extends Tofu
 ## 옆모습 동굴(Deepest Sword). 화면을 몸 둘레로 끌어 칼을 돌린다(다이얼). 칼끝이 땅에 박히면 그 점을 축으로 몸이 넘어간다(장대 넘기).
-## 빨리 돌릴수록 멀리 날지만, 긴 칼을 빨리 돌리면 벽에 걸려 튕기고 너무 빠르게 벽·바닥에 박히면 죽는다(목숨 3). 용암도 죽음.
+## 빨리 돌릴수록 멀리 날지만, 몸이 15 넘게 박히면 아프고(멍) 멍든 채 또 박히거나 21 넘게 박히면 죽는다(목숨 3). 용암도 죽음.
+## 게이지 = 지금 박히면 받을 속도/15. 그냥 떨어지는 건 안 죽는다(종단속도 12). 바닥에 서면 그 자리가 체크포인트.
+# 한 문장: 나는 긴 칼을 든 작은 기사로서 좁아지는 동굴 속에서 칼을 돌려 박고 넘어가 바닥의 심장을 찌르지만, 빨리 돌릴수록 박힐 때 아프고 죽는 대가를 감수한다.
 ## 바닥의 빨간 심장에 칼끝이 닿으면 칼이 1.5배 길어지고 다음 동굴은 더 좁다. 끝없이.
 
 const G := 18.0
@@ -10,6 +12,9 @@ const DEADV := 15.0  # 이보다 빠르게 박히면 죽음
 const WMAX := 16.0  # 칼 각속도 한계(rad/s)
 const KICKW := 3.5  # 이보다 빨리 돌리다 벽에 걸리면 튕긴다
 const NTRAIL := 5
+const FALLV := 12.0  # 그냥 떨어질 때의 종단속도(노랑). 죽음은 손가락이 만든 속도에서만
+const KILLX := 1.4  # 멍 없이도 이 배수 넘게 박히면 바로 죽음
+const HEAL := 5.0  # 멍이 낫는 시간
 const ROCK := Color("b8c4d4")
 
 var walls: Array[Rect2] = []
@@ -52,12 +57,24 @@ var sword: Node3D
 var blade: MeshInstance3D
 var heart_m: MeshInstance3D
 var trail: Array[MeshInstance3D] = []
+var bruise_t := 0.0  # >0 이면 멍든 상태: 다음 과속 박힘은 죽음
+var hit_kind := ""
+var hit_pt := Vector2.ZERO
+var ckpt := Vector2.ZERO
+var stand_t := 0.0
+var warn_t := 0.0
+var mark: MeshInstance3D
+var mark_t := 0.0
+var flag: MeshInstance3D
 
 
 func _setup() -> void:
 	time_limit = 0.0
 	cam.fov = 50.0
-	howto = "화면을 몸 둘레로 끌어 칼을 돌린다(다이얼처럼).\n칼끝이 땅에 박히면 그 점을 축으로 몸이 넘어간다. 빨리 돌릴수록 멀리 난다.\n바닥의 빨간 심장에 칼끝을 대면 칼이 1.5배 길어지고 다음 동굴은 더 좁다.\n용암에 닿거나 너무 빠르게 벽·바닥에 박히면 죽는다(목숨 3)."
+	howto = "화면을 몸 둘레로 끌어 칼을 돌린다(다이얼처럼). 칼끝이 땅에 박히면 몸이 넘어간다.
+빨리 돌릴수록 멀리 날지만 게이지(박힐 속도)가 빨강이면 박힐 때 아프다. 아픈 채 또 박히면 죽음.
+바닥의 빨간 심장에 칼끝을 대면 칼이 길어진다. 서 있던 자리에서 다시 시작(목숨 3).
+용암에 닿아도 죽는다."
 
 
 func _reset() -> void:
@@ -77,6 +94,9 @@ func _reset() -> void:
 		var tb := box(Vector3.ZERO, Vector3(HALF.x * 2.0, HALF.y * 2.0, 0.4), B)
 		tb.visible = false
 		trail.append(tb)
+	mark = box(Vector3.ZERO, Vector3(0.7, 0.7, 2.4), BAD)
+	mark.visible = false
+	flag = box(Vector3.ZERO, Vector3(0.12, 1.4, 0.3), GOOD)
 	_build(0)
 
 
@@ -115,6 +135,7 @@ func _build(s: int) -> void:
 		if s >= 2 and i > 0:
 			_wall(Rect2(-0.5, fy + rh * 0.6, 1.0, rh * 0.4))  # 천장 종유석
 	start = Vector2(-hw + 1.2, -rh + 1.0 + HALF.y)
+	ckpt = start
 	msg("동굴 %d" % (s + 1), 1.2)
 	blade.position = Vector3(slen * 0.5, 0, 0)
 	blade.scale = Vector3(slen, 0.14, 0.14)
@@ -132,7 +153,10 @@ func _lava(r: Rect2) -> void:
 
 
 func _spawn() -> void:
-	pos = start
+	pos = ckpt
+	bruise_t = 0.0
+	stand_t = 0.0
+	flag.position = Vector3(ckpt.x - 0.5, ckpt.y + 0.25, -0.5)
 	vel = Vector2.ZERO
 	th = -0.6
 	w_in = 0.0
@@ -203,8 +227,20 @@ func _step(dt: float) -> void:
 	if on_ground and not was_g:
 		beep(90.0, 0.06, 0.0, 0.2)
 	var om := absf(w_in + w_g)
-	var tipv := om * (pd if planted else slen) / DEADV
-	gauge(tipv, GOOD if tipv < 0.5 else (D if tipv < 1.0 else BAD))
+	# 게이지 = 지금 박히면 몸이 받을 속도 / 죽음 속도
+	var dang := (om * pd if planted else maxf(vel.length(), om * slen * 0.5)) / DEADV
+	gauge(minf(dang, 1.0), GOOD if dang < 0.6 else (D if dang < 1.0 else BAD))
+	bruise_t = maxf(bruise_t - dt, 0.0)
+	var flying := not (on_ground and rest)
+	var col := ME if bruise_t <= 0.0 else A
+	if flying and dang >= 0.8:
+		col = D if dang < 1.0 else BAD
+		warn_t -= dt
+		if warn_t <= 0.0:
+			warn_t = 0.12
+			beep(1200.0 if dang >= 1.0 else 880.0, 0.04, 0.0, 0.15)
+	torso.material_override = mat(col)
+	_checkpoint(dt)
 	swing_t -= dt
 	if om > 3.0 and swing_t <= 0.0:
 		swing_t = 0.1
@@ -269,12 +305,14 @@ func _free(h: float) -> void:
 	else:
 		th = th2
 	vel.y -= G * h
+	if vel.y < -FALLV:  # 공기 저항: 그냥 떨어지는 건 종단속도에서 멈추고, 내던져진 속도는 천천히 준다
+		vel.y = lerpf(vel.y, -FALLV, 1.0 - exp(-1.5 * h))
 	if on_ground:
 		vel.x *= exp(-5.0 * h)
 	var imp := _move(h)
 	if imp > DEADV:
-		_die("머리부터!")
-		return
+		if _pain(imp):
+			return
 	if on_ground:
 		rest = true
 	var tip := pos + Vector2(cos(th), sin(th)) * slen
@@ -308,7 +346,10 @@ func _move(h: float) -> float:
 	var r := _body_rect()
 	for w in walls:
 		if w.intersects(r):
-			imp = maxf(imp, absf(vel.x))
+			if absf(vel.x) > imp:
+				imp = absf(vel.x)
+				hit_kind = "벽"
+				hit_pt = pos + Vector2(signf(vel.x) * HALF.x, 0)
 			pos.x = w.position.x - HALF.x - 0.001 if vel.x > 0.0 else w.end.x + HALF.x + 0.001
 			vel.x = 0.0
 			r = _body_rect()
@@ -317,7 +358,10 @@ func _move(h: float) -> float:
 	on_ground = false
 	for w in walls:
 		if w.intersects(r):
-			imp = maxf(imp, absf(vel.y))
+			if absf(vel.y) > imp:
+				imp = absf(vel.y)
+				hit_kind = "천장" if vel.y > 0.0 else "바닥"
+				hit_pt = pos + Vector2(0, signf(vel.y) * HALF.y)
 			if vel.y > 0.0:
 				pos.y = w.position.y - HALF.y - 0.001
 			else:
@@ -374,6 +418,43 @@ func _normal(r: Rect2, pt: Vector2) -> Vector2:
 	return Vector2(1, 0)
 
 
+## 과속 박힘: 처음은 멍(경고), 멍든 채이거나 너무 빠르면 죽음. 죽었으면 true
+func _pain(imp: float) -> bool:
+	var spd := "%s 쾅 %d" % [hit_kind, roundi(imp)]
+	mark.position = Vector3(hit_pt.x, hit_pt.y, 0.2)
+	mark.visible = true
+	mark_t = 1.6
+	if bruise_t > 0.0 or imp > DEADV * KILLX:
+		_die(spd + (" 멍든 채!" if bruise_t > 0.0 else " 너무 빠름!"))
+		return true
+	bruise_t = HEAL
+	vel = Vector2(0, 4.0)
+	shake = maxf(shake, 0.35)
+	beep(160.0, 0.15, 80.0, 0.3)
+	msg(spd + ">15 아픔!", 1.3)
+	return false
+
+
+## 용암에서 떨어진 바닥에 잠깐 서 있으면 그 자리가 다시 시작점
+func _checkpoint(dt: float) -> void:
+	if not (on_ground and rest and not planted and vel.length() < 1.0):
+		stand_t = 0.0
+		return
+	stand_t += dt
+	if stand_t < 0.6 or pos.distance_to(ckpt) < 1.0:
+		return
+	var r := _body_rect().grow(1.2)
+	for l in lavas:
+		if l.intersects(r):
+			return
+	var deeper := pos.y < ckpt.y - rh * 0.5
+	ckpt = pos
+	flag.position = Vector3(ckpt.x - 0.5, ckpt.y + 0.25, -0.5)
+	if deeper:
+		msg("여기서 다시", 0.8)
+		beep(700.0, 0.06, 1000.0, 0.15)
+
+
 func _kick() -> void:
 	shake = maxf(shake, 0.3)
 	msg("걸림!", 0.4)
@@ -396,7 +477,7 @@ func _hazards() -> void:
 
 
 func _die(why: String) -> void:
-	die_t = 1.0
+	die_t = 1.4
 	lives -= 1
 	planted = false
 	vel = Vector2.ZERO
@@ -405,7 +486,7 @@ func _die(why: String) -> void:
 	torso.material_override = mat(BAD)
 	shake = maxf(shake, 0.5)
 	play("bad")
-	msg(why, 1.0)
+	msg(why, 1.4)
 
 
 func _clear() -> void:
@@ -436,6 +517,8 @@ func _view(dt: float) -> void:
 		tb.scale = Vector3(HALF.x * 2.0, HALF.y * 2.0, 0.4)
 	for tb in trail:
 		tb.scale = tb.scale * maxf(0.0, 1.0 - 5.0 * dt)
+	mark_t -= dt
+	mark.visible = mark_t > 0.0
 	cam_y = lerpf(cam_y, pos.y + 0.5, 1.0 - exp(-6.0 * dt))
 	shake = maxf(shake - dt * 1.5, 0.0)
 	var off := Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * shake * 0.6

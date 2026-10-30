@@ -62,11 +62,12 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" && GIT_TERMINAL_PROMPT=
 - 미니게임·표절(레퍼런스 + 우리 요소 없음)·뻔함·술래잡기·제한시간 퍼즐·읽히지 않음·속도가 왜인지 모름 = 탈락 유전자.
 - 속도가 주인공, 몸의 물리 결과. 구역마다 플레이 방식 자체가 바뀐다. 죽음이 실제로 일어난다. 3D 선호, 세로 720×1280, 밝은 화면, 소리, 외곽선 상자.
 
-## 열려 있는 결정 (사용자 몫)
+## 결정은 오케스트레이터가 한다 (사용자, 10/30 20:10)
 
-1. **제출작 고르기**: 여러 개 제출 가능, 각각 따로 심사. 고른 게임은 영어 howto·설명, 스타일 통일 여부, itch.io 업로드(`Mobile friendly`·`Portrait`·`Public`, 잼 페이지 Submit), 사용 도구 표기. 제출 절차 문서: `../slapjam2/docs/SUBMISSION_PAGE.md`.
-2. screenrace에 남은 원작 뼈대(화면 왼쪽 밖 탈락·1등 추적 카메라)를 바꿀지 — 아직 답 없음, 그대로 둠.
-3. 깊은 검 × 빠르면 고통(옆모습)은 합격작인데 별점이 0건이라 강화·번식 대상에서 빠져 있다(평가 버튼이 4세대에 생김).
+"그걸 왜 내가 답을 해. 너가 다 하는 거지." 열린 결정을 사용자에게 묻지 말고 정해서 GA.md에 기록한다.
+- **제출작은 고르지 않는다**: 강화가 쌓여 v5를 넘기면(v5 → v6 차례) 제출준비작 — 아트 스타일 확정 + Codex가 이후 강화를 맡음 + 메뉴 맨 위 "● 제출준비작". 자세한 건 GA.md "제출준비작 규칙". itch.io 업로드는 사용자 계정 일이라 초안까지.
+- screenrace 원작 뼈대는 유지(장르 문법). deepsword는 별 3 규칙으로 수정.
+- **일격의 길(blade)과 파생작(blade_1p·blade_fp·blade_run)은 파이가 직접 한다** → speed_tofu 메뉴·smoke에서 뺐다. 다시 넣지 않는다. `games/blade_path`도 손대지 않는다.
 
 ## 현재 적합도 상위 (FEEDBACK 19:35 기준)
 
@@ -76,3 +77,4 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" && GIT_TERMINAL_PROMPT=
 
 - `games/blade_path/`는 이 세션이 만든 것이 아니다(10/30 저녁에 생김, 미추적). 손대지 않았다.
 - 스크래치(서브에이전트 브리프·설계서 원본): `C:\Users\fixme\AppData\Local\Temp\claude\C--projects-pai-games\a6f2a317-a6bc-4c33-a6c9-144d0650cabb\scratchpad\` — `tofu_rules.md`(공통 규칙), `design_brief.md`(설계서 양식), `ga4_upgrade.md`·`ga4_kids.md`(4세대 브리프 예시), `designs/`. 새 세션은 이 폴더를 읽을 수 있지만 지워질 수 있으니, 필요한 규칙은 위에 옮겨 두었다.
+- 5세대 스크래치: `C:\Users\fixme\AppData\Local\Temp\claude\C--projects-pai-games\ff10ac5a-973a-47b8-a23c-b997192e747b\scratchpad\` — `ga5_common.md`(5세대 공통 브리프), `tofu_rules.md`, `design_brief.md`, `designs/`(이전 설계서 복사본 + 5세대분).
