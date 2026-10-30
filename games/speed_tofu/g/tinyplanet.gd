@@ -372,18 +372,91 @@ func _person(dir: Vector3, body: Color, hat: Color) -> Node3D:
 	var d := dir.normalized()
 	n.transform = Transform3D(_basis(d), d * R)
 	var lift := _sr(bk, d) - R - 0.05
-	var v := _art("villager", Callable(), n, WHITE.lerp(body, 0.35))
-	v.transform = Transform3D(Basis.IDENTITY.scaled(Vector3.ONE * 1.1), Vector3(0, lift, 0))
-	var h := _proc("hat", Callable(self, "_shape_hat"), n, hat)
-	h.position = Vector3(0, lift + 1.66, 0)
+	# v7: 왕눈 주민 (별마다 다른 몸). 몸은 한 메시, 눈동자만 따로 움직여 나를 쳐다본다
+	var v := 4 if bk == 6 else clampi(bk, 0, 3)
+	var vb := Node3D.new()
+	n.add_child(vb)
+	vb.position = Vector3(0, lift, 0)
+	_proc("vil_%d" % v, Callable(self, "_shape_vil").bind(v, body, hat), vb)
+	for e: Array in VIL[v].eyes:
+		var pu := _proc("pupil", Callable(self, "_shape_pupil"), vb)
+		var er: float = e[1]
+		pu.scale = Vector3.ONE * er * 0.5
+		pu.position = (e[0] as Vector3) + Vector3(0, 0, -er * 0.6)
+		vil_pupils.append([pu, e[0], er, vb])
+	vil_bobs.append([vb, lift, float(bk) * 1.7])
 	npc_mark = _ushape("gem", D, n)
 	npc_mark.position = Vector3(0, 2.9, 0)
 	npc_mark.scale = Vector3(0.45, 0.95, 0.45)
 	return n
 
 
+## 포스티 조립: 몸(눌림 스프링) · 입 · 왕눈 둘 · 정수리 편지 · 옆 깃발 · 국수 다리 둘(허벅지 → 정강이+발)
+func _build_posty() -> void:
+	p_body = Node3D.new()
+	me_body.add_child(p_body)
+	p_body.position = Vector3(0, HIP_Y - 0.03, 0)
+	_proc("posty_body", Callable(self, "_shape_posty_body"), p_body)
+	p_mouth = _proc("posty_mouth", Callable(self, "_shape_posty_mouth"), p_body)
+	p_mouth.position = Vector3(0, 0.38, -0.355)
+	p_eyes.clear()
+	p_pupils.clear()
+	for sx: float in [-0.15, 0.15]:
+		var e := Node3D.new()
+		p_body.add_child(e)
+		e.position = Vector3(sx, 0.86, -0.08)
+		var w := _proc("eye_white", Callable(self, "_shape_eye_white"), e)
+		w.scale = Vector3.ONE * 0.17
+		var pu := _proc("pupil", Callable(self, "_shape_pupil"), e)
+		pu.scale = Vector3.ONE * 0.08
+		pu.position = Vector3(0, 0, -0.11)
+		p_eyes.append(e)
+		p_pupils.append(pu)
+	p_letter = _proc("posty_letter", Callable(self, "_shape_posty_letter"), p_body)
+	p_letter.position = Vector3(0, 0.84, 0.13)
+	p_flag = _proc("posty_flag", Callable(self, "_shape_posty_flag"), p_body)
+	p_flag.position = Vector3(0.39, 0.45, 0.05)
+	p_flag.rotation.x = PI / 2.0
+	p_thighs.clear()
+	p_shins.clear()
+	for sx: float in [-0.14, 0.14]:
+		var th := Node3D.new()
+		me_body.add_child(th)
+		th.position = Vector3(sx, HIP_Y, 0)
+		_proc("thigh", Callable(self, "_shape_thigh"), th)
+		var sh := Node3D.new()
+		th.add_child(sh)
+		sh.position = Vector3(0, -THIGH, 0)
+		_proc("shin", Callable(self, "_shape_shin"), sh)
+		p_thighs.append(th)
+		p_shins.append(sh)
+	pup_off = Vector3.ZERO
+	pup_v = Vector3.ZERO
+	sq = 0.0
+	sq_v = 0.0
+	mouth_o = 0.0
+	was_ground = true
+
+
 var npc_mark: MeshInstance3D
 var bk := 0  # 짓는 중인 별
+# v7 캐릭터 부품 (포스티)
+var p_body: Node3D
+var p_mouth: MeshInstance3D
+var p_eyes: Array[Node3D] = []
+var p_pupils: Array[MeshInstance3D] = []
+var p_letter: MeshInstance3D
+var p_flag: MeshInstance3D
+var p_thighs: Array[Node3D] = []
+var p_shins: Array[Node3D] = []
+var pup_off := Vector3.ZERO  # 눈동자 스프링 (젤리 여운)
+var pup_v := Vector3.ZERO
+var sq := 0.0  # 몸 눌림 스프링 (+ 늘어남, - 눌림)
+var sq_v := 0.0
+var mouth_o := 0.0
+var was_ground := true
+var vil_pupils: Array = []  # [눈동자, 눈 가운데, 눈 반지름, 몸 노드]
+var vil_bobs: Array = []  # [몸 노드, 바닥 높이, 위상]
 
 
 func _reset() -> void:
@@ -430,7 +503,7 @@ func _reset() -> void:
 	world.add_child(me)
 	me_body = Node3D.new()
 	me.add_child(me_body)
-	_art("traveler", Callable(), me_body)
+	_build_posty()
 	hearts.clear()
 	heart_t = 0.0
 	heart_lost = -1
@@ -460,10 +533,10 @@ func _reset() -> void:
 	item_b.scale = Vector3.ONE * 1.25
 	item_b.visible = false
 	sail_b = _proc("sail", Callable(self, "_shape_sail"), me_body)
-	sail_b.position = Vector3(0, 0.55, 0.32)
+	sail_b.position = Vector3(0, 1.0, 0.42)
 	sail_b.visible = false
 	bag_b = _proc("bag", Callable(self, "_shape_bag"), me_body)
-	bag_b.position = Vector3(0.36, 0.55, 0.0)
+	bag_b.position = Vector3(-0.44, 0.95, 0.0)
 	bag_b.visible = false
 	mark_b = _ushape("disc", D, here)
 	mark_b.visible = false
@@ -547,6 +620,8 @@ func _build() -> void:
 	npcs.clear()
 	marks.clear()
 	belt.clear()
+	vil_pupils.clear()
+	vil_bobs.clear()
 	spin = null
 	for k in BD.size():
 		var d: Dictionary = BD[k]
@@ -1961,13 +2036,14 @@ func _vis(dt: float) -> void:
 	var k := clampf(spd / TOP, 0.0, 1.0)
 	if grounded:
 		step_ph += spd * dt * 1.15
-		me_body.position.y = absf(sin(step_ph)) * 0.14 * minf(1.0, spd / 3.0)
+		me_body.position.y = absf(sin(step_ph)) * 0.1 * minf(1.0, spd / 3.0)
 		me_body.rotation = Vector3(-0.32 * k, 0.0, sin(step_ph) * 0.07 * k)
 		sail_b.scale = sail_b.scale.lerp(Vector3.ONE * 0.7, minf(1.0, dt * 6.0))
 	else:
 		me_body.position.y = lerpf(me_body.position.y, 0.0, minf(1.0, dt * 6.0))
 		me_body.rotation = me_body.rotation.lerp(Vector3(-0.55, 0.0, 0.0), minf(1.0, dt * 4.0))
 		sail_b.scale = sail_b.scale.lerp(Vector3.ONE * 1.35, minf(1.0, dt * 5.0))
+	_posty_anim(dt, spd, k)
 	_hearts_anim(dt)
 	for mk in marks:
 		(marks[mk] as MeshInstance3D).rotation.y = clock * 2.5
@@ -1988,6 +2064,92 @@ func _vis(dt: float) -> void:
 			wind_pl.stop()
 		wind_pl.volume_db = wind_v
 		wind_pl.pitch_scale = 0.9 + 0.3 * k
+
+
+## 포스티 움직임: 속도가 곧 다리 (느리면 종종, 빠르면 길게 휘며 바퀴처럼), 공중엔 다리가 뒤로 휘날림.
+## 눈동자는 가는 쪽을 보고 젤리처럼 따라오고, 내려앉으면 몸이 눌렸다 튄다. 물건을 들면 깃발이 선다.
+func _posty_anim(dt: float, spd: float, k: float) -> void:
+	if p_body == null:
+		return
+	var dd := minf(dt, 0.05)
+	# 다리
+	for i in 2:
+		var ph := step_ph + PI * i
+		var hip := 0.0
+		var knee := 0.0
+		if grounded:
+			var amp := (0.22 + 0.95 * k) * minf(1.0, spd / 1.5)
+			hip = sin(ph) * amp
+			knee = -maxf(0.0, cos(ph)) * (0.35 + 1.15 * k) * minf(1.0, spd / 1.5)
+		else:
+			hip = -0.85 + sin(clock * 13.0 + PI * i) * 0.18
+			knee = -0.55 - sin(clock * 13.0 + PI * i) * 0.15
+		var th := p_thighs[i]
+		var sh := p_shins[i]
+		th.rotation.x = lerp_angle(th.rotation.x, hip, minf(1.0, dd * 18.0))
+		sh.rotation.x = lerp_angle(sh.rotation.x, knee, minf(1.0, dd * 18.0))
+	# 내려앉음 · 뜸 → 눌림 스프링
+	if grounded and not was_ground:
+		sq_v = -2.6 - minf(2.5, absf(vel.dot(-cam_up)) * 0.25)
+	elif not grounded and was_ground:
+		sq_v = 2.2
+	was_ground = grounded
+	sq_v += (-sq * 170.0 - sq_v * 11.0) * dd
+	sq += sq_v * dd
+	var breath := 0.025 * sin(clock * 2.6) if grounded and spd < 1.0 else 0.0
+	var sy := 1.0 + sq + breath
+	p_body.scale = Vector3(1.0 - sq * 0.5, sy, 1.0 - sq * 0.5)
+	# 눈동자: 가는 쪽(몸 기준) + 앞쪽 버릇, 스프링으로 늦게 따라온다
+	var look := Vector3(0, 0, -1)
+	if spd > 0.5:
+		var lv := me_body.global_transform.basis.inverse() * vel
+		look = (lv.normalized() + Vector3(0, 0, -0.6)).normalized()
+	var tgt := look * 0.11
+	pup_v += ((tgt - pup_off) * 140.0 - pup_v * 8.0) * dd
+	pup_off += pup_v * dd
+	if pup_off.length() > 0.12:
+		pup_off = pup_off.normalized() * 0.12
+	for pu in p_pupils:
+		pu.position = pup_off
+	# 빨리 달리면 왕눈이 바람에 뒤로 눌린다
+	for e in p_eyes:
+		e.rotation.x = lerpf(e.rotation.x, 0.35 * k if grounded else 0.5, minf(1.0, dd * 6.0))
+	# 입: 놀람(높이 날 때 빠름, 쿵 착지, 죽음)이면 벌어진다
+	var open := 0.0
+	if die_t > 0.0 or sq < -0.12 or (not grounded and spd > 10.0):
+		open = 1.0
+	mouth_o = lerpf(mouth_o, open, minf(1.0, dd * 10.0))
+	p_mouth.scale = Vector3(1.0 - mouth_o * 0.25, 1.0 + mouth_o * 2.6, 1.0)
+	# 깃발: 물건 들면 세우고 아니면 뒤로 눕힌다
+	var fl := 0.0 if item != "" else PI / 2.0
+	p_flag.rotation.x = lerpf(p_flag.rotation.x, fl, minf(1.0, dd * 7.0))
+	# 편지: 날 때 바람에 떤다
+	var fz := 0.0
+	var fx := 0.0
+	if not grounded:
+		fx = 0.3 + sin(clock * 24.0) * 0.18 * clampf(spd / 8.0, 0.3, 1.0)
+	else:
+		fz = sin(clock * 3.0) * 0.05
+		fx = 0.18 * k
+	p_letter.rotation = Vector3(fx, 0.0, fz)
+	# 주민: 숨쉬듯 들썩, 눈동자는 나를 본다
+	for b: Array in vil_bobs:
+		var vb: Node3D = b[0]
+		var ph2: float = b[2]
+		vb.position.y = float(b[1]) + absf(sin(clock * 2.2 + ph2)) * 0.05
+		vb.scale = Vector3(1.0 + 0.02 * sin(clock * 4.4 + ph2), 1.0 - 0.02 * sin(clock * 4.4 + ph2), 1.0 + 0.02 * sin(clock * 4.4 + ph2))
+	var mp := me.global_position + me.global_transform.basis.y * 1.0
+	for e2: Array in vil_pupils:
+		var pu2: MeshInstance3D = e2[0]
+		var vb2: Node3D = e2[3]
+		if not vb2.is_visible_in_tree():
+			continue
+		var c: Vector3 = e2[1]
+		var er: float = e2[2]
+		var dv := vb2.to_local(mp) - c
+		if dv.length_squared() > 0.0001:
+			var dn := (dv.normalized() + Vector3(0, 0, -0.5)).normalized()
+			pu2.position = c + dn * er * 0.62
 
 
 ## 든 물건 모델 바꾸기 (금 간 정도 q 만큼 빨개진다)
@@ -2743,6 +2905,114 @@ func _shape_traveler() -> void:
 	_ico(Vector3(0, 1.24, 0), Vector3.ONE * 0.3, 1, SKIN, SKIN.darkened(0.06), _rs)
 	_eyes(1.27, -0.27)
 	_cyl(Vector3(0, 1.48, 0), Vector3(0.15, 1, 0.1), 0.15, 0.0, 0.16, 5, D, D)  # 머리칼
+
+
+# ---- v7 캐릭터: 우체통 꼬마 포스티와 왕눈 주민들 (submit/tinyplanet/CHARACTER.md) ----
+const POSTY := Color("ff6b5e")  # 산호 우체통
+const NOODLE := Color("ffd166")  # 국수 다리
+const EYE_W := Color("fffdf7")
+const HIP_Y := 0.62
+const THIGH := 0.34
+const SHIN := 0.24
+
+
+## 몸: 위가 둥근 우체통 콩 (원점 = 엉덩이, 가운데 y 0.45), 아래 진한 띠
+func _shape_posty_body() -> void:
+	_rs.seed = 21
+	_ico(Vector3(0, 0.45, 0), Vector3(0.4, 0.48, 0.37), 2, POSTY, POSTY.darkened(0.05), _rs)
+	_cyl(Vector3(0, 0.03, 0), Vector3.UP, 0.33, 0.37, 0.09, 10, POSTY.darkened(0.28), POSTY.darkened(0.28))
+	# 등의 작은 크림 우편 표지 (뒤에서 보는 카메라에 읽히게)
+	_slab(Vector3(0, 0.5, 0.36), Vector3(0.11, 0, 0), Vector3(0, 0.08, 0), Vector3(0, 0, 0.02), CREAM)
+	_slab(Vector3(0, 0.5, 0.375), Vector3(0.07, 0, 0), Vector3(0, 0.025, 0), Vector3(0, 0, 0.01), POSTY.darkened(0.2))
+
+
+## 입 = 편지 투입구 (가운데 원점, 놀라면 위아래로 벌어진다)
+func _shape_posty_mouth() -> void:
+	_slab(Vector3.ZERO, Vector3(0.19, 0, 0), Vector3(0, 0.035, 0), Vector3(0, 0, 0.03), NAVY)
+
+
+## 왕눈 흰자 (반지름 1, 크기는 노드 scale)
+func _shape_eye_white() -> void:
+	_rs.seed = 22
+	_ico(Vector3.ZERO, Vector3.ONE, 1, EYE_W, EYE_W.darkened(0.04), _rs)
+
+
+func _shape_pupil() -> void:
+	_rs.seed = 23
+	_ico(Vector3.ZERO, Vector3.ONE, 1, NAVY, NAVY.lightened(0.08), _rs)
+
+
+## 정수리 투입구에 꽂힌 편지 (아래 가장자리가 원점)
+func _shape_posty_letter() -> void:
+	_slab(Vector3(0, 0.1, 0), Vector3(0.15, 0, 0), Vector3(0, 0.1, 0), Vector3(0, 0, 0.012), CREAM)
+	_slab(Vector3(0.07, 0.15, -0.014), Vector3(0.035, 0, 0), Vector3(0, 0.035, 0), Vector3(0, 0, 0.005), A)
+	_tri(Vector3(-0.15, 0.2, -0.014), Vector3(0.15, 0.2, -0.014), Vector3(0, 0.1, -0.014), CREAM.darkened(0.12), Vector3(0, 0, -1))
+
+
+## 우체통 깃발: 막대가 +Y, 깃발은 앞(-Z)으로. 드는 중이면 세우고(0), 아니면 뒤로 눕힌다(PI/2)
+func _shape_posty_flag() -> void:
+	_cyl(Vector3.ZERO, Vector3.UP, 0.025, 0.025, 0.34, 4, NAVY, NAVY)
+	_slab(Vector3(0, 0.28, -0.08), Vector3(0.014, 0, 0), Vector3(0, 0.055, 0), Vector3(0, 0, 0.085), D)
+
+
+func _shape_thigh() -> void:
+	_cyl(Vector3.ZERO, Vector3.DOWN, 0.06, 0.055, THIGH, 6, NOODLE, NOODLE)
+
+
+## 정강이 + 둥근 발 (발끝이 앞 -Z)
+func _shape_shin() -> void:
+	_rs.seed = 24
+	_cyl(Vector3.ZERO, Vector3.DOWN, 0.055, 0.05, SHIN, 6, NOODLE, NOODLE)
+	_ico(Vector3(0, -SHIN - 0.01, -0.05), Vector3(0.09, 0.06, 0.13), 1, NAVY, NAVY.lightened(0.1), _rs)
+
+
+## 주민 몸 (변형 v: 0 풍차지기 키다리 캡슐·외눈, 1 우체부 쌓은 공, 2 정원사 넓적 방울, 3 노을 아이 작은 공, 4 꽃 친구 콩)
+const VIL := [
+	{"eyes": [[Vector3(0, 1.22, -0.25), 0.17]], "hip": 0.52},
+	{"eyes": [[Vector3(-0.1, 1.32, -0.2), 0.1], [Vector3(0.1, 1.32, -0.2), 0.1]], "hip": 0.41},
+	{"eyes": [[Vector3(-0.15, 0.95, -0.36), 0.11], [Vector3(0.15, 0.95, -0.36), 0.11]], "hip": 0.47},
+	{"eyes": [[Vector3(-0.13, 0.98, -0.2), 0.15], [Vector3(0.13, 0.98, -0.2), 0.15]], "hip": 0.57},
+	{"eyes": [[Vector3(-0.11, 1.02, -0.24), 0.1], [Vector3(0.11, 1.02, -0.24), 0.1]], "hip": 0.5},
+]
+
+
+func _shape_vil(v: int, body: Color, hat: Color) -> void:
+	_rs.seed = 30 + v
+	var bd := body.darkened(0.06)
+	match v:
+		0:
+			_ico(Vector3(0, 1.05, 0), Vector3(0.3, 0.55, 0.3), 2, body, bd, _rs)
+			_cyl(Vector3(0, 1.56, 0), Vector3.UP, 0.48, 0.44, 0.04, 10, hat, hat)  # 밀짚모자 챙
+			_cyl(Vector3(0, 1.6, 0), Vector3.UP, 0.22, 0.04, 0.24, 8, hat.darkened(0.08), hat)
+		1:
+			_ico(Vector3(0, 0.75, 0), Vector3.ONE * 0.36, 2, body, bd, _rs)
+			_ico(Vector3(0, 1.28, 0), Vector3.ONE * 0.26, 1, body.lightened(0.08), body, _rs)
+			_cyl(Vector3(0, 1.48, 0), Vector3.UP, 0.19, 0.19, 0.12, 8, hat, hat)  # 우편 모자
+			_slab(Vector3(0, 1.5, -0.2), Vector3(0.15, 0, 0), Vector3(0, 0.015, 0), Vector3(0, 0, 0.08), NAVY)
+		2:
+			_ico(Vector3(0, 0.85, 0), Vector3(0.48, 0.4, 0.42), 2, body, bd, _rs)
+			_cyl(Vector3(0, 1.12, 0), Vector3.UP, 0.24, 0.0, 0.3, 8, body, body)
+			_cyl(Vector3(0, 1.38, 0), Vector3.UP, 0.025, 0.02, 0.18, 4, GOOD, GOOD)  # 새싹
+			_dia(Vector3(-0.09, 1.56, 0), 0.09, 0.03, GOOD.lightened(0.2), Vector3(1, 0.4, 0))
+			_dia(Vector3(0.09, 1.56, 0), 0.09, 0.03, GOOD.lightened(0.2), Vector3(-1, 0.4, 0))
+		3:
+			_ico(Vector3(0, 0.85, 0), Vector3.ONE * 0.3, 2, body, bd, _rs)
+			_cyl(Vector3(0, 1.1, 0), Vector3(0.2, 1, 0), 0.06, 0.0, 0.2, 5, hat, hat)  # 삐친 머리
+		_:
+			_ico(Vector3(0, 0.9, 0), Vector3(0.33, 0.42, 0.3), 2, body, bd, _rs)
+			_cyl(Vector3(0, 1.3, 0), Vector3.UP, 0.025, 0.02, 0.16, 4, GOOD, GOOD)
+			for i in 5:
+				var a := TAU * i / 5.0
+				_dia(Vector3(cos(a) * 0.09, 1.5, sin(a) * 0.09), 0.08, 0.03, hat, Vector3(cos(a), 2.0, sin(a)))
+			_ico(Vector3(0, 1.5, 0), Vector3.ONE * 0.05, 0, D, D, _rs)
+	for e: Array in VIL[v].eyes:
+		var c: Vector3 = e[0]
+		var r: float = e[1]
+		_ico(c, Vector3.ONE * r, 1, EYE_W, EYE_W.darkened(0.04), _rs)
+	var hip: float = VIL[v].hip
+	for sx: float in [-0.12, 0.12]:
+		_cyl(Vector3(sx, hip, 0), Vector3.DOWN, 0.05, 0.045, hip - 0.04, 5, NOODLE, NOODLE)
+		_ico(Vector3(sx, 0.03, -0.04), Vector3(0.08, 0.05, 0.11), 0, NAVY, NAVY, _rs)
 
 
 func _shape_villager() -> void:
