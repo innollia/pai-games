@@ -3,7 +3,7 @@ extends SceneTree
 ## godot --headless --path . --fixed-fps 60 -s tools/smoke.gd -- bigball sword   (이름을 안 주면 전부)
 ## 출력에 SCRIPT ERROR 가 없고 마지막 줄이 "smoke done" 이면 통과.
 
-const ALL := ["quicksilver", "synapse", "blade", "boulder", "hot", "hot_side", "quicksilver_tp", "blade_fp", "boulder_fp", "coil_side", "bigball", "sword", "nerve", "superhot", "onlyfast", "hotpack", "timedebt", "runaway", "slowbike", "matchspeed"]
+const ALL := ["quicksilver", "synapse", "blade", "boulder", "hot", "hot_side", "quicksilver_tp", "blade_fp", "boulder_fp", "coil_side", "speedcop", "speedthief", "trafficwizard", "screenrace", "kitchen", "coaster", "pitcrew", "overpower", "overpower_3d", "bigball", "sword", "nerve", "superhot", "onlyfast", "hotpack", "timedebt", "runaway", "slowbike", "matchspeed"]
 
 
 func _initialize() -> void:
