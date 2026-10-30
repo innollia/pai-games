@@ -399,6 +399,8 @@ func _scenery() -> void:
 	box(Vector3(0, 1.8, -3.5), Vector3(6.0, 0.2, 0.3), INK)
 	box(Vector3(0, -5.1, 0), Vector3(24, 6, 24), FIELD)
 	_reeds()
+	if Look.ON:
+		Look.stage(self)
 	for m: Vector3 in [Vector3(-12, 6, -45), Vector3(6, 10, -52), Vector3(20, 4, -42)]:
 		box(m, Vector3(16, m.y * 2.0 + 6.0, 4), B)
 		box(m + Vector3(0, m.y + 3.0, 0.2), Vector3(6, 2, 4), WHITE)
@@ -444,6 +446,35 @@ func _spawn(k: int) -> void:
 	blade_rr = Vector3(0, 0, 0.5)
 	var hp_y := 2.0
 	var eye_y := 0.6
+	var eye_z := 0.6 if ftype == 4 else 0.5
+	var top := 1.5
+	if Look.ON and ftype < 4:
+		# 설정화 모양 (g/look.gd, 끄려면 거기서 ON = false)
+		var lk := Look.dress(self, ftype, minf(0.6, floorf(k / 4.0) * 0.3), piv)
+		body = lk.body
+		eye_y = lk.eye_y
+		eye_z = lk.eye_z
+		top = lk.top
+		hp_y = lk.hp_y
+		if ftype == 3:
+			blade_rest = Vector3(0.7, -0.55, 0.45)
+			blade_rr = Vector3(PI / 2, 0, 0)
+	else:
+		_dress_box(col)
+		if ftype == 4:
+			hp_y = 2.9
+			eye_y = 0.95
+	body.set_meta("col", (body.material_override as StandardMaterial3D).albedo_color)
+	if ftype < 4:
+		for i in mini(k / 2, 5):
+			box(Vector3((i - (mini(k / 2, 5) - 1) * 0.5) * 0.36, top, 0), Vector3(0.22, 0.3, 0.22), D, piv)
+	for s in [-1.0, 1.0]:
+		eyes.append(box(Vector3(s * 0.33 * (0.75 if Look.ON and ftype < 4 else 1.0), eye_y, eye_z), Vector3(0.24, 0.24, 0.06) * (0.75 if Look.ON and ftype < 4 else 1.0), INK, piv))
+	_spawn_rest(k, hp_y)
+
+
+## 예전 상자 검객 몸
+func _dress_box(col: Color) -> void:
 	match ftype:
 		0:
 			body = box(Vector3.ZERO, Vector3(1.4, 2.8, 0.9), col, piv)
@@ -470,14 +501,9 @@ func _spawn(k: int) -> void:
 			box(Vector3(0, 1.95, 0), Vector3(1.6, 0.4, 1.0), D, piv)
 			for s in [-1.0, 0.0, 1.0]:
 				box(Vector3(s * 0.55, 2.3, 0), Vector3(0.25, 0.4 if s == 0.0 else 0.28, 0.25), D, piv)
-			hp_y = 2.9
-			eye_y = 0.95
-	body.set_meta("col", col)
-	if ftype < 4:
-		for i in mini(k / 2, 5):
-			box(Vector3((i - (mini(k / 2, 5) - 1) * 0.5) * 0.36, 1.5, 0), Vector3(0.22, 0.3, 0.22), D, piv)
-	for s in [-1.0, 1.0]:
-		eyes.append(box(Vector3(s * 0.33, eye_y, 0.6 if ftype == 4 else 0.5), Vector3(0.24, 0.24, 0.06), INK, piv))
+
+
+func _spawn_rest(k: int, hp_y: float) -> void:
 	# 칼은 세로로 긴 막대: 좌우 공격은 세운 칼, 위아래 공격은 눕힌 칼로 보인다
 	blade_m = box(blade_rest, Vector3(0.16, 2.0 if ftype == 2 else 1.7, 0.16), WHITE, piv)
 	blade_m.rotation = blade_rr
