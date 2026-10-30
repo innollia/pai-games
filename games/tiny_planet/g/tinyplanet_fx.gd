@@ -22,8 +22,8 @@ const FOV_MAX := 112.0
 const ESC_REAL := 0.9  # 대표 장면 길이(실제 초)
 const ESC_SCALE := 0.35
 const ESC_FOV := 34.0
-const FLASH_DUR := 0.08
-const SHAKE_DUR := 0.28
+const FLASH_DUR := 0.08  # v7: 흰 번쩍임은 없앴다 (값만 남김)
+const SHAKE_DUR := 0.45  # v7: 짧고 덜컹이던 흔들림 → 조금 길고 작고 부드럽게 (사인 두 개, 끝으로 갈수록 잦아듦)
 
 ## 본체가 바꿀 수 있는 것
 var base_fov := 60.0
@@ -64,6 +64,8 @@ var _flash := 0.0
 var _flash_a := 0.8
 var _shake := 0.0
 var _shake_amp := 0.0
+var _shake_ph := 0.0
+var _shake_seed := 0.0
 var _atmo_t := 0.0
 var _atmo_c := SKY
 var _gold_t := 0.0
@@ -480,10 +482,11 @@ func _cam_step(rdt: float) -> void:
 			cam.fov = fv
 	if _shake > 0.0:
 		_shake -= rdt
+		_shake_ph += rdt
 		var k := maxf(_shake, 0.0) / SHAKE_DUR
-		var a := _shake_amp * k * k
-		cam.h_offset = _rng.randf_range(-1.0, 1.0) * a
-		cam.v_offset = _rng.randf_range(-1.0, 1.0) * a
+		var a := _shake_amp * k * k * (3.0 - 2.0 * k)  # 부드럽게 잦아듦 (덜컹임 없음)
+		cam.h_offset = sin(_shake_ph * 34.0 + _shake_seed) * a
+		cam.v_offset = sin(_shake_ph * 27.0 + _shake_seed * 1.7) * a * 0.8
 		if _shake <= 0.0:
 			cam.h_offset = 0.0
 			cam.v_offset = 0.0
@@ -788,13 +791,13 @@ func event(ev: String, d := {}) -> void:
 		"slingshot":
 			_burst_k = 1.0
 			_gold_t = 0.4
-			_shake_on(0.12)
+			_shake_on(0.05)
 		"land":
 			_puff_at(_pos, _up)
 			if bool(d.get("hard", false)):
-				_hit(0.35, 0.8)
+				_hit(0.1, 0.0)
 			else:
-				_shake_on(0.05)
+				_shake_on(0.025)
 		"orbit_land":
 			_puff_at(_pos, _up)
 		"sail":
@@ -803,20 +806,20 @@ func event(ev: String, d := {}) -> void:
 			_red_t = 0.6
 		"die":
 			_end_slowmo()
-			_hit(0.6, 0.85)
+			_hit(0.16, 0.0)
 			_red_t = 0.5
 			_burst_at(_pos + _up * 0.8, false)
 		"respawn":
 			_end_slowmo()
 			_reset_fx()
 		"meteor_hit":
-			_hit(0.5, 0.8)
+			_hit(0.14, 0.0)
 			_burst_at(p, false)
 		"crack":
-			_shake_on(0.2)
+			_shake_on(0.06)
 			_red_t = 0.3
 		"shatter":
-			_hit(0.4, 0.7)
+			_hit(0.12, 0.0)
 			_burst_at(p, false)
 		"pickup":
 			_gold_t = maxf(_gold_t, 0.25)
@@ -842,13 +845,15 @@ func event(ev: String, d := {}) -> void:
 			pass  # step, drop, meteor_warn, score: 본체·ui 몫
 
 
-func _hit(amp: float, fa: float) -> void:
-	_flash = FLASH_DUR
-	_flash_a = fa
+## 부딪힘: v7 은 흰 번쩍임 없이 작고 부드러운 흔들림만 (fa 는 옛 약속 자리)
+func _hit(amp: float, _fa: float) -> void:
 	_shake_on(amp)
 
 
 func _shake_on(amp: float) -> void:
+	if _shake <= 0.0:
+		_shake_ph = 0.0
+		_shake_seed = _rng.randf() * TAU
 	_shake_amp = maxf(_shake_amp if _shake > 0.0 else 0.0, amp)
 	_shake = SHAKE_DUR
 
@@ -893,8 +898,6 @@ func _start_escape() -> void:
 		return
 	_esc_t = 0.0
 	_esc_burst = false
-	_flash = FLASH_DUR
-	_flash_a = 0.3
 
 
 func _esc_step(rdt: float) -> void:

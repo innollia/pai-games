@@ -16,7 +16,18 @@ const GREY := Color("c9ccd1")
 const NM := 4  # 운석 칸
 const ND := 24  # 앞길 점선 칸 (v6: 18 → 24, 5.5초 앞까지)
 const CRUISE := 9.5  # v6: 높이 떠서 날 때 이 빠르기 밑으로는 안 느려진다
-const HOME_A := 1.8  # v6: 앞으로 가장 가까이 지나갈 별 쪽으로 살짝 끄는 힘 (속도 크기는 그대로, 방향만)
+const HOME_A := 4.5  # v6 1.8 → v7 4.5: 앞으로 가장 가까이 지나갈 별 쪽으로 끄는 힘 (속도 크기는 그대로, 방향만)
+const CAP_T := 0.9  # v7 잡기: 다른 별 둘레 안에서 옆 속도를 초당 이만큼 깎는다 (안쪽일수록 세게)
+const CAP_R := 3.0  # v7 잡기: 그 별 쪽으로 더 끄는 힘 (이미 빨리 내려가면 안 끈다)
+const LAND_VMAX := 4.0  # v7 잡기: 다른 별 대기 안에서 내려가는 빠르기 한도 (유리는 3 넘으면 금이 조금)
+const SAIL_ADD := 2.5  # v7 돛: 틀면서 조금 빨라진다
+const SAIL_TURN := 0.62  # v7 돛: 스틱 없이 쓰면 갈 곳 쪽으로 이만큼(라디안)까지 튼다
+const TOW_T := 1.5  # v7 우주 미아: 마지막 별로 끌려 돌아가는 시간
+const DOT_SC := 0.78  # v7 점선 점 크기 (v6 대비)
+const GHOST_SC := 0.5  # v7 "지금 돛/공중 점프하면" 연한 점선 점 크기
+const SAIL_POS := Vector2(400, 1165)  # v7 돛 버튼 (날 때만)
+const HUD_TOP := 320.0  # v7 화살표가 다니는 화면 칸 (위 HUD 아래, 말풍선 위)
+const HUD_BOT := 880.0
 const HEART_T := 2.0  # 하트가 보이는 시간
 const BUB_BOTTOM := 940.0  # 말풍선 아래 끝 (조작 키트 바로 위)
 const RESTART_TXT := ["< 처음부터", "< Restart", "< Start over"]  # 단독판 tofu 의 왼쪽 위 버튼 (v6: 숨김)
@@ -53,7 +64,7 @@ const BD := [
 		"c0": Color("e9e4d4"), "c1": Color("fffaf0"), "sky": Color("efe8ff"), "who": "굴뚝 집", "body": WHITE, "hat": WHITE, "id": ""},
 	{"name": "친구 달", "r": 3.5, "g": 6.0, "grip": 1.19, "acc": 1.0, "at": Vector3(90, 0, 8), "kind": "moon",
 		"c0": Color("a8ecd2"), "c1": Color("e8fff6"), "sky": Color("e0fff4"), "who": "꽃 친구", "body": WHITE, "hat": WHITE, "id": ""},
-	{"name": "불 별", "r": 3.0, "g": 20.0, "grip": 1.19, "acc": 1.0, "at": Vector3(78, 0, 60), "kind": "fire",
+	{"name": "불 별", "r": 3.0, "g": 40.0, "grip": 1.19, "acc": 1.0, "at": Vector3(78, 0, 60), "kind": "fire",
 		"c0": BAD, "c1": A, "sky": Color("ffe8d6"), "who": "", "body": WHITE, "hat": WHITE, "id": ""},
 ]
 # 부탁 (별 번호 = 부탁 번호). 물건은 src 별 HOME_D 에서 받아 tgt 별 tdir 로.
@@ -222,6 +233,44 @@ var _bodies_on := false  # fx.set_bodies 는 한 번
 var _stepped := false  # 이번 프레임 _step 이 돌았나 (안 돌면 _process 가 대신 tick)
 var _title_was := false
 var bfire := PackedByteArray()  # 별마다 불 별인가 (비행 도움이 매 단계 사전을 안 읽게)
+# v7: 할 일 칩·갈 곳 화살표·알림판·연한 점선(공중 한 번)·돛 버튼·우주 미아 구조·빈 하늘 빨리 감기
+var chip: Control
+var chip_bg: Panel
+var chip_sh: Panel
+var chip_l: Label
+var chip_ic: Control
+var _chip_code := -2
+var _chip_icon := ""
+var chip_age := 9.0
+var arrow: Control
+var _arrow_on := false
+var _arrow_p := Vector2.ZERO
+var _arrow_d := Vector2.DOWN
+var ban: Control
+var ban_bg: Panel
+var ban_sh: Panel
+var ban_l: Label
+var ban_t := 0.0
+var ban_age := 0.0
+var ghost_mm: MultiMesh
+var ghost_pts := PackedVector3Array()
+var sail_open := 0.0  # 돛 펴짐 0 → 1
+var sail_used := false  # 이번 판에 돛을 써 봤나 (안 썼으면 버튼이 숨쉰다)
+var sail_hinted := false
+var lost_t := 0.0
+var lost_cd := 0.0
+var lost_now := false
+var air_tip := false
+var tow_t := 0.0
+var tow_from := Vector3.ZERO
+var ff := 1.0  # 빈 하늘 빨리 감기 배수
+var sim_why := 0  # _sim 이 -2 를 낸 까닭: 1 떠내려감, 2 불 별·지뢰
+var _lost_pts := PackedVector3Array()
+var _first_hint := false
+var main_lost := false
+var tip_t := 0.0
+var _sail_shown := false
+var _tri3 := PackedVector2Array([Vector2.ZERO, Vector2.ZERO, Vector2.ZERO])
 
 
 func _setup() -> void:
@@ -275,6 +324,7 @@ func _setup() -> void:
 	pbar_sb = pbar.get_theme_stylebox("panel") as StyleBoxFlat
 	pbar_bg.visible = false
 	_bub_build()
+	_v7_hud_build()
 
 
 ## 둥근 판 (모서리 = 높이/2 → 캡슐). bw > 0 이면 잉크 테두리
@@ -469,6 +519,8 @@ func _reset() -> void:
 	clock = 0.0
 	hud2.visible = true
 	_btns.erase("drop")
+	_btns.erase("sail")
+	_sail_shown = false
 	bub_q.clear()
 	bub_last = ""
 	react_cd = 0.0
@@ -493,7 +545,8 @@ func _reset() -> void:
 		bg.append(d.g)
 		bmu.append(float(d.g) * r * r)
 		# v6: 작은 별·달의 끄는 둘레 12 → 13.5, 대기 1.6R → 1.75R (스치기만 해도 잡히게)
-		bsoi.append(16.0 if d.kind == "fire" else maxf(2.2 * r, 13.5))
+		# v7: 불 별 끄는 둘레 16 → 18 (중력 40, 휘는 게 보이게)
+		bsoi.append(18.0 if d.kind == "fire" else maxf(2.2 * r, 13.5))
 		batm.append(0.0 if d.kind == "fire" else maxf(1.75 * r, r + 4.5))
 		bfire.append(1 if d.kind == "fire" else 0)
 	here = Node3D.new()
@@ -552,8 +605,28 @@ func _reset() -> void:
 	dmi.multimesh = dots_mm
 	dmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	world.add_child(dmi)
+	# v7: "지금 돛(공중 점프)을 쓰면" 연한 점선 — 같은 점, 작고 옅게
+	ghost_mm = MultiMesh.new()
+	ghost_mm.transform_format = MultiMesh.TRANSFORM_3D
+	ghost_mm.use_colors = true
+	ghost_mm.mesh = _dots_mesh()
+	ghost_mm.instance_count = ND
+	ghost_mm.visible_instance_count = 0
+	var gmi := MultiMeshInstance3D.new()
+	gmi.multimesh = ghost_mm
+	gmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	world.add_child(gmi)
 	sim_cd = 0
 	sim_show = false
+	sail_open = 0.0
+	sail_used = false
+	sail_hinted = false
+	tow_t = 0.0
+	lost_t = 0.0
+	lost_now = false
+	ff = 1.0
+	ban_t = 0.0
+	_chip_code = -2
 	# 운석 칸 (발밑 별에 붙는다)
 	mph.resize(NM)
 	mdir.resize(NM)
@@ -602,6 +675,8 @@ func _reset() -> void:
 	cam_up = START
 	lookd = Vector3.FORWARD
 	msg(_tx("msg.start", {"planet": tr(BD[0].name)}), 2.0)
+	if not ui.title_visible():
+		_banner(_tx("banner.intro"), 3.6)  # 다시 하기: 할 일을 처음부터 또렷하게
 	if DisplayServer.get_name() == "headless" and not _counted:
 		_counted = true
 		_count_draws.call_deferred()
@@ -680,20 +755,36 @@ func _build() -> void:
 				npc_mark.visible = false
 				_shadow_q(6, JOB[2].tdir, 0.7)
 		_deco(k, n)
-	# 빨간 바위 띠: 노을 별에서 장미 별로 곧게 가는 길을 막는다 (가운데 y=0 이 가장 굵다). v6: 12개를 MultiMesh 하나로
+	# v7 지뢰 울타리 (옛 빨간 바위 띠): 노을 별 → 장미 별 곧은 길을 막는다. 덩어리로 뭉쳐 "끌지 않는 빨간 별"처럼 보이던 것을
+	# 띄엄띄엄 떨어진 가시 지뢰 18개(3층 × 6줄, MultiMesh 하나) + 그 사이를 잇는 가는 빨간 줄(한 메시)로. 줄 사이도 닿으면 죽는 칸이다
 	var r2 := RandomNumberGenerator.new()
 	r2.seed = 991
-	var bmm := _mm("red_rock", 12, world)
+	var bmm := _mm("mine", 18, world)
 	var bi := 0
+	var nodes_f: Array[Vector3] = []
 	for j in 6:
 		var q := BELT_A.lerp(BELT_B, (j + 0.5) / 6.0)
-		for flip in [false, true]:
-			var bs := Basis(Vector3.UP, r2.randf() * TAU).scaled(Vector3(1.45, r2.randf_range(0.8, 1.05), 1.45))
-			if flip:
-				bs = Basis(Vector3.RIGHT, PI) * bs
-			bmm.set_instance_transform(bi, Transform3D(bs, q))
+		for ly: float in [-4.0, 0.0, 4.0]:
+			var bs := Basis(Vector3(r2.randf_range(-1, 1), 1, r2.randf_range(-1, 1)).normalized(), r2.randf() * TAU).scaled(Vector3.ONE * 1.25)
+			bmm.set_instance_transform(bi, Transform3D(bs, q + Vector3(0, ly, 0)))
+			nodes_f.append(q + Vector3(0, ly, 0))
 			bi += 1
 		belt.append(q)
+	_begin()
+	for j in 6:
+		for l in 3:
+			var a := nodes_f[j * 3 + l]
+			if j < 5:
+				var b := nodes_f[(j + 1) * 3 + l]
+				_cyl(a, b - a, 0.07, 0.07, a.distance_to(b), 4, DANGER, DANGER)
+			if l < 2:
+				var c := nodes_f[j * 3 + l + 1]
+				_cyl(a, c - a, 0.06, 0.06, a.distance_to(c), 4, DANGER.lightened(0.15), DANGER)
+	var fence := MeshInstance3D.new()
+	fence.mesh = _end_mesh()
+	fence.material_override = _vc(false)
+	fence.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	world.add_child(fence)
 	# 움직이지 않는 그림자 (주민·풍차·집·탑·나무) 를 한 메시로
 	if _shv.size() > 0:
 		var arr := []
@@ -802,6 +893,11 @@ func _respawn() -> void:
 	grounded = true
 	airjump = false
 	ring_in = false
+	tow_t = 0.0
+	lost_t = 0.0
+	lost_now = false
+	ff = 1.0
+	sail_open = 0.0
 	if rings.has(cur):
 		ring_in = home_d.angle_to(rings[cur].c) * R < float(rings[cur].r)
 	_hearts_show(-1)
@@ -967,51 +1063,94 @@ func _air_drag(v: Vector3, k: int, rel: Vector3, at: float, h: float) -> Vector3
 
 ## 지금 위치·속도로 날면 어떻게 되나: 닿는 별 번호, -1 아직 날고 있음, -2 위험(불 별·바위 띠·떠내려감).
 ## out 에 점 위치를 넣는다.
-## v6 비행 도움 (날기와 점선 계산이 같이 쓴다). dm = 지금 가장 세게 끄는 별(-1 없음), src = 이번 비행을 띄운 별.
-## 1) 순항: 어느 별에도 안 끌리거나, 발밑 별을 벗어날 힘이 있고 대기 위면 CRUISE 까지 앞으로 밀어 준다 (높이 떠서 느릿느릿 없음)
-## 2) 끌어당김: 떠난 별 둘레를 벗어나면, 이대로 가면 가장 가까이 지나갈 별(불 별 빼고) 쪽으로 방향만 살짝 튼다 (빗나감에 너그럽게)
+## 비행 도움 (날기와 점선 계산이 같이 쓴다). dm = 지금 가장 세게 끄는 별(-1 없음), src = 이번 비행을 띄운 별.
+## 1) 잡기 (v7): 다른 별(불 별 빼고) 둘레 안이면 옆 속도를 깎고 그 별 쪽으로 더 끌어 빙 돌다 내려앉게. 대기 안에선 내려가는 빠르기 한도.
+## 2) 순항: 어느 별에도 안 끌리거나, 발밑 별을 벗어날 힘이 있고 대기 위면 CRUISE 까지 앞으로 밀어 준다 (높이 떠서 느릿느릿 없음)
+## 3) 끌어당김: 벗어나는 중이면, 이대로 가면 가장 가까이 지나갈 별(불 별·떠난 별 빼고, 지뢰 울타리 너머 빼고, 지금 갈 곳은 더 잘) 쪽으로 방향을 튼다
 func _assist(w: Vector3, v: Vector3, dm: int, src: int, h: float) -> Vector3:
 	var spd := v.length()
 	if spd < 0.5:
 		return v
+	if dm >= 0 and dm != src and bfire[dm] == 0:
+		var rel := w - bc[dm]
+		var r := rel.length()
+		if r > 0.01:
+			var up := rel / r
+			var vr := v.dot(up)
+			var tanv := v - up * vr
+			var k := clampf((bsoi[dm] - r) / (bsoi[dm] * 0.5), 0.0, 1.0)  # 둘레 가장자리 0 → 안쪽 1
+			tanv *= maxf(0.0, 1.0 - CAP_T * k * h)
+			if vr > -2.0:
+				vr -= CAP_R * k * h
+			if r < batm[dm]:
+				vr = maxf(vr, -LAND_VMAX)
+			return tanv + up * vr
 	var vh := v / spd
-	var free := dm < 0
-	if not free:
-		var r := (w - bc[dm]).length()
-		free = r > maxf(batm[dm], br[dm] + 3.0) and 0.5 * spd * spd - bmu[dm] / r > -bmu[dm] / bsoi[dm]
+	var free := _is_free(w, spd, dm)
 	if free and spd < CRUISE:
 		spd = minf(spd + 6.0 * h, CRUISE)
 		v = vh * spd
-	if dm == src:
+	if dm >= 0 and dm == src and not free:
 		return v
 	var best := -1
 	var bm := 1.0
 	var bmv := Vector3.ZERO
 	for j in bc.size():
-		if bfire[j] == 1:
+		if bfire[j] == 1 or (j == src and dm == src):
 			continue
 		var rel := bc[j] - w
 		var t := rel.dot(vh)
 		if t <= 0.0:
 			continue
 		var m := rel - vh * t
-		var q := m.length() / (bsoi[j] * 1.6 + 6.0)
-		if q < bm:
+		var q := m.length() / (bsoi[j] * 2.0 + 10.0)
+		if j == ob_k:
+			q *= 0.6  # 지금 갈 곳은 더 잘 끈다
+		if q < bm and not _seg_belt(w, bc[j]):
 			bm = q
 			best = j
 			bmv = m
 	if best >= 0:
 		var ml := bmv.length()
-		if ml > br[best] * 0.6:
+		if ml > br[best] * 0.5:
 			v += bmv / ml * (HOME_A * clampf((1.0 - bm) * 2.0, 0.0, 1.0) * h)
 			v = v.normalized() * spd
 	return v
+
+
+## 빈 하늘인가: 어느 별에도 안 끌리거나, 끄는 별의 대기 위에서 그 별을 벗어날 힘이 있다
+func _is_free(w: Vector3, spd: float, dm: int) -> bool:
+	if dm < 0:
+		return true
+	var r := (w - bc[dm]).length()
+	return r > maxf(batm[dm], br[dm] + 3.0) and 0.5 * spd * spd - bmu[dm] / r > -bmu[dm] / bsoi[dm]
+
+
+## a → b 곧은 길이 지뢰 울타리 가까이(3.4 안)를 지나나 (위아래로 멀리 비켜 가면 아님)
+func _seg_belt(a: Vector3, b: Vector3) -> bool:
+	if minf(absf(a.y), absf(b.y)) > 8.0 and a.y * b.y > 0.0:
+		return false
+	var p1 := Vector2(a.x, a.z)
+	var p2 := Vector2(b.x, b.z)
+	var q1 := Vector2(BELT_A.x, BELT_A.z)
+	var q2 := Vector2(BELT_B.x, BELT_B.z)
+	if Geometry2D.segment_intersects_segment(p1, p2, q1, q2) != null:
+		return true
+	var lim := 3.4 * 3.4
+	if p1.distance_squared_to(Geometry2D.get_closest_point_to_segment(p1, q1, q2)) < lim:
+		return true
+	if p2.distance_squared_to(Geometry2D.get_closest_point_to_segment(p2, q1, q2)) < lim:
+		return true
+	if q1.distance_squared_to(Geometry2D.get_closest_point_to_segment(q1, p1, p2)) < lim:
+		return true
+	return q2.distance_squared_to(Geometry2D.get_closest_point_to_segment(q2, p1, p2)) < lim
 
 
 func _sim(w: Vector3, v: Vector3, k: int, at: float, secs: float, h: float, out: PackedVector3Array, src := -1) -> int:
 	var n := int(secs / h)
 	var every := maxi(1, n / ND)
 	out.clear()
+	sim_why = 0
 	if src < 0:
 		src = k
 	for i in n:
@@ -1028,47 +1167,75 @@ func _sim(w: Vector3, v: Vector3, k: int, at: float, secs: float, h: float, out:
 		if i % every == every - 1 and out.size() < ND:
 			out.append(w)
 		if (w - bc[k]).length() <= br[k]:
-			return -2 if BD[k].kind == "fire" else k
+			if bfire[k] == 1:
+				sim_why = 2
+				return -2
+			return k
 		if _in_belt(w):
+			sim_why = 2
 			return -2
 		if dm < 0 and (w - MID).length() > BOUND + 10.0:
+			sim_why = 1
 			return -2
 	return -1
 
 
-## 앞길 점선: 땅에선 "지금 점프하면", 날 땐 지금 길. 다른 별 초록, 위험 빨강.
+## 앞길 점선: 땅에선 "지금 점프하면", 날 땐 지금 길. 다른 별 초록, 위험 빨강, 제 별로 돌아오면 흰색.
 ## v6: 계산은 3프레임에 한 번 (날기↔땅이 바뀌면 바로), 점 24개는 MultiMesh 하나. 다른 별에 닿으면 끝 점이 크다.
+## v7: 점 78% 크기. 날 때 공중 한 번(돛·공중 점프)이 남았으면 "지금 쓰면 갈 길"을 작고 옅은 점선으로 (점선 다음 프레임에 계산)
 func _dots_update(up: Vector3, lift: float) -> void:
 	var show := false
-	if die_t <= 0.0 and fin_t <= 0.0:
+	if die_t <= 0.0 and fin_t <= 0.0 and tow_t <= 0.0:
 		show = (grounded and vel.length() > lift * 0.6) or not grounded
 	if not show:
 		_dots_off()
 		return
 	sim_cd -= 1
+	var w := bc[cur] + p
+	var lb := cur if grounded else from_b
+	if sim_cd == 1 and sim_show:
+		_ghost_update(w, up, lb)
 	if sim_show and sim_cd > 0:
 		return
 	sim_cd = 3
 	sim_show = true
-	var w := bc[cur] + p
 	if grounded:
 		sim_res = _sim(w + up * 0.1, _jump_v(up, vel + up * JUMP), cur, 0.0, 5.5, 1.0 / 30.0, sim_pts, cur)
 	else:
 		sim_res = _sim(w, vel, cur, atm_t, 5.5, 1.0 / 30.0, sim_pts, from_b)
-	var lb := cur if grounded else from_b
-	var col := WHITE
-	if sim_res == -2:
-		col = BAD
-	elif sim_res >= 0 and sim_res != lb:
-		col = GOOD
-	var n := mini(sim_pts.size(), ND)
-	dots_mm.visible_instance_count = n
+	_dots_fill(dots_mm, sim_pts, _dot_col(sim_res, lb), DOT_SC)
+
+
+## 점선 색: 닿는 별이 다른 별이면 초록, 위험 빨강, 그 밖(제 별로 돌아옴·아직 날고 있음) 흰색
+func _dot_col(res: int, lb: int) -> Color:
+	if res == -2:
+		return BAD
+	if res >= 0 and res != lb:
+		return GOOD
+	return WHITE
+
+
+func _dots_fill(mm: MultiMesh, pts: PackedVector3Array, col: Color, sc0: float) -> void:
+	var n := mini(pts.size(), ND)
+	mm.visible_instance_count = n
 	for i in n:
-		var sc := 1.0
+		var sc := sc0
 		if i == n - 1 and col == GOOD:
-			sc = 1.9
-		dots_mm.set_instance_transform(i, Transform3D(Basis.IDENTITY.scaled(Vector3(sc, sc, sc)), sim_pts[i]))
-		dots_mm.set_instance_color(i, col)
+			sc = sc0 * 1.9
+		mm.set_instance_transform(i, Transform3D(Basis.IDENTITY.scaled(Vector3(sc, sc, sc)), pts[i]))
+		mm.set_instance_color(i, col)
+
+
+## 연한 점선: 지금 공중 한 번을 쓰면 (돛이면 스틱 쪽, 안 밀면 갈 곳 쪽 / 돛이 없으면 위로 공중 점프)
+func _ghost_update(w: Vector3, up: Vector3, lb: int) -> void:
+	if ghost_mm == null:
+		return
+	if grounded or airjump:
+		ghost_mm.visible_instance_count = 0
+		return
+	var r := _sim(w, _air_v(w, vel, up), cur, atm_t, 5.5, 1.0 / 30.0, ghost_pts, from_b)
+	var col := _dot_col(r, lb)
+	_dots_fill(ghost_mm, ghost_pts, col.lerp(WHITE, 0.4) if col != WHITE else Color("dfe7ff"), GHOST_SC)
 
 
 func _dots_off() -> void:
@@ -1076,6 +1243,8 @@ func _dots_off() -> void:
 	sim_cd = 0
 	if dots_mm:
 		dots_mm.visible_instance_count = 0
+	if ghost_mm:
+		ghost_mm.visible_instance_count = 0
 
 
 ## 점 하나: 각진 공 + 구운 외곽선 (MultiMesh 가 점마다 색을 곱한다)
@@ -1189,12 +1358,14 @@ func _on_title_start() -> void:
 	if not over:
 		hud2.visible = true
 	msg(_tx("msg.start", {"planet": tr(BD[0].name)}), 2.0)
+	# v7: 할 일이 처음부터 또렷하게 — "나는 배달부" 알림판 + 풍차지기 부탁은 첫 프레임에 바로(_tick), 조작 안내는 그 뒤에 이어서
+	_banner(_tx("banner.intro"), 3.6)
 	var cf := ConfigFile.new()
 	cf.load(CFG_BODY)
 	if not bool(cf.get_value("hint", "first", false)):
 		cf.set_value("hint", "first", true)
 		cf.save(CFG_BODY)
-		_say("", _tx("hint.first"), 4.2)
+		_first_hint = true  # 풍차지기 부탁 바로 뒤에 (_tick)
 
 
 ## 시작 화면의 언어 전환이 부른다 (ui: game.set_lang(ko)). 번역을 바꾸고 본체가 그린 글(점프·놓기 버튼, 말풍선)을 고친다.
@@ -1206,6 +1377,10 @@ func set_lang(ko: bool) -> void:
 		_btns["jump"].label = _tx("ui.jump")
 	if _btns.has("drop"):
 		_btns["drop"].label = _tx("ui.drop")
+	if _btns.has("sail"):
+		_btns["sail"].label = _tx("ui.sail")
+	_chip_code = -2
+	ban_t = 0.0
 	if bub and bub_t > 0.0:
 		bub_t = 0.0
 	if ui and ui.has_method("refresh_text"):
@@ -1221,6 +1396,7 @@ func _play(dt: float) -> void:
 	clock += dt
 	_hud(dt)
 	_vis(dt)
+	_sail_btn(dt)
 	if fin_t > 0.0:
 		fin_t -= dt
 		_tick(dt, p.normalized(), 0.0)
@@ -1242,12 +1418,29 @@ func _play(dt: float) -> void:
 			else:
 				_respawn()
 		return
+	if tow_t > 0.0:
+		_tow(dt)
+		_camera(dt)
+		return
 	tower_cd -= dt
 	bump_cd -= dt
 	if grounded:
+		ff = 1.0
 		_ground(dt, p.normalized())
-	elif _fly(dt):
-		return
+	else:
+		# v7 빈 하늘 빨리 감기: 어느 별 대기에도 안 걸리고 벗어나는 중이면 시간을 2.2배로 (느릿느릿 바라보기 없음)
+		var w0 := bc[cur] + p
+		var fast := fly_t > 0.6 and not main_lost and _is_free(w0, vel.length(), _dominant(w0))
+		ff = move_toward(ff, 2.2 if fast else 1.0, dt * 3.0)
+		if _fly(dt * ff):
+			return
+		if grounded:
+			ff = 1.0
+		else:
+			_lost_check(dt)
+			if tow_t > 0.0:
+				_camera(dt)
+				return
 	var lift := sqrt(maxf(gp + float(P.grip), 0.5) * R)
 	var up := p.normalized()
 	var tv := vel - up * vel.dot(up)
@@ -1330,6 +1523,11 @@ func _liftoff() -> void:
 	passed = {}
 	in_atm = false
 	drift_said = false
+	lost_t = 0.0
+	lost_cd = 0.5
+	lost_now = false
+	air_tip = false
+	sail_open = 0.0
 	sim_cd = 0  # 점선을 바로 다시 계산
 
 
@@ -1345,9 +1543,9 @@ func _jump_v(up: Vector3, v: Vector3) -> Vector3:
 	return v
 
 
-## 탈출선의 몇 %면 떠날 수 있게 도와주나: 첫 부탁 둘(풍차·우편)은 82%, 그 뒤 92%
+## 탈출선의 몇 %면 떠날 수 있게 도와주나: 첫 부탁 둘(풍차·우편)은 70%, 그 뒤 80% (v6 82/92 → v7 더 너그럽게)
 func _esc_need() -> float:
-	return 0.82 if mi <= 1 else 0.92
+	return 0.70 if mi <= 1 else 0.80
 
 
 ## 날기: 모든 별이 끈다. 대기에서 내려가면 빙 돌다 내려앉는다. 죽으면 true.
@@ -1393,19 +1591,19 @@ func _fly(dt: float) -> bool:
 	air_t -= dt
 	if air_t <= 0.0:
 		air_t = 0.3
-	if kit_just("jump") and not airjump:
+	if (kit_just("jump") or kit_just("sail")) and not airjump:
+		# 공중 한 번 (v7): 돛이 있으면 돛(점프 버튼·돛 버튼 같음), 없으면 위로 공중 점프. 연한 점선이 미리 보여 준 그대로
 		airjump = true
-		if has_sail and kit_move.length() > 0.3:
-			# 돛: 속도는 그대로, 비행 방향만 스틱 쪽(화면 기준)으로 튼다
-			var bs := cam.global_transform.basis
-			var sd := (bs.x * kit_move.x - bs.y * kit_move.y).normalized()
-			var sp := maxf(vel.length(), 3.0)
-			var vd := vel.normalized() if vel.length() > 0.1 else up
-			vel = (vd + sd * 0.7).normalized() * sp
+		vel = _air_v(bc[cur] + p, vel, up)
+		sim_cd = 0
+		lost_t = 0.0
+		if has_sail:
+			sail_open = 0.01
+			sail_used = true
+			msg(_tx("msg.sail"), 0.9)
 			sfx("sail")
 			_emit("sail")
 		else:
-			vel += up * AIRJUMP
 			sfx("liftoff", -4.0, 1.25)
 	# 위험: 불 별, 바위 띠, 떠내려감
 	if P.kind == "fire" and r <= R + 0.4:
@@ -1440,7 +1638,6 @@ func _land(up: Vector3) -> void:
 	vel = (vel - up * vel.dot(up)) * LAND_K
 	grounded = true
 	in_atm = false
-	shake = maxf(shake, 0.15)
 	sfx("land_hard" if hit > 4.0 else "land", -2.0 + clampf(hit, 0.0, 6.0))
 	_emit("land", {"hard": hit > 4.0, "speed": hit})
 	if item != "" and bool((JOB[mi] as Dictionary).get("frag", false)):
@@ -1608,7 +1805,8 @@ func _items(dt: float, up: Vector3) -> void:
 				_emit("job_start", {"job": mi})
 			sfx("pickup")
 			_emit("pickup", {"item": item})
-			msg(_tx("msg.picked", {"target": tr(BD[int(J.tgt)].name)}), 1.2)
+			# v7: 받는 순간을 또렷하게 (글만): "소포! 굴뚝 달에 전해 주자". 위 할 일 칩도 바로 바뀌며 톡 튄다
+			_banner(_tx("got." + item, {"target": tr(BD[int(J.tgt)].name)}), 3.0)
 			_drop_btn(true)
 	if item != "":
 		var q := floorf(clampf(crack, 0.0, 1.0) * 8.0) / 8.0
@@ -1735,6 +1933,8 @@ func _done() -> void:
 		_emit("windmill_wake")
 		has_sail = true
 		sail_b.visible = true
+		# v7: 돛을 왜·어떻게 — 풍차지기의 고마움, 하늘에서 '돛' 버튼 한 번
+		_banner(_tx("banner.sail"), 5.0)
 		_lane()
 	elif k == 1:
 		bag_b.visible = true
@@ -1769,7 +1969,11 @@ func _tick(dt: float, up: Vector3, lf: float) -> void:
 			if req == 0:
 				req = 1
 				_emit("job_start", {"job": mi})
+				bub_q.clear()
 				_say(P.who, _line(cur, "ask"), 6.0)
+				if _first_hint and mi == 0:
+					_first_hint = false
+					_sayq("", _tx("hint.first"), 4.2)
 				if mi == 0 or mi == 3:
 					nag[300 + mi] = clock + 40.0
 					_sayq(P.who, _line(cur, "hint"), 4.0)
@@ -1855,6 +2059,9 @@ func _hud(dt: float) -> void:
 	if bub_t <= 0.0 and die_t <= 0.0 and fin_t <= 0.0:
 		_situation()
 	_bub_anim(dt)
+	_ban_anim(dt)
+	_chip_update(dt)
+	_arrow_update()
 	var show := false
 	if req == 1 and (mi == 0 or mi == 3):
 		show = true
@@ -2016,14 +2223,377 @@ func _camera(dt: float) -> void:
 	if fin_t > 0.0:
 		dist += (18.0 - fin_t) * 1.4  # 끝: 천천히 물러나 별들이 보인다
 	var want := pw + upp * (3.2 + alt * 0.2) - lookd * dist
-	if shake > 0.0:
-		shake -= dt
-		want += Vector3(rng.randf_range(-1, 1), rng.randf_range(-1, 1), rng.randf_range(-1, 1)) * shake * 1.2
+	shake = maxf(shake - dt, 0.0)  # v7: 덜컹이는 흔들림 없음 — 흔들림은 fx 가 작고 부드럽게
 	cam.position = cam.position.lerp(want, minf(1.0, dt * 5.0))
 	var look := pw + upp * 1.0 + lookd * 3.0
 	if cam.position.distance_to(look) > 0.1:
 		cam.look_at(look, upp)
 	# cam.fov·h_offset·v_offset 는 fx 몫 (속도·탈출 장면에 따라 넓힌다)
+
+
+# ---- v7: 공중 한 번 · 우주 미아 구조 · 돛 버튼 ----
+## 공중 한 번: 돛이 있으면 스틱 쪽(화면 기준)으로, 스틱을 안 밀면 갈 곳(빛기둥) 쪽으로 SAIL_TURN 까지 틀고 SAIL_ADD 만큼 빨라진다.
+## 돛이 없으면 위로 공중 점프. 날기와 연한 점선·우주 미아 판정이 같이 쓴다.
+func _air_v(w: Vector3, v: Vector3, up: Vector3) -> Vector3:
+	if not has_sail:
+		return v + up * AIRJUMP
+	var sp := maxf(v.length(), 3.0) + SAIL_ADD
+	var vd := v.normalized() if v.length() > 0.1 else up
+	if kit_move.length() > 0.3:
+		var bs := cam.global_transform.basis
+		var sd := (bs.x * kit_move.x - bs.y * kit_move.y).normalized()
+		return (vd + sd * 0.7).normalized() * sp
+	if ob_k >= 0 and ob_k != from_b and bfire[ob_k] == 0:
+		var td := (bc[ob_k] + ob_d * br[ob_k] - w).normalized()
+		var ang := vd.angle_to(td)
+		if ang > 0.001 and ang < 3.1:
+			vd = vd.slerp(td, minf(1.0, SAIL_TURN / ang))
+	return vd.normalized() * sp
+
+
+## 우주 미아: 0.3초마다 12초 앞까지 본다. 지금 길이 어느 별에도 안 닿고(떠내려감·아직 날고 있음) 공중 한 번으로도 못 고치면
+## 0.9초 뒤, 공중 한 번으로 고칠 수 있는데 안 쓰면 2.5초 뒤(하늘 끝 가까이면 바로) 마지막 별로 끌려 돌아간다 (바라만 보는 시간 없음)
+func _lost_check(dt: float) -> void:
+	if fly_t < 0.4 or die_t > 0.0 or fin_t > 0.0:
+		lost_t = 0.0
+		tip_t = 0.0
+		return
+	lost_cd -= dt
+	if lost_cd <= 0.0:
+		lost_cd = 0.3
+		var w := bc[cur] + p
+		var r1 := _sim(w, vel, cur, atm_t, 12.0, 1.0 / 12.0, _lost_pts, from_b)
+		main_lost = r1 == -1 or (r1 == -2 and sim_why == 1)
+		lost_now = main_lost
+		if main_lost and not airjump:
+			var r2 := _sim(w, _air_v(w, vel, p.normalized()), cur, atm_t, 12.0, 1.0 / 12.0, _lost_pts, from_b)
+			if not (r2 == -1 or (r2 == -2 and sim_why == 1)):
+				lost_now = false
+				if not air_tip:
+					air_tip = true
+					msg(_tx("msg.use_sail" if has_sail else "msg.use_air"), 1.6)
+	lost_t = lost_t + dt if lost_now else 0.0
+	tip_t = tip_t + dt if main_lost else 0.0
+	# 하늘 끝(떠내려가 죽는 선) 가까이면 기다리지 않는다
+	var near_edge := main_lost and _dominant(bc[cur] + p) < 0 and (bc[cur] + p - MID).length() > BOUND - 4.0
+	if lost_t >= 0.9 or tip_t >= 2.5 or near_edge:
+		_tow_start()
+
+
+func _tow_start() -> void:
+	tow_t = TOW_T
+	lost_t = 0.0
+	tip_t = 0.0
+	lost_now = false
+	main_lost = false
+	ff = 1.0
+	tow_from = bc[cur] + p
+	if cur != home_b:
+		_switch(home_b)
+	_dots_off()
+	_banner(_tx("banner.lost"), 2.4)
+	sfx("drift_warn")
+	sfx("atmo", -3.0, 0.8)
+	_emit("drift_warn")
+
+
+## 끌려 돌아가기: 마지막으로 내려앉은 자리 위로 둥글게 날아와 그 자리에 선다 (목숨·든 물건 그대로, 잃는 건 시간뿐)
+func _tow(dt: float) -> void:
+	tow_t -= dt
+	var e := smoothstep(0.0, 1.0, 1.0 - maxf(tow_t, 0.0) / TOW_T)
+	var c0 := bc[home_b]
+	var dest := c0 + home_d * (br[home_b] + 1.5)
+	var ctl := c0 + home_d * (br[home_b] + 14.0)
+	var u := 1.0 - e
+	var pos := tow_from * (u * u) + ctl * (2.0 * u * e) + dest * (e * e)
+	var dv := (ctl - tow_from) * (2.0 * u) + (dest - ctl) * (2.0 * e)
+	p = pos - c0
+	if dv.length() > 0.01:
+		vel = dv.normalized() * 10.0
+	_place_me()
+	if tow_t <= 0.0:
+		_respawn()
+
+
+## 돛 버튼: 돛이 있고 날고 있고 공중 한 번이 남았을 때만 (안 보일 땐 화면 밖으로 치워 둔다 — 누르는 중에 지우면 키트가 손가락을 잃는다).
+## 처음 뜰 때 안내 한 줄, 한 번 써 볼 때까지 숨쉰다
+func _sail_btn(_dt: float) -> void:
+	var want := has_sail and not grounded and not airjump and die_t <= 0.0 and fin_t <= 0.0 and tow_t <= 0.0
+	if want != _sail_shown:
+		_sail_shown = want
+		if want:
+			kit_button("sail", _tx("ui.sail"), SAIL_POS, 72.0, Color("12b886"))
+			if not sail_hinted:
+				sail_hinted = true
+				_say("", _tx("hint.sail"), 4.2)
+		elif _btns.has("sail"):
+			_btns["sail"].pos = Vector2(-600, -600)
+			_btns["sail"].r = 1.0
+	if want and not sail_used and _btns.has("sail"):
+		_btns["sail"].r = 72.0 + 9.0 * (0.5 + 0.5 * sin(clock * 7.0))
+
+
+# ---- v7: 할 일 칩 · 알림판 · 갈 곳 화살표 ----
+func _hud_label(parent: Control, fs: int, col: Color) -> Label:
+	var st := LabelSettings.new()
+	st.font = _font
+	st.font_size = fs
+	st.font_color = col
+	st.line_spacing = 2.0
+	var l := Label.new()
+	l.label_settings = st
+	l.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED  # 이미 번역한 글
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(l)
+	return l
+
+
+## 할 일 칩(막대 아래, 늘 보임) · 알림판(위 가운데, 중요한 순간에 잠깐) · 갈 곳 화살표(화면 밖·별 뒤면 가장자리에서 가리킴)
+func _v7_hud_build() -> void:
+	chip = Control.new()
+	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	chip.visible = false
+	hud2.add_child(chip)
+	chip_sh = _capsule(chip, Rect2(0, 5, 100, 50), Color(NAVY, 0.4), 0, NAVY)
+	chip_bg = _capsule(chip, Rect2(0, 0, 100, 50), CREAM, 4, NAVY)
+	chip_ic = Control.new()
+	chip_ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	chip_ic.position = Vector2(7, 5)
+	chip_ic.size = Vector2(40, 40)
+	chip_ic.draw.connect(_chip_icon_draw)
+	chip.add_child(chip_ic)
+	chip_l = _hud_label(chip, 26, NAVY)
+	chip_l.clip_text = true
+	ban = Control.new()
+	ban.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ban.visible = false
+	hud2.add_child(ban)
+	ban_sh = _capsule(ban, Rect2(0, 6, 100, 60), Color(NAVY, 0.4), 0, NAVY, 26)
+	ban_bg = _capsule(ban, Rect2(0, 0, 100, 60), Color("fff1c9"), 5, NAVY, 26)
+	ban_l = _hud_label(ban, 26, NAVY)
+	ban_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	ban_l.autowrap_mode = TextServer.AUTOWRAP_WORD
+	arrow = Control.new()
+	arrow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	arrow.position = Vector2.ZERO
+	arrow.size = Vector2(720, 1280)
+	arrow.draw.connect(_arrow_draw)
+	hud2.add_child(arrow)
+
+
+## 알림판: 글 한두 줄 (시작·물건 받음·돛 받음·우주 미아). 효과 글 없이 할 말만
+func _banner(tx: String, dur: float) -> void:
+	if ban == null or tx == "":
+		return
+	var maxw := 600.0
+	var padx := 26.0
+	var pady := 16.0
+	var ts := _font.get_multiline_string_size(tx, HORIZONTAL_ALIGNMENT_CENTER, maxw - padx * 2.0, 26)
+	var w := clampf(ts.x + 8.0 + padx * 2.0, 260.0, maxw)
+	ban_l.size = Vector2(w - padx * 2.0, 10)
+	ban_l.text = tx
+	var lines := maxi(ban_l.get_line_count(), 1)
+	var th := lines * ban_l.get_line_height() + (lines - 1) * 2.0
+	var h := th + pady * 2.0
+	ban_l.position = Vector2(padx, pady)
+	ban_l.size = Vector2(w - padx * 2.0, th)
+	ban_bg.size = Vector2(w, h)
+	ban_sh.size = Vector2(w, h)
+	ban.size = Vector2(w, h)
+	ban.position = Vector2(360.0 - w * 0.5, 318.0)
+	ban.pivot_offset = Vector2(w * 0.5, h * 0.5)
+	ban_t = dur
+	ban_age = 0.0
+
+
+func _ban_anim(dt: float) -> void:
+	if ban == null:
+		return
+	if ban_t <= 0.0:
+		ban.visible = false
+		return
+	ban_t -= dt
+	ban_age += dt
+	ban.visible = true
+	var k := clampf(ban_age / 0.2, 0.0, 1.0)
+	ban.modulate.a = minf(k, clampf(ban_t / 0.3, 0.0, 1.0))
+	var sc := 0.85 + 0.15 * _bo(k)
+	ban.scale = Vector2(sc, sc)
+
+
+## 지금 할 일: -1 없음, 0 주민에게 말 걸기, 1 풍차 바람, 2 물건 받기, 3 물건 배달, 4 노을 띠
+func _goal_state() -> int:
+	if won or fin_t > 0.0 or req == 2:
+		return -1
+	var J: Dictionary = JOB[mi]
+	if req == 0 and mi <= 3:
+		return 0
+	if J.has("item"):
+		return 3 if (item != "" or fall_on) else 2
+	if mi == 0:
+		return 1
+	if mi == 3:
+		return 4
+	return -1
+
+
+## 할 일 칩: 바뀔 때만 글을 다시 쓰고 톡 튄다 (매 프레임 글자를 만들지 않는다)
+func _chip_update(dt: float) -> void:
+	if chip == null:
+		return
+	var st := _goal_state()
+	var code := -1 if st < 0 else mi * 1000 + st * 100 + (ig_pl if st == 2 else 0)
+	if code != _chip_code:
+		_chip_code = code
+		chip.visible = code >= 0
+		if code >= 0:
+			_chip_set(st, JOB[mi])
+			chip_age = 0.0
+	if chip.visible and chip_age < 0.5:
+		chip_age += dt
+		var sc := 0.8 + 0.2 * _bo(clampf(chip_age / 0.3, 0.0, 1.0))
+		chip.scale = Vector2(sc, sc)
+
+
+func _chip_set(st: int, J: Dictionary) -> void:
+	var tx := ""
+	match st:
+		0:
+			tx = _tx("goal.talk", {"who": tr(BD[mi].who)})
+			_chip_icon = "talk"
+		1:
+			tx = _tx("goal.wind")
+			_chip_icon = "wind"
+		2:
+			tx = _tx("goal.pick", {"item": _tx("item." + str(J.item)), "planet": tr(BD[ig_pl if ig_on else int(J.src)].name)})
+			_chip_icon = str(J.item)
+		3:
+			tx = _tx("goal.deliver", {"item": _tx("item." + str(J.item)), "target": tr(BD[int(J.tgt)].name)})
+			_chip_icon = str(J.item)
+		_:
+			tx = _tx("goal.band")
+			_chip_icon = "band"
+	chip_l.text = tx
+	var tw := _font.get_string_size(tx, HORIZONTAL_ALIGNMENT_LEFT, -1, 26).x
+	var w := minf(tw + 56.0 + 22.0, 680.0)
+	chip_l.position = Vector2(54, 7)
+	chip_l.size = Vector2(w - 54.0 - 14.0, 36)
+	chip_bg.size = Vector2(w, 50)
+	chip_sh.size = Vector2(w, 50)
+	chip.size = Vector2(w, 50)
+	chip.position = Vector2(360.0 - w * 0.5, 272.0)
+	chip.pivot_offset = Vector2(w * 0.5, 25.0)
+	chip_ic.queue_redraw()
+
+
+func _chip_icon_draw() -> void:
+	_icon(chip_ic, Vector2(20, 20), 1.0, _chip_icon)
+
+
+## 할 일 그림 (가운데 o, 크기 배수 s): 말 걸기 "!", 바람, 소포, 유리꽃, 유리 덮개, 노을. bgc = 그림 뒤 바탕색
+func _icon(c: CanvasItem, o: Vector2, s: float, kind: String) -> void:
+	var bgc := CREAM if c == chip_ic else Color("ffd166")
+	match kind:
+		"talk":
+			c.draw_circle(o, 17.0 * s, Color("ffd166"))
+			c.draw_arc(o, 17.0 * s, 0.0, TAU, 24, NAVY, 3.0 * s)
+			c.draw_rect(Rect2(o + Vector2(-2.5, -11.0) * s, Vector2(5.0, 13.0) * s), NAVY)
+			c.draw_circle(o + Vector2(0, 8.0) * s, 3.0 * s, NAVY)
+		"wind":
+			for i in 3:
+				var y := (-9.0 + 9.0 * i) * s
+				var x1 := (8.0 - 5.0 * i) * s
+				c.draw_line(o + Vector2(-15.0 * s, y), o + Vector2(x1, y), Color("4dabf7"), 4.0 * s)
+				c.draw_arc(o + Vector2(x1, y - 4.0 * s), 4.0 * s, PI * 0.5, PI * 2.0, 8, Color("4dabf7"), 3.0 * s)
+		"pkg":
+			var rc := Rect2(o + Vector2(-13.0, -11.0) * s, Vector2(26.0, 22.0) * s)
+			c.draw_rect(rc, Color("c08a4a"))
+			c.draw_rect(Rect2(o + Vector2(-3.0, -11.0) * s, Vector2(6.0, 22.0) * s), CREAM)
+			c.draw_rect(rc, NAVY, false, 2.5 * s)
+		"flower":
+			c.draw_line(o + Vector2(0, 2.0) * s, o + Vector2(0, 16.0) * s, Color("37b24d"), 3.0 * s)
+			_tri3[0] = o + Vector2(0, -15.0) * s
+			_tri3[1] = o + Vector2(10.0, -4.0) * s
+			_tri3[2] = o + Vector2(-10.0, -4.0) * s
+			c.draw_colored_polygon(_tri3, Color("8fe3c2"))
+			_tri3[0] = o + Vector2(0, 6.0) * s
+			c.draw_colored_polygon(_tri3, Color("5fc9a0"))
+		"dome":
+			c.draw_circle(o + Vector2(0, 5.0) * s, 14.0 * s, Color("9fd3ff"))
+			c.draw_rect(Rect2(o + Vector2(-16.0, 5.0) * s, Vector2(32.0, 12.0) * s), bgc)
+			c.draw_rect(Rect2(o + Vector2(-15.0, 5.0) * s, Vector2(30.0, 4.0) * s), NAVY)
+		"band":
+			c.draw_circle(o + Vector2(0, 5.0) * s, 13.0 * s, Color("ff922b"))
+			c.draw_rect(Rect2(o + Vector2(-17.0, 6.0) * s, Vector2(34.0, 12.0) * s), bgc)
+			c.draw_line(o + Vector2(-16.0, 6.0) * s, o + Vector2(16.0, 6.0) * s, NAVY, 3.0 * s)
+
+
+## 갈 곳 화살표: 갈 곳이 화면 밖·뒤이거나 별에 가려 있으면, 화면 가운데 칸 가장자리에서 그쪽을 가리킨다 (노란 동그라미 + 할 일 그림 + 삼각형)
+func _arrow_update() -> void:
+	if arrow == null:
+		return
+	var on := false
+	if ob_k >= 0 and die_t <= 0.0 and fin_t <= 0.0 and tow_t <= 0.0 and chip.visible:
+		var tp := bc[ob_k] + ob_d * (br[ob_k] + 1.2)
+		var c := Vector2(360.0, (HUD_TOP + HUD_BOT) * 0.5)
+		var sp := cam.unproject_position(tp)
+		var behind := cam.is_position_behind(tp)
+		var dir := sp - c
+		if behind:
+			dir = -dir
+		var inside := not behind and sp.x > 40.0 and sp.x < 680.0 and sp.y > HUD_TOP and sp.y < HUD_BOT
+		if inside and _occluded(tp):
+			inside = false
+		if not inside:
+			if dir.length() < 1.0:
+				dir = Vector2.DOWN
+			var dn := dir.normalized()
+			var hx := 360.0 - 64.0
+			var hy := (HUD_BOT - HUD_TOP) * 0.5 - 44.0
+			var t := minf(hx / maxf(absf(dn.x), 0.001), hy / maxf(absf(dn.y), 0.001))
+			_arrow_p = c + dn * t
+			_arrow_d = dn
+			on = true
+	if on or _arrow_on:
+		arrow.queue_redraw()
+	_arrow_on = on
+
+
+## 카메라에서 tp 까지가 발밑 별이나 갈 곳 별에 가리나
+func _occluded(tp: Vector3) -> bool:
+	var o := cam.global_position
+	var d := tp - o
+	var ln := d.length()
+	if ln < 0.01:
+		return false
+	d /= ln
+	return _occ1(o, d, ln, cur) or _occ1(o, d, ln, ob_k)
+
+
+func _occ1(o: Vector3, d: Vector3, ln: float, k: int) -> bool:
+	var t := clampf((bc[k] - o).dot(d), 0.0, ln)
+	return t < ln - 0.8 and (o + d * t).distance_to(bc[k]) < br[k] * 0.95
+
+
+func _arrow_draw() -> void:
+	if not _arrow_on:
+		return
+	var o := _arrow_p
+	var d := _arrow_d
+	var n := Vector2(-d.y, d.x)
+	var pulse := 1.0 + 0.08 * sin(clock * 6.0)
+	_tri3[0] = o + d * 50.0 * pulse
+	_tri3[1] = o + d * 22.0 + n * 19.0
+	_tri3[2] = o + d * 22.0 - n * 19.0
+	arrow.draw_colored_polygon(_tri3, NAVY)
+	_tri3[0] = o + d * 43.0 * pulse
+	_tri3[1] = o + d * 24.0 + n * 13.0
+	_tri3[2] = o + d * 24.0 - n * 13.0
+	arrow.draw_colored_polygon(_tri3, Color("ffd166"))
+	arrow.draw_circle(o + Vector2(0, 4), 30.0, Color(NAVY, 0.4))
+	arrow.draw_circle(o, 30.0, NAVY)
+	arrow.draw_circle(o, 26.0, Color("ffd166"))
+	_icon(arrow, o, 0.85, _chip_icon)
 
 
 # ---- v5 겉모습: 움직임 ----
@@ -2042,7 +2612,12 @@ func _vis(dt: float) -> void:
 	else:
 		me_body.position.y = lerpf(me_body.position.y, 0.0, minf(1.0, dt * 6.0))
 		me_body.rotation = me_body.rotation.lerp(Vector3(-0.55, 0.0, 0.0), minf(1.0, dt * 4.0))
-		sail_b.scale = sail_b.scale.lerp(Vector3.ONE * 1.35, minf(1.0, dt * 5.0))
+		# v7: 돛은 접혀 있다가 쓸 때 활짝 펴진다 (튀어나오는 곡선)
+		if sail_open > 0.0:
+			sail_open = minf(1.0, sail_open + dt * 3.0)
+			sail_b.scale = Vector3.ONE * (0.7 + 1.0 * _bo(sail_open))
+		else:
+			sail_b.scale = sail_b.scale.lerp(Vector3.ONE * 0.7, minf(1.0, dt * 5.0))
 	_posty_anim(dt, spd, k)
 	_hearts_anim(dt)
 	for mk in marks:
@@ -2707,6 +3282,13 @@ func _fire_deco(k: int, n: Node3D) -> void:
 		var a := TAU * i / 8.0
 		var d := Vector3(cos(a), r2.randf_range(-0.3, 0.3), sin(a)).normalized()
 		_dia(d * (rr + 2.4), 0.22, 0.36, D, d)
+	# v7: 끄는 둘레가 보이게 — 둘레 안쪽에 주황 줄무늬 고리 둘 (spin 이 돌린다 = 빨려 드는 소용돌이)
+	for ring: Array in [[8.0, 18], [13.5, 26]]:
+		var rad: float = ring[0]
+		var cnt: int = ring[1]
+		for i in cnt:
+			var a := TAU * i / float(cnt)
+			_dia(Vector3(cos(a), 0, sin(a)) * rad, 0.1, 0.45, A.lightened(0.2) if rad > 10.0 else A, Vector3(-sin(a), 0, cos(a)))
 	var m := MeshInstance3D.new()
 	m.mesh = _end_mesh()
 	m.material_override = _vc(false)
@@ -3087,6 +3669,17 @@ func _shape_rock() -> void:
 	_ico(Vector3(0, 0.45, 0), Vector3(0.62, 0.5, 0.6), 0, Color("b9a7f2"), Color("cfc2f7"), _rs)
 
 
+## v7 지뢰 (옛 빨간 바위 띠 자리): 작은 빨간 각진 공 + 가시 10개 + 크림 띠. 가운데 원점
+func _shape_mine() -> void:
+	_rs.seed = 31
+	_ico(Vector3.ZERO, Vector3.ONE * 0.62, 1, DANGER, DANGER.darkened(0.12), _rs)
+	for d0: Vector3 in [Vector3.UP, Vector3.DOWN, Vector3.LEFT, Vector3.RIGHT, Vector3.FORWARD, Vector3.BACK,
+			Vector3(1, 1, 1), Vector3(-1, 1, -1), Vector3(1, -1, -1), Vector3(-1, -1, 1)]:
+		var d := d0.normalized()
+		_cyl(d * 0.5, d, 0.2, 0.0, 0.6, 4, DANGER.lightened(0.2), CREAM)
+	_cyl(Vector3(0, -0.08, 0), Vector3.UP, 0.66, 0.66, 0.16, 10, CREAM, CREAM)
+
+
 func _shape_red_rock() -> void:
 	_cyl(Vector3.ZERO, Vector3.UP, 1.3, 0.3, 5.6, 6, DANGER, DANGER.lightened(0.15))
 	_cyl(Vector3(0.7, 0, 0.3), Vector3(0.3, 1, 0), 0.6, 0.0, 3.2, 5, DANGER.darkened(0.1), DANGER)
@@ -3303,7 +3896,7 @@ var _counted := false
 func _count_draws() -> void:
 	var c := [0, 0, 0, 0]  # 메시 노드, MultiMesh 노드, 그리기(전부), 그리기(지금 보이는 것)
 	_count_in(self, c)
-	print("tinyplanet v6 count: MeshInstance3D %d, MultiMeshInstance3D %d, draw passes all %d, visible now %d" % c)
+	print("tinyplanet v7 count: MeshInstance3D %d, MultiMeshInstance3D %d, draw passes all %d, visible now %d" % c)
 
 
 func _count_in(n: Node, c: Array) -> void:
@@ -3436,7 +4029,7 @@ const DL := {
 	"p3.thanks": ["꽃이 무사하대요… 정말 다행이에요. 이제 하늘색 노을의 별로 가 보세요.", "The flower is safe... thank you! Now visit the sky-blue Sunset Planet."],
 	"p4.ask": ["내 별은 너무 작아서 노을이 자꾸 달아나. 저 주황 띠랑 같이 달려 줘!", "My planet is small and the sunset runs away. Run with the orange band!"],
 	"p4.hint": ["얼음이라 미끄러워! 빠르면 뜨고 느리면 놓쳐. 띠랑 같은 빠르기로 뛰어!", "Slick ice! Too fast you float, too slow you lose it. Match its speed!"],
-	"p4.thanks": ["고마워! 분홍 장미 별에 유리 덮개를 줘. 곧장 가면 빨간 바위 띠야.", "Bring this dome to Rose Planet! A red rock belt blocks the direct way."],
+	"p4.thanks": ["고마워! 분홍 장미 별에 유리 덮개를 줘. 곧장 가면 빨간 지뢰 울타리야.", "Bring this dome to Rose Planet! A red mine fence blocks the direct way."],
 	"p4.thanks2": ["빨간 불 별 옆을 스치면 휘어 돌아가. 불 별에 닿으면 끝이니까 닿지 마!", "Skim beside the red fire star to whip around. Touching it is death!"],
 	"p5.ask": ["바람이 차가워… 유리 덮개를 씌워 줘. 담이 천천히 돌고 틈은 하나야.", "It's cold... Put the dome over me. The wall turns; there is one gap."],
 	"p5.hint": ["담 틈 맞춰 들어오거나 탑에서 날아 위에서 놓아 줘. 세게 내리면 깨져.", "Walk in with the wall gap, or drop from tower. Land hard, it breaks."],
@@ -3471,7 +4064,7 @@ const DL := {
 	"msg.next": ["다음: {planet}", "Next: {planet}"],
 	"hud.next_hint": ["다음: {planet} (노란 빛기둥). 달려 점프! 초록 점선이면 닿아.", "Next: {planet} (yellow pillar). Run and jump! Green dots will reach."],
 	"die.fire": ["뜨거운 불 별에 닿았다", "Touched the burning star"],
-	"die.rocks": ["빨간 바위 띠에 부딪혔다", "Hit the red rock belt"],
+	"die.rocks": ["빨간 지뢰 울타리에 부딪혔다", "Hit the red mine fence"],
 	"die.drift": ["깊은 우주로 떠내려갔다", "Drifted into deep space"],
 	"die.meteor": ["떨어지는 운석에 맞았다", "Struck by a falling meteor"],
 	"react.first_liftoff": ["별을 떠나 날아오른다", "Leaving gravity behind..."],
@@ -3494,5 +4087,23 @@ const DL := {
 	"hint.first": ["스틱으로 달리기 · 막대가 차면 점프!", "Hold the stick to run · Jump when the bar fills"],
 	"ui.jump": ["점프", "Jump"],
 	"ui.drop": ["놓기", "Drop"],
+	"ui.sail": ["돛", "Sail"],
+	"banner.intro": ["나는 어린 배달부! 별마다 부탁을 듣고 물건을 배달하자. 할 일은 늘 위에 있어.", "I'm the Little Courier! Help each planet and deliver its packages. Your task is always at the top."],
+	"banner.sail": ["풍차지기의 고마움: 돛! 날 때 '돛' 버튼을 한 번 누르면 스틱 쪽으로 방향을 튼다 (스틱 안 밀면 갈 곳 쪽).", "The Windmill Keeper's thanks: a SAIL! In the air, tap SAIL once to steer toward your stick (no stick = toward your goal)."],
+	"hint.sail": ["지금 '돛'을 누를 수 있다 · 연한 점선이 돛을 쓰면 갈 길", "Tap SAIL to steer · the light dots show where it takes you"],
+	"banner.lost": ["우주 미아! 마지막 별로 돌아가는 중…", "Lost in space — returning…"],
+	"msg.use_sail": ["지금 돛!", "Sail now!"],
+	"msg.use_air": ["한 번 더 점프!", "Jump again!"],
+	"goal.talk": ["{who}에게 말 걸기", "Talk to the {who}"],
+	"goal.wind": ["풍차 깨우기: 땅에 붙어 힘껏 달리기", "Wake the windmill: sprint on the ground"],
+	"goal.pick": ["{planet}에서 {item} 받기", "Pick up the {item} on {planet}"],
+	"goal.deliver": ["{target}에 {item} 배달", "Deliver the {item} to {target}"],
+	"goal.band": ["노을 띠와 같은 빠르기로 달리기", "Run with the orange sunset band"],
+	"item.pkg": ["소포", "parcel"],
+	"item.flower": ["유리꽃", "glass flower"],
+	"item.dome": ["유리 덮개", "glass dome"],
+	"got.pkg": ["소포! {target}에 전해 주자", "Parcel! Deliver it to {target}"],
+	"got.flower": ["유리꽃! 살살 {target}에 전해 주자", "Glass flower! Carry it gently to {target}"],
+	"got.dome": ["유리 덮개! {target}에 씌워 주자", "Glass dome! Bring it to {target}"],
 	"howto": ["별 여러 개가 한 하늘에 떠 있다. 왼쪽 스틱으로 달린다(밀수록 빠름). 빨리 달리면 발이 뜬다.\n아주 빨리 달려 점프하면 중력을 벗어난다. 다른 별에 끌려 돌다 내리고, 빗나가면 떠내려간다.\n발 앞 점선: 지금 뛰면 갈 길(초록 도달, 빨강 위험). 위 막대 초록이면 점프 가능. 노란 빛기둥이 갈 곳.\n날다 점프: 돛으로 스틱 쪽 방향 전환. '놓기'는 발밑 노란 점에. 유리는 세게 내리면 깨짐. 목숨 3(새 별서 회복).", "Tiny planets share one sky. Run with left stick (push more for speed); fast running lifts feet.\nSprint and jump to escape gravity and fly. Nearby planets pull you into orbit; miss and you drift off.\nDotted line shows path (green reaches, red is danger). Green top bar = escape ready. Yellow pillar is goal.\nJump mid-flight to turn toward stick with sail. 'Drop' lands on yellow dot. Glass breaks if slammed. 3 lives (refill on new planet)."],
 }
