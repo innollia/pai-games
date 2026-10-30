@@ -603,6 +603,7 @@ func _mechanisms(dt: float) -> void:
 
 func _update_content_hud() -> void:
 	route_l.visible = not over and not _rating
+	route_l.label_settings.font_size = 25 if phase == "mode" else 30  # 모드 화면은 네 줄이라 작게 (안 겹치게)
 	if phase == "mode":
 		var best_l := L("최다 배달: 기본 %d / 등불 %d / 과속 %d", "Best: Classic %d · Lantern %d · Rush %d")
 		route_l.text = "%s: %s\n%s: %s\n%s: %s\n%s" % [_mode_name("base"), _mode_rule("base"), L("밤 등불", "Lantern"), _mode_rule("lantern"), L("과속", "Rush"), _mode_rule("over"), best_l % [int(records.get_value("base", "delivered", 0)), int(records.get_value("lantern", "delivered", 0)), int(records.get_value("over", "delivered", 0))]]
