@@ -2313,7 +2313,7 @@ const HOWTO_EN := "Roll, Temple Stone!\nDrag to steer. Crush pots, dodge red!\nB
 
 const EN := {
 	# tofu.gd (공통 화면)
-	"< 메뉴": "< Menu", "< 처음부터": "< Restart", "평가": "Rate", "탭해서 시작": "Tap to start",
+	"< 메뉴": "< Menu", "< 처음부터": "< Restart", "< 목록": "< List", "평가": "Rate", "탭해서 시작": "Tap to start",
 	"이 게임 어때요?": "How was it?", "닫기": "Close", "한마디": "Comment", "고마워요!": "Thanks!",
 	"보내는 중": "Sending", "한마디 보냈어요": "Comment sent", "저장 안 됨 · 별을 다시 탭": "Not saved · tap a star again",
 	# 버튼
