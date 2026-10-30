@@ -20,6 +20,12 @@ const WIND := [Vector3(-1.9, 0.5, 0.3), Vector3(1.9, 0.5, 0.3), Vector3(0, 2.4, 
 const HIT := [Vector3(-0.6, 0.0, 0.9), Vector3(0.6, 0.0, 0.9), Vector3(0, 0.4, 0.9), Vector3(0, -0.7, 0.9)]
 const ROT := [0.2, -0.2, PI / 2, PI / 2]
 const ARROW := ["←", "→", "↑", "↓"]
+## 공격 모양(검객 성향): 0 찌르기 = 칼끝을 겨누고 곧게 찌른다, 1 속임수 = 칼끝을 흔들며 휘두른다,
+## 2 베기 = 크게 젖혔다 둥글게 내려 벤다, 3 거합 = 칼집에서 뽑아 한 번에 긋는다
+## 찌르기: 당긴 자리 → 찌른 자리 (칼끝이 내 쪽을 향하고 조금 바깥으로 비스듬해서 방향이 보인다)
+const T_WIND := [Vector3(-0.75, 0.1, -0.4), Vector3(0.75, 0.1, -0.4), Vector3(0, 0.75, -0.4), Vector3(0, -0.55, -0.4)]
+const T_HIT := [Vector3(-1.35, 0.0, 1.5), Vector3(1.35, 0.0, 1.5), Vector3(0, 1.25, 1.5), Vector3(0, -1.15, 1.5)]
+const SWING := [1.0, -1.0, 1.0, -1.0]  # 베기: 젖힌 칼이 도는 쪽
 ## 내 칼 자세 (카메라 기준): 위치, z 회전 (왼·오·위·아래)
 const POSE := [Vector3(-0.8, -0.1, 2.5), Vector3(0.8, -0.1, 2.5), Vector3(0, 0.55, 2.5), Vector3(0, -0.85, 2.5)]
 const TURN := [0.25, -0.25, PI / 2, PI / 2]
@@ -169,6 +175,10 @@ var blink := 0.0
 var start := Vector2.ZERO
 var armed := false
 var pend := {}  # 눌렀지만 아직 발동 안 한 버튼 -> 누른 시간
+var sty := 0  # 이번 공격 모양 (위 T_WIND 설명)
+var hitstop := 0.0  # 막은 순간 화면이 멈추는 시간
+var sparks: Array = []  # 불꽃: [상자, 속도, 남은 시간, 처음 시간]
+var going := false  # 로비 버튼 누름 애니메이션 끝나고 출발하는 중
 # 화면 글자
 var info_l: Label
 var tut_box: ColorRect
@@ -188,6 +198,8 @@ var row_l: Array[Label] = []
 var row_c: Array[Label] = []
 var row_bg: Array[ColorRect] = []
 var play_bg: ColorRect
+var play_edge: ColorRect
+var tut_again: Label
 var char_l: Label
 var dex_bg: Array[ColorRect] = []
 var dex_l: Array[Label] = []
@@ -372,15 +384,15 @@ func _lobby_ui() -> void:
 	home_l = _white(_label(card, 30, 0, 150))
 	home_l.size.x = 600
 	home_l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_panel(pages[1], Rect2(PLAY_R.position + Vector2(-8, -8), PLAY_R.size + Vector2(16, 24)), INK)
+	play_edge = _panel(pages[1], Rect2(PLAY_R.position + Vector2(-8, -8), PLAY_R.size + Vector2(16, 24)), INK)
 	play_bg = _panel(pages[1], PLAY_R, D)
 	var pl := _label(play_bg, 80, 0, PLAY_R.size.y)
 	pl.size.x = PLAY_R.size.x
 	pl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	pl.text = "전투"
-	var tl := _label(pages[1], 30, TUT_R.position.y, TUT_R.size.y)
-	tl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	tl.text = "튜토리얼 다시 보기"
+	tut_again = _label(pages[1], 30, TUT_R.position.y, TUT_R.size.y)
+	tut_again.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	tut_again.text = "튜토리얼 다시 보기"
 	# 2 캐릭터: 상자 검객 그림 + 능력치 + 기록
 	_panel(pages[2], Rect2(0, 194, 720, NAV_Y - 194), Color(0.12, 0.08, 0.05, 0.8))
 	var fig := Control.new()
@@ -563,6 +575,7 @@ func _reset() -> void:
 
 ## 처음 켜면(또는 로비에서 다시 보기) 튜토리얼
 func _begin_tut() -> void:
+	going = false
 	lobby.visible = false
 	tut_box.visible = true
 	skip_l.visible = true
@@ -753,6 +766,7 @@ func _intro() -> void:
 
 
 func _start_run() -> void:
+	going = false
 	tut = -1
 	hold = false
 	lobby.visible = false
@@ -800,13 +814,50 @@ func _path(d: int, twice := false) -> void:
 		ghosts[i].visible = d >= 0 and (i < 3 or twice)
 	if d < 0:
 		return
-	var w: Vector3 = WIND[d]
-	var h: Vector3 = HIT[d]
 	for i in 3:
-		ghosts[i].position = w.lerp(h, [0.35, 0.68, 1.0][i])
-		ghosts[i].rotation = Vector3(0, 0, ROT[d])
-	ghosts[3].position = w + (Vector3(0.38, 0, -0.1) if d < 2 else Vector3(0, 0.38, -0.1)) * (-1.0 if d == 1 else 1.0)
-	ghosts[3].rotation = Vector3(0, 0, ROT[d])
+		var t: float = [0.35, 0.68, 1.0][i]
+		ghosts[i].position = _bpos(d, t)
+		ghosts[i].rotation = _brot(d, t)
+	ghosts[3].position = _bpos(d, 0.0) + (Vector3(0.38, 0, -0.1) if d < 2 else Vector3(0, 0.38, -0.1)) * (-1.0 if d == 1 else 1.0)
+	ghosts[3].rotation = _brot(d, 0.0)
+
+
+## 적 칼 자리: d 쪽 공격, t 0 = 들어 올린 자리 ~ 1 = 내게 닿는 자리. 모양(sty)마다 길이 다르다.
+func _bpos(d: int, t: float) -> Vector3:
+	match sty:
+		0:
+			return (T_WIND[d] as Vector3).lerp(T_HIT[d], t)
+		2:
+			# 크게 젖힌 자리에서 바깥으로 둥글게 돌아 내려온다
+			var a: Vector3 = WIND[d] * 1.25 + Vector3(0, 0.35, -0.5)
+			var h: Vector3 = HIT[d]
+			var mid: Vector3 = (a + h) * 0.5 + LEAN[d] * 0.9 + Vector3(0, 0, 0.3)
+			return a.lerp(mid, t).lerp(mid.lerp(h, t), t)
+	return (WIND[d] as Vector3).lerp(HIT[d], t)
+
+
+func _brot(d: int, t: float) -> Vector3:
+	match sty:
+		0:
+			# 칼(긴 쪽)이 찌르는 방향을 향한다
+			var dir: Vector3 = (T_HIT[d] - T_WIND[d]).normalized()
+			return Basis(Quaternion(Vector3.UP, dir)).get_euler()
+		2:
+			return Vector3(0, 0, ROT[d] + SWING[d] * lerpf(1.1, -0.35, t))
+	return Vector3(0, 0, ROT[d])
+
+
+## 이 수의 공격 모양: 검객 성향대로. 끝판왕은 수에 맞춰 넷을 섞는다.
+func _style(mv: Array) -> int:
+	if ftype < 4:
+		return ftype
+	if _flag(mv) == 2:
+		return 3
+	if _flag(mv) == 1 or _twice_next():
+		return 2
+	if int(mv[0]) != int(mv[1]):
+		return 1
+	return 0 if (ci + mi) % 2 == 0 else 2
 
 
 func _clear() -> void:
@@ -830,6 +881,11 @@ func _relax(dt: float) -> void:
 
 func _step(dt: float) -> void:
 	score = gold
+	# 막은 순간 잠깐 멈춤 (불꽃은 그 자리에 멈춰 보였다가 튄다)
+	if hitstop > 0.0:
+		hitstop -= dt
+		return
+	_sparks(dt)
 	var fdt := dt
 	if slow > 0.0:
 		slow -= dt
@@ -956,8 +1012,8 @@ func _fight(dt: float) -> void:
 					beep(1700.0, 0.04, 0.0, 0.16)
 				if told:
 					# 칼집에서 칼이 그쪽으로 빠져나온다: 칼만 보고도 방향을 안다
-					blade_m.position = blade_m.position.lerp(WIND[sdir], minf(1.0, dt * 9.0))
-					blade_m.rotation = blade_m.rotation.lerp(Vector3(0, 0, ROT[sdir]), minf(1.0, dt * 9.0))
+					blade_m.position = blade_m.position.lerp(_bpos(sdir, 0.0), minf(1.0, dt * 9.0))
+					blade_m.rotation = blade_m.rotation.lerp(_brot(sdir, 0.0), minf(1.0, dt * 9.0))
 					fl = fl.lerp(Vector3(0, -0.15, 0), minf(1.0, dt * 6.0))
 				else:
 					_relax(dt)
@@ -973,11 +1029,27 @@ func _fight(dt: float) -> void:
 				beep(880.0, 0.06, 500.0, 0.2)
 			k = clampf((fs_t - show_at) / (win - show_at), 0.0, 1.0)
 			var l: Vector3 = LEAN[sdir]
-			fl = Vector3(l.x * 0.35 * k, l.y * 0.25 * k, 1.8 * k * k)
-			piv.rotation.z = -l.x * 0.25 * k
+			match sty:
+				0:
+					# 찌르기: 옆으로 기울지 않고 곧게 뛰어든다
+					fl = Vector3(l.x * 0.1 * k, l.y * 0.08 * k, 1.3 * k * k)
+					piv.rotation.z = 0.0
+				2:
+					# 베기: 몸을 크게 틀어 실어 벤다
+					fl = Vector3(l.x * 0.5 * k, l.y * 0.3 * k, 1.6 * k * k)
+					piv.rotation.z = -l.x * 0.45 * k
+				_:
+					fl = Vector3(l.x * 0.35 * k, l.y * 0.25 * k, 1.8 * k * k)
+					piv.rotation.z = -l.x * 0.25 * k
 			# 칼은 들어 올린 자리에서 버티다 끝에 몰아쳐 잔상 길을 따라 내게 온다
-			blade_m.position = blade_m.position.lerp(WIND[sdir].lerp(HIT[sdir], k * k * k), minf(1.0, dt * 22.0))
-			blade_m.rotation = blade_m.rotation.lerp(Vector3(0, 0, ROT[sdir]), minf(1.0, dt * 18.0))
+			var bp := _bpos(sdir, k * k * k)
+			var br := _brot(sdir, k * k * k)
+			if sty == 0 and k < 0.85:
+				bp.z -= 0.15 * k  # 찌르기: 칼을 조금씩 더 당겼다가
+			elif sty == 1 and k < 0.8:
+				br.z += sin(fs_t * 16.0) * 0.22 * (1.0 - k)  # 속임수: 칼끝이 살랑살랑
+			blade_m.position = blade_m.position.lerp(bp, minf(1.0, dt * 22.0))
+			blade_m.rotation = blade_m.rotation.lerp(br, minf(1.0, dt * 18.0))
 			if fs_t >= win:
 				_hurt()
 		2:
@@ -1012,6 +1084,7 @@ func _attack() -> void:
 		mv = _pat()[2][ci][mi]
 	sdir = mv[0]
 	rdir = mv[1]
+	sty = 0 if tut >= 0 else _style(mv)
 	fs = 1
 	fs_t = 0.0
 	if _flag(mv) == 2:
@@ -1181,6 +1254,10 @@ func _lose_chance() -> void:
 func _parry(perfect: bool) -> void:
 	# 칼이 막히면 폰 진동, 간파는 더 길고 세게
 	Input.vibrate_handheld(160 if perfect else 45, 1.0 if perfect else 0.5)
+	# 진동과 같은 순간: 칼 부딪친 자리에 불꽃, 화면 잠깐 멈춤 (간파는 더 많이·더 길게)
+	_burst(blade_m.global_position, 26 if perfect else 14, perfect)
+	hitstop = 0.09 if perfect else 0.05
+	shake_t = maxf(shake_t, 0.12 if perfect else 0.06)
 	beep(1500.0, 0.05, 0.0, 0.25)
 	beep(2100.0, 0.09, 1600.0, 0.15)
 	body.material_override = mat(WHITE)
@@ -1315,8 +1392,11 @@ func _buy(i: int) -> void:
 
 
 func _lobby_tap(p: Vector2) -> void:
+	if going:
+		return
 	for i in 4:
 		if _tab_r(i).has_point(p):
+			_press(nav_bg[i])
 			if i != tab:
 				play("tap")
 				_set_tab(i)
@@ -1325,21 +1405,65 @@ func _lobby_tap(p: Vector2) -> void:
 		0:
 			for i in UPS.size():
 				if _row_r(i).has_point(p):
+					_press(row_bg[i])
 					_buy(i)
 					return
 		1:
+			# 눌린 버튼이 다시 튀어 오르는 걸 보여 주고 출발
 			if PLAY_R.has_point(p):
-				_start_run()
-			elif TUT_R.has_point(p):
+				going = true
 				play("tap")
-				_begin_tut()
+				_press(play_edge)
+				_press(play_bg).tween_callback(_start_run)
+			elif TUT_R.has_point(p):
+				going = true
+				play("tap")
+				_press(tut_again).tween_callback(_begin_tut)
 		3:
 			for i in 5:
 				if _dex_r(i).has_point(p):
+					_press(dex_bg[i])
 					dex_pick = i
 					play("tap")
 					_set_tab(3)
 					return
+
+
+## 버튼 누름 애니메이션: 쑥 들어갔다가 살짝 튀어 오르며 제자리
+func _press(c: Control) -> Tween:
+	c.pivot_offset = c.size * 0.5
+	var tw := create_tween()
+	tw.tween_property(c, "scale", Vector2.ONE * 0.86, 0.06)
+	tw.tween_property(c, "scale", Vector2.ONE, 0.16).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	return tw
+
+
+## 불꽃: 노랗고 흰 작은 조각이 사방으로 튀고 떨어지며 줄어든다
+func _burst(at: Vector3, count: int, big: bool) -> void:
+	for i in count:
+		var sm := StandardMaterial3D.new()
+		sm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		sm.albedo_color = [Color("fff3bf"), Color("ffd43b"), Color("ffa94d")][i % 3]
+		var m := box(at, Vector3.ONE * 0.1, WHITE)
+		m.material_override = sm
+		var v := Vector3(randf_range(-1, 1), randf_range(-0.6, 1.2), randf_range(0.2, 1.0)).normalized() * randf_range(3.0, 7.0 if big else 5.0)
+		var lt := randf_range(0.22, 0.4)
+		sparks.append([m, v, lt, lt])
+
+
+func _sparks(dt: float) -> void:
+	for i in range(sparks.size() - 1, -1, -1):
+		var sp: Array = sparks[i]
+		var m: MeshInstance3D = sp[0]
+		sp[2] -= dt
+		if sp[2] <= 0.0 or not is_instance_valid(m):
+			if is_instance_valid(m):
+				m.queue_free()
+			sparks.remove_at(i)
+			continue
+		sp[1].y -= 12.0 * dt
+		m.position += sp[1] * dt
+		m.scale = Vector3.ONE * 0.1 * (sp[2] / sp[3])
 
 
 ## 밀면 칼 방향만 정한다 (막기·베기는 버튼). 손을 떼지 않고 계속 밀어 방향을 또 바꿀 수 있다.

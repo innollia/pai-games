@@ -666,6 +666,7 @@ func _finger(id: int, p: Vector2, kind: int) -> void:
 			var n := what.substr(2)
 			_btns[n].down = true
 			_btns[n].at = p
+			_btns[n].t0 = Time.get_ticks_msec()
 			_justs[n] = true
 			_btn_down(n, p)
 		return
@@ -695,6 +696,7 @@ func _finger(id: int, p: Vector2, kind: int) -> void:
 		kit_move = Vector2.ZERO
 	elif who.begins_with("b:"):
 		_btns[who.substr(2)].down = false
+		_btns[who.substr(2)].t1 = Time.get_ticks_msec()
 		_btn_up(who.substr(2), p)
 
 
@@ -716,11 +718,23 @@ func _kit_draw(c: Control) -> void:
 		c.draw_circle(o, _STICK_R, Color(1, 1, 1, 0.45))
 		c.draw_arc(o, _STICK_R, 0.0, TAU, 48, ME, 6.0)
 		c.draw_circle(o + kit_move * _STICK_R, 48.0, ME)
+	var now := Time.get_ticks_msec()
 	for n in _btns:
 		var b: Dictionary = _btns[n]
-		var r: float = b.r * (0.92 if b.down else 1.0)
+		# 누름 애니메이션: 눌리면 쑥 들어가고, 떼면 살짝 튀어 올랐다 제자리. 누른 순간 흰 고리가 퍼진다.
+		var s := 1.0
+		if b.down:
+			s = lerpf(1.0, 0.84, clampf((now - int(b.get("t0", 0))) / 60.0, 0.0, 1.0))
+		else:
+			var u := (now - int(b.get("t1", -100000))) / 220.0
+			if u < 1.0:
+				s = 1.0 + sin(u * PI) * 0.1 * (1.0 - u) - 0.16 * maxf(0.0, 1.0 - u * 4.0)
+		var r: float = b.r * s
 		var col: Color = b.color
-		c.draw_circle(b.pos, r, col.lightened(0.35) if b.down else col)
+		var ring := (now - int(b.get("t0", -100000))) / 260.0
+		if ring < 1.0:
+			c.draw_arc(b.pos, b.r * (1.0 + ring * 0.45), 0.0, TAU, 48, Color(1, 1, 1, 0.8 * (1.0 - ring)), 10.0 * (1.0 - ring) + 2.0)
+		c.draw_circle(b.pos, r, col.darkened(0.15) if b.down else col)
 		c.draw_arc(b.pos, r, 0.0, TAU, 48, WHITE, 6.0)
 		var fs := int(clampf(b.r * 0.42, 22.0, 44.0))
 		c.draw_string(_font, b.pos + Vector2(-r, fs * 0.35), b.label, HORIZONTAL_ALIGNMENT_CENTER, r * 2.0, fs, WHITE)
