@@ -1241,7 +1241,8 @@ func _draw_road(o: Dictionary, a: int, b: int, z: Dictionary) -> void:
 		var fq := float(q)
 		if def.posts and q % 30 == 0:
 			var sd := 1.0 if (q / 30) % 2 == 0 else -1.0
-			box(_opos(o, fq, sd * (hw + 1.2), h + 1.5), Vector3(0.8, 3.0, 0.8), WHITE if sd > 0.0 else def.accent, nd)
+			var post := box(_opos(o, fq, sd * (hw + 1.2), h + 1.5), Vector3(0.8, 3.0, 0.8), WHITE, nd)
+			_apply_art(post, "pillar", WHITE if sd > 0.0 else def.accent.lightened(0.35))
 		match def.scen:
 			"rock":
 				if q % 40 == 20:
@@ -1258,7 +1259,9 @@ func _draw_road(o: Dictionary, a: int, b: int, z: Dictionary) -> void:
 					var x := sd * (hw + rng.randf_range(8.0, 20.0))
 					var top := h - rng.randf_range(2.0, 9.0)
 					_column(o, fq, x, top, 6.0, GRASS, nd)
-					var hs := box(_opos(o, fq, x, top + 2.0), Vector3(4, 4, 4), [A, B, C, WHITE].pick_random(), nd)
+					var hs := box(_opos(o, fq, x, top + 2.0), Vector3(4, 4, 4), WHITE, nd)
+					_apply_art(hs, "temple", [WHITE, Color("ffe3b8"), Color("d9ecff"), Color("f3dcff")].pick_random())
+					_roof(hs)
 					hs.rotation.y = o.yw[q]
 			"cliff":
 				if q % 30 == 15:
@@ -1289,7 +1292,8 @@ func _draw_road(o: Dictionary, a: int, b: int, z: Dictionary) -> void:
 			"canyon":
 				if tg == "rope" and q % 15 == 0:
 					for sd: float in [-1.0, 1.0]:
-						box(_opos(o, fq, sd * (hw + 0.1), h + 0.8), Vector3(0.5, 2.0, 0.5), D, nd)
+						var rp := box(_opos(o, fq, sd * (hw + 0.1), h + 0.8), Vector3(0.5, 2.0, 0.5), D, nd)
+						_apply_art(rp, "plank")
 				if q % 30 == 15:
 					for sd: float in [-1.0, 1.0]:
 						_column(o, fq, sd * (hw + rng.randf_range(7.0, 16.0)), h + rng.randf_range(8.0, 28.0), rng.randf_range(6.0, 11.0), [A, ROCK, Color("ffc078")].pick_random(), nd)
@@ -1597,6 +1601,7 @@ func _extras(z: Dictionary) -> void:
 			_apply_art(g, "pillar")
 			g.rotation.y = yw
 		var bar := box(_pos(gd, 0.0, gh + 10.0), Vector3(hw * 2.0 + 3.4, 1.6, 1.6), col, nd)
+		_skin(bar, "wall", col.lightened(0.45))
 		z["lintel"] = bar
 		bar.rotation.y = yw
 
