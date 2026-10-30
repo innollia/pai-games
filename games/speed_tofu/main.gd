@@ -7,7 +7,7 @@ const GAMES := [
 	["boulder_fp", "★ 신전석 (1인칭)"],
 	["screenrace", "★ 화면 밖 경주 (옆모습)"],
 	["overpower", "★ 과속 플랫포머 (옆모습)"],
-	["overpower_edit", "▶ 스테이지 제작 (과속 플랫포머, PC 마우스)"],
+	["overpower_edit", "▶ 스테이지 제작 (PC)"],
 	["rain_slow", "★ 레인월드 × 느림 (옆모습)"],
 	["coming_fp", "★ 그가 온다 × 늦추기 (1인칭)"],
 	["deepsword", "★ 깊은 검 × 빠르면 고통 (옆모습)"],
@@ -185,6 +185,8 @@ func _fill(folder: int) -> void:
 		if not str(g[0]).begins_with("__"):
 			b.text += " v%d" % GAME_VER.get(g[0], 1)
 		b.custom_minimum_size = Vector2(600, 92)
+		b.clip_text = true  # 긴 이름이 줄 폭을 넓혀 메뉴 전체가 화면 밖으로 밀리지 않게
+		b.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		b.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		b.set_meta("id", g[0])
 		list.add_child(b)
