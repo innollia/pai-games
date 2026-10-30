@@ -1,0 +1,95 @@
+{
+ "tool": "nkido (MIT) 원재료 + numpy/scipy 다듬기, --no-default-bank",
+ "samples": "none",
+ "rate": 24000,
+ "sounds": [
+  {
+   "file": "roll.wav",
+   "seconds": 0.13
+  },
+  {
+   "file": "jump.wav",
+   "seconds": 0.4
+  },
+  {
+   "file": "crush_s.wav",
+   "seconds": 0.76
+  },
+  {
+   "file": "crush_m.wav",
+   "seconds": 1.3
+  },
+  {
+   "file": "crush_big.wav",
+   "seconds": 2.5
+  },
+  {
+   "file": "land.wav",
+   "seconds": 1.3
+  },
+  {
+   "file": "bonk.wav",
+   "seconds": 0.3
+  },
+  {
+   "file": "split.wav",
+   "seconds": 0.6
+  },
+  {
+   "file": "throw.wav",
+   "seconds": 0.32
+  },
+  {
+   "file": "glass.wav",
+   "seconds": 1.5
+  },
+  {
+   "file": "gem.wav",
+   "seconds": 0.83
+  },
+  {
+   "file": "cave.wav",
+   "seconds": 3.48
+  },
+  {
+   "file": "warn.wav",
+   "seconds": 0.18
+  },
+  {
+   "file": "snow.wav",
+   "seconds": 0.12
+  },
+  {
+   "file": "melt.wav",
+   "seconds": 0.3
+  },
+  {
+   "file": "charge.wav",
+   "seconds": 1.3
+  },
+  {
+   "file": "launch.wav",
+   "seconds": 1.5
+  },
+  {
+   "file": "creak.wav",
+   "seconds": 0.35
+  },
+  {
+   "file": "fall.wav",
+   "seconds": 1.1
+  },
+  {
+   "file": "rumble.wav",
+   "seconds": 0.9
+  },
+  {
+   "file": "catch.wav",
+   "seconds": 1.05
+  },
+  {
+   "file": "tick.wav",
+   "seconds": 0.09
+  }
+ ]
+}

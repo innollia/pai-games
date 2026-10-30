@@ -18,7 +18,7 @@ Drag to steer; tap action buttons. Hold brakes on ground and dives in air. On a 
 
 # Tools used / AI disclosure
 Made by 핸섬가이즈 with AI tools.
-Tools used: Godot, Blender, Python/Pillow, Claude (Anthropic), Codex (OpenAI); the textures are GPT-generated images.
+Tools used: Godot, Blender, Python/Pillow/numpy, nkido (MIT, sound synthesis), Claude (Anthropic), Codex (OpenAI); the textures are GPT-generated images. All sound effects are synthesized from scratch with nkido (no external samples). English text appears automatically when the device language is not Korean.
 Nine low-poly models use painted texture atlases. Code, planning and text were developed with Claude and Codex. Texture generation routes and any fallback assets are documented in ART_LOG.md. Sound effects are synthesized by code; no generated audio files are included. UI font: existing Pretendard.
 
 # Page settings

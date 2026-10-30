@@ -189,10 +189,13 @@ var gems: Array = []        # [거리, 높이(동굴 바닥 위), 노드]
 
 
 func _setup() -> void:
+	_lang()
 	howto = "굴러라 신전석\n끌어 조향. 항아리는 깔고 빨강은 피해!\n커지면 무거워진다. 1.5초 느리면 끝.\n\n버튼은 구역마다 열린다.\n뛰기 / 쪼개기 / 버티기 / 던지기\n초록 조준선 → 던져서 보라 수정 깨기\n흰 빗금 눈 = 성장 / 노랑 = 해빙\n수로에서 떨어지면 숨은 수정 동굴!\n쪼개면 1초 돌진: 집·얼음벽 관통\n파란 머리 탑은 공중 버티기로 쾅\n\n물살은 버티거나 뛰어 벗어나고,\n황금 발판은 버티기를 눌렀다 놓기!\n11구역 끝 신전에 도착하자.\n금 3분 / 은 4분 / 동 완주"
 	time_limit = 0.0
 	howto = howto.replace("끝 신전", "끝 바다 신전")
 	howto += "\n발판 힘 40% 이상에서 손을 떼자.\n완주 시간과 최고 기록에 도전!"
+	if TranslationServer.get_locale() == "en":
+		howto = HOWTO_EN
 	_load_art()
 	var record := ConfigFile.new()
 	if record.load(RECORD) == OK:
@@ -538,13 +541,13 @@ func _reset() -> void:
 func _unlock(nm: String) -> void:
 	match nm:
 		"jump":
-			kit_button("jump", "뛰기", Vector2(610, 1150), 88.0, D)
+			kit_button("jump", tr("뛰기"), Vector2(610, 1150), 88.0, D)
 		"split":
-			kit_button("split", "쪼개기", Vector2(610, 955), 80.0, C)
+			kit_button("split", tr("쪼개기"), Vector2(610, 955), 80.0, C)
 		"hold":
-			kit_button("hold", "버티기", Vector2(610, 770), 80.0, B)
+			kit_button("hold", tr("버티기"), Vector2(610, 770), 80.0, B)
 		"throw":
-			kit_button("throw", "던지기", Vector2(610, 590), 76.0, A)
+			kit_button("throw", tr("던지기"), Vector2(610, 590), 76.0, A)
 
 
 # ---- 길 표본 ----
@@ -721,8 +724,7 @@ func _choose(z: Dictionary) -> void:
 	z.things.append_array(z.fork.things[side])
 	z.fork = null
 	z.item += 1
-	msg("왼쪽!" if side == 0 else "오른쪽!", 0.7)
-	beep(600.0 if side == 0 else 750.0, 0.1, 0.0, 0.2)
+	sfx("tick")
 	_zone_items(z)
 
 
@@ -1264,7 +1266,7 @@ func _step(dt: float) -> void:
 		vy = JUMP / pow(mm, 0.7)
 		by += 0.05
 		on_ground = false
-		beep(440.0, 0.12, 880.0, 0.25)
+		sfx("jump", 0.0, 1.15 / pow(mm, 0.25))
 	if kit_just("split"):
 		_split()
 	if kit_just("throw"):
@@ -1281,8 +1283,7 @@ func _step(dt: float) -> void:
 			crack_t += dt
 			shake = maxf(shake, 0.35)
 			if fmod(crack_t, 0.12) < dt:
-				beep(150.0, 0.08, 90.0, 0.25)
-				msg("삐걱!", 0.3)
+				sfx("creak", -2.0)
 			if crack_t > 0.4:
 				_burst(_pos(dist, bx, by), A, 10, 9.0, 0.8)
 				_fall("다리가 끊어졌다!")
@@ -1325,11 +1326,9 @@ func _step(dt: float) -> void:
 		var i := _oi(pd, dist)
 		if on_ground and pd.sol[i] == 0:
 			if pd.tg[i] == "drop":
-				msg("떨어진다!", 0.8)
-				beep(520.0, 0.4, 180.0, 0.22)
+				sfx("fall", -4.0)
 			else:
-				msg("날아라!", 0.6)
-				beep(330.0, 0.15, 660.0, 0.22)
+				sfx("jump", -2.0, 1.2)
 		on_ground = false
 		if by < _h(dist) - 4.0 and not won:
 			_fall("떨어짐!")
@@ -1342,14 +1341,14 @@ func _step(dt: float) -> void:
 					_burst(_pos(dist, bx, g), Color("68cfca"), 12, 8.0)
 					shake = 0.35
 					sq = 0.2
-					beep(100.0, 0.18, 45.0, 0.25)
+					sfx("land", -2.0, 0.9)
 				else:
 					_land(vy, hold)
 			by = g
 			if underground and _tunnel_depth(dist) <= 0.01:
 				underground = false
 				_cave(false)
-				msg("수로 합류! 다음 틈을 봐", 1.4)
+				msg("다음 틈을 봐", 1.4)
 			vy = v * _slope(dist)
 			on_ground = true
 	else:
@@ -1374,8 +1373,6 @@ func _step(dt: float) -> void:
 			var dash_ok: bool = dash_t > 0.0 and not slam and not th.kd.has("shot") and need < 90.0
 			if s_goal >= need or dive_ok or dash_ok:
 				_crush(th, mm, not diving and not dash_ok)
-				if dash_ok and s_goal < need:
-					msg("돌진 관통!", 0.6)
 			elif hurt <= 0.0:
 				_bonk(th)
 			elif th.kd.get("nodive", false) or slam:
@@ -1391,11 +1388,9 @@ func _step(dt: float) -> void:
 		warn_t -= dt
 		if warn_t <= 0.0:
 			warn_t = 0.3
-			beep(260.0, 0.1, 200.0, 0.25)
-			msg("느려!", 0.35)
+			sfx("warn", -4.0)
 		if slow_t > STOP_T:
-			failure_reason = "속도 %.0f 아래에서 1.5초 · 오르막 전엔 가볍게" % VSTOP
-			msg("멈췄다", 2.0)
+			failure_reason = tr("속도 %.0f 아래에서 1.5초 · 오르막 전엔 가볍게") % VSTOP
 			end()
 			return
 	else:
@@ -1433,16 +1428,14 @@ func _pads(dt: float) -> void:
 					pad_t = 0.09
 					_burst(_pos(dist - s * 0.4, bx + randf_range(-0.5, 0.5) * s, by + 0.2), WHITE, 2, 5.0, 0.6)
 				if floori(s_goal * 2.0) > before:
-					beep(500.0 + s_goal * 60.0, 0.06, 0.0, 0.18)
-					msg("커진다", 0.3)
+					sfx("snow", -6.0)
 			else:
 				s_goal = maxf(2.0, s_goal - SUN_MELT * v * dt)
 				if pad_t <= 0.0:
 					pad_t = 0.12
 					_burst(_pos(dist, bx, by + s * 0.6), WATER, 1, 4.0, 0.4)
 				if floori(s_goal * 2.0) < before:
-					beep(900.0, 0.05, 600.0, 0.14)
-					msg("녹는다", 0.3)
+					sfx("melt", -8.0)
 			return
 
 
@@ -1452,7 +1445,7 @@ func _throw() -> void:
 		return
 	if s_goal < 2.6:
 		msg("너무 작다", 0.5)
-		beep(200.0, 0.1, 150.0, 0.2)
+		sfx("warn", -6.0, 1.4)
 		return
 	s_goal = maxf(2.0, s_goal - 1.0)
 	cool = 0.4
@@ -1463,8 +1456,7 @@ func _throw() -> void:
 	shot_hit = false
 	shot.visible = true
 	sq = maxf(sq, 0.18)
-	beep(260.0, 0.12, 1000.0, 0.28)
-	msg("던졌다!", 0.4)
+	sfx("throw")
 
 
 func _shot(dt: float) -> void:
@@ -1484,7 +1476,6 @@ func _shot(dt: float) -> void:
 				for t2: Thing in things:
 					if not t2.flat and t2.kd.get("shot", false) and absf(t2.d - th.d) < 0.5 and absf(t2.x - shot_x) < 4.2:
 						_smash(t2)
-				msg("깼다!", 0.5)
 				play("good")
 				shake = maxf(shake, 0.3)
 				shot_t = 0.0
@@ -1500,7 +1491,7 @@ func _shot(dt: float) -> void:
 		if shot_t <= 0.0 and not shot_hit:
 			# 닿기 전에 떨어졌다: 몸만 작아졌다
 			_burst(shot.position, ME, 4, 5.0)
-			beep(220.0, 0.15, 120.0, 0.2)
+			sfx("bonk", -8.0, 1.5)
 			msg("안 닿았다!
 더 빨리, 더 가까이", 0.8)
 		shot_t = 0.0
@@ -1566,8 +1557,7 @@ func _aim() -> void:
 	_btns["throw"].color = GOOD if ready else (A if big else BAD)
 	if ready and not aim_ok:
 		aim_ok = true
-		beep(880.0, 0.08, 1320.0, 0.22)
-		msg("닿는다! 던져", 0.6)
+		sfx("tick", -4.0, 1.5)
 	elif not reach:
 		aim_ok = false
 
@@ -1578,7 +1568,7 @@ func _smash(th: Thing) -> void:
 	th.n.visible = false
 	bonus += int(th.kd.pts) * 5
 	_burst(th.n.position, th.col, 8, 11.0, 0.7)
-	beep(1200.0, 0.1, 500.0, 0.26)
+	sfx("glass" if th.kd.has("shot") else "crush_s")
 
 
 ## 착지: 높이 떨어질수록(버티면 더) 넓게 부순다
@@ -1588,7 +1578,7 @@ func _land(vy0: float, hard: bool) -> void:
 		_burst(_pos(dist, bx, by + 0.2), (Z[cur_k].road as Color).darkened(0.1), 3 + int(-vy0 / 8.0), 4.0 + -vy0 * 0.25)
 	if vy0 > -14.0:
 		if vy0 < -7.0:
-			beep(90.0, 0.14, 50.0, 0.3)
+			sfx("land", -12.0, 1.3)
 		return
 	var r := s * 0.6 + (-vy0) * 0.09 + (2.5 if hard else 0.0)
 	var n := 0
@@ -1603,11 +1593,7 @@ func _land(vy0: float, hard: bool) -> void:
 	if vy0 < -20.0:
 		v *= 0.9
 	shake = minf(1.2, 0.2 + (-vy0) / 50.0 + n * 0.15)
-	beep(70.0, 0.3, 40.0, 0.35)
-	if n > 0:
-		msg("%d개 쾅!" % n, 0.8)
-	elif vy0 < -24.0:
-		msg("쾅 착지!", 0.8)
+	sfx("land", minf(0.0, -12.0 - vy0 * 0.3), clampf(1.25 - s * 0.06, 0.8, 1.2))
 
 
 func _crush(th: Thing, mm: float, slow := true) -> void:
@@ -1625,14 +1611,12 @@ func _crush(th: Thing, mm: float, slow := true) -> void:
 	if th.kd.has("boost"):
 		v = minf(VMAX + 10.0, v + float(th.kd.boost))
 		_burst(th.n.position + Vector3.UP * 2.0, B, 10, 14.0, 0.9)
-		msg("황금 신상 쾅! 가속" if th.kd == KIND.gold else "탑 쾅! 가속", 0.9)
 	var before := floori(s_goal)
 	s_goal = minf(SMAX, s_goal + float(th.kd.grow))
 	bonus += int(th.kd.pts) * 5
 	shake = maxf(shake, 0.1 + float(th.kd.mass))
-	beep(maxf(120.0, 560.0 - float(th.kd.mass) * 900.0), 0.1, 110.0, 0.28)
+	sfx("crush_big" if th.kd.get("slam", false) else ("glass" if th.kd.get("nodive", false) else ("crush_s" if float(th.kd.size.y) < 2.0 else "crush_m")), -2.0 if float(th.kd.size.y) < 2.0 else 0.0, randf_range(0.9, 1.12))
 	if floori(s_goal) > before:
-		msg("커졌다!", 0.6)
 		play("good")
 
 
@@ -1653,8 +1637,6 @@ func _bonk(th: Thing) -> void:
 		msg("더 커지거나\n직전에 쪼개서 돌진!", 0.9)
 	elif th.kd.get("nodive", false):
 		msg("더 커져야!", 0.8)
-	else:
-		msg("쿵!", 0.6)
 
 
 ## 쪼개기: 한 덩이 떼어 버리고 그만큼 가볍고 빨라진다. 떼어낸 덩이는 뒤로 굴러 뒤에서 오는 돌을 막는다.
@@ -1663,7 +1645,7 @@ func _split() -> void:
 		return
 	if s_goal < 2.6:
 		msg("더 못 쪼갠다", 0.5)
-		beep(200.0, 0.1, 150.0, 0.2)
+		sfx("warn", -6.0, 1.4)
 		return
 	s_goal = maxf(2.0, s_goal - 1.0)
 	v += 13.0
@@ -1676,13 +1658,11 @@ func _split() -> void:
 	shake = maxf(shake, 0.3)
 	sq = maxf(sq, 0.22)
 	_burst(_pos(dist - s * 0.5, bx, by + 1.0), STONE, 5, 7.0)
-	beep(300.0, 0.12, 900.0, 0.26)
-	msg("쪼개서 돌진!", 0.6)
+	sfx("split")
 	for rk: Dictionary in rocks:
 		if rk.on and rk.d < dist and dist - float(rk.d) < 45.0 and absf(float(rk.x) - bx) < 4.0:
 			rk.on = false
 			(rk.n as MeshInstance3D).visible = false
-			msg("막았다!", 0.6)
 			play("good")
 			break
 
@@ -1716,7 +1696,7 @@ func _rocks(dt: float, mm: float) -> void:
 					rk.a = 0.0
 					(rk.n as MeshInstance3D).visible = true
 					rock_i += 1
-					beep(110.0, 0.2, 80.0, 0.18)
+					sfx("rumble", -3.0)
 					break
 	for rk: Dictionary in rocks:
 		if not rk.on:
@@ -1742,15 +1722,13 @@ func _rocks(dt: float, mm: float) -> void:
 				s_goal = minf(SMAX, s_goal + r * 0.1)
 				v += maxf(0.0, float(rk.v) - v) * 0.5
 				bonus += int(r * 10.0)
-				beep(700.0, 0.12, 1100.0, 0.26)
-				msg("받았다!", 0.5)
+				sfx("catch")
 			else:
 				v *= 0.6
 				x_goal += (3.5 if bx >= float(rk.x) else -3.5) / sqrt(mm)
 				hurt = 0.5
 				shake = 0.8
 				play("bad")
-				msg("쿵!", 0.5)
 
 
 func _fall(text: String) -> void:
@@ -1761,14 +1739,13 @@ func _fall(text: String) -> void:
 		x_goal = 0.0
 		v = maxf(v, 32.0) # 낙하 운동량으로 출구 오르막을 넘을 여유
 		_cave(true)
-		msg("숨은 수정 동굴!\n보석을 모아 노란 출구로", 2.2)
+		msg("숨은 수정 동굴", 2.2)
 		return
 	fallen = true
 	failure_reason = text
 	fall_t = 0.0
 	v = minf(v, 6.0)
-	msg(text, 2.0)
-	beep(400.0, 0.6, 60.0, 0.3)
+	sfx("fall")
 
 
 func _place(dt: float) -> void:
@@ -1793,7 +1770,7 @@ func _place(dt: float) -> void:
 		quarter = q
 		if roll_t <= 0.0 and on_ground:
 			roll_t = 0.07
-			beep(clampf(60.0 + v * 2.0 - s * 4.0, 50.0, 200.0), 0.05, 45.0, 0.12)
+			sfx("roll", -10.0 + minf(6.0, v * 0.12), clampf(1.35 - s * 0.08, 0.7, 1.3))
 	# 카메라: 구역마다 구도가 다르다 (돌 기준 거리만 부드럽게 옮겨 간다)
 	if not fallen:
 		cam_y = lerpf(cam_y, by, minf(1.0, dt * 6.0))
@@ -1890,10 +1867,37 @@ func _drag(p: Vector2) -> void:
 	x_goal += dx * 0.05 * 1.0
 
 
+## 공통 삑 소리 대신 nkido 효과음 (submit/boulder/build_sfx.py)
 func play(nm: String) -> void:
 	if nm == "bad" and won:
 		nm = "win"
-	super(nm)
+	match nm:
+		"good": sfx("gem", -6.0, 0.75)
+		"bad": sfx("bonk")
+		"win": sfx("charge", 0.0, 0.8)
+		"tap": sfx("tick")
+		_: super(nm)
+
+
+var _sfx := {}
+var _sfx_pool: Array = []
+var _sfx_i := 0
+
+
+func sfx(nm: String, db := 0.0, pitch := 1.0) -> void:
+	if _sfx_pool.is_empty():
+		for i in 10:
+			var pl := AudioStreamPlayer.new()
+			add_child(pl)
+			_sfx_pool.append(pl)
+	if not _sfx.has(nm):
+		_sfx[nm] = load("res://art/boulder/sfx/%s.wav" % nm)
+	var pl: AudioStreamPlayer = _sfx_pool[_sfx_i % _sfx_pool.size()]
+	_sfx_i += 1
+	pl.stream = _sfx[nm]
+	pl.volume_db = db - 4.0
+	pl.pitch_scale = pitch * randf_range(0.97, 1.03)
+	pl.play()
 
 
 func _stone_mesh(n: MeshInstance3D) -> void:
@@ -1910,7 +1914,7 @@ func _cave(on: bool) -> void:
 	_far_build(maxi(cur_k, 0), on)
 	if on:
 		shake = 0.6
-		beep(180.0, 0.5, 900.0, 0.3)
+		sfx("cave")
 	else:
 		play("good")
 
@@ -1928,8 +1932,7 @@ func _gems() -> void:
 			bonus += 40
 			v += 2.0
 			_burst(n.global_position, Color("ff8fd8"), 6, 9.0, 0.5)
-			beep(1100.0 + randf() * 300.0, 0.08, 1700.0, 0.22)
-			msg("보석 +40", 0.4)
+			sfx("gem", -3.0, randf_range(0.94, 1.12))
 
 
 func _tunnel_depth(d: float) -> float:
@@ -2137,23 +2140,23 @@ func _process(dt: float) -> void:
 	if over:
 		_over_l.visible = false
 		return
-	_score_l.text = "%d점   ·   속도 %02d m/s" % [score, int(v)]
+	_score_l.text = tr("%d점   ·   속도 %02d m/s") % [score, int(v)]
 	var k := maxi(cur_k, cp_k)
-	route_label.text = "%02d / %02d   ·   %s   ·   크기 %.1f" % [k + 1, Z.size(), _format_time(run_elapsed), s_goal]
+	route_label.text = tr("%02d / %02d   ·   %s   ·   크기 %.1f") % [k + 1, Z.size(), _format_time(run_elapsed), s_goal]
 	var hints := ["끌어서 항아리를 깔고 빨간 기둥은 피해", "뛰기 · 놓치면 숨은 수정 동굴로", "쪼개면 1초 돌진 · 집을 뚫고 가볍게 회전", "파란 머리 탑·신상 = 공중에서 버티기로 쾅 → 가속", "집을 깔거나 뛰어넘어 길을 골라", "흰 빗금 눈 = 성장 · 노란 길 = 해빙", "초록 점선에서 던져 수정에 통로를 열어", "노란 돌은 받아 · 빨간 돌은 피해 / 쪼개서 막아"]
-	action_label.text = str(Z[k].get("objective", hints[mini(k, hints.size() - 1)]))
+	action_label.text = tr(str(Z[k].get("objective", hints[mini(k, hints.size() - 1)])))
 	for drum: Dictionary in drums:
 		if dist >= float(drum.a) and dist < float(drum.b) and on_ground:
-			action_label.text = "발판 힘 %d%% · %s" % [int(drum_charge * 100.0), "손을 떼서 발사!" if drum_charge >= 0.4 else "버티기를 길게 눌러"]
+			action_label.text = tr("발판 힘 %d%% · %s") % [int(drum_charge * 100.0), tr("손을 떼서 발사!" if drum_charge >= 0.4 else "버티기를 길게 눌러")]
 			return
 	for rope: Array in ropes:
 		if float(rope[0]) - dist > 0.0 and float(rope[0]) - dist < 60.0:
-			action_label.text = "앞 다리 한계 %.1f / 내 몸 %.1f\n%s" % [float(rope[2]), s_goal, "더 쪼개서 가볍게!" if s_goal > float(rope[2]) else "가운데로 건너자"]
+			action_label.text = tr("앞 다리 한계 %.1f / 내 몸 %.1f\n%s") % [float(rope[2]), s_goal, tr("더 쪼개서 가볍게!" if s_goal > float(rope[2]) else "가운데로 건너자")]
 			return
 	if k == 5:
 		for th: Thing in things:
 			if not th.flat and th.kd == KIND.ice and th.d > dist and th.d - dist < 85.0:
-				action_label.text = "얼음벽 4.5 / 내 몸 %.1f\n%s" % [s_goal, ("돌진 중! 그대로 뚫어" if dash_t > 0.0 else "눈으로 키우거나 · 벽 앞에서 쪼개 돌진") if s_goal < 4.5 else "충분히 커졌다 · 벽을 깨자"]
+				action_label.text = tr("얼음벽 4.5 / 내 몸 %.1f\n%s") % [s_goal, tr(("돌진 중! 그대로 뚫어" if dash_t > 0.0 else "눈으로 키우거나 · 벽 앞에서 쪼개 돌진") if s_goal < 4.5 else "충분히 커졌다 · 벽을 깨자")]
 				return
 
 
@@ -2186,8 +2189,7 @@ func _drum_tick(dt: float, hold: bool) -> void:
 			# The moving pressure bed carries the stone while held; no artificial stop death.
 			v = maxf(v, 12.5)
 			if before < 0.4 and drum_charge >= 0.4:
-				beep(660.0, 0.14, 1320.0, 0.25)
-				msg("힘이 찼다!\n손을 떼서 날아", 1.4)
+				sfx("charge")
 		elif was_holding and drum_charge >= 0.4:
 			vy = (36.0 + drum_charge * 8.0) / pow(s / 2.0, 0.22)
 			v = maxf(v, 45.0 + 9.0 * drum_charge)
@@ -2197,8 +2199,7 @@ func _drum_tick(dt: float, hold: bool) -> void:
 			_burst(_pos(dist, bx, by), D, 12, 10.0, 0.6)
 			shake = 0.4
 			bonus += 60
-			beep(140.0, 0.2, 1100.0, 0.3)
-			msg("공명 도약!", 1.0)
+			sfx("launch")
 			drum_charge = 0.0
 		else:
 			drum_charge = maxf(0.0, drum_charge - dt * 0.8)
@@ -2226,7 +2227,6 @@ func _finish() -> void:
 	config.set_value("record", "time", best_time)
 	config.set_value("record", "score", record_score)
 	config.save(RECORD)
-	msg("바다에 도착했다!", 2.8)
 	play("win")
 	_burst(_pos(dist, bx, by + s), D, 16, 12.0, 0.8)
 
@@ -2252,11 +2252,11 @@ func end() -> void:
 	if not won:
 		run_deaths += 1
 	super()
-	result_title.text = ("금메달" if finish_time <= GOLD_TIME else ("은메달" if finish_time <= SILVER_TIME else "동메달")) + " · 바다 도착" if won else "다시 굴러가자"
-	var record_text := _format_time(best_time) if best_time > 0.0 else "아직 없음"
-	result_values.text = "%s   ·   %d점\n최고 완주 %s\n%s" % [_format_time(finish_time if won else run_elapsed), score, record_text, "새 시간 기록!" if new_record else ("최고 점수 %d" % record_score)]
-	result_note.text = "금 3:00 / 은 4:00 / 동 완주\n재도전 %d회 · 출발부터 실패 시간 포함" % run_deaths if won else "%s\n%s에서 이어서" % [failure_reason, str(Z[maxi(cp_k, 0)].msg)]
-	retry_button.text = "한 번 더" if won else "구역 다시"
+	result_title.text = tr("금메달" if finish_time <= GOLD_TIME else ("은메달" if finish_time <= SILVER_TIME else "동메달")) + tr(" · 바다 도착") if won else tr("다시 굴러가자")
+	var record_text := _format_time(best_time) if best_time > 0.0 else tr("아직 없음")
+	result_values.text = tr("%s   ·   %d점\n최고 완주 %s\n%s") % [_format_time(finish_time if won else run_elapsed), score, record_text, tr("새 시간 기록!") if new_record else (tr("최고 점수 %d") % record_score)]
+	result_note.text = tr("금 3:00 / 은 4:00 / 동 완주\n재도전 %d회 · 출발부터 실패 시간 포함") % run_deaths if won else tr("%s\n%s에서 이어서") % [tr(failure_reason), tr(str(Z[maxi(cp_k, 0)].msg))]
+	retry_button.text = tr("한 번 더" if won else "구역 다시")
 	_over_l.visible = false
 	result_card.visible = true
 
@@ -2285,3 +2285,142 @@ func _howto_card() -> Control:
 		if node is Label:
 			(node as Label).label_settings.font_size = 32
 	return card
+
+
+# ---- English: 폰·브라우저 언어가 한국어가 아니면(또는 주소에 ?lang=en) 영어로 ----
+# 라벨은 Godot 자동 번역(같은 글이면 바뀜), 그려지는 버튼·서식 글은 tr() 로 감싼다.
+func _lang() -> void:
+	var en := OS.get_locale_language() != "ko"
+	if OS.has_feature("web"):
+		var q := str(JavaScriptBridge.eval("location.search", true))
+		if q.contains("lang=en"):
+			en = true
+		elif q.contains("lang=ko"):
+			en = false
+	if not en:
+		TranslationServer.set_locale("ko")
+		return
+	if TranslationServer.get_translation_object("en") == null:
+		var tl := Translation.new()
+		tl.locale = "en"
+		for k: String in EN:
+			tl.add_message(k, EN[k])
+		TranslationServer.add_translation(tl)
+	TranslationServer.set_locale("en")
+
+
+const HOWTO_EN := "Roll, Temple Stone!\nDrag to steer. Crush pots, dodge red!\nBigger = heavier. Too slow for 1.5s = out.\n\nA new button opens in each region:\nJUMP / SPLIT / HOLD / THROW\nGreen aim line → THROW to break purple crystal\nWhite striped snow = grow / yellow = melt\nFall off the aqueduct → hidden crystal cave!\nSPLIT = 1s dash: smash houses & ice walls\nBlue-capped towers: HOLD in mid-air to SLAM\n\nCurrents: HOLD or JUMP out of them.\nGolden pad: hold HOLD, then let go!\nReach the sea temple after 11 regions.\nGold 3:00 / Silver 4:00 / Bronze finish"
+
+const EN := {
+	# tofu.gd (공통 화면)
+	"< 메뉴": "< Menu", "< 처음부터": "< Restart", "평가": "Rate", "탭해서 시작": "Tap to start",
+	"이 게임 어때요?": "How was it?", "닫기": "Close", "한마디": "Comment", "고마워요!": "Thanks!",
+	"보내는 중": "Sending", "한마디 보냈어요": "Comment sent", "저장 안 됨 · 별을 다시 탭": "Not saved · tap a star again",
+	# 버튼
+	"뛰기": "JUMP", "쪼개기": "SPLIT", "버티기": "HOLD", "던지기": "THROW",
+	# 구역
+	"신전 계곡": "Temple Valley", "수로 · 뛰기": "Aqueduct · JUMP", "갈림길 · 쪼개기": "Crossroads · SPLIT",
+	"절벽 · 버티기": "Cliffs · HOLD", "광장 · 위에서": "Plaza · From Above", "설산 · 눈 굴리기": "Snow Peak · Snowball",
+	"협곡 · 던지기": "Canyon · THROW", "해안 · 추격": "Coast · Chase", "조수 정원 · 물살 타기": "Tide Garden · Currents",
+	"공명 제단 · 눌렀다 놓기": "Echo Altar · Hold & Release", "바다 신전 · 마지막 도약": "Sea Temple · Final Leap",
+	"화살표가 물살 방향 · 버티면 고정 / 뛰면 벗어남": "Arrows = current · HOLD to stay / JUMP to escape",
+	"황금 발판에서 버티기 → 힘이 차면 손을 떼 발사": "HOLD on the golden pad → release when charged",
+	"키우고 → 던지고 → 가볍게 날아 바다 신전까지": "Grow → throw → fly light to the sea temple",
+	# 안내
+	"11개의 길 너머\n마지막 신전으로": "Across 11 roads\nto the last temple",
+	"끌어서 항아리를 깔아봐": "Drag to crush the pots",
+	"빨간 기둥은 옆으로 피해": "Dodge the red pillars",
+	"큰 돌은 무거워\n오르막 전엔 욕심내지 마": "Big = heavy\ndon't overeat before hills",
+	"노란 경사대에서\n저절로 날아간다": "Yellow ramp\nlaunches you",
+	"다리는 가운데로": "Stay center on bridges",
+	"틈! 뛰기": "Gap! JUMP", "담도 뛰어": "Jump the wall too", "석상!\n뛰거나 깔거나": "Statue!\njump or crush",
+	"섞기: 깔고 뛰기": "Mix: crush & jump", "석상 뒤에 틈!\n깔고 뛰거나 넘거나": "Gap behind the statue!\ncrush & jump, or leap over",
+	"담과 틈:\n한 번에!": "Wall and gap:\nin one go!",
+	"쪼개면 가볍고\n잠깐 돌진: 집도 뚫는다": "SPLIT = lighter\n+ dash through houses",
+	"섞기: 깔면 무거워\n회전에서 밀린다": "Mix: crushing = heavy\nturns push you out",
+	"쪼개서 가볍게!": "SPLIT to get light!", "뛰어!": "JUMP!",
+	"떨어지며 조종": "Steer while falling",
+	"파란 머리 탑!\n떨어지며 버티기로 쾅": "Blue-capped tower!\nHOLD while falling to SLAM",
+	"탑을 부수면 빨라진다": "Smashed towers speed you up",
+	"황금 신상은\n버티기로만 깨진다": "Golden idol breaks\nonly with a HOLD slam",
+	"섞기: 뛰고\n내려찍고": "Mix: jump\nthen slam",
+	"구멍 피해\n신상을 내려찍어": "Avoid holes\nslam the idol",
+	"회전!\n버티거나 쪼개": "Turn!\nHOLD or SPLIT",
+	"길을 골라": "Pick a path", "좁은 문!": "Narrow gate!",
+	"흰 눈 위를 구르면\n커진다": "Roll on white snow\nto grow",
+	"얼음벽만큼 커야\n깬다": "Be as big as the ice wall\nto break it",
+	"오르막 전에\n노란 길에서 녹여": "Melt on yellow\nbefore the hill",
+	"다시 키워!": "Grow again!", "녹는 길": "Melting road",
+	"섞기: 눈으로 키워\n얼음벽 깨기": "Mix: grow in snow\nbreak the ice wall",
+	"무거운 몸으로\n뛰어!": "JUMP while heavy!",
+	"오르막!\n쪼개서 가볍게": "Hill!\nSPLIT to get light",
+	"던지기 = 내 몸 한 덩이를\n앞으로 (작아진다)": "THROW = toss a chunk of yourself\nforward (you shrink)",
+	"보라 벽은 몸으로 못 지나간다\n점선이 초록이면 던져": "Purple walls block you\nTHROW when the line is green",
+	"기둥보다 크면\n다리가 끊어진다": "Bigger than the posts\n= the bridge snaps",
+	"다시 키워": "Grow again", "빠를수록 멀리 닿는다": "Faster = longer throw", "더 좁은 다리": "Narrower bridge",
+	"섞기: 커지고, 던져서\n작아지고, 건너기": "Mix: grow, throw to\nshrink, then cross",
+	"노랑은 받고\n빨강은 피해": "Catch yellow\ndodge red",
+	"좁다! 빨강은\n쪼개서 막아": "Narrow! SPLIT\nto block red",
+	"해안 응용: 배운 것을 섞어!": "Coast: mix everything!",
+	"눈으로 키우고": "Grow in snow",
+	"수정은 던져\n작아져야 다리를 건넌다": "THROW at crystals\nshrink to cross the bridge",
+	"회전! 버티기": "Turn! HOLD", "구멍 피해\n내려찍기": "Avoid holes\nslam",
+	"물살은 몸을 옆으로!\n화살표를 봐": "Currents push you sideways!\nWatch the arrows",
+	"버티면 덜 밀린다": "HOLD = pushed less",
+	"이번엔 반대 방향\n뛰면 물살을 벗어난다": "Other way now\nJUMP to escape",
+	"섞기: 눈으로 탄약 확보": "Mix: grow ammo in snow",
+	"물살을 버티며\n초록이면 던져": "HOLD in the current\nTHROW on green",
+	"벽을 열고 물살 밖에서 뛰어!": "Open the wall, JUMP out of the current!",
+	"반대 물살 착지\n가운데로 조종": "Land in the reverse current\nsteer to center",
+	"앞의 넓은 틈:\n보통 점프로는 짧다": "Wide gap ahead:\na normal jump falls short",
+	"황금 발판에서 버티기!\n초록이 되면 손을 떼": "HOLD on the golden pad!\nRelease on green",
+	"공중에서 버티면 내려찍기\n착지까지는 손을 떼자": "HOLD in the air = slam\nlet go until you land",
+	"섞기: 눈으로 몸을 키워": "Mix: grow in snow",
+	"무거운 몸으로 발판 누르기\n초록에서 손을 떼!": "Press the pad while heavy\nrelease on green!",
+	"착지 후 수정을 던져 깨고": "After landing, THROW at the crystal",
+	"마지막 신전이 보인다": "The last temple is in sight",
+	"마지막 응용\n눈으로 탄약을 만들고": "Final mix\nmake ammo in snow",
+	"던져 작아져야\n다리가 버틴다": "THROW to shrink\nor the bridge snaps",
+	"물살 뒤 황금 발판\n버티다가 손을 떼!": "Golden pad after the current\nHOLD, then release!",
+	"돌아왔다\n신전의 빛을 향해": "Home again\ntoward the temple light",
+	# 순간 글
+	"← 갈림길 →": "← Fork →", "왼쪽!": "Left!", "오른쪽!": "Right!", "삐걱!": "Creak!",
+	"다리가 끊어졌다!": "The bridge snapped!", "지하로!": "Down below!", "떨어진다!": "Falling!", "날아라!": "Fly!",
+	"떨어짐!": "Fell off!", "쾅!": "Crash!", "수로 합류! 다음 틈을 봐": "Back on the aqueduct! Watch the next gap",
+	"돌진 관통!": "Dashed through!", "느려!": "Too slow!", "멈췄다": "Stopped",
+	"속도 %.0f 아래에서 1.5초 · 오르막 전엔 가볍게": "Under speed %.0f for 1.5s · get light before hills",
+	"커진다": "Growing", "녹는다": "Melting", "너무 작다": "Too small", "던졌다!": "Thrown!", "깼다!": "Broken!",
+	"닿는다! 던져": "In range! THROW", "%d개 쾅!": "%d smashed!", "쾅 착지!": "Big landing!",
+	"황금 신상 쾅! 가속": "Idol smashed! Speed up", "탑 쾅! 가속": "Tower smashed! Speed up", "커졌다!": "Bigger!",
+	"수정은 던져서!": "THROW at crystals!", "위에서 버티기로 쾅!": "HOLD-slam it from above!",
+	"더 커지거나\n직전에 쪼개서 돌진!": "Grow bigger, or\nSPLIT right before to dash!",
+	"더 커져야!": "Need to be bigger!", "쿵!": "Bonk!", "더 못 쪼갠다": "Can't split more",
+	"쪼개서 돌진!": "Split dash!", "막았다!": "Blocked!", "받았다!": "Caught!",
+	"숨은 수정 동굴!\n보석을 모아 노란 출구로": "Hidden crystal cave!\nGrab gems, head for the yellow exit",
+	"보석 +40": "Gem +40", "힘이 찼다!\n손을 떼서 날아": "Charged!\nLet go to fly", "공명 도약!": "Echo leap!",
+	"바다에 도착했다!": "You reached the sea!",
+	# 화면 글
+	"구역 다시": "Retry region", "처음부터": "From start", "한 번 더": "Once more",
+	"%d점   ·   속도 %02d m/s": "%d pts   ·   speed %02d m/s",
+	"%02d / %02d   ·   %s   ·   크기 %.1f": "%02d / %02d   ·   %s   ·   size %.1f",
+	"끌어서 항아리를 깔고 빨간 기둥은 피해": "Drag to crush pots, dodge red pillars",
+	"뛰기 · 놓치면 숨은 수정 동굴로": "JUMP · miss and fall into the crystal cave",
+	"쪼개면 1초 돌진 · 집을 뚫고 가볍게 회전": "SPLIT = 1s dash · smash houses, turn light",
+	"파란 머리 탑·신상 = 공중에서 버티기로 쾅 → 가속": "Blue caps = HOLD-slam from the air → speed up",
+	"집을 깔거나 뛰어넘어 길을 골라": "Crush or jump houses, pick your path",
+	"흰 빗금 눈 = 성장 · 노란 길 = 해빙": "White snow = grow · yellow = melt",
+	"초록 점선에서 던져 수정에 통로를 열어": "THROW on the green line to open crystals",
+	"노란 돌은 받아 · 빨간 돌은 피해 / 쪼개서 막아": "Catch yellow rocks · dodge red / SPLIT to block",
+	"발판 힘 %d%% · %s": "Pad power %d%% · %s", "손을 떼서 발사!": "Let go to launch!", "버티기를 길게 눌러": "Hold HOLD",
+	"앞 다리 한계 %.1f / 내 몸 %.1f\n%s": "Bridge limit %.1f / you %.1f\n%s",
+	"더 쪼개서 가볍게!": "SPLIT to get lighter!", "가운데로 건너자": "Cross in the center",
+	"얼음벽 4.5 / 내 몸 %.1f\n%s": "Ice wall 4.5 / you %.1f\n%s",
+	"돌진 중! 그대로 뚫어": "Dashing! Smash through", "눈으로 키우거나 · 벽 앞에서 쪼개 돌진": "Grow in snow · or SPLIT-dash at the wall",
+	"충분히 커졌다 · 벽을 깨자": "Big enough · break the wall",
+	"금메달": "Gold", "은메달": "Silver", "동메달": "Bronze", " · 바다 도착": " · Reached the sea",
+	"다시 굴러가자": "Roll again", "아직 없음": "none yet",
+	"%s   ·   %d점\n최고 완주 %s\n%s": "%s   ·   %d pts\nBest finish %s\n%s",
+	"새 시간 기록!": "New time record!", "최고 점수 %d": "Best score %d",
+	"금 3:00 / 은 4:00 / 동 완주\n재도전 %d회 · 출발부터 실패 시간 포함": "Gold 3:00 / Silver 4:00 / Bronze finish\n%d retries · time includes fails",
+	"%s\n%s에서 이어서": "%s\nContinue from %s",
+}
