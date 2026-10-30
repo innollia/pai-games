@@ -8,6 +8,7 @@
 다음 세대 유전 알고리즘(어느 게임을 남기고 섞을지)의 입력이다.
 """
 import json
+import re
 import os
 import sys
 import urllib.parse
@@ -155,7 +156,7 @@ def build_md(ratings, ideas):
     notes = defaultdict(list)
     for d in ideas:
         g = str(d.get("game") or "")
-        if g and not g.startswith("_"):
+        if g and not g.startswith("_") and not g.endswith("_stage"):
             notes[g].append(d)
     ideas = [d for d in ideas if not d.get("game")]
     L.append("## 별 없는 한마디 (게임별)\n")
@@ -181,10 +182,35 @@ def build_md(ratings, ideas):
     return "\n".join(L)
 
 
+def save_stages(ideas):
+    """스테이지 제작 툴의 제출(game 이 <id>_stage)을 stages/<id>/<시각>_<이름>.json 으로 꺼낸다."""
+    out = []
+    for d in sorted(ideas, key=_sort_key):
+        g = str(d.get("game") or "")
+        if not g.endswith("_stage"):
+            continue
+        try:
+            room = json.loads(str(d.get("text") or ""))
+        except ValueError:
+            continue
+        name = re.sub(r"[^0-9A-Za-z가-힣_-]+", "_", str(room.get("name") or "room"))[:30]
+        when = re.sub(r"[^0-9]", "", _when(d))[:12]
+        folder = os.path.join(ROOT, "stages", g[:-len("_stage")])
+        os.makedirs(folder, exist_ok=True)
+        path = os.path.join(folder, f"{when}_{name}.json")
+        with open(path, "w", encoding="utf-8", newline="\n") as f:
+            json.dump(room, f, ensure_ascii=False, indent=1)
+        out.append(os.path.relpath(path, ROOT).replace("\\", "/"))
+    return out
+
+
 def main():
     ratings = fetch_all("tofu_ratings")
     ideas = fetch_all("tofu_ideas")
-    md = build_md(ratings, ideas)
+    stages = save_stages(ideas)
+    md = build_md(ratings, [d for d in ideas if not str(d.get("game") or "").endswith("_stage")])
+    if stages:
+        md += "\n## 제출된 스테이지\n\n" + "\n".join(f"- {s}" for s in stages) + "\n"
     out = os.path.join(ROOT, "FEEDBACK.md")
     with open(out, "w", encoding="utf-8", newline="\n") as f:
         f.write(md)
