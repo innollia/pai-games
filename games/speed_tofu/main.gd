@@ -2,41 +2,45 @@ extends Node
 ## speed 두부게임 메뉴. 게임 하나 = g/<id>.gd (Tofu 를 extends).
 
 const GAMES := [
-	["quicksilver", "★ 퀵실버 시티"],
-	["synapse", "★ 시냅스 특급"],
+	# 합격 (10/30 판정)
 	["blade", "★ 일격의 길"],
 	["boulder", "★ 굴러라 신전석"],
-	["hot", "★ 나만 빠르다 (1인칭)"],
-	["hot_side", "★ 나만 빠르다 (옆모습)"],
 	["quicksilver_tp", "★ 퀵실버 (등뒤 3인칭)"],
-	["blade_fp", "★ 일격의 길 (어깨 너머)"],
 	["boulder_fp", "★ 신전석 (1인칭)"],
-	["coil_side", "★ 강철코일 (옆모습)"],
-	["speedcop", "★ 단속 경찰 (1인칭)"],
-	["speedthief", "★ 속도 도둑 (등뒤)"],
-	["trafficwizard", "★ 교통 마법사 (위에서)"],
 	["screenrace", "★ 화면 밖 경주 (옆모습)"],
-	["kitchen", "★ 주방 막내 (1인칭)"],
-	["coaster", "★ 코스터 정비공 (등뒤)"],
-	["pitcrew", "★ 피트 크루 (위에서)"],
 	["overpower", "★ 과속 플랫포머 (옆모습)"],
-	["overpower_3d", "★ 과속 플랫포머 (3D)"],
-	["piton", "◆ 못 연쇄 등반 (옆모습)"],
-	["predict", "◆ 예측 회피 (위에서)"],
-	["onedot", "◆ 점 하나 핀볼 (정면)"],
-	["icecream", "◆ 아이스크림 vs 띵 (1인칭)"],
-	["lickghost", "◆ 귀신 핥기 (등뒤)"],
-	["wombat_fast", "◇ 모사리나 × 폭주 도구 (옆모습)"],
-	["wombat_dial", "◇ 모사리나 × 속도 다이얼 (위에서)"],
-	["rain_slow", "◇ 레인월드 × 느림 (옆모습)"],
-	["rain_flee", "◇ 레인월드 × 비 질주 (등뒤)"],
-	["coming_top", "◇ 그가 온다 × 다급함 (위에서)"],
-	["coming_fp", "◇ 그가 온다 × 늦추기 (1인칭)"],
-	["deepsword", "◇ 깊은 검 × 빠르면 고통 (옆모습)"],
-	["deepsword_3d", "◇ 깊은 검 × 폭주 (등뒤)"],
+	["rain_slow", "★ 레인월드 × 느림 (옆모습)"],
+	["coming_fp", "★ 그가 온다 × 늦추기 (1인칭)"],
+	["deepsword", "★ 깊은 검 × 빠르면 고통 (옆모습)"],
 	["bigball", "큰 공 굴리기 (강철코일)"],
-	["sword", "빠른 검술"],
+]
+# 탈락 (보존). 메뉴의 "탈락 게임 모음" 폴더 안에서만 보인다
+const DROPPED := [
+	["quicksilver", "퀵실버 시티"],
+	["synapse", "시냅스 특급"],
+	["hot", "나만 빠르다 (1인칭)"],
+	["hot_side", "나만 빠르다 (옆모습)"],
+	["blade_fp", "일격의 길 (어깨 너머)"],
+	["coil_side", "강철코일 (옆모습)"],
+	["speedcop", "단속 경찰 (1인칭)"],
+	["speedthief", "속도 도둑 (등뒤)"],
+	["trafficwizard", "교통 마법사 (위에서)"],
+	["kitchen", "주방 막내 (1인칭)"],
+	["coaster", "코스터 정비공 (등뒤)"],
+	["pitcrew", "피트 크루 (위에서)"],
+	["overpower_3d", "과속 플랫포머 (3D)"],
+	["piton", "못 연쇄 등반 (옆모습)"],
+	["predict", "예측 회피 (위에서)"],
+	["onedot", "점 하나 핀볼 (정면)"],
+	["icecream", "아이스크림 vs 띵 (1인칭)"],
+	["lickghost", "귀신 핥기 (등뒤)"],
+	["wombat_fast", "모사리나 × 폭주 도구 (옆모습)"],
+	["wombat_dial", "모사리나 × 속도 다이얼 (위에서)"],
+	["rain_flee", "레인월드 × 비 질주 (등뒤)"],
+	["coming_top", "그가 온다 × 다급함 (위에서)"],
+	["deepsword_3d", "깊은 검 × 폭주 (등뒤)"],
 	["nerve", "도약 전도"],
+	["sword", "빠른 검술"],
 	["superhot", "내가 움직일 때만"],
 	["onlyfast", "나만 빠르다"],
 	["hotpack", "핫팩 몰래 넣기"],
@@ -45,6 +49,8 @@ const GAMES := [
 	["slowbike", "느린 자전거 경주"],
 	["matchspeed", "속도 맞춰 건너기"],
 ]
+const FOLDER := "__dropped"
+const UP := "__up"
 const INK := Color("3a2a1a")
 
 const DRAG := 15.0  # 이보다 많이 끌면 넘기기, 아니면 탭
@@ -52,6 +58,7 @@ const DRAG := 15.0  # 이보다 많이 끌면 넘기기, 아니면 탭
 var menu: Control
 var game: Tofu
 var scroll: ScrollContainer
+var list: VBoxContainer
 var buttons: Array[Button] = []
 var press_at := Vector2.ZERO
 var press_scroll := 0
@@ -94,17 +101,32 @@ func _ready() -> void:
 	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
 	scroll.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	menu.add_child(scroll)
-	var list := VBoxContainer.new()
+	list = VBoxContainer.new()
 	list.custom_minimum_size = Vector2(600, 0)
 	list.add_theme_constant_override("separation", 12)
 	scroll.add_child(list)
+	_fill(false)
+
+
+## 목록을 채운다. dropped 면 탈락 게임 모음 폴더 안
+func _fill(dropped: bool) -> void:
+	for c in list.get_children():
+		c.queue_free()
+	buttons.clear()
 	var title := Label.new()
-	title.text = "SPEED 두부"
+	title.text = "탈락 게임 모음" if dropped else "SPEED 두부"
 	title.add_theme_color_override("font_color", INK)
 	title.add_theme_font_size_override("font_size", 72)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	list.add_child(title)
-	for g in GAMES:
+	var rows: Array = []
+	if dropped:
+		rows.append([UP, "◀ 돌아가기"])
+		rows.append_array(DROPPED)
+	else:
+		rows.append_array(GAMES)
+		rows.append([FOLDER, "▶ 탈락 게임 모음 (%d)" % DROPPED.size()])
+	for g in rows:
 		var b := Button.new()
 		b.text = g[1]
 		b.custom_minimum_size = Vector2(600, 92)
@@ -112,6 +134,7 @@ func _ready() -> void:
 		b.set_meta("id", g[0])
 		list.add_child(b)
 		buttons.append(b)
+	scroll.scroll_vertical = 0
 
 
 func _input(event: InputEvent) -> void:
@@ -173,6 +196,9 @@ func _wake() -> void:
 
 
 func _open(id: String) -> void:
+	if id == FOLDER or id == UP:
+		_fill(id == FOLDER)
+		return
 	menu.visible = false
 	game = load("res://g/%s.gd" % id).new()
 	game.process_mode = Node.PROCESS_MODE_PAUSABLE
