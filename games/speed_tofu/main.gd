@@ -5,6 +5,7 @@ const GAMES := [
 	# ● 제출준비작 (v5를 넘긴 게임: 아트 스타일 확정 + Codex 담당)
 	["boulder", "● 굴러라 신전석"],
 	["screenrace", "● 화면 밖 경주 (옆모습)"],
+	["tinyplanet", "● 작은 행성 (우주)"],
 	# 합격 (10/30 판정)
 	["overpower", "★ 과속 플랫포머 (옆모습)"],
 	["overpower_edit", "▶ 스테이지 제작 (PC)"],
@@ -12,7 +13,6 @@ const GAMES := [
 	["quicksilver_fp", "◇ 퀵실버 (1인칭)"],
 	["screenrace_over", "◇ 화면 밖 경주 × 과속"],
 	# 메모 2차 7 (설계서 먼저 쓰고 첫 조각만 구현)
-	["tinyplanet", "◆ 작은 행성 (등뒤)"],
 	# 3세대 (유전 알고리즘: 평가 적합도 + Codex 아이디어 + 교배)
 	["scale_prison", "▲ 저울 감옥 (옆모습)"],
 	["compress", "▲ 압축 스프링 (옆모습)"],
@@ -101,7 +101,7 @@ const FOLDER := "__dropped"  # 1차 폐기 폴더
 const FOLDER2 := "__dropped2"  # 2차 폐기 폴더
 const FOLDER3 := "__hold"  # 보류 폴더
 # 제출준비작이 단독 프로젝트로 나가면 메뉴는 그 단독판 주소로 보낸다(웹에서만). 전담 세션이 여기에 한 줄 추가한다
-const STANDALONE := {"boulder": "../../shrine_stone/web/?from=tofu", "screenrace": "../../off_screen/web/?from=tofu"}
+const STANDALONE := {"boulder": "../../shrine_stone/web/?from=tofu", "screenrace": "../../off_screen/web/?from=tofu", "tinyplanet": "../../tiny_planet/web/?from=tofu"}
 const UP := "__up"
 const IDEA := "__idea"  # 맨 아래 "아이디어 제출하기" -> window.prompt -> Firestore tofu_ideas (tools/tofu_fb.js)
 const INK := Color("3a2a1a")
