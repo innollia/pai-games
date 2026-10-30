@@ -355,7 +355,9 @@ func _race(dt: float) -> void:
 	for r in runners:
 		if not r.alive:
 			continue
-		if r.p.x + HW < left or r.p.y < kill_y or r.p.y < camy - vhv - 1.0:
+		# 화면 왼쪽 밖 탈락은 나만. 상대는 구덩이로만 죽고, 뒤처지면 화면 밖에서 따라붙는다
+		# (전에는 대시로 앞서면 상대 셋이 다 밀려나 4초 만에 트랙이 끝났다)
+		if r.p.y < kill_y or (r == pl and (r.p.x + HW < left or r.p.y < camy - vhv - 1.0)):
 			_out(r)
 	if not pl.alive:
 		msg("밀려났다", 1.6)
@@ -458,6 +460,10 @@ func _runner(r: Runner, dt: float) -> void:
 			beep(500.0, 0.12, 900.0, 0.2)
 	var normal := r.ai or heavy
 	var top := RUN_N * r.skill if r.ai else (RUN_N if heavy else RUN_ME)
+	if r.ai and r.p.x < camx - hwv:
+		# 화면 왼쪽 밖으로 밀린 상대는 보이지 않는 동안 최대 2배로 따라붙는다(화면 안에서는 평범하게 뛴다).
+		# 내가 대시로 앞서도 상대가 사라지지 않고, 내가 천장·벽에 박혀 멈추는 순간 다시 나타나 추월한다
+		top *= 1.0 + clampf((camx - hwv - r.p.x) / 8.0, 0.0, 1.0)
 	var mx := r.mx
 	if r.stun > 0.0:
 		r.stun -= dt

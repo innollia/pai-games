@@ -275,7 +275,7 @@ func _step(dt: float) -> void:
 			beep(clampf(200.0 + v * 6.0, 200.0, 500.0), 0.1, 120.0, 0.18)
 	if kit_move.y < -0.4 and v < 10.0:
 		acc += PUSH
-	v = maxf(0.0, v + acc * dt)
+	v = clampf(v + acc * dt, 0.0, VMAX)
 	dist += v * dt
 	# 방향: 빠를수록·무거울수록 안 돈다
 	xpos += kit_move.x * 10.0 / (1.0 + v / 14.0) / rt * dt
@@ -303,7 +303,8 @@ func _step(dt: float) -> void:
 	if stagger > 0.0:
 		stagger -= dt
 	else:
-		hd += HV[sec] * dt
+		# 그는 내 속도에 맞춰 달린다: 멀면 더 빨리, 가까우면 내 속도 근처. 내가 느려지는 순간(세우기·쿵·평지)만 가까워진다
+		hd += maxf(HV[sec], v + (dist - hd - 20.0) * 0.15) * dt
 	hx = move_toward(hx, xpos, 6.0 * dt)
 	var gap := dist - hd
 	thump -= dt
@@ -391,7 +392,7 @@ func _drop() -> void:
 		msg("줄 없음", 0.5)
 		return
 	pick.state = 1
-	pick.v = 16.0
+	pick.v = maxf(16.0, v + 10.0)  # 떨어지며 속도가 붙는다: 내 뒤의 그를 따라잡고, 곧 나까지 따라잡는다
 	pick.x = pick.side * _hw(pick.d) * 0.5
 	beep(90.0, 0.35, 40.0, 0.4)
 	msg("굴러온다!", 0.8)

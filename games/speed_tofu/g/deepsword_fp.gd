@@ -43,6 +43,7 @@ var on_ground := false
 var rest := false  # 바닥에 서 있는 상태(여기서 밀려 박히는 건 약하게)
 var body_rot := 0.0  # 축을 돌며 쌓인 몸의 기울기(시야 피치)
 var plant_t := 0.0
+var free_t := 0.0  # 넘기로 빠진 직후 다시 안 박히는 시간
 var die_t := 0.0
 var clear_t := 0.0
 var swing_t := 0.0
@@ -52,6 +53,12 @@ var clock := 0.0
 var sword: Node3D
 var blade: MeshInstance3D
 var heart_m: MeshInstance3D
+# 용암 밀물: 통로 전체 바닥 아래에서 차오른다. 서 있기만 하면 죽는다. 턱 위가 잠깐의 피난처
+const TIDE0 := -2.6
+var tide_y := TIDE0
+var tide_rate := 0.1  # m/s, 통로 길이에 맞춰 _build 에서 정한다(평균 2 m/s 로 가야 심장에 닿음)
+var tide_m: MeshInstance3D
+var tide_beep_t := 0.0
 
 
 func _setup() -> void:
@@ -59,7 +66,7 @@ func _setup() -> void:
 	cam.fov = 72.0
 	kit_stick()
 	kit_lookpad()
-	howto = "오른쪽을 위아래로 끌어 칼을 들고 내린다. 왼쪽 조이스틱으로 걷는다.\n칼을 빠르게 내리꽂으면 바닥·턱에 박히고 그 점을 축으로 몸이 넘어간다. 빨리 돌릴수록 멀리 난다.\n통로 끝 빨간 심장에 칼끝을 대면 칼이 1.5배 길어지고 다음 통로는 더 좁다.\n용암에 빠지거나 너무 빠르게 벽·바닥에 박히면 죽는다(목숨 3)."
+	howto = "오른쪽을 위아래로 끌어 칼을 들고 내린다. 왼쪽 조이스틱으로 걷는다.\n칼을 빠르게 내리꽂으면 바닥·턱에 박히고 그 점을 축으로 몸이 넘어간다. 빨리 돌릴수록 멀리 난다.\n통로 끝 빨간 심장에 칼끝을 대면 칼이 1.5배 길어지고 다음 통로는 더 좁다.\n용암에 빠지거나 너무 빠르게 벽·바닥에 박히면 죽는다(목숨 3).\n바닥 밑에서 용암이 차오른다. 서 있으면 죽는다. 턱 위는 잠깐 안전."
 
 
 func _reset() -> void:
@@ -84,8 +91,10 @@ func _build(s: int) -> void:
 	lavas.clear()
 	slen = L0 * pow(1.5, s)
 	ch = maxf(5.0, slen * 1.3 + 2.0)
-	var n := mini(4 + s, 8)
+	var n := mini(3 + s, 8)
 	seglen = n * SEG + 8.0
+	tide_rate = (0.0 - TIDE0) / (seglen / 2.0)  # 바닥까지 차는 데 통로길이/2 초
+	tide_m = box(Vector3(0, -3.0, -(seglen - 3.0) * 0.5), Vector3(TW - 0.1, 0.01, seglen + 4.0), A, stage_n)
 	var pw := 2.0 + 0.4 * s  # 구덩이 너비
 	var hang := ch * 0.3
 	# 옆벽(그림만)
@@ -143,6 +152,8 @@ func _spawn() -> void:
 	die_t = 0.0
 	clear_t = 0.0
 	shake = 0.0
+	tide_y = TIDE0
+	tide_beep_t = 0.0
 	_view(0.0)
 
 
@@ -175,6 +186,7 @@ func _step(dt: float) -> void:
 		w_in *= exp(-10.0 * h)
 	dth = 0.0
 	plant_t -= h
+	free_t -= h
 	var was_g := on_ground
 	if planted:
 		_planted(h)
@@ -193,6 +205,14 @@ func _step(dt: float) -> void:
 		swing_t = 0.1
 		beep(250.0 + om * 35.0, 0.03, 0.0, 0.1)
 	score = stg * 10 + clampi(int((pos.x - 3.0) / SEG) + 1, 0, 9)
+	# 용암 밀물: 발밑 1m 안으로 오면 박자가 빨라지는 경고음
+	tide_y += tide_rate * dt
+	var gap := pos.y - HALF.y - tide_y
+	if gap < 1.0:
+		tide_beep_t -= dt
+		if tide_beep_t <= 0.0:
+			tide_beep_t = clampf(gap * 0.5, 0.12, 0.5)
+			beep(140.0, 0.08, 60.0, 0.25)
 	_hazards()
 	_view(dt)
 
@@ -222,8 +242,13 @@ func _planted(h: float) -> void:
 		w_g = 0.0
 		_kick()
 		return
-	if (p2 - pivot).dot(pnorm) < 0.15 * pd:
+	# 축 바로 위를 넘어가면 칼이 빠진다(장대 넘기). 바닥에 박았을 때도 앞으로 날아가게 한다
+	var a := wrapf(phi - PI * 0.5, -PI, PI)
+	var b := wrapf(phi2 - PI * 0.5, -PI, PI)
+	var over_top := pnorm.y > 0.5 and a * b <= 0.0 and absf(a - b) < 1.0
+	if over_top or (p2 - pivot).dot(pnorm) < 0.15 * pd:
 		planted = false
+		free_t = 0.3
 		vel = tang * om * pd
 		w_g = 0.0
 		pos = p2
@@ -276,6 +301,8 @@ func _free(h: float) -> void:
 		var lo := -asin(minf(HALF.y / slen, 1.0))
 		if th < lo and th > -PI * 0.5:
 			th = lo
+	if free_t > 0.0:
+		return  # 장대 넘기로 막 빠진 칼은 잠깐 다시 안 박힌다(바로 옆 바닥에 연쇄로 박히는 것 막기)
 	var tip := pos + Vector2(cos(th), sin(th)) * slen
 	var r := _wall_at(tip)
 	if r.size.x > 0.0:
@@ -390,6 +417,9 @@ func _hazards() -> void:
 	if pos.y < -6.0:
 		_die("추락")
 		return
+	if pos.y - HALF.y < tide_y:
+		_die("용암이 차올랐다!")
+		return
 	var tip := pos + Vector2(cos(th), sin(th)) * slen
 	if heart.grow(0.2).has_point(tip):
 		_clear()
@@ -425,6 +455,8 @@ func _view(dt: float) -> void:
 	sword.rotation = Vector3(th, 0, 0)
 	var pulse := 1.2 + sin(clock * 6.0) * 0.1
 	heart_m.scale = Vector3(1.4, pulse, pulse)
+	tide_m.position.y = (tide_y - 3.0) * 0.5
+	tide_m.scale.y = maxf(tide_y + 3.0, 0.01)
 	var sp := absf(w_in + w_g) * pd if planted else vel.length()
 	shake = maxf(shake - dt * 1.5, 0.0)
 	var off := Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * shake * 0.06

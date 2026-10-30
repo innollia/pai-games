@@ -203,7 +203,8 @@ func _build() -> void:
 	ramps.clear()
 	var d := 0.0
 	var h := 80.0
-	K.append([-12.0, h, hw])
+	# 출발 구간도 내리막: 평지면 출발 속도(12)가 산사태(18~26)보다 느려 첫 비탈 전에 모두 묻힌다
+	K.append([-12.0, h + 36.0 * 0.16, hw])
 	K.append([24.0, h, hw])
 	d = 24.0
 	for i in int(cfg.n):
@@ -321,7 +322,7 @@ func _start() -> void:
 		st.xg = st.x
 		st.y = _h(st.d)
 		st.vy = 0.0
-		st.v = 12.0
+		st.v = 16.0
 		st.on = true
 		st.last_g = st.y
 		st.alive = true

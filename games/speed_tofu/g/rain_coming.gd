@@ -1,12 +1,13 @@
 extends Tofu
 ## 레인월드 느림 × 그가 온다, 3인칭 등뒤. 스틱 살짝 = 기어감(조용해서 사냥감 옆까지 갈 수 있다), 끝까지 = 뜀(빠르지만 사냥감이 도망간다).
 ## 낮: 노란 열매를 줍고 기어서 주황 사냥감을 잡는다(먹은 수 = 속도 스탯). 그의 길 옆 재료를 주워 길에 말뚝을 박으면 그가 느려진다.
-## 해 지면 그가 뛰어오고 비가 온다(바닥이 미끄러워 뛰면 멈추지 못한다). 셸터 문은 밤에만 열린다(먹은 게 2개 이상일 때). 먼저 들어가면 사이클 끝, 잡히면 자동전투(빠른 쪽이 먼저, 속도 차만큼 더 친다). 지면 죽음. 사이클마다 그가 빨라진다.
+## 해 지면 그가 뛰어오고 비가 온다(바닥이 미끄러워 뛰면 멈추지 못한다). 셸터는 해 질 때 그의 길 반대쪽에 나타나고 문은 밤에만 열린다(먹은 게 2개 이상일 때). 먼저 들어가면 사이클 끝, 잡히면 자동전투(빠른 쪽이 먼저, 속도 차만큼 더 친다). 지면 죽음. 사이클마다 그가 빨라지고 셸터가 멀어진다.
+## 검사 수정(2세대 검사): 낮에 셸터가 보이면 "열매 2개 줍고 문 앞에서 대기"로 밤·비·그가 전부 무의미해졌다(봇 6사이클 무사). 셸터를 해 질 때 드러내 밤의 질주가 실제로 일어나게 했다. 또 열매 3개만으로 영원히 충분해 사냥(기기)이 쓸모없었으므로 필요 먹이를 사이클마다 늘렸다.
 
 const FIELD := 30.0
 const DAY := 34.0
 const FAR := 46.0
-const NEED := 2
+const NEED := 2  # 첫 사이클에 먹어야 하는 수. 사이클마다 2번에 1씩 는다(열매 3개로는 모자라 기어서 사냥해야 한다)
 const CRAWL := 1.6
 const RUN := 5.6
 const STAKE_R := 3.0
@@ -31,6 +32,7 @@ var day_t := 0.0
 var night := false
 var done_t := 0.0
 var eaten := 0
+var need := NEED
 var carry := 0
 var label := ""
 var hungry_t := 0.0
@@ -56,6 +58,7 @@ var thump := 0.0
 # 세계
 var door_p := Vector3.ZERO
 var door: MeshInstance3D
+var hut: MeshInstance3D
 var fruits: Array[Dictionary] = []  # {n, p, got}
 var preys: Array[Prey] = []
 var logs: Array[MeshInstance3D] = []
@@ -80,7 +83,7 @@ var bhim: MeshInstance3D
 func _setup() -> void:
 	time_limit = 0.0
 	cam.fov = 70.0
-	howto = "스틱을 살짝 기울이면 기어간다. 끝까지 기울이면 뛴다(빠르지만 주황 사냥감이 도망간다).\n낮: 노란 열매를 줍고, 기어가서 사냥감을 잡아라. 먹은 수가 곧 내 속도다. 그의 길 옆 재료를 주워 길에 말뚝을 박으면 그가 느려진다.\n해 지면 그가 뛰어오고 비가 온다(미끄럽다). 셸터 문은 밤에만, 2개 이상 먹었을 때 열린다.\n잡히면 자동전투: 빠른 쪽이 먼저 친다. 지면 죽는다."
+	howto = "스틱을 살짝 기울이면 기어간다. 끝까지 기울이면 뛴다(빠르지만 주황 사냥감이 도망간다).\n낮: 노란 열매를 줍고, 기어가서 사냥감을 잡아라. 먹은 수가 곧 내 속도다. 그의 길 옆 재료를 주워 길에 말뚝을 박으면 그가 느려진다.\n해 지면 그가 뛰어오고 비가 온다(미끄럽다). 셸터는 그때 그의 길 반대쪽에 나타난다. 먹이가 모자라면 문이 안 열린다(사이클마다 더 필요).\n잡히면 자동전투: 빠른 쪽이 먼저 친다. 지면 죽는다."
 	kit_stick()
 	kit_button("act", "줍기", Vector2(590, 1060), 100.0, A)
 	bme = box(Vector3(-0.7, -0.15, -2.4), Vector3(0.6, 0.9, 0.6), ME, cam)
@@ -133,15 +136,17 @@ func _region() -> void:
 	var road := box(path_u * FAR * 0.5 + Vector3(0, 0.03, 0), Vector3(1.8, 0.05, FAR), SOFT.darkened(0.12), level)
 	road.rotation.y = atan2(path_u.x, path_u.z)
 	var side := Vector3(-path_u.z, 0, path_u.x)
-	# 셸터: 길의 반대쪽
+	# 셸터: 길의 반대쪽. 해 질 때 나타난다(낮에 보이면 문 앞 대기가 정답이 돼 밤이 무의미해진다)
 	var sa := a0 + PI + rng.randf_range(-0.9, 0.9)
-	var sd := 14.0 + cyc * 2.0
+	var sd := minf(14.0 + cyc * 2.0, FIELD - 4.0)
 	var sp := Vector3(cos(sa) * sd, 0, sin(sa) * sd)
-	box(sp + Vector3(0, 1.6, 0), Vector3(4.0, 3.2, 4.0), SOFT, level)
+	hut = box(sp + Vector3(0, 1.6, 0), Vector3(4.0, 3.2, 4.0), SOFT, level)
 	var to_c := -sp.normalized()
 	door_p = sp + to_c * 2.1
 	door = box(door_p + Vector3(0, 0.9, 0), Vector3(1.4, 1.8, 0.3), BAD, level)
 	door.rotation.y = atan2(to_c.x, to_c.z)
+	hut.visible = false
+	door.visible = false
 	# 열매
 	for i in 3:
 		var p := _spot(6.0, FIELD - 3.0)
@@ -198,7 +203,8 @@ func _region() -> void:
 	h_spd = 1 + cyc
 	h_hp = 5 + cyc * 3
 	_button("줍기")
-	msg("사이클 %d" % (cyc + 1), 1.2)
+	need = NEED + cyc / 2
+	msg("사이클 %d · 먹이 %d" % [cyc + 1, need], 1.4)
 	beep(440.0, 0.2, 660.0, 0.25)
 
 
@@ -230,7 +236,9 @@ func _step(dt: float) -> void:
 		gauge(day_t / DAY, D)
 		if day_t <= 0.0:
 			night = true
-			msg("그가 뛴다!", 1.5)
+			hut.visible = true
+			door.visible = true
+			msg("그가 뛴다! 셸터로", 1.5)
 			beep(200.0, 0.5, 80.0, 0.35)
 	_me(dt)
 	_preys(dt)
@@ -306,7 +314,7 @@ func _me(dt: float) -> void:
 				hungry_t = 1.2
 				msg("아직 낮", 0.6)
 				beep(260.0, 0.08, 0.0, 0.15)
-		elif eaten < NEED:
+		elif eaten < need:
 			hungry_t -= dt
 			if hungry_t <= 0.0:
 				hungry_t = 1.0
@@ -337,8 +345,8 @@ func _near_log() -> int:
 func _eat(what: String) -> void:
 	eaten += 1
 	play("good")
-	msg("%s · 속도 %d" % [what, eaten], 0.8)
-	door.material_override = mat(GOOD if eaten >= NEED else BAD)
+	msg("%s · 속도 %d/%d" % [what, eaten, need], 0.8)
+	door.material_override = mat(GOOD if eaten >= need else BAD)
 
 
 ## 사냥감: 어슬렁거리다 내가 뛰며 다가오면 도망, 기어서 붙으면 잡힌다

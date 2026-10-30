@@ -92,6 +92,8 @@ Mosa Lina · Rain World · He Is Coming · Deepest Sword의 실제 문법에 속
 | coming_boulder | ● 그가 온다 × 신전석 (등뒤) | 돌 타고 내리막, 뒤에서 그가 뛰어온다. 걸린 돌을 떨어뜨려 늦춘다 |
 | blade_run | ● 일격의 길 × 화면 밖 경주 | 달리면서 결투. 맞으면 속도가 꺾여 화면 밖으로 밀린다. 간파하면 앞선다 |
 
+2세대 15개는 만든 뒤 [REVIEW_G2.md](REVIEW_G2.md)의 제작자 검사(kill criteria + 봇 플레이)를 거쳤다. 15개 중 9개가 수정 전엔 깨져 있었다(무입력 생존, 1단계 불가, 위협이 작동 안 함 등). 방법론은 [slapjam2/docs/METHODS.md](../slapjam2/docs/METHODS.md).
+
 ## 구조
 
 - `tofu.gd`: 공통(상자, 카메라, 점수·시간·최고점, 다시하기, 소리, 입력). 게임은 `g/<id>.gd` 하나로 `Tofu`를 extends 한다.

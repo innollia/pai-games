@@ -15,7 +15,7 @@ const SNAP_REAL := 1.4
 const CLOCK := 10.0
 const ALLOW := 1
 const TOP := 9.0  # 내 최고 속도 m/s
-const COST := 1.25  # 1m 달릴 때 닳는 속도력
+const COST := 1.0  # 1m 달릴 때 닳는 속도력 (1.25였을 때는 첫 방에서 5명 구할 최단 경로 65m가 예산 80m에 안 들어가 2단계에 못 갔다)
 const ROOM_NAME := ["건물 폭발", "지하철 승강장", "무너지는 다리"]
 const ROOM_PW := [1.0, 1.35, 1.7]
 const UP_NAME := ["업기+1", "속도력+", "절약", "내열"]
@@ -250,8 +250,11 @@ func _room_office() -> void:
 		else:
 			aim = ex + Vector2.from_angle(rng.randf_range(0.0, PI)) * 5.0
 		var dir := (aim - ex).normalized()
-		var s := rng.randf_range(0.9, 1.4)
-		_chunk(Vector3(ex.x + dir.x * 1.3, rng.randf_range(0.8, 1.7), ex.y + dir.y * 1.3), Vector3(dir.x * s, 0, dir.y * s))
+		# 사람을 노리는 조각은 폭심에서 느리게 출발한다: 불이 먼저 닿는 순서가 곧 구출 순서가 되고,
+		# 조각은 보고 쳐낼 수 있는 위협으로 남는다 (전에는 가장 가까운 사람이 0.5초 만에 맞아 손쓸 수 없었다)
+		var s := rng.randf_range(0.55, 0.75) if k < n_ppl else rng.randf_range(0.9, 1.4)
+		var off := 0.0 if k < n_ppl else 1.3
+		_chunk(Vector3(ex.x + dir.x * off, rng.randf_range(0.8, 1.7), ex.y + dir.y * off), Vector3(dir.x * s, 0, dir.y * s))
 	fb[0].material_override = mat(D)
 	fb[1].material_override = mat(A)
 	fb[2].material_override = mat(A)

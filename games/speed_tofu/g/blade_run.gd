@@ -1,7 +1,7 @@
 extends Tofu
 ## 달리는 결투 (일격의 길 × 화면 밖 경주, 옆모습): 검객과 나란히 오른쪽으로 달리며 싸운다. 카메라는 앞선 쪽을 따라간다.
 ## 빨간 쪽으로 밀면 막고, 초록 쪽으로 밀면 벤다. 위로 밀면 뛴다(높은 공격 막기와 같은 손짓). 맞으면 속도가 확 꺾여 뒤처진다.
-## 뒤처져 화면 왼쪽 밖으로 밀리면 죽음. 끝까지 기다렸다 막으면 간파: 상대가 비틀거려 느려지고 내가 앞선다. 느리면 장애물에 걸리고 틈에 빠진다.
+## 화면은 스스로 앞으로 달린다(경주). 뒤처져 화면 왼쪽 밖으로 밀리면 죽음. 끝까지 기다렸다 막으면 간파: 상대가 비틀거려 느려지고 내가 앞선다. 느리면 장애물에 걸리고 틈에 빠진다.
 ## 검객 3명 × 트랙 3개(들판 → 다리 → 지붕). 여섯 번 베면 다음 트랙. 내가 앞서면 화면이 나한테 쏠려 앞이 거의 안 보인다.
 
 const SWIPE := 60.0
@@ -16,6 +16,7 @@ const CAM_D := 20.0
 const WIDE := 12.0
 const NARROW := 7.5
 const TRACK_LEN := 1500.0
+const PACE := [8.8, 9.2, 9.6]  # 화면이 스스로 달리는 속도 (내 최고 10보다 조금 느려, 맞아서 잃은 거리만 천천히 되찾는다)
 const OFF := [Vector2(-1.4, 0.7), Vector2(1.4, 0.7), Vector2(0, 2.3), Vector2(0, -0.25)]
 const OPP := [1, 0, 3, 2]
 ## 내 칼 자세 (내 몸 기준): 위치, z 회전 (왼·오·위·아래)
@@ -84,6 +85,7 @@ var f_g := 0
 var slow_t := 0.0  # 간파로 비틀거리는 시간
 var lean := 0.0
 var camx := 0.0
+var pace := 0.0  # 화면 경주선: 나·검객·이 선 중 가장 앞선 것을 카메라가 따라간다
 var hwv := WIDE
 var lead_t := 0.0
 var rt := 0.0
@@ -145,6 +147,7 @@ func _reset() -> void:
 	slow_t = 0.0
 	lean = 0.0
 	camx = 0.0
+	pace = -8.0
 	hwv = WIDE
 	lead_t = 0.0
 	rt = 0.0
@@ -327,14 +330,18 @@ func _run(dt: float) -> void:
 	# 내 몸: 최고 속도로 돌아가려 한다 (맞고 비틀거리는 동안은 못 밟는다)
 	if fs != 3:
 		my_v = move_toward(my_v, MY_TOP, ACC * dt)
-	# 검객: 뒤에 있으면 전력으로 쫓고, 앞에 있으면 나보다 조금 느리게 뛰며 기다린다. 칼 거리 안에선 반 발 앞에서 민다.
+	# 검객: 내가 앞서면 전력으로 쫓고(나보다 확실히 빠르게), 저만치 앞에 있으면 나보다 조금 느리게 뛰며 기다린다.
+	# 칼 거리 안에선 내 속도에 맞춰 반 발 앞에서 민다. 내가 맞아 느려져도 떨어지지 않고 붙어서 계속 친다.
 	var ftop: float = FOE[stage][0]
 	var jog := minf(ftop * 0.85, MY_TOP - 1.5)
 	var dx := fx - my_x
-	if dx > RANGE:
+	if dx > RANGE * 1.5:
 		ftop = jog
 	elif dx > -RANGE:
-		ftop = maxf(my_v + 0.4, jog)
+		ftop = my_v + (0.4 if dx < 1.5 else -1.0)  # 반 발 앞을 지킨다: 멀어졌으면 늦춰서 다시 칼 거리로
+	else:
+		ftop = maxf(ftop, my_v + 4.0)
+	pace = maxf(pace + PACE[stage] * dt, my_x - hwv)  # 한 화면보다 더 뒤로는 안 처진다
 	if slow_t > 0.0:
 		slow_t -= dt
 		ftop *= 0.25
@@ -484,6 +491,7 @@ func _hurt() -> void:
 	msg("맞음", 0.4)
 	my_v *= 0.25
 	my_x -= 0.8
+	fv = minf(fv, my_v + 1.0)  # 친 쪽도 멈춰 서서 내 위에 붙는다 (떨어져 나가지 않고 바로 다음 공격)
 	sw.material_override = mat(BAD)
 	hurt_t = 0.3
 	shk = 0.5
@@ -512,7 +520,7 @@ func _swing(d: int) -> void:
 			else:
 				_hurt()
 		2:
-			if d == odir and _near():
+			if d == odir and absf(fx - my_x) < RANGE * 2.5:  # 빈틈엔 몸을 던져 닿는다 (간파로 앞질러도 벨 수 있게)
 				_cut()
 				msg("베기!", 0.35)
 			else:
@@ -608,9 +616,9 @@ func _die(why: String) -> void:
 func _camera(dt: float) -> void:
 	var vs := get_viewport().get_visible_rect().size
 	var asp := vs.y / maxf(vs.x, 1.0)
-	var lead_x := maxf(my_x, fx)
+	var lead_x := maxf(maxf(my_x, fx), pace)
 	var off := 0.16
-	if my_x > fx:
+	if my_x > fx and my_x >= pace:
 		off = lerpf(0.16, 0.74, clampf(lead_t / 1.5, 0.0, 1.0))
 	if mode == "fall":
 		lead_x = my_x

@@ -90,7 +90,7 @@ var armed := false
 
 
 func _setup() -> void:
-	howto = "검객이 눈앞에 있다. 빨간 쪽으로 밀면 막고, 초록 쪽으로 밀면 벤다.\n끝까지 기다렸다 막으면 간파(세상이 느려지고 시야가 좁아진다).\n검객마다 빠르기가 다르다. 세 번 맞으면 그 도장 처음부터."
+	howto = "검객이 눈앞에 있다. 빨간 쪽으로 밀면 막고, 초록 쪽으로 밀면 벤다.\n일찍 막으면 밀려날 뿐. 칼이 닿기 직전에 막아야 간파(세상이 느려지고 빈틈이 열린다).\n검객마다 빠르기가 다르다. 세 번 맞으면 그 도장 처음부터."
 	time_limit = 0.0
 	stage = 0
 	has_counter = false
@@ -445,9 +445,15 @@ func _parry(perfect: bool) -> void:
 		return
 	ci = (ci + 1) % combos.size()
 	mi = 0
+	if not perfect:
+		# 일찍 막으면 밀려날 뿐 빈틈이 안 생긴다. 끝까지 기다린 간파만 길을 연다 (속도의 대가)
+		msg("밀림", 0.5)
+		beep(330.0, 0.12, 180.0, 0.18)
+		_rest(0.25)
+		return
 	fs = 2
 	fs_t = 0.0
-	win = _pat()[1] * (1.8 if perfect else 1.0)
+	win = _pat()[1] * 1.8
 	odir = OPP[rdir]
 	_show(odir, GOOD)
 

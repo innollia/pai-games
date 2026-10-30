@@ -518,6 +518,14 @@ func _noise(x: float, y: float, r: float) -> void:
 			lz.tt = 0.0
 
 
+## 눈높이 줄에서 두 x 사이에 벽이 없는가
+func _clear(x0: float, x1: float, yy: int) -> bool:
+	for c in range(floori(minf(x0, x1)), floori(maxf(x0, x1)) + 1):
+		if _solid(c, yy):
+			return false
+	return true
+
+
 func _lizards(dt: float) -> void:
 	var want := 0.0
 	for lz in lizards:
@@ -570,9 +578,9 @@ func _lizards(dt: float) -> void:
 						lz.tt = 0.0
 				else:
 					lz.tt = 0.0
-		# 눈: 앞쪽. 걷거나 서 있으면 코앞에서만, 바로 옆은 어디든. 다른 층은 안 보인다
+		# 눈: 앞쪽. 걷거나 서 있으면 코앞에서만, 바로 옆은 어디든. 다른 층은 안 보인다. 기둥 뒤는 안 보인다
 		if lz.st <= 1 and near:
-			var see := absf(dx) < 1.2 or (dx * lz.dir > 0.0 and absf(dx) < (3.0 if sneak else 9.0))
+			var see := absf(dx) < 1.2 or (dx * lz.dir > 0.0 and absf(dx) < (3.0 if sneak else 9.0) and _clear(lz.x, px, int(lz.y)))
 			if see:
 				lz.st = 2
 				lz.tt = 0.0

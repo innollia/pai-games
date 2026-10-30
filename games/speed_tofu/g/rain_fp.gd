@@ -154,7 +154,7 @@ func _region() -> void:
 	hungry_t = 0.0
 	done_t = 0.0
 	dead_t = 0.0
-	rain_max = maxf(40.0, 60.0 - cyc * 5.0)
+	rain_max = maxf(36.0, 50.0 - cyc * 4.0)  # 기어서만 가면 못 미친다: 어디서 뛸지 골라야 한다
 	rain_t = rain_max
 	warn = 99
 	hands.material_override = mat(ME)
@@ -343,10 +343,12 @@ func _lizards(dt: float) -> void:
 				if dist < 0.95:
 					_die("물렸다")
 					return
-				if dist > 18.0 or (hidden and dist > 6.0):
+				# 풀 속에 엎드려 3m 밖이면 놓친다: 들킨 뒤에도 '풀로 뛰어들기'가 남는다
+				if dist > 18.0 or (hidden and dist > 3.0):
 					lz.st = 1
 					lz.tgt = me
 					lz.tt = 0.0
+					msg("놓쳤다", 0.5)
 		# 눈: 앞쪽 부채꼴, 기면 가까이서만, 바로 옆은 어디든. 바위 뒤·풀 속은 안 보임
 		if lz.st != 2 and dist > 0.01:
 			var ahead := lz.dir.dot(to / dist) > 0.45

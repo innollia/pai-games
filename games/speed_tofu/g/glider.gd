@@ -121,7 +121,10 @@ func _canyon(i: int) -> void:
 			a = rng.randf_range(5.0, 9.0)
 			box(Vector3(c, a * 0.5, gz), Vector3(half_w * 2.0, a, 1.2), C, level)
 		else:
-			a = rng.randf_range(7.0, 12.0)
+			# 처마 높이는 그 자리의 활공선(출발 높이가 착륙장까지 줄어드는 선)에 맞춘다.
+			# 협곡 초입에 바닥 가까운 처마가 있으면 남은 길을 활공할 높이가 없어 2협곡부터 못 갔다.
+			var glide_y: float = start_h * (1.0 - float(k) / float(n_seg))
+			a = maxf(rng.randf_range(7.0, 12.0), glide_y * 0.65)
 			box(Vector3(c, (a + H) * 0.5, gz), Vector3(half_w * 2.0, H - a, 1.2), C, level)
 		gates.append({"z": gz, "kind": kind, "a": a})
 	# 상승기류 기둥 (틈 사이사이)
@@ -131,7 +134,7 @@ func _canyon(i: int) -> void:
 		var k := 2 + int((float(q) + 0.5) * float(n_seg - 6) / float(nt))
 		var tz := -(k + 0.5) * SEG + rng.randf_range(-3.0, 3.0)
 		var tx := cx[k] + rng.randf_range(-(half_w - 2.5), half_w - 2.5)
-		box(Vector3(tx, H * 0.5, tz), Vector3(2.4, H, 2.4), D, level)
+		box(Vector3(tx, H * 0.5, tz), Vector3(3.0, H, 3.0), D, level)
 		thermals.append(Vector2(tx, tz))
 	# 돌풍 토막 (떠다니는 보라 조각으로 표시)
 	gusts.clear()
@@ -208,9 +211,9 @@ func _step(dt: float) -> void:
 	# 상승기류
 	var lifted := false
 	for th in thermals:
-		if Vector2(pos.x - th.x, pos.z - th.y).length() < 2.8:
+		if Vector2(pos.x - th.x, pos.z - th.y).length() < 3.4:
 			lifted = true
-			pos.y += 9.0 * dt
+			pos.y += 14.0 * dt  # 2·3협곡은 출발 높이만으론 활공 거리가 모자란다. 기둥을 지나야 끝까지 간다
 			spd += 1.5 * dt
 	if lifted:
 		lift_t -= dt

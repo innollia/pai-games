@@ -62,7 +62,7 @@ var cam_ready := false
 
 
 func _setup() -> void:
-	howto = "폭주 열차 지붕. 왼손 조이스틱으로 맨 뒤 객차에서 기관차 제동기까지 달린다.\n열차는 계속 빨라지고 맞바람이 나를 뒤로 민다. 객차 틈은 점프, 터널 앞에선 엎드리기를 누르고 있기(바람도 안 맞는다).\n연결부 바로 뒤에서 '핀'을 누르면 뒤 객차가 떨어져 열차가 느려진다. 대신 발 디딜 곳이 준다.\n맨 뒤로 밀려 떨어지거나, 틈에 빠지거나, 선 채로 터널에 들어가면 죽는다."
+	howto = "폭주 열차 지붕. 왼손 조이스틱으로 맨 뒤 객차에서 기관차 제동기까지 달린다.\n열차는 계속 빨라지고 맞바람이 나를 뒤로 민다. 객차 틈은 점프, 터널 앞에선 엎드리기를 누르고 있기(바람도 안 맞는다). 지붕 환기구는 옆으로 피하거나 뛰어넘는다.\n연결부 바로 뒤에서 '핀'을 누르면 뒤 객차가 떨어져 열차가 느려진다. 대신 발 디딜 곳이 준다.\n맨 뒤로 밀려 떨어지거나, 틈에 빠지거나, 선 채로 터널에 들어가면 죽는다."
 	time_limit = 0.0
 	cam.fov = 70.0
 	cam.far = 260.0
@@ -145,10 +145,11 @@ func _build() -> void:
 			box(Vector3(0, 3.9, -2.5), Vector3(0.9, 1.6, 0.9), INK, c)  # 굴뚝
 			box(Vector3(0, ROOF + 0.35, -3.4), Vector3(0.5, 0.7, 0.35), BAD, c)  # 제동기
 		else:
-			var nv := 1 if i < 3 else 2
+			var nv := 1 if (i < 3 or i == n - 1) else 2
 			for k in nv:
-				var ex := rng.randf_range(-0.6, 0.6)
-				var ez := z0 + rng.randf_range(-2.4, 2.4)
+				# 한 객차에 둘이면 앞뒤로 떨어뜨려 옆으로 지나갈 길(≥0.65)을 남긴다. 맨 뒤 객차는 하나, 출발점(뒤끝-1.2) 앞 2.4m 비움
+				var ex := rng.randf_range(-0.45, 0.45)
+				var ez := z0 + (rng.randf_range(-2.4, -0.6 if i == n - 1 else 2.4) if nv == 1 else (-1.7 if k == 0 else 1.7) + rng.randf_range(-0.6, 0.6))
 				box(Vector3(ex, ROOF + 0.25, ez - z0), Vector3(0.8, 0.5, 0.8), SOFT, c)
 				vents.append(Vector2(ex, ez))
 		cars.append(c)
@@ -335,9 +336,13 @@ func _fall(why: String) -> void:
 func _pin() -> void:
 	if not kit_just("pin"):
 		return
+	if air:
+		msg("공중에선 못 뽑는다", 0.5)
+		return
 	for i in rear_i:
 		var c := _coupling(i)
-		if c > mz and c - mz < 2.4:
+		# 틈 위(점프 중 착지 직전)가 아니라 객차 위에 서 있을 때만: 잘린 뒤 내 발밑이 남는다
+		if c > mz and c - mz < 2.4 and c - mz >= G * 0.5:
 			var cut := rear_i - i
 			for j in range(i + 1, rear_i + 1):
 				car_on[j] = false
