@@ -101,7 +101,7 @@ const ACT := ["막기", "베기"]
 const UPS := [
 	["hp", "최대 체력", 5, 99],
 	["pow", "베기 힘", 8, 99],
-	["per", "간파 넓게", 6, 5],
+	["per", "간파 넓게", 10, 5],
 	["earn", "막기 돈", 10, 99],
 ]
 
@@ -190,6 +190,11 @@ var sty := 0  # 이번 공격 모양 (위 T_WIND 설명)
 var hitstop := 0.0  # 막은 순간 화면이 멈추는 시간
 var sparks: Array = []  # 불꽃: [상자, 속도, 남은 시간, 처음 시간]
 var going := false  # 로비 버튼 누름 애니메이션 끝나고 출발하는 중
+var link := false  # 연격: 지금 칼 뒤에 다음 칼이 이미 오고 있다 (주황)
+var link_b: MeshInstance3D  # 연격 칼 (주황)
+var link_g: Array[MeshInstance3D] = []  # 연격 칼이 지나갈 길 (주황 잔상)
+var sfx_p: Array[AudioStreamPlayer] = []  # 효과음 전용 줄 (삑 소리에 밀려 끊기지 않게)
+var sfx_i := 0
 # 화면 글자
 var info_l: Label
 var tut_box: ColorRect
@@ -295,8 +300,9 @@ func _pow(lv: int) -> int:
 	return 1 + lv
 
 
+## 간파 판정: 칼이 닿기 전 이 시간 안에 막으면 간파. 업그레이드는 조금씩만 넓어진다 (11/1: 다섯 단계 0.40초 → 0.275초)
 func _per(lv: int) -> float:
-	return 0.2 + 0.04 * lv
+	return 0.2 + 0.015 * lv
 
 
 func _earn(lv: int) -> int:
@@ -313,6 +319,11 @@ func _setup() -> void:
 	time_limit = 0.0
 	_load_save()
 	_apply_vol()
+	for i in 4:
+		var ap := AudioStreamPlayer.new()
+		ap.stream = SND["whiff"] if i % 2 == 0 else SND["miss"]
+		add_child(ap)
+		sfx_p.append(ap)
 	var hud := CanvasLayer.new()
 	hud.layer = 2
 	add_child(hud)
@@ -557,7 +568,7 @@ func _lobby_refresh() -> void:
 				match k:
 					"hp": t = "최대 체력 %d → %d" % [_max_hp(lv), _max_hp(lv + 1)]
 					"pow": t = "베기 힘 %d → %d" % [_pow(lv), _pow(lv + 1)]
-					"per": t = "간파 넓게 %.2f → %.2f초" % [_per(lv), _per(lv + 1)] if not maxed else "간파 넓게 %.2f초 (끝)" % _per(lv)
+					"per": t = "간파 넓게 %.3f → %.3f초" % [_per(lv), _per(lv + 1)] if not maxed else "간파 넓게 %.3f초 (끝)" % _per(lv)
 					"earn": t = "막기 돈 %d → %d냥" % [_earn(lv), _earn(lv + 1)]
 				row_l[i].text = t
 				row_c[i].text = "끝" if maxed else "%d냥" % _cost(i)
@@ -807,6 +818,19 @@ func _spawn_rest(k: int, hp_y: float) -> void:
 		gh.material_override = gm
 		gh.visible = false
 		ghosts.append(gh)
+	link_b = box(Vector3.ZERO, blade_m.scale, A, piv)
+	link_b.visible = false
+	link_g.clear()
+	for i in 3:
+		var om := StandardMaterial3D.new()
+		om.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		om.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		om.albedo_color = Color(A, [0.25, 0.38, 0.55][i])
+		var og := box(Vector3.ZERO, blade_m.scale, A, piv)
+		og.material_override = om
+		og.visible = false
+		link_g.append(og)
+	link = false
 	hp_back = box(Vector3(0, hp_y, 0), Vector3(2.0, 0.22, 0.2), INK, piv)
 	hp_fill = box(Vector3(0, hp_y, 0.08), Vector3(1.9, 0.16, 0.16), BAD, piv)
 	foe_max = BOSS_HP if ftype == 4 else 6 + 4 * k
@@ -948,9 +972,46 @@ func _style(mv: Array) -> int:
 func _clear() -> void:
 	_show(-1)
 	_path(-1)
+	_link_show(false)
+
+
+## 연격이 오는가: 2단부터(끝판왕은 늘) 연속기의 다음 칼이 이번 칼과 겹쳐 온다. 베기 검객의 두 번째 칼·거합은 빼고
+func _link_next() -> bool:
+	if tut >= 0 or (ph < 1 and ftype != 4):
+		return false
+	var c: Array = _pat()[2][ci]
+	if mi + 1 >= c.size() or _flag(c[mi]) == 2:
+		return false
+	return _flag(c[mi + 1]) == 0
+
+
+## 연격 칼(주황)을 다음 칼 쪽에 들어 올려 두고 주황 잔상으로 길을 보여 준다. false 면 숨김
+func _link_show(on: bool) -> void:
+	link = on
+	if link_b == null:
+		return
+	link_b.visible = on
+	for g in link_g:
+		g.visible = on
+	if not on:
+		return
+	var nx: Array = _pat()[2][ci][mi + 1]
+	var d: int = nx[0]
+	var keep := sty
+	mi += 1
+	sty = _style(nx)
+	mi -= 1
+	for i in 3:
+		var t: float = [0.35, 0.68, 1.0][i]
+		link_g[i].position = _bpos(d, t)
+		link_g[i].rotation = _brot(d, t)
+	link_b.position = _bpos(d, 0.0)
+	link_b.rotation = _brot(d, 0.0)
+	sty = keep
 
 
 func _rest(g: float) -> void:
+	blade_m.material_override = mat(WHITE)
 	fs = 0
 	fs_t = 0.0
 	gap = g * spd
@@ -1159,7 +1220,8 @@ func _fight(dt: float) -> void:
 					_rest(_pat()[0])
 
 
-func _attack() -> void:
+## linked = 앞 칼을 그냥 막아서 이미 오던 연격 칼이 바로 이어 들어온다 (주황 칼, 예비 시간 짧음)
+func _attack(linked := false) -> void:
 	var mv: Array
 	if tut >= 0:
 		mv = TUT_MV[0 if tut < 2 else 1]
@@ -1180,9 +1242,17 @@ func _attack() -> void:
 		told = false
 		shown = false
 		feint_at = -1.0
+		blade_m.material_override = mat(WHITE)
 		_clear()
 		return
 	win = float(mv[2]) * (1.0 if tut >= 0 else spd)
+	blade_m.material_override = mat(A if linked else WHITE)
+	if linked:
+		# 이미 오고 있던 칼: 주황 칼 자리에서 이어서, 막을 틈은 남긴다
+		win = maxf(0.32, win * 0.7)
+		blade_m.position = _bpos(sdir, 0.0)
+		blade_m.rotation = _brot(sdir, 0.0)
+		msg("연격!", 0.5)
 	if _flag(mv) == 1:
 		# 두 번째 칼: 튕겨 나간 칼을 바로 다시 크게 젖혀 들고, 막을 틈은 남긴다
 		win = maxf(0.4, win)
@@ -1195,6 +1265,7 @@ func _attack() -> void:
 	shown = true
 	feint_at = win * 0.5 if sdir != rdir else -1.0
 	_path(sdir, _twice_next())
+	_link_show(_link_next())
 	# 느린 예비 동작은 낮은 소리, 갑작스러운 건 높은 소리
 	beep(lerpf(760.0, 300.0, clampf((win - 0.3) / 0.9, 0.0, 1.0)), 0.06, 0.0, 0.17)
 
@@ -1240,8 +1311,9 @@ func _damage(v: int) -> void:
 
 
 ## 빈틈이 아닐 때 휘두름: 체력 -1, 잠깐 굳고, 상대가 바로 친다
-func _whiff() -> void:
-	sfx(SND["whiff"])
+## wrong = 빈틈은 열렸는데 엉뚱한 쪽으로 벰 (공격 실패 소리)
+func _whiff(wrong := false) -> void:
+	sfx(SND["miss"] if wrong else SND["whiff"])
 	msg("헛공격!  체력 -1\n빈틈을 보였어요", 0.9)
 	stun = 0.55
 	whiff_t = 0.35
@@ -1265,7 +1337,12 @@ func _act(a: int) -> void:
 	if mode == "ready":
 		_start_run()
 		return
-	if mode == "dead" or mode == "lobby" or stun > 0.0:
+	if mode == "dead" or mode == "lobby":
+		return
+	if stun > 0.0:
+		# 굳어서 못 휘두름: 베기는 헛공격 소리만 (벌은 없음)
+		if a == 1 and tut < 0:
+			sfx(SND["whiff"])
 		return
 	var d := stance
 	if d >= 0:
@@ -1302,7 +1379,10 @@ func _act(a: int) -> void:
 			_cut()
 		return
 	if mode != "fight":
-		beep(300.0, 0.05, 150.0, 0.1)
+		if a == 1:
+			sfx(SND["whiff"])
+		else:
+			beep(300.0, 0.05, 150.0, 0.1)
 		return
 	if a == 0:
 		# 막기: 칼이 보일 때만. 잡은 방향이 다르거나 속임수에 먼저 막으면 맞는다
@@ -1324,11 +1404,12 @@ func _act(a: int) -> void:
 			elif gp:
 				_lose_chance()
 			else:
-				_whiff()
+				_whiff(true)
 		0, 1:
 			_whiff()
 		_:
-			beep(300.0, 0.05, 150.0, 0.1)
+			# 맞은 직후·벤 직후에 또 휘두름: 벌은 없고 헛공격 소리만
+			sfx(SND["whiff"])
 
 
 ## 간파 빈틈에 엉뚱한 쪽으로 휘두름: 피해 없이 간파만 끝난다
@@ -1342,6 +1423,10 @@ func _lose_chance() -> void:
 
 
 func _parry(perfect: bool) -> void:
+	# 연격이 오던 중: 그냥 막으면 연격 칼이 바로 들어오고, 간파하면 다 끊긴다
+	var linked := link and not perfect
+	_link_show(false)
+	blade_m.material_override = mat(WHITE)
 	# 칼이 막히면 폰 진동, 간파는 더 길고 세게
 	_buzz(160 if perfect else 45, 1.0 if perfect else 0.5)
 	# 진동과 같은 순간: 칼 부딪친 자리에 불꽃, 화면 잠깐 멈춤 (간파는 더 많이·더 길게)
@@ -1375,6 +1460,10 @@ func _parry(perfect: bool) -> void:
 		if tut < 0:
 			msg("간파 +%d냥\n지금 초록 쪽으로 베요!" % (_earn(up["earn"]) * 3), 0.8)
 	# 간파하면 연속기 중간이라도 끊고 내가 벨 차례 (초록 상자)
+	if linked and mi < combos[ci].size():
+		fs = 0
+		_attack(true)
+		return
 	if twice or (tut < 0 and not perfect and mi < combos[ci].size()):
 		_rest(0.03 if twice else 0.12)
 		return
@@ -1652,9 +1741,9 @@ func _input(event: InputEvent) -> void:
 		KEY_K, KEY_X: _act(1)
 
 
-## 효과음 한 번 (tofu 의 소리 줄을 같이 쓴다. 소리 크기 설정은 버스 0 에 걸려 있다)
+## 효과음 한 번 (효과음 전용 줄 넷을 돌려 쓴다. 삑 소리와 섞여 끊기지 않게. 소리 크기 설정은 버스 0 에 걸려 있다)
 func sfx(st: AudioStream) -> void:
-	var p: AudioStreamPlayer = _players[_np]
-	_np = (_np + 1) % _players.size()
+	var p: AudioStreamPlayer = sfx_p[sfx_i]
+	sfx_i = (sfx_i + 1) % sfx_p.size()
 	p.stream = st
 	p.play()
