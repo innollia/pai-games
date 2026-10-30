@@ -2,10 +2,10 @@
 Roll, Temple Stone! / 굴러라 신전석
 
 # Short description
-Grow, split and launch a runaway temple stone through eleven bright regions to the sea.
+Everything you crush makes you bigger, and bigger means slower. Break off pieces of yourself to stay fast, and race a runaway temple stone to the sea.
 
 # Long description
-Escape an ancient temple and roll to the Sea Temple. Crush pots to grow, but carry too much stone and climbs, turns and jumps become harder. Speed is your lifeline: spend 1.5 seconds below the red mark and your run ends.
+A speed game about weight. Crushing pots makes your temple stone bigger, but every bit of mass costs speed on climbs, turns and jumps, so you split off chunks, throw them, or slam down to stay fast. Hidden shortcuts open only to players who arrive fast enough or use the right move. Speed is your lifeline: spend 1.5 seconds below the red mark and your run ends.
 
 Leap aqueduct gaps. Miss one and you keep falling, down past the canyon walls, until you land in a sleeping temple city far below. Grab its gems and ride the water column back up. SPLIT sheds weight and gives a short dash through houses, statues and ice walls. On the cliffs, blue-capped towers and golden idols break only when you HOLD to slam down from the air, and each one speeds you up. Grow on snow, throw pieces of yourself through purple crystal walls, and stay small on fragile bridges. The Tide Garden pushes you sideways: HOLD to resist or JUMP free. At the Echo Altar, HOLD on gold pads until they turn green, then release to launch over wide gaps. Skill regions end with a mix section that combines the new move with earlier ones.
 
