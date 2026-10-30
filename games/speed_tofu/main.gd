@@ -14,38 +14,46 @@ const GAMES := [
 	["deepsword", "★ 깊은 검 × 빠르면 고통 (옆모습)"],
 	["bigball", "큰 공 굴리기 (강철코일)"],
 	# 새 종류 5 (부모 없음, 합격 유전자만으로)
-	["shockwave", "☆ 음속 (등뒤)"],
 	["glider", "☆ 활공 (1인칭)"],
-	["ice_courier", "☆ 빙판 배달 (위에서)"],
 	["runaway_train", "☆ 폭주 열차 지붕 (등뒤)"],
 	["molten", "☆ 식는 바위 (옆모습)"],
 	# 합격작 유전 변형 10 (돌연변이·교배)
 	["blade_1p", "◇ 일격의 길 (1인칭)"],
 	["quicksilver_fp", "◇ 퀵실버 (1인칭)"],
-	["rain_fp", "◇ 레인월드 느림 (1인칭)"],
 	["deepsword_fp", "◇ 깊은 검 (1인칭)"],
 	["boulder_race", "◇ 신전석 × 화면 밖 경주"],
 	["screenrace_over", "◇ 화면 밖 경주 × 과속"],
-	["rain_coming", "◇ 레인월드 × 그가 온다 (등뒤)"],
 	["overpower_rain", "◇ 과속 플랫포머 × 레인월드"],
 	["coming_boulder", "◇ 그가 온다 × 신전석 (등뒤)"],
-	["blade_run", "◇ 일격의 길 × 화면 밖 경주"],
 	# 메모 2차 7 (설계서 먼저 쓰고 첫 조각만 구현)
 	["snapshot", "◆ 순간 포착 (1인칭)"],
 	["fallcards", "◆ 낙하 카드 (등뒤)"],
 	["tooslow", "◆ 너무 느린 주인공"],
-	["puzzlerace", "◆ 퍼즐 레이싱"],
-	["taiji_speed", "◆ 흘러가는 퍼즐 판"],
 	["tinyplanet", "◆ 작은 행성 (등뒤)"],
 	["bombcrawl", "◆ 폭탄 애벌레 (옆모습)"],
 	# 3세대 (유전 알고리즘: 평가 적합도 + Codex 아이디어 + 교배)
 	["scale_prison", "▲ 저울 감옥 (옆모습)"],
 	["compress", "▲ 압축 스프링 (옆모습)"],
-	["magnet", "▲ 자석의 망명 (등뒤)"],
 	["stretch_roll", "▲ 늘어나는 돌"],
 	["loud_race", "▲ 시끄러운 1등 (옆모습)"],
+	# 4세대
+	["tooslow_rpg", "▲ 너무 느린 주인공 (쯔꾸르)"],
 ]
-# 탈락 (보존). 메뉴의 "탈락 게임 모음" 폴더 안에서만 보인다
+# 2차 폐기 (게임 안 평균 별점 2 이하). 메뉴의 "2차 폐기 (평가 낮음)" 폴더 안에서만 보인다
+const DROPPED2 := [
+	["ice_courier", "☆ 빙판 배달 (위에서)"],
+	["quicksilver_tp", "★ 퀵실버 (등뒤 3인칭)"],
+	["puzzlerace", "◆ 퍼즐 레이싱"],
+	["blade_run", "◇ 일격의 길 × 화면 밖 경주"],
+	["magnet", "▲ 자석의 망명 (등뒤)"],
+	["rain_coming", "◇ 레인월드 × 그가 온다 (등뒤)"],
+	["rain_fp", "◇ 레인월드 느림 (1인칭)"],
+	["shockwave", "☆ 음속 (등뒤)"],
+	["taiji_speed", "◆ 흘러가는 퍼즐 판"],
+]
+# 게임 버전: 강화할 때마다 올린다. 메뉴 글자 끝에 " v3" 로 붙고 평가 ver 에 "v3 <빌드>" 로 들어간다 (없으면 1)
+const GAME_VER := {"bigball": 3, "blade": 2, "blade_1p": 2, "blade_fp": 1, "blade_run": 2, "bombcrawl": 1, "boulder": 4, "boulder_fp": 1, "boulder_race": 2, "coaster": 1, "coil_side": 1, "coming_boulder": 2, "coming_fp": 2, "coming_top": 1, "compress": 1, "deepsword": 1, "deepsword_3d": 1, "deepsword_fp": 2, "fallcards": 1, "glider": 2, "hot": 2, "hot_side": 2, "hotpack": 2, "ice_courier": 2, "icecream": 1, "kitchen": 1, "lickghost": 1, "loud_race": 1, "magnet": 1, "matchspeed": 2, "molten": 2, "nerve": 3, "onedot": 1, "onlyfast": 2, "overpower": 3, "overpower_3d": 1, "overpower_rain": 2, "pitcrew": 1, "piton": 1, "predict": 1, "puzzlerace": 1, "quicksilver": 2, "quicksilver_fp": 2, "quicksilver_tp": 1, "rain_coming": 2, "rain_flee": 1, "rain_fp": 2, "rain_slow": 3, "runaway": 2, "runaway_train": 2, "scale_prison": 2, "screenrace": 4, "screenrace_over": 3, "shockwave": 2, "slowbike": 2, "snapshot": 1, "speedcop": 2, "speedthief": 2, "stretch_roll": 2, "superhot": 2, "sword": 2, "synapse": 2, "taiji_speed": 1, "timedebt": 2, "tinyplanet": 1, "tooslow": 1, "tooslow_rpg": 1, "trafficwizard": 2, "wombat_dial": 1, "wombat_fast": 1}
+# 1차 폐기 (사용자 판정 탈락 + 첫 판 보존작). 메뉴의 "1차 폐기 (판정 탈락)" 폴더 안에서만 보인다
 const DROPPED := [
 	["quicksilver", "퀵실버 시티"],
 	["synapse", "시냅스 특급"],
@@ -80,7 +88,8 @@ const DROPPED := [
 	["slowbike", "느린 자전거 경주"],
 	["matchspeed", "속도 맞춰 건너기"],
 ]
-const FOLDER := "__dropped"
+const FOLDER := "__dropped"  # 1차 폐기 폴더
+const FOLDER2 := "__dropped2"  # 2차 폐기 폴더
 const UP := "__up"
 const IDEA := "__idea"  # 맨 아래 "아이디어 제출하기" -> window.prompt -> Firestore tofu_ideas (tools/tofu_fb.js)
 const INK := Color("3a2a1a")
@@ -139,33 +148,36 @@ func _ready() -> void:
 	list.custom_minimum_size = Vector2(600, 0)
 	list.add_theme_constant_override("separation", 12)
 	scroll.add_child(list)
-	_fill(false)
+	_fill(0)
 
 
-## 목록을 채운다. dropped 면 탈락 게임 모음 폴더 안
-func _fill(dropped: bool) -> void:
+## 목록을 채운다. folder 0 = 메인, 1 = 1차 폐기(판정 탈락), 2 = 2차 폐기(평가 낮음)
+func _fill(folder: int) -> void:
 	for c in list.get_children():
 		c.queue_free()
 	buttons.clear()
 	var title := Label.new()
-	title.text = "탈락 게임 모음" if dropped else "SPEED 두부"
+	title.text = ["SPEED 두부", "1차 폐기 (판정 탈락)", "2차 폐기 (평가 낮음)"][folder]
 	title.add_theme_color_override("font_color", INK)
-	title.add_theme_font_size_override("font_size", 72)
+	title.add_theme_font_size_override("font_size", 72 if folder == 0 else 56)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	list.add_child(title)
 	var rows: Array = []
-	if dropped:
+	if folder > 0:
 		rows.append([UP, "◀ 돌아가기"])
-		rows.append_array(DROPPED)
+		rows.append_array(DROPPED if folder == 1 else DROPPED2)
 	else:
 		rows.append_array(GAMES)
-		rows.append([FOLDER, "▶ 탈락 게임 모음 (%d)" % DROPPED.size()])
+		rows.append([FOLDER, "▶ 1차 폐기 (판정 탈락) (%d)" % DROPPED.size()])
+		rows.append([FOLDER2, "▶ 2차 폐기 (평가 낮음) (%d)" % DROPPED2.size()])
 	rows.append([IDEA, "아이디어 제출하기"])
 	idea_btn = null
 	idea_wait = false
 	for g in rows:
 		var b := Button.new()
 		b.text = g[1]
+		if not str(g[0]).begins_with("__"):
+			b.text += " v%d" % GAME_VER.get(g[0], 1)
 		b.custom_minimum_size = Vector2(600, 92)
 		b.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		b.set_meta("id", g[0])
@@ -235,8 +247,8 @@ func _wake() -> void:
 
 
 func _open(id: String) -> void:
-	if id == FOLDER or id == UP:
-		_fill(id == FOLDER)
+	if id == FOLDER or id == FOLDER2 or id == UP:
+		_fill(1 if id == FOLDER else (2 if id == FOLDER2 else 0))
 		return
 	if id == IDEA:
 		_idea()
@@ -245,6 +257,7 @@ func _open(id: String) -> void:
 	game = load("res://g/%s.gd" % id).new()
 	game.process_mode = Node.PROCESS_MODE_PAUSABLE
 	game.id = id
+	game.gver = GAME_VER.get(id, 1)
 	game.back.connect(_close)
 	add_child(game)
 

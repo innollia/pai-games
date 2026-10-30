@@ -1,8 +1,10 @@
 extends Tofu
-## 저울 감옥 (옆모습): 왼쪽 아래 스틱 = 걷기·흔들기, 오른쪽 "잡기"를 누르는 동안 손잡이를 잡는다(떼면 놓는다).
+## 저울 감옥 v2 (옆모습): 왼쪽 아래 스틱 = 걷기·흔들기, 오른쪽 "잡기"를 누르는 동안 손잡이를 잡는다(떼면 놓는다).
 ## 손잡이 끈의 반대편 끝엔 감방(무게)이 매달려 있다. 잡으면 빗장이 풀려 감방이 떨어지고 나는 끌려 올라간다. 오래 잡을수록 빨라진다.
-## 끝까지 잡으면 감방이 바닥에 쾅 → 팔이 빠져 그 속도로 천장 가시까지 날아간다. 알맞은 때 놓아 턱에 손을 걸친다. 세게 부딪히면 으깨진다.
-## 구역 1 수직 감방(놓는 높이), 구역 2 엇갈린 감방(그네 + 떨어지는 감방 문 밑/위로), 구역 3 빈 저울(죄수를 업어 내 무게를 바꾼다, "놓기" 버튼).
+## 속도는 몸으로 읽는다: 빨라질수록 몸이 늘어나고 빨개지며 팔이 빠지려 늘어나고, 끈이 팽팽히 떨리고, 바람 줄무늬가 지나가고, 떨어지는 감방과 그 착지대가 같은 화면에 보인다.
+## 끝까지 잡으면 감방이 착지대에 쾅 → 팔이 빠져 그 속도로 날아간다. 알맞은 때 놓아 턱에 손을 걸친다. 세게 부딪히면 으깨진다.
+## 구역 1 수직 감방(놓는 높이), 2 엇갈린 감방(그네 + 떨어지는 감방 문), 3 빈 저울(죄수를 업어 내 무게를 바꾼다, "놓기"),
+## 4 눕는 탑(비스듬한 끈: 짧아질수록 그네가 저절로 빨라진다, 올라가는 흔들림에서 놓기), 5 출구의 저울(지금까지 떨군 감방이 쌓인 추가 발사 속도를 정한다, 죄수 업기로 맞춘다).
 # 한 문장: 나는 저울 감옥의 죄수 추로서 끈 반대편 감방이 떨어지는 힘으로만 움직이는 제약 속에서 손잡이를 잡고 놓아 출구까지 오르지만, 오래 잡을수록 빨라져 팔이 빠지거나 벽에 으깨지는 대가를 감수한다.
 
 const G := 30.0
@@ -25,15 +27,29 @@ const SOLID := 35  # '#'
 const SPIKE := 94  # '^'
 const WALLC := Color("c9b48f")
 const BEAMC := Color("8a6d4b")
-const ZONES := ["수직 감방", "엇갈린 감방", "빈 저울"]
+const ZONES := ["수직 감방", "엇갈린 감방", "빈 저울", "눕는 탑", "출구의 저울"]
 const ROOMS := [
-	{"zone": 0, "name": "첫 저울"},
-	{"zone": 0, "name": "갈아잡기"},
-	{"zone": 1, "name": "그네"},
-	{"zone": 1, "name": "내려오는 감방"},
-	{"zone": 2, "name": "무거운 몸"},
-	{"zone": 2, "name": "빈 저울"},
+	{"zone": 0, "name": "첫 저울", "n": 1},
+	{"zone": 0, "name": "갈아잡기", "n": 2},
+	{"zone": 1, "name": "그네", "n": 1},
+	{"zone": 1, "name": "내려오는 감방", "n": 2},
+	{"zone": 2, "name": "무거운 몸", "n": 1},
+	{"zone": 2, "name": "빈 저울", "n": 2},
+	{"zone": 3, "name": "기운 끈", "n": 1},
+	{"zone": 3, "name": "지그재그", "n": 2},
+	{"zone": 4, "name": "결산", "n": 1},
 ]
+# 구역마다 색: 벽, 뒷벽, 뒷벽 무늬
+const PAL := [
+	[Color("c9b48f"), Color("efe1c4"), Color("e2cfa8")],
+	[Color("9cc3b0"), Color("e2f2e8"), Color("c3e0d0")],
+	[Color("c2aad6"), Color("f2e9f8"), Color("dccdea")],
+	[Color("e6ad80"), Color("fdebd9"), Color("f3cfae")],
+	[Color("93b4dc"), Color("e5effc"), Color("c2d6f0")],
+]
+const SKY := Color("a5d8ff")
+const NSTREAK := 12
+const NBIT := 14
 
 var lv := 0
 var stage: Node3D
@@ -68,18 +84,32 @@ var eye: MeshInstance3D
 var hand: MeshInstance3D
 var loads: Array[MeshInstance3D] = []
 var trail: Array[MeshInstance3D] = []
-
+var arm: MeshInstance3D
+var streaks: Array[MeshInstance3D] = []
+var st_off: Array[Vector2] = []
+var bits: Array[MeshInstance3D] = []
+var bit_v: Array[Vector3] = []
+var bit_life: Array[float] = []
+var bit_k := 0
+var clouds: Array = []  # [mesh, 창 Rect2, 속도]
+var dropped := 0  # 지금까지 방을 깨며 떨어뜨린 감방 수 (5구역 결산 무게)
+var squash := 0.0  # 착지 순간 납작해짐
+var strain := 0.0  # 0~1 팔이 빠질 만큼 빠른 정도 (몸·끈·소리로 보여 준다)
+var warn_t := 0.0
+var zone := 0
+var tilt := 0.0
 
 func _setup() -> void:
 	time_limit = 0.0
 	cam.fov = 56.0
-	howto = "왼쪽 아래 스틱: 걷기·흔들기. 오른쪽 '잡기'를 누르는 동안 손잡이를 잡는다(떼면 놓음).\n끈 반대편 감방이 떨어지며 나를 끌어올린다. 오래 잡을수록 빨라진다(위 막대가 빨개지면 위험).\n끝까지 잡으면 팔이 빠져 그 속도로 날아간다. 알맞은 때 놓아 턱에 손을 걸쳐라. 가시·세게 부딪힘·높은 추락은 죽음.\n3구역: 죄수를 업으면 무거워진다. '놓기'로 내려놓는다."
+	howto = "스틱: 걷기·흔들기. '잡기'를 누르는 동안 손잡이를 잡는다(떼면 놓음).\n반대편 감방이 떨어지는 만큼 나는 끌려 올라간다. 오래 잡을수록 빨라져 몸이 늘어나고 빨개진다.\n감방이 빨간 착지대에 닿기 전에 놓아라. 늦으면 팔이 빠져 날아간다. 턱에 손이 닿으면 올라선다.\n가시·세게 부딪힘·높은 추락은 죽음. 3구역부터 죄수를 업으면 무거워진다('놓기')."
 	kit_stick()
 	kit_button("grab", "잡기", Vector2(600, 1100), 110.0, A)
 
 
 func _reset() -> void:
 	lv = 0
+	dropped = 0
 	stage = null
 	_room(0)
 
@@ -104,19 +134,32 @@ func _fill(c0: int, y0: int, c1: int, y1: int, ch: int) -> void:
 
 
 ## 도르래 칸(c, y), 시작 끈 길이 rs, 최소·최대 끈 길이, 감방 무게, 감방 줄의 가로 위치 dx, 감방 높이
-func _rope(c: int, y: int, rs: float, rmin: float, rmax: float, m: float, dx: float, chh := 1.5) -> void:
+## th0: 잠긴 손잡이가 걸려 있는 말뚝의 각도 (4·5구역의 비스듬한 끈)
+func _rope(c: int, y: int, rs: float, rmin: float, rmax: float, m: float, dx: float, chh := 1.5, th0 := 0.0) -> void:
 	var o := Vector2(c + 0.5, y + 0.5)
 	var rp := {"o": o, "r": rs, "rs": rs, "rmin": rmin, "rmax": rmax, "M": m, "dx": dx, "chh": chh,
-		"rd": 0.0, "th": 0.0, "thd": 0.0, "cv": 0.0, "lock": true, "spent": false, "cd": 0.0}
+		"rd": 0.0, "th": th0, "th0": th0, "thd": 0.0, "cv": 0.0, "lock": true, "spent": false, "cd": 0.0, "used": false}
 	box(Vector3(o.x + dx * 0.5, o.y + 0.05, -0.4), Vector3(absf(dx), 0.22, 0.3), BEAMC, stage)
-	box(Vector3(o.x, o.y, 0.0), Vector3(0.7, 0.7, 0.5), D, stage)
-	box(Vector3(o.x + dx, o.y, -0.4), Vector3(0.6, 0.6, 0.4), D, stage)
+	rp.pul = box(Vector3(o.x, o.y, 0.0), Vector3(0.75, 0.75, 0.5), D, stage)
+	rp.pul2 = box(Vector3(o.x + dx, o.y, -0.4), Vector3(0.65, 0.65, 0.4), D, stage)
 	rp.line = box(Vector3.ZERO, Vector3(0.07, 1.0, 0.07), INK, stage)
 	rp.cline = box(Vector3.ZERO, Vector3(0.07, 1.0, 0.07), INK, stage)
 	rp.handle = box(Vector3.ZERO, Vector3(0.6, 0.18, 0.3), A, stage)
 	rp.cell = box(Vector3.ZERO, Vector3(CW, chh, 1.0), C, stage)
 	rp.win = box(Vector3.ZERO, Vector3(0.7, 0.32, 0.05), WHITE, stage)
+	rp.bars = box(Vector3.ZERO, Vector3(0.08, 0.32, 0.06), INK, stage)
 	rp.bolt = box(Vector3(o.x + dx, o.y - 0.55, -0.1), Vector3(0.5, 0.2, 0.5), BAD, stage)
+	# 착지대: 감방이 여기 닿으면 끈이 멈춘다 (그 전에 놓아야 한다)
+	var low := o.y - LC0 - (rmax - rmin) - chh
+	box(Vector3(o.x + dx, low - 0.12, -0.4), Vector3(CW + 0.5, 0.22, 1.1), BAD, stage)
+	for s: float in [-0.45, 0.0, 0.45]:
+		box(Vector3(o.x + dx + s, low - 0.12, 0.17), Vector3(0.18, 0.24, 0.05), D, stage)
+	if th0 != 0.0:
+		var pg := o + Vector2(sin(th0), -cos(th0)) * rs
+		box(Vector3(pg.x, pg.y + 0.2, -0.5), Vector3(0.25, 0.6, 0.3), BEAMC, stage)
+	rp.stack = []
+	# 감방이 빠르게 떨어질 때 위로 남는 줄무늬
+	rp.cs = [box(Vector3.ZERO, Vector3(0.06, 1.0, 0.06), WHITE, stage), box(Vector3.ZERO, Vector3(0.06, 1.0, 0.06), WHITE, stage)]
 	ropes.append(rp)
 
 
@@ -133,13 +176,13 @@ func _door(c: int, y: int) -> void:
 
 func _build(i: int) -> void:
 	match i:
-		0:  # 첫 저울: 놓는 높이 하나
-			_grid(14, 20)
-			_fill(8, 1, 12, 13, SOLID)
-			_fill(1, 17, 12, 17, SPIKE)
-			_rope(6, 15, 12.3, 1.5, 12.3, 2.5, -3.5)
+		0:  # 첫 저울: 놓는 높이 하나 (턱과 천장 가시 사이를 넓게 두어 놓는 창이 넓다)
+			_grid(14, 22)
+			_fill(8, 1, 12, 11, SOLID)
+			_fill(1, 19, 12, 19, SPIKE)
+			_rope(6, 18, 15.3, 1.5, 15.3, 2.0, -3.5)
 			start = Vector2(6.5, 1.0)
-			_door(11, 14)
+			_door(11, 12)
 		1:  # 갈아잡기: 끌려 올라가다 놓고 위의 손잡이로
 			_grid(16, 30)
 			_fill(1, 16, 5, 24, SOLID)
@@ -187,6 +230,40 @@ func _build(i: int) -> void:
 			_pris(2.3, 16.0)
 			_pris(3.1, 16.0)
 			_door(13, 3)
+		6:  # 기운 끈: 말뚝에 걸린 비스듬한 손잡이. 잡으면 감방이 끌어당기며 그네가 저절로 빨라진다. 오른쪽으로 솟는 흔들림에서 놓는다
+			_grid(24, 16)
+			_fill(1, 1, 4, 4, SOLID)
+			_fill(19, 1, 22, 8, SOLID)
+			_fill(5, 1, 18, 1, SPIKE)
+			_rope(13, 13, 10.5, 3.5, 10.5, 1.6, -3.0, 1.5, -0.84)
+			start = Vector2(3.0, 5.0)
+			_door(21, 9)
+		7:  # 지그재그: 비스듬한 끈 A로 오른쪽 선반, 끈 B로 왼쪽까지 흔들렸다가 짧아진 끈이 되돌려 올리는 흔들림에서 오른쪽 위 출구로
+			_grid(26, 26)
+			_fill(1, 1, 3, 3, SOLID)
+			_fill(4, 1, 24, 1, SPIKE)
+			_fill(20, 5, 24, 5, SOLID)
+			_fill(16, 17, 24, 17, SOLID)
+			_rope(13, 13, 11.9, 4.0, 11.9, 1.5, -3.0, 1.5, -0.833)
+			_rope(10, 22, 17.4, 5.5, 17.4, 1.5, -4.0, 1.5, 0.53)
+			start = Vector2(2.5, 4.0)
+			_door(23, 18)
+		8:  # 출구의 저울: 반대편 감방에 지금까지 떨군 감방이 쌓여 있다. 무거우면 세게 쏜다 → 죄수를 업어 맞춘다
+			_grid(26, 20)
+			_fill(1, 1, 4, 3, SOLID)
+			_fill(5, 1, 17, 1, SPIKE)
+			_fill(18, 1, 24, 8, SOLID)
+			_fill(22, 9, 24, 18, SOLID)
+			var mm := clampf(1.5 + 0.12 * dropped, 1.6, 3.2)
+			_rope(12, 16, 12.9, 3.5, 12.9, mm, -3.5, 2.2, -0.55)
+			var rp: Dictionary = ropes[0]
+			for k in mini(dropped, 10):
+				rp.stack.append(box(Vector3.ZERO, Vector3(0.55, 0.4, 0.5), C if k % 2 == 0 else B, stage))
+			start = Vector2(4.3, 4.0)
+			_pris(1.6, 4.0)
+			_pris(2.4, 4.0)
+			_pris(3.2, 4.0)
+			_door(19, 9)
 
 
 func _room(i: int) -> void:
@@ -196,8 +273,12 @@ func _room(i: int) -> void:
 	world.add_child(stage)
 	ropes.clear()
 	pris.clear()
+	clouds.clear()
 	carry0 = 0
+	zone = ROOMS[i].zone
 	_build(i)
+	var pal: Array = PAL[zone]
+	var wallc: Color = pal[0]
 	# 벽: 줄마다 이어진 칸을 상자 하나로
 	for yy in gh:
 		var run0 := -1
@@ -208,13 +289,14 @@ func _room(i: int) -> void:
 					run0 = c
 				continue
 			if run0 >= 0:
-				box(Vector3((run0 + c) * 0.5, yy + 0.5, 0.0), Vector3(c - run0, 1.0, 2.0), WALLC, stage)
+				box(Vector3((run0 + c) * 0.5, yy + 0.5, 0.0), Vector3(c - run0, 1.0, 2.0), wallc, stage)
 				run0 = -1
 			if ch == SPIKE:
 				var sp := box(Vector3(c + 0.5, yy + 0.5, 0.0), Vector3(0.55, 0.55, 1.2), BAD, stage)
 				sp.rotation.z = PI * 0.25
 	# 뒷벽과 눈금 (위아래·옆 속도를 읽는 기준)
-	box(Vector3(gw * 0.5, gh * 0.5, -1.4), Vector3(gw, gh, 0.2), SOFT, stage)
+	box(Vector3(gw * 0.5, gh * 0.5, -1.4), Vector3(gw, gh, 0.2), pal[1], stage)
+	_deco(pal)
 	for yy in range(1, gh - 1, 2):
 		for c in range(1, gw - 1):
 			if _solid(c, yy):
@@ -223,8 +305,8 @@ func _room(i: int) -> void:
 				box(Vector3(c + 0.04, yy + 0.5, 0.9), Vector3(0.1, 0.35, 0.2), WHITE, stage)
 			if _solid(c + 1, yy):
 				box(Vector3(c + 0.96, yy + 0.5, 0.9), Vector3(0.1, 0.35, 0.2), WHITE, stage)
-	# 3구역에서만 "놓기" 버튼이 생긴다
-	if ROOMS[i].zone == 2:
+	# 죄수가 있는 구역(3·5)에서만 "놓기" 버튼이 생긴다
+	if zone == 2 or zone == 4:
 		if not _btns.has("drop"):
 			kit_button("drop", "놓기", Vector2(600, 880), 80.0, C)
 	else:
@@ -235,6 +317,7 @@ func _room(i: int) -> void:
 	body = box(Vector3.ZERO, Vector3(BW, BH, 0.6), ME, me)
 	eye = box(Vector3(0.2, 0.35, 0.31), Vector3(0.16, 0.16, 0.05), WHITE, me)
 	hand = box(Vector3(0, ARM, 0), Vector3(0.3, 0.3, 0.4), ME, me)
+	arm = box(Vector3(0, ARM, 0), Vector3(0.14, 0.1, 0.2), ME, me)
 	loads.clear()
 	for k in 3:
 		var l := box(Vector3(0, -BH * 0.5 - 0.45 - k * 0.9, 0.1), Vector3(0.55, 0.85, 0.45), D, me)
@@ -245,6 +328,26 @@ func _room(i: int) -> void:
 		var tb := box(Vector3.ZERO, Vector3(BW, BH, 0.3), B, stage)
 		tb.visible = false
 		trail.append(tb)
+	# 바람 줄무늬와 파편 (방마다 한 번 만들어 돌려 쓴다)
+	streaks.clear()
+	st_off.clear()
+	for k in NSTREAK:
+		var s := box(Vector3.ZERO, Vector3(0.06, 1.0, 0.06), WHITE, stage)
+		s.visible = false
+		streaks.append(s)
+		st_off.append(Vector2(randf_range(-4.0, 4.0), randf_range(-6.0, 6.0)))
+	bits.clear()
+	bit_v.clear()
+	bit_life.clear()
+	for k in NBIT:
+		var b := box(Vector3.ZERO, Vector3(0.22, 0.22, 0.22), wallc, stage)
+		b.visible = false
+		bits.append(b)
+		bit_v.append(Vector3.ZERO)
+		bit_life.append(0.0)
+	squash = 0.0
+	strain = 0.0
+	tilt = -0.07 if zone == 3 else 0.0
 	px = start.x
 	py = start.y + BH * 0.5 + 0.002
 	vx = 0.0
@@ -257,8 +360,51 @@ func _room(i: int) -> void:
 	clear_t = 0.0
 	cam_x = px
 	cam_y = py + 2.0
-	var z: int = ROOMS[i].zone
-	msg("%s %d-%d\n%s" % [ZONES[z], z + 1, i % 2 + 1, ROOMS[i].name], 1.4)
+	var title := "%s %d-%d\n%s" % [ZONES[zone], zone + 1, ROOMS[i].n, ROOMS[i].name]
+	if zone == 4:
+		title += "\n떨군 감방 %d개 = 추 무게" % dropped
+	msg(title, 1.8)
+
+
+## 뒷벽 무늬: 벽돌 줄, 창살 창(구름이 지나감), 4구역은 기운 기둥
+func _deco(pal: Array) -> void:
+	var dc: Color = pal[2]
+	for yy in range(2, gh - 1, 3):
+		box(Vector3(gw * 0.5, yy + 0.0, -1.28), Vector3(gw - 2.0, 0.08, 0.05), dc, stage)
+	var nwin := clampi(gw / 7, 1, 4)
+	for k in nwin:
+		var wx := (k + 0.5) * gw / float(nwin)
+		var wy := gh * (0.45 + 0.25 * float(k % 2))
+		if _solid(floori(wx), floori(wy)):
+			continue
+		var wr := Rect2(wx - 1.1, wy - 0.9, 2.2, 1.8)
+		box(Vector3(wx, wy, -1.27), Vector3(2.2, 1.8, 0.04), SKY, stage)
+		var cl := box(Vector3(wx, wy, -1.24), Vector3(0.9, 0.35, 0.03), WHITE, stage)
+		clouds.append([cl, wr, randf_range(0.3, 0.7)])
+		for b in 3:
+			box(Vector3(wx - 0.6 + b * 0.6, wy, -1.2), Vector3(0.1, 1.8, 0.05), dc.darkened(0.25), stage)
+	if zone == 3:
+		for k in 3:
+			var pl := box(Vector3(3.0 + k * gw / 3.0, gh * 0.5, -1.3), Vector3(0.6, gh * 0.9, 0.05), dc, stage)
+			pl.rotation.z = 0.22
+	if zone == 4:
+		# 거대 저울 대들보
+		box(Vector3(gw * 0.5, gh - 1.6, -1.1), Vector3(gw * 0.7, 0.35, 0.2), BEAMC, stage)
+		box(Vector3(gw * 0.5, gh - 1.0, -1.1), Vector3(0.5, 1.2, 0.2), BEAMC, stage)
+
+
+## 파편 n개를 pos에서 튀긴다
+func _burst(pos: Vector2, n: int, sp: float, col: Color) -> void:
+	for k in n:
+		var bi := bit_k
+		bit_k = (bit_k + 1) % bits.size()
+		var b := bits[bi]
+		b.visible = true
+		b.material_override = mat(col)
+		b.position = Vector3(pos.x, pos.y, 0.6)
+		b.scale = Vector3.ONE * 0.22
+		bit_v[bi] = Vector3(randf_range(-1.0, 1.0) * sp, randf_range(0.3, 1.0) * sp, 0.0)
+		bit_life[bi] = 0.6
 
 
 # ---- 칸 ----
@@ -337,12 +483,9 @@ func _step(dt: float) -> void:
 		_prisoners(h)
 		_check()
 	_sounds(h)
-	# 위 막대: 잡고 있으면 끌려가는 속도(빨강 = 팔이 빠질 속도), 아니면 진행
-	if ri >= 0:
-		var sp := absf(float(ropes[ri].rd)) / TEAR
-		gauge(sp, BAD if sp > 0.85 else (A if sp > 0.55 else GOOD))
-	else:
-		gauge(float(lv) / ROOMS.size(), B)
+	# 속도는 막대가 아니라 몸·끈·소리로 보인다. 위 막대는 진행만
+	strain = clampf(absf(float(ropes[ri].rd)) / TEAR, 0.0, 1.2) if ri >= 0 else 0.0
+	gauge(float(lv) / ROOMS.size(), B)
 	_view(dt)
 
 
@@ -390,6 +533,7 @@ func _try_grab() -> void:
 	var v := Vector2(vx, vy)
 	var m := _mass()
 	var bm: float = float(rp.M) + HAND_M
+	rp.used = true
 	if bool(rp.lock):
 		rp.rd = 0.0
 		rp.lock = false
@@ -429,7 +573,8 @@ func _ropes(h: float) -> void:
 		var r: float = rp.r
 		var r_was := r
 		var th: float = rp.th
-		th = lerpf(th, 0.0, 1.0 - exp(-4.0 * h))
+		var th_to: float = rp.th0 if (bool(rp.lock) or bool(rp.spent)) else 0.0
+		th = lerpf(th, th_to, 1.0 - exp(-4.0 * h))
 		rp.th = th
 		rp.thd = 0.0
 		if bool(rp.lock):
@@ -453,6 +598,9 @@ func _ropes(h: float) -> void:
 		r += rd * h
 		if r < float(rp.rmin) or r > float(rp.rmax):
 			r = clampf(r, float(rp.rmin), float(rp.rmax))
+			if r <= float(rp.rmin) + 0.01 and absf(rd) > 3.0:
+				var crl := _cell_rect(rp)
+				_burst(Vector2(crl.get_center().x, crl.position.y), 4, 4.0, C)
 			rd = 0.0
 			rp.spent = true
 			beep(110.0, 0.1, 60.0, 0.2)
@@ -555,6 +703,9 @@ func _held(h: float) -> void:
 	py = hp.y - ARM
 	vx = vel.x
 	vy = vel.y
+	if hit > 3.0 and r <= float(rp.rmin) + 0.01:
+		var crh := _cell_rect(rp)
+		_burst(Vector2(crh.get_center().x, crh.position.y), 6, 3.0 + hit * 0.3, C)
 	if hit > 0.0:
 		if hit > TEAR:
 			# 감방이 바닥에 쾅: 팔이 빠져 그 속도 그대로 날아간다
@@ -623,6 +774,11 @@ func _impact(sp: float, why: String) -> void:
 	elif sp > 6.0:
 		shake = maxf(shake, sp * 0.015)
 		beep(90.0, 0.08, 50.0, 0.3)
+		squash = clampf(sp / 20.0, 0.15, 0.5)
+		var pal: Array = PAL[zone]
+		_burst(Vector2(px, py - BH * 0.5 if why == "떨어짐" else py), 3, 2.0 + sp * 0.15, pal[0])
+	elif sp > 2.5 and why == "떨어짐":
+		squash = 0.12
 
 
 ## 날다가 턱 모서리 가까이 손이 오면 올라선다 (너무 빨리 솟구치는 중이면 지나쳐 버린다)
@@ -731,6 +887,9 @@ func _check() -> void:
 				_die("가시")
 				return
 	if door.intersects(pr):
+		for rp in ropes:
+			if bool(rp.used):
+				dropped += 1
 		_release(1.0)
 		clear_t = 1.0
 		vx = 0.0
@@ -746,6 +905,7 @@ func _die(why: String) -> void:
 	_release(1.0)
 	die_t = 0.9
 	body.material_override = mat(BAD)
+	_burst(Vector2(px, py), 6, 6.0, ME)
 	shake = maxf(shake, 0.45)
 	play("bad")
 	msg(why, 0.9)
@@ -754,7 +914,20 @@ func _die(why: String) -> void:
 ## 소리: 잡고 있으면 끈이 도르래를 긁는 드르륵(빠를수록 촘촘·높게), 날 때는 바람
 func _sounds(h: float) -> void:
 	snd_t -= h
-	if snd_t > 0.0 or die_t > 0.0:
+	warn_t -= h
+	if die_t > 0.0:
+		return
+	# 감방이 착지대에 곧 닿는데 빠르면: 삐삐 (지금 놓아라)
+	if ri >= 0 and warn_t <= 0.0:
+		var rpw: Dictionary = ropes[ri]
+		var rdw: float = rpw.rd
+		if rdw < -TEAR * 0.6 and (float(rpw.r) - float(rpw.rmin)) / -rdw < 0.45:
+			warn_t = 0.09
+			beep(1300.0, 0.05, 1500.0, 0.16)
+		elif strain > 0.55:
+			warn_t = 0.16
+			beep(90.0 + strain * 60.0, 0.12, 70.0, 0.1)  # 끈이 끼익 늘어나는 소리
+	if snd_t > 0.0:
 		return
 	if ri >= 0:
 		var sp := absf(float(ropes[ri].rd))
@@ -772,63 +945,175 @@ func _sounds(h: float) -> void:
 
 
 func _view(dt: float) -> void:
+	var tremble := sin(anim * 70.0) * 0.06 * strain * strain
+	var hot := BAD if strain > 0.85 else (A if strain > 0.55 else INK)
 	# 끈·감방
-	for rp in ropes:
+	for k in ropes.size():
+		var rp: Dictionary = ropes[k]
+		var mine := k == ri
 		var o: Vector2 = rp.o
 		var r: float = rp.r
 		var th: float = rp.th
 		var hp := _handle(rp)
+		var perp := Vector2(cos(th), sin(th)) * (tremble if mine else 0.0)
 		var line: MeshInstance3D = rp.line
-		line.position = Vector3((o.x + hp.x) * 0.5, (o.y + hp.y) * 0.5, 0.0)
+		line.position = Vector3((o.x + hp.x) * 0.5 + perp.x, (o.y + hp.y) * 0.5 + perp.y, 0.0)
 		line.rotation.z = th
-		line.scale = Vector3(0.07, r, 0.07)
+		var thick := 0.07 + (0.06 * strain if mine else 0.0)
+		line.scale = Vector3(thick, r, thick)
+		line.material_override = mat(hot if mine else INK)
 		var hd: MeshInstance3D = rp.handle
 		hd.position = Vector3(hp.x, hp.y, 0.0)
 		hd.rotation.z = th
+		var pul: MeshInstance3D = rp.pul
+		pul.rotation.z = -r * 1.6
+		var pul2: MeshInstance3D = rp.pul2
+		pul2.rotation.z = -r * 1.6
 		var cr := _cell_rect(rp)
 		var cx := cr.get_center().x
 		var top := cr.end.y
 		var cline: MeshInstance3D = rp.cline
 		var cl := o.y - top
-		cline.position = Vector3(cx, top + cl * 0.5, -0.4)
-		cline.scale = Vector3(0.07, maxf(cl, 0.05), 0.07)
+		cline.position = Vector3(cx + (tremble if mine else 0.0), top + cl * 0.5, -0.4)
+		cline.scale = Vector3(thick, maxf(cl, 0.05), thick)
+		cline.material_override = mat(hot if mine else INK)
 		var cell: MeshInstance3D = rp.cell
 		cell.position = Vector3(cx, cr.get_center().y, -0.4)
 		var win: MeshInstance3D = rp.win
 		win.position = Vector3(cx, top - 0.4, 0.12)
+		var bars: MeshInstance3D = rp.bars
+		bars.position = Vector3(cx, top - 0.4, 0.16)
 		var bolt: MeshInstance3D = rp.bolt
 		bolt.visible = bool(rp.lock)
-	# 나
-	me.position = Vector3(px, py, 0.0)
+		# 떨어지는 감방 위로 남는 줄무늬
+		var cv: float = rp.cv
+		var cs: Array = rp.cs
+		for j in 2:
+			var s: MeshInstance3D = cs[j]
+			s.visible = cv > 4.0 and die_t <= 0.0
+			if s.visible:
+				var ln := minf(cv * 0.12, 2.5)
+				s.position = Vector3(cx - 0.35 + j * 0.7, top + 0.3 + ln * 0.5 + 0.2 * sin(anim * 30.0 + j), -0.2)
+				s.scale = Vector3(0.06, ln, 0.06)
+		var stack: Array = rp.stack
+		for j in stack.size():
+			var sb: MeshInstance3D = stack[j]
+			sb.position = Vector3(cx - 0.3 + (j % 2) * 0.6, top + 0.22 + floorf(j * 0.5) * 0.42, -0.4)
+	# 나: 끌려가는 속도만큼 몸이 늘어나고 빨개지며 팔이 빠지려 늘어난다
+	squash = maxf(0.0, squash - dt * 2.5)
+	var speed := Vector2(vx, vy).length()
+	var sy := 1.0
+	var a := 0.0
+	var ext := 0.0
+	if ri >= 0 and die_t <= 0.0:
+		var hp := _handle(ropes[ri])
+		a = clampf(float(ropes[ri].th), -0.7, 0.7)
+		sy = 1.0 + 0.55 * minf(strain, 1.1)
+		ext = strain * strain * 0.5
+		me.position = Vector3(hp.x + sin(a) * (ARM + ext), hp.y - cos(a) * (ARM + ext), 0.0)
+	else:
+		if speed > 8.0 and not on_floor:
+			a = atan2(-vx, vy) if vy >= 0.0 else atan2(vx, -vy)
+			a = clampf(a, -0.9, 0.9)
+			sy = 1.0 + minf((speed - 8.0) / 40.0, 0.45)
+		me.position = Vector3(px, py, 0.0)
+	me.rotation.z = lerp_angle(me.rotation.z, a, 1.0 - exp(-14.0 * dt))
+	sy *= 1.0 - squash
+	var sx := 1.0 / sqrt(sy)
+	body.scale = Vector3(BW * sx, BH * sy, 0.6)
+	body.position.y = (ARM - BH * 0.5 * sy) if ri >= 0 else (-BH * 0.5 + BH * 0.5 * sy)
+	if die_t <= 0.0:
+		body.material_override = mat(BAD if strain > 0.85 else (A if strain > 0.55 else ME))
 	var face := signf(vx) if absf(vx) > 0.5 else 1.0
-	eye.position.x = face * 0.2
+	eye.position = Vector3(face * 0.2 * sx, body.position.y + 0.35 * sy, 0.31)
+	eye.scale = Vector3.ONE * (0.16 + 0.14 * minf(strain, 1.0))
+	eye.scale.z = 0.05
 	hand.visible = ri >= 0
+	hand.position = Vector3(0, ARM + ext, 0)
+	arm.visible = ri >= 0 and ext > 0.03
+	arm.position = Vector3(0, ARM + ext * 0.5, 0)
+	arm.scale = Vector3(0.14, ext + 0.05, 0.2)
+	var bottom := body.position.y - BH * 0.5 * sy
 	for k in loads.size():
 		loads[k].visible = k < carry
+		loads[k].position.y = bottom - 0.45 - k * 0.9
 		loads[k].rotation.z = clampf(-vx * 0.03, -0.6, 0.6)
 	# 빠를 때 잔상
-	var speed := Vector2(vx, vy).length()
 	trail_t -= dt
 	if trail_t <= 0.0:
 		trail_t = 0.035
 		var tb := trail[trail_k]
 		trail_k = (trail_k + 1) % trail.size()
 		tb.visible = speed > 9.0 and die_t <= 0.0
-		tb.position = Vector3(px, py, -0.3)
-		tb.scale = Vector3(BW, BH, 0.3)
+		tb.position = Vector3(me.position.x, me.position.y, -0.3)
+		tb.rotation.z = me.rotation.z
+		tb.scale = Vector3(BW * sx, BH * sy, 0.3)
 	for tb in trail:
 		tb.scale = tb.scale * maxf(0.0, 1.0 - 5.0 * dt)
-	# 카메라: 가는 쪽을 더 보여 주고, 빠를수록 넓게
-	var k := 1.0 - exp(-6.0 * dt)
-	cam_x = lerpf(cam_x, px + vx * 0.12, k)
-	cam_y = lerpf(cam_y, py + 2.0 + vy * 0.15, k)
-	var half := 9.0
-	if gw > half * 2.0:
-		cam_x = clampf(cam_x, half, gw - half)
+	# 바람 줄무늬: 세상에 박혀 있다가 내가 지나치면 앞쪽에 다시 생긴다 (빠를수록 길고 많이 스친다)
+	var vdir := Vector2(vx, vy).normalized() if speed > 0.1 else Vector2.UP
+	var on := speed > 7.0 and die_t <= 0.0
+	for k in streaks.size():
+		var s := streaks[k]
+		var sp2: Vector2 = st_off[k]
+		var rel := sp2 - Vector2(px, py)
+		if not s.visible or rel.length() > 7.0 or rel.dot(vdir) < -5.0:
+			var side := Vector2(-vdir.y, vdir.x)
+			sp2 = Vector2(px, py) + vdir * randf_range(2.0, 7.0) + side * randf_range(-3.5, 3.5)
+			st_off[k] = sp2
+		s.visible = on and k < int(speed / 2.0)
+		if s.visible:
+			s.position = Vector3(sp2.x, sp2.y, 1.15)
+			s.rotation.z = atan2(-vdir.x, vdir.y)
+			s.scale = Vector3(0.06, clampf(speed * 0.07, 0.4, 2.6), 0.06)
+	# 파편
+	for k in bits.size():
+		if bit_life[k] <= 0.0:
+			continue
+		bit_life[k] -= dt
+		var b := bits[k]
+		var bv := bit_v[k]
+		bv.y -= G * 0.6 * dt
+		bit_v[k] = bv
+		b.position += bv * dt
+		b.rotation.z += dt * 8.0
+		b.scale = Vector3.ONE * 0.22 * clampf(bit_life[k] / 0.3, 0.0, 1.0)
+		if bit_life[k] <= 0.0:
+			b.visible = false
+	# 창밖 구름
+	for c in clouds:
+		var cm: MeshInstance3D = c[0]
+		var wr: Rect2 = c[1]
+		cm.position.x += float(c[2]) * dt
+		if cm.position.x > wr.end.x - 0.45:
+			cm.position.x = wr.position.x + 0.45
+	# 카메라: 잡고 있으면 나와 떨어지는 감방이 한 화면에 (멀면 물러난다), 아니면 가는 쪽을 더 보여 준다
+	var k2 := 1.0 - exp(-5.0 * dt)
+	var tx := px + vx * 0.12
+	var ty := py + 2.0 + vy * 0.15
+	var dist := 18.0 + minf(speed, 30.0) * 0.12
+	if ri >= 0:
+		var crc := _cell_rect(ropes[ri]).get_center()
+		var low := float(ropes[ri].o.y) - LC0 - (float(ropes[ri].rmax) - float(ropes[ri].rmin)) - float(ropes[ri].chh)
+		var y0 := minf(minf(py, crc.y), low) - 1.5
+		var y1 := maxf(py, crc.y) + 2.5
+		var x0 := minf(px, crc.x) - 1.5
+		var x1 := maxf(px, crc.x) + 1.5
+		tx = (x0 + x1) * 0.5
+		ty = (y0 + y1) * 0.5
+		dist = maxf(dist, maxf((y1 - y0) * 0.5 / 0.5, (x1 - x0) * 0.5 / 0.28))
+	dist = minf(dist, 30.0)
+	cam_x = lerpf(cam_x, tx, k2)
+	cam_y = lerpf(cam_y, ty, k2)
+	cam.position.z = lerpf(cam.position.z if cam.position.z > 1.0 else 18.0, dist, k2 * 0.6)
+	var hw := cam.position.z * 0.29
+	if gw > hw * 2.0:
+		cam_x = clampf(cam_x, hw, gw - hw)
 	else:
 		cam_x = gw * 0.5
 	shake = maxf(0.0, shake - dt * 1.5)
 	var off := Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * shake * 0.8
-	cam.position = Vector3(cam_x + off.x, cam_y + off.y, 18.0)
-	cam.rotation = Vector3.ZERO
-	cam.fov = lerpf(cam.fov, 56.0 + minf(speed, 30.0) * 0.35, k)
+	cam.position.x = cam_x + off.x
+	cam.position.y = cam_y + off.y
+	cam.rotation = Vector3(0.0, 0.0, tilt + off.x * 0.02)
+	cam.fov = lerpf(cam.fov, 56.0 + minf(speed, 30.0) * 0.3, k2)

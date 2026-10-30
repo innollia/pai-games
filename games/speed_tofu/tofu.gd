@@ -9,6 +9,7 @@ extends Node3D
 ##   kit_button(이름, 글자, 가운데, 반지름, 색) -> kit_held(이름) 누르는 중, kit_just(이름) 이번 _step 에 막 눌림
 ##   kit_stick·kit_lookpad 는 zone(Rect2)으로 자리를 바꿀 수 있다. 플레이 방법 상자·게임 끝 화면에서는 숨고 탭은 예전처럼 동작한다.
 ##   키트에 닿은 손가락은 _tap/_drag/_lift 로 안 간다. 나머지 손가락 하나는 예전처럼 간다.
+## 오른쪽 위 구석(_RATE_BTN)은 "평가" 버튼이 먼저 가로챈다: 게임을 멈추고 별 카드를 띄운다. 게임은 거기에 입력을 두지 않는다.
 
 signal back
 
@@ -75,6 +76,13 @@ var _rate_status: Label
 var _rated := 0  # 이번 판에 보낸 별 수 (0이면 아직)
 var _rate_text := ""
 var _rate_wait := false  # 보내고 window.tofuLast 를 기다리는 중
+# 언제든 평가: 게임 중 오른쪽 위 "평가" -> 멈추고 같은 별 카드를 띄운다 (끝 화면이 없는 게임도 평가)
+var gver := 1  # 게임 버전 (main.gd GAME_VER). 평가 ver = "v<gver> <VER>"
+const _RATE_BTN := Rect2(620, 0, 100, 100)
+const _CLOSE_RECT := Rect2(240, 1170, 240, 80)
+var _rating := false  # 언제든 평가 카드가 떠 있는 동안 시간·_step 멈춤
+var _rate_btn_l: Label
+var _rate_extra: Array[Control] = []  # 어둡게·제목·닫기 (언제든 평가 때만 보임)
 
 
 class _Pad extends Control:
@@ -122,6 +130,10 @@ func _ready() -> void:
 	back_l.text = "< 메뉴"
 	back_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	back_l.position.x = 24
+	_rate_btn_l = _label(hud, 34, 20, 60)
+	_rate_btn_l.text = "평가"
+	_rate_btn_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_rate_btn_l.size.x = 696
 	for i in 8:
 		var p := AudioStreamPlayer.new()
 		add_child(p)
@@ -197,6 +209,32 @@ func _rate_card() -> Control:
 	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	card.visible = false
 	top.add_child(card)
+	var dim := ColorRect.new()
+	dim.color = Color(0, 0, 0, 0.45)
+	dim.size = Vector2(720, 1280)
+	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card.add_child(dim)
+	var panel := ColorRect.new()
+	panel.color = Color(1, 1, 1, 0.85)
+	panel.position = Vector2(60, 720)
+	panel.size = Vector2(600, 550)
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card.add_child(panel)
+	var title := _label(card, 52, 750, 80)
+	title.text = "이 게임 어때요?"
+	var shut := ColorRect.new()
+	shut.color = SOFT
+	shut.position = _CLOSE_RECT.position
+	shut.size = _CLOSE_RECT.size
+	shut.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card.add_child(shut)
+	var shut_l := _label(shut, 40, 0, _CLOSE_RECT.size.y)
+	shut_l.text = "닫기"
+	shut_l.size.x = _CLOSE_RECT.size.x
+	shut_l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_rate_extra = [dim, panel, title, shut]
+	for c in _rate_extra:
+		c.visible = false
 	var s := LabelSettings.new()
 	s.font = _font
 	s.font_size = 84
@@ -238,6 +276,23 @@ func _rate_card() -> Control:
 
 ## 별·한마디 영역 탭이면 처리하고 true (재시작 탭으로 안 간다)
 func _rate_hit(p: Vector2) -> bool:
+	if _rating:
+		if _STAR_RECT.has_point(p):
+			if _rated == 0:
+				_rated = clampi(int((p.x - _STAR_RECT.position.x) / (_STAR_RECT.size.x / 5.0)) + 1, 1, 5)
+				play("tap")
+				_rate_send()
+				_rate_close()
+		elif _WORD_RECT.has_point(p):
+			play("tap")
+			var w := _js_ask("이 게임에 한마디 (선택)")
+			if w.strip_edges() != "":
+				_rate_text = w.strip_edges().left(500)
+				_rate_status.text = "별도 탭해 주세요"
+		elif _CLOSE_RECT.has_point(p):
+			play("tap")
+			_rate_close()
+		return true  # 카드가 떠 있는 동안 다른 탭은 게임으로 안 간다
 	if not over or wait > 0.0:
 		return false
 	if _STAR_RECT.has_point(p):
@@ -263,13 +318,47 @@ func _rate_send() -> void:
 	for i in 5:
 		_stars[i].label_settings.font_color = D if i < _rated else SOFT
 	if not OS.has_feature("web"):
-		_rate_status.text = "고마워요!"
+		_rate_say("고마워요!")
 		return
 	var js := "window.tofuRate && window.tofuRate(%s, %s, %d, %s, %d)" % [
-		JSON.stringify(id), JSON.stringify(VER), _rated, JSON.stringify(_rate_text), score]
+		JSON.stringify(id), JSON.stringify(("v%d %s" % [gver, VER]).left(40)), _rated, JSON.stringify(_rate_text), score]
 	JavaScriptBridge.eval(js, true)
 	_rate_wait = true
-	_rate_status.text = "보내는 중"
+	_rate_say("보내는 중")
+
+
+## 카드에 쓰고, 언제든 평가로 카드를 이미 닫았으면 가운데 메시지로 잠깐 보인다
+func _rate_say(s: String) -> void:
+	_rate_status.text = s
+	if not over and not _rating:
+		_msg_l.text = s
+		_msg_t = 1.2
+
+
+## 언제든 평가 카드 열기: 게임을 멈추고(_step 안 돎) 별·한마디·닫기
+func _rate_open() -> void:
+	_rating = true
+	held = false
+	_kit_clear()
+	_rated = 0
+	_rate_text = ""
+	_rate_status.text = ""
+	for l in _stars:
+		l.label_settings.font_color = SOFT
+	for c in _rate_extra:
+		c.visible = true
+	_rate_box.visible = true
+	play("tap")
+
+
+func _rate_close() -> void:
+	var was := _rating
+	_rating = false
+	for c in _rate_extra:
+		c.visible = false
+	_rate_box.visible = over
+	if was and _rated > 0:
+		_rate_say(_rate_status.text)
 
 
 ## 매 프레임: 보낸 결과(window.tofuLast)를 읽는다
@@ -279,10 +368,10 @@ func _rate_poll() -> void:
 	var r: Variant = JavaScriptBridge.eval("window.tofuLast", true)
 	if r == "ok":
 		_rate_wait = false
-		_rate_status.text = "고마워요!"
+		_rate_say("고마워요!")
 	elif r == "fail":
 		_rate_wait = false
-		_rate_status.text = "저장 안 됨"
+		_rate_say("저장 안 됨")
 
 
 ## 웹이면 window.prompt, 아니면 ""
@@ -315,6 +404,9 @@ func restart() -> void:
 	t = time_limit
 	_bar_bg.visible = false
 	_msg_t = 0.0
+	_rating = false
+	for c in _rate_extra:
+		c.visible = false
 	_rate_box.visible = false
 	_kit_clear()
 	_reset()
@@ -325,6 +417,9 @@ func end() -> void:
 		return
 	over = true
 	wait = 0.7
+	_rating = false
+	for c in _rate_extra:
+		c.visible = false
 	_rated = 0
 	_rate_text = ""
 	_rate_wait = false
@@ -348,6 +443,13 @@ func _process(dt: float) -> void:
 		_score_l.text = str(score)
 		_time_l.visible = time_limit > 0.0
 		_time_l.text = str(ceili(t))
+		_rate_btn_l.visible = false
+		_kit_frame()
+		return
+	_rate_btn_l.visible = not over and not _rating
+	if _rating:  # 언제든 평가 카드: 시간·_step 멈춤
+		_msg_l.visible = false
+		_rate_poll()
 		_kit_frame()
 		return
 	if over:
@@ -368,7 +470,7 @@ func _process(dt: float) -> void:
 	_over_l.visible = over
 	if over:
 		_over_l.text = "%d\n최고 %d%s" % [score, best, "\n탭해서 다시" if wait <= 0.0 else ""]
-		_rate_poll()
+	_rate_poll()
 	_kit_frame()
 
 
@@ -385,6 +487,12 @@ func _unhandled_input(event: InputEvent) -> void:
 			if _howto_box and _howto_box.visible:
 				_howto_box.visible = false
 				play("tap")
+				return
+			if _rating:
+				_rate_hit(p)
+				return
+			if not over and _RATE_BTN.has_point(p):
+				_rate_open()
 				return
 			if over:
 				if _rate_hit(p):
@@ -487,7 +595,7 @@ func _kit_frame() -> void:
 		return
 	kit_look = Vector2.ZERO
 	_justs.clear()
-	_pad.visible = not over and not (_howto_box and _howto_box.visible)
+	_pad.visible = not over and not _rating and not (_howto_box and _howto_box.visible)
 	_pad.queue_redraw()
 
 
@@ -513,6 +621,12 @@ func _finger(id: int, p: Vector2, kind: int) -> void:
 		if _howto_box and _howto_box.visible:
 			_howto_box.visible = false
 			play("tap")
+			return
+		if _rating:
+			_rate_hit(p)
+			return
+		if not over and _RATE_BTN.has_point(p):
+			_rate_open()
 			return
 		if over:
 			if _rate_hit(p):

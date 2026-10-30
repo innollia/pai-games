@@ -134,7 +134,7 @@ def build_md(ratings, ideas):
             by_ver = defaultdict(list)
             for r in rs:
                 by_ver[str(r.get("ver") or "?")].append(r)
-            L.append("| 버전 | 평균 | 개수 | 분포 1·2·3·4·5 | 평균 점수 |")
+            L.append("| 게임 버전·빌드 | 평균 | 개수 | 분포 1·2·3·4·5 | 평균 점수 |")
             L.append("|---|---|---|---|---|")
             for ver in sorted(by_ver, reverse=True):
                 vs = by_ver[ver]

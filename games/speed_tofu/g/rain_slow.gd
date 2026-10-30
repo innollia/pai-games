@@ -1,8 +1,8 @@
 extends Tofu
 ## 옆모습. 스틱 살짝 = 기기(조용·느림), 끝까지 = 뛰기(빠름·소리). 점프·던지기 버튼, 장대 옆에서 위 = 타기. 비 오기 전에 열매 2개 먹고 셸터로.
-## 소리가 세계의 자원이다: 뛰는 소리는 도마뱀을 부르지만 나무 열매를 떨구고 새를 날린다(비가 빨라짐). 손으로 짠 지역 6개, 지역마다 소리 규칙이 바뀐다:
-## 들판(뛰어야 열매) · 웅덩이(기어도 첨벙, 물에 던진 돌은 크게 꾄다) · 갈대숲(멈추면 안 보임) · 동굴(소리 2배 울림, 종유석 열매는 소리로) · 둥지(자는 놈은 귀만) · 비 속(빗소리가 덮어 뛰는 게 정답). 죽으면 그 지역부터.
-# 한 문장: 나는 비 오기 전에 먹고 숨어야 하는 작은 짐승으로서 나보다 빠른 도마뱀의 지역 속에서 기거나 뛰어 열매를 얻고 셸터에 들지만, 뛰는 소리가 도마뱀을 부르고(대신 열매를 떨구고) 기면 비가 먼저 온다.
+## 소리가 세계의 자원이다: 뛰는 소리는 나무 열매를 떨구고 새를 날리고(비가 빨라짐) 도마뱀을 부른다. 소리 물결이 눈에 보인다. 손으로 짠 지역 8개, 지역마다 소리 규칙이 바뀐다:
+## 들판(뛰어야 열매) · 웅덩이(기어도 첨벙) · 갈대숲(멈추면 안 보임) · 바람 언덕(소리는 바람 따라 멀리, 바람 위로는 안 감) · 동굴(울림 2배) · 메아리 골짜기(내 소리는 반대편에서 들린다) · 둥지(자는 놈은 귀만) · 비 속(빗소리가 덮음). 죽으면 그 지역부터.
+# 한 문장: 나는 비 오기 전에 먹고 숨어야 하는 작은 짐승으로서 소리에 답하는 지역 속에서 기거나 뛰어 열매를 떨구고 셸터에 들지만, 뛰는 소리가 도마뱀을 부르고 새를 날려 비를 앞당기며, 기면 비가 먼저 온다.
 
 const CRAWL := 1.3
 const RUN := 4.3
@@ -13,14 +13,20 @@ const GRAV := 20.0
 const NEED := 2
 const NRAIN := 40
 const WET_MAX := 1.6  # 비 속 지역: 지붕 밖에서 버티는 초
-const NAMES := ["들판", "웅덩이", "갈대숲", "동굴", "둥지", "비 속"]
-const RULES := ["뛰면 열매가 떨어짐", "물은 기어도 첨벙", "멈추면 안 보인다", "소리가 울린다", "자는 놈은 귀만", "빗소리가 덮는다"]
+const WIND_T := 5.5  # 바람 언덕: 바람이 바뀌는 주기
+const ECHO_DELAY := 1.1  # 메아리 골짜기: 소리가 돌아오는 시간
+# 지역 번호(reg): 0 들판 1 웅덩이 2 갈대숲 3 동굴 4 둥지 5 비 속 6 바람 언덕 7 메아리 골짜기. 도는 순서는 ORDER.
+const ORDER := [0, 1, 2, 6, 3, 7, 4, 5]
+const NAMES := ["들판", "웅덩이", "갈대숲", "동굴", "둥지", "비 속", "바람 언덕", "메아리 골짜기"]
+const RULES := ["뛰면 열매가 떨어짐", "물은 기어도 첨벙", "멈추면 안 보인다", "소리가 울린다", "자는 놈은 귀만", "빗소리가 덮는다", "소리는 바람 따라", "소리가 건너편에서"]
+const SKY := ["d8eeff", "cfeef0", "e6f2d0", "efe3cf", "f8e8d8", "cddcec", "e2f5ff", "f1e4f6"]
 
 
 class Liz:
 	var root: Node3D
 	var body: MeshInstance3D
 	var head: MeshInstance3D
+	var tail: MeshInstance3D
 	var x := 0.0
 	var dir := 1.0
 	var lo := 0.0
@@ -36,6 +42,7 @@ class Liz:
 
 var rng := RandomNumberGenerator.new()
 var level: Node3D
+var env: Environment
 var wd := 30.0
 var cyc := 0
 var reg := 0
@@ -66,11 +73,22 @@ var sway_t := 0.0
 var wet := 0.0
 var clock := 0.0
 var cam_x := 0.0
+var land_t := 0.0  # 착지 찌그러짐
+var wave_last := -9.0
+var wind := 1.0  # 바람 언덕: +1 오른쪽으로, -1 왼쪽으로
+var wind_t := 0.0
+var valley := Vector2.ZERO  # 메아리 골짜기 구간
+var echo_q: Array[Dictionary] = []  # {x, r, t}
+var echo_last := -9.0
 var me_root: Node3D
 var me_body: MeshInstance3D
 var me_head: MeshInstance3D
 var me_rock: MeshInstance3D
+var me_echo: MeshInstance3D  # 메아리가 돌아올 자리 표시
 var door: MeshInstance3D
+var flag: MeshInstance3D
+var col_ground := GOOD
+var col_hill := SOFT
 var lizards: Array[Liz] = []
 var poles: Array[Dictionary] = []  # {x, top}
 var puddles: Array[Vector2] = []  # x0, x1
@@ -82,16 +100,27 @@ var rocks: Array[Dictionary] = []  # {n, x, y, st(0 바닥, 1 손, 2 날아감),
 var trees: Array[Dictionary] = []  # {n, x, sh}
 var birds: Array[Dictionary] = []  # {n, x, y, st}
 var reeds: Array[Dictionary] = []  # {n, x, h, a}
+var grass: Array[Dictionary] = []  # 바람 언덕 풀 {n, x, h, a}
 var rain: Array[MeshInstance3D] = []
+var clouds: Array[MeshInstance3D] = []
+var gusts: Array[MeshInstance3D] = []  # 바람 줄
+var streaks: Array[MeshInstance3D] = []  # 뛸 때 뒤로 지나가는 줄
+var bits: Array[Dictionary] = []  # 파편 {n, v, life}
+var bit_i := 0
+var waves: Array[Dictionary] = []  # 소리 물결 {l, r, x, rl, rr, life}
+var wave_i := 0
 
 
 func _setup() -> void:
 	time_limit = 0.0
 	cam.fov = 50.0
-	howto = "스틱 살짝 = 기기(조용·느림), 끝까지 = 뛰기(빠르지만 소리). 소리는 도마뱀을 부르지만 나무 열매를 떨군다.\n비 오기 전에 노란 열매 2개를 먹고 오른쪽 셸터로. 장대 위는 안전, 돌을 던지면 기절·유인.\n지역마다 소리 규칙이 바뀐다. 물리거나 비 맞으면 그 지역부터 다시."
+	howto = "스틱 살짝 = 기기(조용·느림), 끝까지 = 뛰기(빠르지만 소리). 소리 물결이 닿으면 나무 열매가 떨어지고 새가 날고(비 -5초) 도마뱀이 온다.\n비 오기 전에 노란 열매 2개를 먹고 오른쪽 셸터로. 장대 위는 안전, 돌을 던지면 기절·먼 곳에 소리.\n지역 8개, 지역마다 소리 규칙이 바뀐다(바람이 소리를 실어 가고, 골짜기는 소리를 건너편에서 돌려준다). 물리거나 비 맞으면 그 지역부터."
 	kit_stick()
 	kit_button("jump", "점프", Vector2(600, 1080), 100.0, ME)
 	kit_button("throw", "던지기", Vector2(600, 870), 70.0, A)
+	for c in get_children():
+		if c is WorldEnvironment:
+			env = (c as WorldEnvironment).environment
 
 
 func _reset() -> void:
@@ -117,11 +146,23 @@ func _region() -> void:
 	trees.clear()
 	birds.clear()
 	reeds.clear()
+	grass.clear()
 	rain.clear()
-	reg = cyc % NAMES.size()
-	lap = cyc / NAMES.size()
+	clouds.clear()
+	gusts.clear()
+	streaks.clear()
+	bits.clear()
+	waves.clear()
+	echo_q.clear()
+	flag = null
+	reg = ORDER[cyc % ORDER.size()]
+	lap = cyc / ORDER.size()
 	echo = 1.0
 	rain_base = 55.0
+	valley = Vector2.ZERO
+	wind = 1.0
+	wind_t = WIND_T
+	_palette()
 	match reg:
 		0: _r_field()
 		1: _r_puddle()
@@ -129,23 +170,41 @@ func _region() -> void:
 		3: _r_cave()
 		4: _r_nest()
 		5: _r_storm()
-	# 땅·배경 기둥
+		6: _r_wind()
+		7: _r_valley()
+	# 땅
 	box(Vector3(wd * 0.5, -1.0, 0.0), Vector3(wd + 12.0, 2.0, 6.0), WHITE, level)
-	box(Vector3(wd * 0.5, 0.02, 0.0), Vector3(wd + 12.0, 0.08, 4.0), GOOD, level)
-	if reg != 3:
-		var k := 0
-		while k * 3.5 < wd:
-			var h := rng.randf_range(2.5, 7.0)
-			box(Vector3(k * 3.5 + rng.randf_range(0.0, 1.5), h * 0.5, -2.4 - rng.randf_range(0.0, 1.5)), Vector3(rng.randf_range(0.6, 1.4), h, 0.8), SOFT, level)
-			k += 1
-	# 셸터(오른쪽 끝)
+	box(Vector3(wd * 0.5, 0.02, 0.0), Vector3(wd + 12.0, 0.08, 4.0), col_ground, level)
+	# 바닥 눈금(속도가 보이게): 땅 앞쪽에 1m 마다 작은 돌
+	var gx := 0.5
+	while gx < wd:
+		box(Vector3(gx, 0.07, 1.85), Vector3(0.18, 0.06, 0.18), col_ground.lerp(WHITE, 0.45), level)
+		gx += 2.0
+	_backdrop()
+	# 셸터(오른쪽 끝): 몸통·지붕·문
 	box(Vector3(wd - 0.6, 1.6, 0.0), Vector3(3.2, 3.2, 3.0), SOFT, level)
+	box(Vector3(wd - 0.6, 3.35, 0.0), Vector3(3.8, 0.4, 3.4), A, level)
 	door = box(Vector3(wd - 2.3, 0.9, 0.3), Vector3(0.3, 1.8, 1.4), GOOD, level)
 	# 비
 	for i in NRAIN:
 		var r := box(Vector3(0.0, -50.0, 1.0), Vector3(0.07, 0.9, 0.07), B, level)
 		r.visible = false
 		rain.append(r)
+	# 파편·물결·뛰기 줄 (미리 만들고 돌려 쓴다)
+	for i in 16:
+		var b := box(Vector3(0.0, -50.0, 0.8), Vector3(0.14, 0.14, 0.14), WHITE, level)
+		b.visible = false
+		bits.append({"n": b, "v": Vector3.ZERO, "life": 0.0})
+	for i in 8:
+		var l := box(Vector3(0.0, -50.0, 1.4), Vector3(0.09, 1.0, 0.09), B, level)
+		var rr := box(Vector3(0.0, -50.0, 1.4), Vector3(0.09, 1.0, 0.09), B, level)
+		l.visible = false
+		rr.visible = false
+		waves.append({"l": l, "r": rr, "x": 0.0, "y": 0.0, "rl": 0.0, "rr": 0.0, "life": 0.0, "max": 0.55})
+	for i in 5:
+		var s := box(Vector3(0.0, -50.0, 0.6), Vector3(0.7, 0.05, 0.05), WHITE, level)
+		s.visible = false
+		streaks.append(s)
 	# 나
 	me_root = Node3D.new()
 	level.add_child(me_root)
@@ -153,6 +212,8 @@ func _region() -> void:
 	me_head = box(Vector3(0.1, 1.1, 0.0), Vector3(0.4, 0.4, 0.4), WHITE, me_root)
 	me_rock = box(Vector3(0.4, 0.7, 0.25), Vector3(0.3, 0.26, 0.26), INK, me_root)
 	me_rock.visible = false
+	me_echo = box(Vector3(0.0, 0.1, 1.2), Vector3(0.6, 0.12, 0.6), C, level)
+	me_echo.visible = false
 	px = 1.5
 	py = 0.0
 	vx = 0.0
@@ -167,12 +228,64 @@ func _region() -> void:
 	hungry_t = 0.0
 	done_t = 0.0
 	wet = 0.0
+	land_t = 0.0
 	rain_max = maxf(25.0, rain_base - lap * 8.0)
 	rain_t = rain_max
 	warn = 99
 	cam_x = 7.0
 	hint_t = 1.4
 	msg("%d %s" % [cyc + 1, NAMES[reg]], 1.4)
+
+
+## 지역마다 하늘·땅·먼 산 색 (밝게)
+func _palette() -> void:
+	if env:
+		env.background_color = Color(SKY[reg])
+	match reg:
+		0:
+			col_ground = GOOD
+			col_hill = GOOD.lerp(WHITE, 0.55)
+		1:
+			col_ground = GOOD.lerp(B, 0.35)
+			col_hill = B.lerp(WHITE, 0.6)
+		2:
+			col_ground = GOOD.lerp(D, 0.35)
+			col_hill = D.lerp(WHITE, 0.55)
+		3:
+			col_ground = SOFT.lerp(A, 0.35)
+			col_hill = SOFT.lerp(A, 0.2)
+		4:
+			col_ground = A.lerp(SOFT, 0.55)
+			col_hill = A.lerp(WHITE, 0.6)
+		5:
+			col_ground = GOOD.lerp(B, 0.45)
+			col_hill = B.lerp(WHITE, 0.4)
+		6:
+			col_ground = GOOD.lerp(WHITE, 0.25)
+			col_hill = WHITE.lerp(B, 0.3)
+		7:
+			col_ground = SOFT.lerp(C, 0.25)
+			col_hill = C.lerp(WHITE, 0.6)
+
+
+## 먼 산(크게, 멀리), 가까운 기둥, 떠가는 구름
+func _backdrop() -> void:
+	if reg == 3:
+		return  # 동굴은 벽이 배경
+	var k := 0.0
+	while k < wd + 10.0:
+		var h := rng.randf_range(4.0, 9.0)
+		var w := rng.randf_range(5.0, 8.0)
+		box(Vector3(k - 4.0, h * 0.5 - 1.0, -9.0 - rng.randf_range(0.0, 2.0)), Vector3(w, h, 1.0), col_hill, level)
+		k += w * 0.8
+	k = 0.0
+	while k < wd:
+		var h2 := rng.randf_range(2.5, 6.0)
+		box(Vector3(k + rng.randf_range(0.0, 1.5), h2 * 0.5, -2.6 - rng.randf_range(0.0, 1.5)), Vector3(rng.randf_range(0.6, 1.4), h2, 0.8), col_hill.lerp(SOFT, 0.5), level)
+		k += 4.0
+	for i in 5:
+		var c := box(Vector3(rng.randf_range(0.0, wd), rng.randf_range(8.0, 11.0), -6.0), Vector3(rng.randf_range(2.0, 3.5), 0.6, 0.8), WHITE, level)
+		clouds.append(c)
 
 
 ## 1 들판: 열매는 나무에 달렸다. 뛰어 지나가야(진동) 떨어진다. 새 옆에서 뛰면 날아올라 비가 5초 빨라진다.
@@ -226,8 +339,10 @@ func _r_reeds() -> void:
 func _r_cave() -> void:
 	wd = 40.0
 	echo = 2.2
-	box(Vector3(20.0, 3.8, -0.3), Vector3(34.0, 0.8, 2.4), SOFT, level)
-	box(Vector3(20.0, 1.9, -2.6), Vector3(34.0, 3.8, 0.4), SOFT, level)
+	box(Vector3(20.0, 3.8, -0.3), Vector3(34.0, 0.8, 2.4), col_hill, level)
+	box(Vector3(20.0, 1.9, -2.6), Vector3(34.0, 3.8, 0.4), col_hill.lerp(WHITE, 0.3), level)
+	for x in [8.0, 16.0, 24.0, 31.0]:
+		box(Vector3(x, 3.2, -1.2), Vector3(0.4, 0.5, 0.4), col_hill, level)
 	_low(10.0, 15.0)
 	_low(25.0, 29.0)
 	_stal(19.5)
@@ -245,7 +360,7 @@ func _r_nest() -> void:
 	wd = 40.0
 	rain_base = 50.0
 	for x in [12.0, 17.5, 25.5, 31.5]:
-		box(Vector3(x, 0.1, -0.3), Vector3(2.4, 0.2, 1.6), SOFT, level)
+		box(Vector3(x, 0.1, -0.3), Vector3(2.4, 0.2, 1.6), A.lerp(SOFT, 0.3), level)
 		_liz(x - 3.0, x + 3.0, x, true)
 	_fruit(15.0)
 	_fruit(28.8)
@@ -271,9 +386,59 @@ func _r_storm() -> void:
 	_liz(31.0, 36.0, 33.0)
 
 
+## 바람 언덕: 소리는 바람 부는 쪽으로만 간다(1.5배 멀리), 바람 위쪽은 코앞만 들린다. 바람은 5.5초마다 뒤집힌다.
+## 높은 나무 열매는 바람 아래서 멀리서도 떨어지지만, 같은 쪽에 자는 도마뱀이 있으면 같이 깬다 → 바람이 도는 때를 기다려 뛴다.
+## 바람을 등지고 뛰면 빠르고, 안고 뛰면 느리다.
+func _r_wind() -> void:
+	wd = 44.0
+	rain_base = 58.0
+	_tree(17.0, 3.0)  # 왼쪽에 자는 놈: 바람이 오른쪽(→)으로 불 때 그 사이에서 뛴다
+	_liz(11.0, 13.0, 12.0, true)
+	_tree(30.0, 3.0)  # 오른쪽에 자는 놈: 바람이 왼쪽(←)으로 불 때 뛴다
+	_liz(34.5, 36.0, 35.0, true)
+	_bird(24.0)
+	_pole(22.0, 5.0)
+	_rock(5.0)
+	_rock(20.0)
+	_liz(24.5, 27.5, 26.0)
+	# 바람 깃발
+	box(Vector3(3.0, 2.0, -0.6), Vector3(0.15, 4.0, 0.15), INK, level)
+	flag = box(Vector3(3.6, 3.7, -0.6), Vector3(1.2, 0.5, 0.1), A, level)
+	# 바람 줄·풀
+	for i in 14:
+		var g := box(Vector3(rng.randf_range(0.0, wd), rng.randf_range(0.6, 8.0), rng.randf_range(-1.5, 1.8)), Vector3(rng.randf_range(0.8, 1.6), 0.05, 0.05), WHITE, level)
+		gusts.append(g)
+	var x := 0.6
+	while x < wd - 3.0:
+		var h := rng.randf_range(0.4, 0.8)
+		var m := box(Vector3(x, h * 0.5, 1.4), Vector3(0.1, h, 0.1), GOOD, level)
+		grass.append({"n": m, "x": x, "h": h, "a": 0.0})
+		x += rng.randf_range(1.2, 2.2)
+
+
+## 메아리 골짜기: 골짜기 안에서 낸 소리는 그 자리에선 안 들리고, 1.1초 뒤 반대편(보라색 표시)에서 들린다.
+## 열매·새·도마뱀 모두 메아리에 반응한다. 저쪽 선반 열매를 떨구려면 이쪽에서 뛰고, 도마뱀을 내 앞에서 치우려면 반대편에 소리를 보낸다.
+func _r_valley() -> void:
+	wd = 42.0
+	valley = Vector2(4.0, 38.0)
+	# 골짜기 양쪽 벽
+	box(Vector3(3.0, 4.0, -1.6), Vector3(1.8, 8.0, 2.4), col_hill.lerp(C, 0.3), level)
+	box(Vector3(38.6, 3.6, -2.2), Vector3(1.2, 7.2, 1.6), col_hill.lerp(C, 0.3), level)
+	# 선반 열매 (거울 자리 = 42 - x)
+	_ledge(30.0)
+	_ledge(9.5)
+	_liz(24.0, 34.0, 28.0)
+	_bird(17.0)
+	_pole(20.5, 5.0)
+	_rock(6.0)
+	_rock(15.0)
+	_rock(35.0)
+
+
 # ---- 지역 부품 ----
 func _pole(x: float, top: float) -> void:
 	box(Vector3(x, top * 0.5, -0.3), Vector3(0.25, top, 0.25), INK, level)
+	box(Vector3(x, top, -0.3), Vector3(0.6, 0.12, 0.6), A, level)
 	poles.append({"x": x, "top": top})
 
 
@@ -288,16 +453,23 @@ func _fruit(x: float, y := 0.4, trig := 0.0) -> void:
 	fruits.append({"n": m, "x": x, "y": y, "st": 0 if trig > 0.0 else 2, "trig": trig, "vy": 0.0})
 
 
-func _tree(x: float) -> void:
+func _tree(x: float, trig := 1.8) -> void:
 	box(Vector3(x, 1.5, -0.5), Vector3(0.45, 3.0, 0.45), INK, level)
 	var c := box(Vector3(x, 3.5, -0.5), Vector3(2.6, 1.5, 1.2), GOOD, level)
+	box(Vector3(x - 0.3, 4.4, -0.5), Vector3(1.6, 0.6, 1.0), GOOD.lerp(D, 0.25), level)
 	trees.append({"n": c, "x": x, "sh": 0.0})
-	_fruit(x + 0.4, 2.6, 1.8)
+	_fruit(x + 0.4, 2.6, trig)
 
 
 func _stal(x: float) -> void:
-	box(Vector3(x, 3.1, 0.0), Vector3(0.3, 0.6, 0.3), SOFT, level)
+	box(Vector3(x, 3.1, 0.0), Vector3(0.3, 0.6, 0.3), col_hill.lerp(WHITE, 0.4), level)
 	_fruit(x, 2.6, 3.0)
+
+
+func _ledge(x: float) -> void:
+	box(Vector3(x, 3.15, -0.2), Vector3(1.6, 0.3, 1.2), col_hill.lerp(C, 0.4), level)
+	box(Vector3(x, 1.5, -1.0), Vector3(0.5, 3.0, 0.5), col_hill.lerp(C, 0.2), level)
+	_fruit(x + 0.2, 2.7, 2.2)
 
 
 func _bird(x: float) -> void:
@@ -321,7 +493,7 @@ func _reeds(a: float, b: float) -> void:
 
 
 func _low(a: float, b: float) -> void:
-	box(Vector3((a + b) * 0.5, 2.25, -0.3), Vector3(b - a, 2.5, 2.4), SOFT, level)
+	box(Vector3((a + b) * 0.5, 2.25, -0.3), Vector3(b - a, 2.5, 2.4), col_hill.lerp(INK, 0.1), level)
 	lows.append(Vector2(a, b))
 
 
@@ -345,6 +517,7 @@ func _liz(lo: float, hi: float, x: float, sleeper := false) -> void:
 	level.add_child(lz.root)
 	lz.body = box(Vector3(0.0, 0.3, 0.0), Vector3(1.3, 0.5, 0.5), BAD, lz.root)
 	lz.head = box(Vector3(0.8, 0.45, 0.0), Vector3(0.5, 0.4, 0.45), BAD, lz.root)
+	lz.tail = box(Vector3(-1.0, 0.2, 0.0), Vector3(0.8, 0.18, 0.2), BAD, lz.root)
 	lizards.append(lz)
 
 
@@ -355,6 +528,20 @@ func _in(spans: Array[Vector2], x: float) -> bool:
 	return false
 
 
+func _in_valley(x: float) -> bool:
+	return reg == 7 and x > valley.x and x < valley.y
+
+
+## 소리가 ox 에 닿는가. 바람 언덕에선 바람 아래쪽으로 1.5배, 위쪽은 코앞(0.8)만.
+func _reach(ox: float, x: float, r: float) -> bool:
+	if reg != 6:
+		return absf(ox - x) < r
+	var d := (ox - x) * wind
+	if d >= 0.0:
+		return d < r * 1.5
+	return -d < 0.8
+
+
 # ---- 판 ----
 func _step(dt: float) -> void:
 	clock += dt
@@ -362,6 +549,7 @@ func _step(dt: float) -> void:
 		hint_t -= dt
 		if hint_t <= 0.0:
 			msg(RULES[reg], 2.2)
+	_fx(dt)
 	if done_t > 0.0:
 		done_t -= dt
 		if done_t <= 0.0:
@@ -394,9 +582,27 @@ func _step(dt: float) -> void:
 			if splash_t <= 0.0:
 				splash_t = 0.25
 				beep(900.0, 0.03, 600.0, 0.12)
+				_burst(Vector3(px, 0.1, 0.6), B, 2, 2.5)
 			if wet >= WET_MAX:
 				_die("비 맞았다")
 				return
+	# 바람 언덕: 주기마다 뒤집힌다(1초 전에 깃발이 떤다)
+	if reg == 6:
+		wind_t -= dt
+		if wind_t <= 0.0:
+			wind_t = WIND_T
+			wind = -wind
+			msg("바람 →" if wind > 0.0 else "← 바람", 0.8)
+			beep(500.0, 0.35, 250.0, 0.16)
+	# 메아리: 늦게 돌아온 소리가 세계에 닿는다
+	for i in range(echo_q.size() - 1, -1, -1):
+		var e := echo_q[i]
+		e.t = float(e.t) - dt
+		if float(e.t) <= 0.0:
+			echo_q.remove_at(i)
+			beep(700.0, 0.12, 900.0, 0.12)
+			_wave(float(e.x), 0.4, float(e.r), C)
+			_hear(float(e.x), float(e.r))
 	hungry_t -= dt
 	sway_t -= dt
 	_me(dt)
@@ -421,6 +627,8 @@ func _me(dt: float) -> void:
 	if amt > 0.12:
 		want = signf(mx) * (RUN if amt >= 0.65 and not low else CRAWL)
 		face = signf(mx)
+		if reg == 6 and amt >= 0.65:
+			want *= 1.18 if signf(mx) == wind else 0.82  # 바람을 등지면 빠르다
 	var wading := _in(puddles, px)
 	if wading:
 		want *= 0.45
@@ -457,6 +665,8 @@ func _me(dt: float) -> void:
 			if vy < -7.0:
 				_noise(px, 4.0)
 			beep(90.0, 0.06, 0.0, 0.15)
+			land_t = 0.16
+			_burst(Vector3(px, 0.1, 0.4), col_ground.lerp(WHITE, 0.3), 4, 3.0)
 		grounded = true
 		vy = 0.0
 	else:
@@ -484,6 +694,7 @@ func _me(dt: float) -> void:
 		if step_t <= 0.0:
 			step_t = 0.22
 			beep(110.0, 0.04, 0.0, 0.14)
+			_burst(Vector3(px - face * 0.2, 0.08, 0.4), col_ground.lerp(WHITE, 0.4), 1, 1.5)
 	# 물속은 기어도 첨벙
 	if wading and grounded and amt > 0.12:
 		splash_t -= dt
@@ -491,6 +702,7 @@ func _me(dt: float) -> void:
 			splash_t = 0.35
 			beep(260.0, 0.07, 120.0, 0.22)
 			_noise(px, 5.0)
+			_burst(Vector3(px, 0.2, 0.6), B, 3, 3.0)
 	if not has_rock:
 		for r in rocks:
 			if r.st == 0 and absf(px - float(r.x)) < 0.6 and py < 0.8:
@@ -519,6 +731,7 @@ func _me(dt: float) -> void:
 			score = (cyc + 1) * 10
 			play("win")
 			msg("셸터!", 1.2)
+			_burst(Vector3(px, 1.0, 0.5), D, 8, 4.0)
 		else:
 			px = wd - 2.8
 			if hungry_t <= 0.0:
@@ -538,28 +751,55 @@ func _fruits(dt: float) -> void:
 				f.y = 0.3
 				f.st = 2
 				beep(300.0, 0.05, 0.0, 0.15)
+				_burst(Vector3(float(f.x), 0.2, 0.3), D, 4, 3.0)
 			n.position.y = float(f.y)
-		elif f.st == 2 and absf(px - float(f.x)) < 0.6 and py < 0.8:
-			f.st = 3
-			n.visible = false
-			eaten += 1
-			play("good")
-			msg("%d / %d" % [eaten, NEED], 0.7)
+		elif f.st == 2:
+			n.position.y = 0.3 + 0.08 * absf(sin(clock * 4.0 + float(f.x)))  # 바닥 열매는 통통 튄다(먹을 수 있다)
+			if absf(px - float(f.x)) < 0.6 and py < 0.8:
+				f.st = 3
+				n.visible = false
+				eaten += 1
+				play("good")
+				msg("%d / %d" % [eaten, NEED], 0.7)
+				_burst(Vector3(float(f.x), 0.5, 0.3), D, 6, 3.5)
 
 
-## 소리: 세계가 먼저 답하고(열매·새), 그다음 반지름 안의 도마뱀이 그쪽으로 온다
+## 소리: 메아리 골짜기에선 반대편으로 보내고, 그 밖엔 바로 세계에 닿는다
 func _noise(x: float, r: float) -> void:
+	if _in_valley(x):
+		if clock - echo_last < 0.2:
+			return
+		echo_last = clock
+		echo_q.append({"x": valley.x + valley.y - x, "r": r, "t": ECHO_DELAY})
+		_wave(x, 0.4, 0.8, SOFT)  # 제자리에선 작게 사그라든다
+		return
+	if clock - wave_last > 0.24 or r != 8.0:
+		wave_last = clock
+		var rr := r * echo
+		if reg == 6:
+			if wind > 0.0:
+				_wave(x, 0.8, rr * 1.5, B, 0.8)
+			else:
+				_wave(x, rr * 1.5, 0.8, B, 0.8)
+		else:
+			_wave(x, rr, rr, B if reg != 5 else WHITE)
+	_hear(x, r)
+
+
+## 소리가 세계에 닿는다: 세계가 먼저 답하고(열매·새), 그다음 반지름 안의 도마뱀이 그쪽으로 온다
+func _hear(x: float, r: float) -> void:
 	for f in fruits:
-		if f.st == 0 and absf(float(f.x) - x) < float(f.trig):
+		if f.st == 0 and _reach(float(f.x), x, float(f.trig)):
 			f.st = 1
 			f.vy = 0.0
 			beep(500.0, 0.08, 250.0, 0.2)
 			msg("툭!", 0.4)
+			_burst(Vector3(float(f.x), float(f.y) + 0.5, 0.0), GOOD, 4, 2.5)
 	for tr in trees:
-		if absf(float(tr.x) - x) < 2.0:
+		if _reach(float(tr.x), x, 3.0 if reg == 6 else 2.0):
 			tr.sh = 0.3
 	for b in birds:
-		if b.st == 0 and absf(float(b.x) - x) < 3.0:
+		if b.st == 0 and _reach(float(b.x), x, 3.0):
 			b.st = 1
 			rain_t = maxf(rain_t - 5.0, 1.0)
 			beep(1200.0, 0.15, 1800.0, 0.22)
@@ -569,13 +809,13 @@ func _noise(x: float, r: float) -> void:
 	var rr := r * echo
 	for lz in lizards:
 		var d := absf(lz.x - x)
-		if lz.st in [0, 1, 4, 5] and d < rr:
+		if lz.st in [0, 1, 4, 5] and _reach(lz.x, x, rr):
 			if lz.st == 5:
 				beep(260.0, 0.2, 180.0, 0.25)
 				msg("깼다!", 0.6)
 			elif lz.st == 0:
 				beep(240.0, 0.15, 160.0, 0.2)
-				if d >= r:
+				if d >= r and reg == 3:
 					msg("울림!", 0.5)
 			lz.st = 1
 			lz.tgt = x
@@ -596,8 +836,10 @@ func _rocks(dt: float) -> void:
 				lz.tt = 3.0
 				lz.body.material_override = mat(SOFT)
 				lz.head.material_override = mat(SOFT)
+				lz.tail.material_override = mat(SOFT)
 				beep(900.0, 0.12, 300.0, 0.3)
 				msg("맞았다!", 0.5)
+				_burst(Vector3(lz.x, 0.8, 0.3), WHITE, 6, 4.0)
 				hit = true
 				break
 		if hit or float(r.y) <= 0.15 or float(r.x) < 0.3 or float(r.x) > wd - 0.3:
@@ -608,20 +850,26 @@ func _rocks(dt: float) -> void:
 				_noise(float(r.x), 10.0)  # 물에 떨어진 돌은 크게 울린다
 				beep(200.0, 0.2, 80.0, 0.3)
 				msg("첨벙!", 0.5)
+				_burst(Vector3(float(r.x), 0.2, 0.6), B, 6, 4.0)
 			else:
 				_noise(float(r.x), 4.5)
 				beep(140.0, 0.06, 0.0, 0.18)
+				_burst(Vector3(float(r.x), 0.1, 0.3), col_ground.lerp(WHITE, 0.3), 3, 2.5)
 		(r.n as MeshInstance3D).position = Vector3(float(r.x), float(r.y), 0.3)
 
 
 func _birds(dt: float) -> void:
 	for b in birds:
+		var n := b.n as MeshInstance3D
+		if b.st == 0:
+			n.position.y = 0.2 + (0.12 if fmod(clock + float(b.x), 2.3) < 0.15 else 0.0)  # 콕콕 쪼기
+			continue
 		if b.st != 1:
 			continue
 		b.y = float(b.y) + 6.0 * dt
-		b.x = float(b.x) + 3.0 * dt
-		var n := b.n as MeshInstance3D
+		b.x = float(b.x) + (3.0 if reg != 6 else 5.0 * wind) * dt
 		n.position = Vector3(float(b.x), float(b.y), 0.5)
+		n.scale = Vector3(0.7 if fmod(clock, 0.2) < 0.1 else 0.35, 0.3, 0.3)  # 날갯짓
 		if float(b.y) > 14.0:
 			b.st = 2
 			n.visible = false
@@ -688,6 +936,7 @@ func _lizards(dt: float) -> void:
 					lz.tt = 0.0
 					lz.body.material_override = mat(BAD)
 					lz.head.material_override = mat(BAD)
+					lz.tail.material_override = mat(BAD)
 			4:
 				lz.dir = signf(dx) if dx != 0.0 else lz.dir
 				lz.tt += dt
@@ -700,6 +949,7 @@ func _lizards(dt: float) -> void:
 			if lz.sp <= 0.0:
 				lz.sp = 0.5
 				beep(220.0, 0.05, 110.0, 0.1)
+				_burst(Vector3(lz.x, 0.2, 0.6), B, 2, 2.0)
 		# 눈: 자는 놈은 없다. 갈대 속에선 흔들림만. 그 밖엔 앞쪽, 기면 가까이서만, 바로 옆은 어디든
 		if lz.st in [0, 1, 4] and not safe:
 			var see := false
@@ -730,13 +980,84 @@ func _lizards(dt: float) -> void:
 		lz.head.position = Vector3(lz.dir * 0.8, 0.25 if asleep else (0.7 if lz.st in [1, 2, 4] else 0.45), 0.0)
 		lz.body.scale = Vector3(1.6 if lz.st == 2 else 1.3, 0.3 if asleep else 0.5, 0.5)
 		lz.body.position.y = 0.15 if asleep else 0.3
+		var wag := 0.0 if asleep or lz.st == 3 else sin(clock * (14.0 if lz.st == 2 else 5.0)) * 0.12
+		lz.tail.position = Vector3(-lz.dir * (1.2 if lz.st == 2 else 1.0), 0.12 if asleep else 0.2 + wag, wag)
 
 
 func _die(why: String) -> void:
 	me_body.material_override = mat(BAD)
 	me_head.material_override = mat(BAD)
 	msg(why, 1.5)
+	_burst(Vector3(px, py + 0.6, 0.4), BAD, 8, 4.5)
+	_fx(0.016)
 	end()
+
+
+# ---- 효과 (미리 만든 상자 돌려 쓰기) ----
+## 파편 k개를 pos 에서 튀긴다
+func _burst(pos: Vector3, col: Color, k: int, spd: float) -> void:
+	if bits.is_empty():
+		return
+	for i in k:
+		var b := bits[bit_i]
+		bit_i = (bit_i + 1) % bits.size()
+		var n := b.n as MeshInstance3D
+		n.material_override = mat(col)
+		n.position = pos
+		n.visible = true
+		b.v = Vector3(rng.randf_range(-1.0, 1.0) * spd * 0.6, rng.randf_range(0.5, 1.0) * spd, rng.randf_range(-0.3, 0.3))
+		b.life = rng.randf_range(0.35, 0.6)
+
+
+## 소리 물결: x 에서 왼쪽 rl, 오른쪽 rr 까지 퍼지는 막대 둘. 소리가 어디까지 닿는지 보인다.
+func _wave(x: float, rl: float, rr: float, col: Color, life := 0.55) -> void:
+	if waves.is_empty():
+		return
+	var w := waves[wave_i]
+	wave_i = (wave_i + 1) % waves.size()
+	w.x = x
+	w.y = py if absf(x - px) < 0.1 else 0.0
+	w.rl = rl
+	w.rr = rr
+	w.life = life
+	w.max = life
+	(w.l as MeshInstance3D).material_override = mat(col)
+	(w.r as MeshInstance3D).material_override = mat(col)
+
+
+func _fx(dt: float) -> void:
+	for b in bits:
+		if float(b.life) <= 0.0:
+			continue
+		b.life = float(b.life) - dt
+		var n := b.n as MeshInstance3D
+		var v: Vector3 = b.v
+		v.y -= GRAV * 0.7 * dt
+		b.v = v
+		n.position += v * dt
+		if n.position.y < 0.07:
+			n.position.y = 0.07
+			b.v = Vector3(v.x * 0.5, 0.0, 0.0)
+		n.scale = Vector3.ONE * 0.14 * clampf(float(b.life) * 3.0, 0.2, 1.0)
+		if float(b.life) <= 0.0:
+			n.visible = false
+	for w in waves:
+		var l := w.l as MeshInstance3D
+		var r := w.r as MeshInstance3D
+		if float(w.life) <= 0.0:
+			l.visible = false
+			r.visible = false
+			continue
+		w.life = float(w.life) - dt
+		var p := 1.0 - float(w.life) / float(w.max)  # 0 → 1
+		var e := 1.0 - (1.0 - p) * (1.0 - p)
+		var h := 1.4 * (1.0 - p) + 0.15
+		l.visible = float(w.rl) > 0.05
+		r.visible = float(w.rr) > 0.05
+		l.position = Vector3(float(w.x) - float(w.rl) * e, float(w.y) + h * 0.5, 1.4)
+		r.position = Vector3(float(w.x) + float(w.rr) * e, float(w.y) + h * 0.5, 1.4)
+		l.scale = Vector3(0.09, h, 0.09)
+		r.scale = Vector3(0.09, h, 0.09)
 
 
 # ---- 그리기 ----
@@ -751,23 +1072,53 @@ func _rain(dt: float) -> void:
 			r.visible = true
 			r.position = Vector3(cam_x + rng.randf_range(-10.0, 10.0), rng.randf_range(2.0, 14.0), 1.0)
 		r.position.y -= 16.0 * dt
+		r.position.x += (wind * 3.0 if reg == 6 else 0.0) * dt
 		if r.position.y < 0.0 or (r.position.y < 2.8 and _in(roofs, r.position.x)):
 			r.position = Vector3(cam_x + rng.randf_range(-10.0, 10.0), 12.0 + rng.randf_range(0.0, 4.0), 1.0)
 
 
 func _view(dt: float) -> void:
 	me_root.position = Vector3(px, py, 0.0)
-	me_root.scale = Vector3(1.0, 0.5 if crawl else 1.0, 1.0)
-	me_head.position.x = face * 0.1
+	# 몸: 기면 납작, 뛰면 앞으로 늘고 통통, 공중이면 길게, 착지하면 찌그러짐
+	land_t = maxf(0.0, land_t - dt)
+	var sx := 1.0
+	var sy := 1.0
+	if land_t > 0.0:
+		sx = 1.35
+		sy = 0.65
+	elif not grounded and not on_pole:
+		sx = 0.85
+		sy = 1.15
+	elif crawl:
+		sx = 1.15
+		sy = 0.5
+	elif running:
+		sx = 1.12
+		sy = 0.95 + 0.08 * sin(clock * 28.0)
+	me_root.scale = me_root.scale.lerp(Vector3(sx, sy, 1.0), 1.0 - exp(-25.0 * dt))
+	me_head.position.x = face * (0.18 if running else 0.1)
 	me_rock.visible = has_rock
 	me_rock.position.x = face * 0.4
 	door.material_override = mat(GOOD if eaten >= NEED else SOFT)
+	# 뛰는 줄
+	for i in streaks.size():
+		var s := streaks[i]
+		s.visible = running
+		if running:
+			var o := fmod(clock * 6.0 + i * 0.37, 1.0)
+			s.position = Vector3(px - face * (0.6 + o * 1.6), py + 0.25 + i * 0.17, 0.5)
+			s.scale = Vector3(0.9 * (1.0 - o) + 0.1, 0.05, 0.05)
+	# 메아리 자리
+	me_echo.visible = _in_valley(px)
+	if me_echo.visible:
+		me_echo.position = Vector3(valley.x + valley.y - px, 0.1 + 0.1 * absf(sin(clock * 5.0)), 1.2)
 	var k := 1.0 - exp(-5.0 * dt)
 	# 나무: 소리가 나면 흔들린다
 	for tr in trees:
 		var c := tr.n as MeshInstance3D
 		tr.sh = maxf(0.0, float(tr.sh) - dt)
-		c.position.x = float(tr.x) + (sin(clock * 50.0) * 0.12 if float(tr.sh) > 0.0 else 0.0)
+		var lean := wind * 0.08 if reg == 6 else 0.0
+		c.position.x = float(tr.x) + lean + (sin(clock * 50.0) * 0.12 if float(tr.sh) > 0.0 else 0.0)
 	# 갈대: 움직이는 것 옆에서 기운다(밑동 기준)
 	var moving := absf(kit_move.x) > 0.12 and not on_pole
 	for rd in reeds:
@@ -787,6 +1138,38 @@ func _view(dt: float) -> void:
 		var m := rd.n as MeshInstance3D
 		m.rotation.z = -a
 		m.position = Vector3(x + sin(a) * h * 0.5, cos(a) * h * 0.5, 1.0)
+	# 바람: 풀·깃발·바람 줄
+	if reg == 6:
+		var shiver := wind_t < 1.0  # 곧 바뀐다
+		for gr in grass:
+			var ga := wind * (0.45 + 0.1 * sin(clock * 9.0 + float(gr.x)))
+			if shiver:
+				ga *= 0.4 + 0.6 * sin(clock * 30.0)
+			gr.a = lerpf(float(gr.a), ga, 1.0 - exp(-8.0 * dt))
+			var gm := gr.n as MeshInstance3D
+			var gh: float = gr.h
+			gm.rotation.z = -float(gr.a)
+			gm.position = Vector3(float(gr.x) + sin(float(gr.a)) * gh * 0.5, cos(float(gr.a)) * gh * 0.5, 1.4)
+		if flag:
+			flag.position.x = 3.0 + wind * 0.6
+			flag.position.y = 3.7 + (0.08 * sin(clock * 40.0) if shiver else 0.0)
+		for g in gusts:
+			g.position.x += wind * 9.0 * dt
+			if g.position.x > cam_x + 12.0:
+				g.position.x = cam_x - 12.0
+				g.position.y = rng.randf_range(0.6, 8.0)
+			elif g.position.x < cam_x - 12.0:
+				g.position.x = cam_x + 12.0
+				g.position.y = rng.randf_range(0.6, 8.0)
+	# 구름
+	for c2 in clouds:
+		c2.position.x += (wind * 2.5 if reg == 6 else 0.4) * dt
+		if c2.position.x > wd + 14.0:
+			c2.position.x = -14.0
+		elif c2.position.x < -14.0:
+			c2.position.x = wd + 14.0
 	cam_x = lerpf(cam_x, clampf(px, 7.0, wd - 7.0), k)
+	var spd_fov := 50.0 + (3.0 if running else 0.0)
+	cam.fov = lerpf(cam.fov, spd_fov, k)
 	cam.position = Vector3(cam_x, 3.0, 16.0)
 	cam.rotation = Vector3(-0.08, 0.0, 0.0)
