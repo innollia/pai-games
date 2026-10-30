@@ -100,8 +100,7 @@ func _title_open() -> void:
 		lintel.pivot_offset = Vector2(320, 125)
 		lintel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		title.add_child(lintel)
-		game.call("ui_slab", lintel, Vector2.ZERO, Vector2(640, 250))
-		game.call("ui_panel", lintel, Vector2(17, 196), Vector2(606, 16), game.call("ui_box", GOLD, 0, 0, false))
+		game.call("ui_slab", lintel, Vector2.ZERO, Vector2(640, 250), 0, STONE, "title")  # GPT 가 그린 신전 상인방
 		var fs: int = game.call("fit_fs", tr("굴러라 신전석"), 104, 580)
 		var tl: Label = game.call("ui_glyph", lintel, fs)
 		tl.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)

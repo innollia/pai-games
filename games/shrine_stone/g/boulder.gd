@@ -3325,7 +3325,7 @@ func _stamp_build() -> void:
 	plaque.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	plaque.visible = false
 	stamp_layer.add_child(plaque)
-	ui_slab(plaque, Vector2.ZERO, Vector2(500, 120))
+	ui_slab(plaque, Vector2.ZERO, Vector2(500, 120), 0, STONE, "plaque")
 	plaque_stripe = ColorRect.new()
 	plaque_stripe.position = Vector2(18, 14)
 	plaque_stripe.size = Vector2(464, 8)
@@ -3614,24 +3614,34 @@ func _score_chip(at: Vector3, col: Color, gem := false) -> void:
 var _ui_tex := {}
 
 
+## kind -> [그림, 왼, 위, 오른, 아래 여백]. 작은 버튼·게이지는 절반 크기 그림(_s)을 쓴다
+const UI_GPT := {
+	"slab": ["panel", 56, 56, 56, 64], "card": ["panel", 56, 56, 56, 64],
+	"btn": ["button", 48, 48, 48, 72], "btn_dn": ["button_down", 48, 48, 48, 48],
+	"btn_s": ["button_s", 24, 24, 24, 36], "btn_dn_s": ["button_down_s", 24, 24, 24, 24],
+	"title": ["title", 160, 104, 160, 112], "plaque": ["plaque", 96, 48, 96, 48],
+	"seal": ["seal", 0, 0, 0, 0], "gauge": ["gauge_s", 32, 20, 32, 20],
+}
+
+
 func ui_stone(fill: Color, kind := "slab", half := 0) -> StyleBoxTexture:
-	if not _ui_tex.has(kind):
-		_ui_tex[kind] = load(ART_ROOT + "ui/" + kind + ".png")
-	var tex: Texture2D = _ui_tex[kind]
+	var spec: Array = UI_GPT[kind]
+	var file: String = spec[0]
+	if not _ui_tex.has(file):
+		_ui_tex[file] = load(ART_ROOT + "ui_gpt/" + file + ".png")
+	var tex: Texture2D = _ui_tex[file]
 	var sb := StyleBoxTexture.new()
 	sb.texture = tex
-	var small := kind.begins_with("btn")
-	var m := 20.0 if small else 30.0
-	var mb := 22.0 if small else 34.0
-	sb.texture_margin_left = m
-	sb.texture_margin_right = m
-	sb.texture_margin_top = m
-	sb.texture_margin_bottom = mb
+	sb.texture_margin_left = float(spec[1])
+	sb.texture_margin_top = float(spec[2])
+	sb.texture_margin_right = float(spec[3])
+	sb.texture_margin_bottom = float(spec[4])
 	sb.content_margin_left = 12.0
 	sb.content_margin_right = 12.0
 	sb.content_margin_top = 6.0
-	sb.content_margin_bottom = 10.0 if kind != "btn_dn" else 6.0
-	sb.modulate_color = fill
+	sb.content_margin_bottom = 10.0 if not kind.begins_with("btn_dn") else 6.0
+	# 그림이 이미 크림 돌이라 STONE 은 그대로, 다른 색은 밝게 물들인다
+	sb.modulate_color = Color.WHITE if fill.is_equal_approx(STONE) or fill.is_equal_approx(WHITE) else fill.lightened(0.15)
 	var w := float(tex.get_width())
 	var h := float(tex.get_height())
 	if half == 1:
@@ -3699,8 +3709,9 @@ func ui_squash(b: BaseButton) -> void:
 
 ## 알약 버튼 겉모습: 평소·눌림(가라앉음: 그림자 짧게, 12% 어둡게). 폰에서는 hover 가 남으므로 hover = 평소
 func ui_button_styles(b: Button, fill: Color) -> void:
-	var n := ui_stone(fill, "btn")
-	var dn := ui_stone(fill.darkened(0.12), "btn_dn")
+	var small := b.size.y < 110.0
+	var n := ui_stone(fill, "btn_s" if small else "btn")
+	var dn := ui_stone(fill.darkened(0.12), "btn_dn_s" if small else "btn_dn")
 	dn.content_margin_top = 10.0
 	b.add_theme_stylebox_override("normal", n)
 	b.add_theme_stylebox_override("hover", n)
@@ -3713,8 +3724,8 @@ func ui_button_styles(b: Button, fill: Color) -> void:
 
 
 ## 새긴 돌판: 테 5 + 아래 두께 12, 안쪽에 파인 테두리. half 1 = 왼쪽 반, 2 = 오른쪽 반 (가운데 이음매에는 테가 없다)
-func ui_slab(parent: Node, pos: Vector2, size: Vector2, half := 0, slab := STONE) -> Panel:
-	var sb := ui_stone(slab, "slab", half)
+func ui_slab(parent: Node, pos: Vector2, size: Vector2, half := 0, slab := STONE, kind := "slab") -> Panel:
+	var sb := ui_stone(slab, kind, half)
 	var p := ui_panel(parent, pos, size, sb)
 	p.set_meta("sb", sb)
 	return p
@@ -3806,7 +3817,7 @@ func _build_journey_ui() -> void:
 	result_seal.pivot_offset = Vector2(75, 75)
 	result_seal.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	result_card.add_child(result_seal)
-	seal_sb = ui_stone(BAD.darkened(0.12), "slab")
+	seal_sb = ui_stone(BAD.darkened(0.12), "seal")
 	ui_panel(result_seal, Vector2.ZERO, Vector2(150, 150), seal_sb)
 	var seal_fr := StyleBoxFlat.new()
 	seal_fr.draw_center = false
@@ -3932,6 +3943,8 @@ func _gauge_build() -> void:
 	gauge_fill_sb = ui_box(GOOD, 14, 0, false)
 	gauge_fill = ui_panel(_bar, Vector2.ZERO, Vector2(28, 28), gauge_fill_sb)
 	gauge_hl = ui_panel(gauge_fill, Vector2(8, 4), Vector2(0, 6), ui_box(Color(1, 1, 1, 0.4), 3, 0, false))
+	var groove := ui_panel(_bar_bg, Vector2(-26, -14), Vector2(652, 56), ui_stone(STONE, "gauge"))
+	_bar_bg.move_child(groove, _bar.get_index() + 1)
 	tick.color = INK
 	tick.size = Vector2(8, 48)
 	tick.position.x = 600.0 * VSTOP / VMAX - 4.0
