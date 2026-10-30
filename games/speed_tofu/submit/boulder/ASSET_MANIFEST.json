@@ -1,0 +1,74 @@
+[
+  {
+    "path": "coast.glb",
+    "bytes": 1748
+  },
+  {
+    "path": "coast.png",
+    "bytes": 58982
+  },
+  {
+    "path": "crystal.glb",
+    "bytes": 4556
+  },
+  {
+    "path": "crystal.png",
+    "bytes": 105912
+  },
+  {
+    "path": "pillar.glb",
+    "bytes": 5556
+  },
+  {
+    "path": "pillar.png",
+    "bytes": 152096
+  },
+  {
+    "path": "plank.glb",
+    "bytes": 1748
+  },
+  {
+    "path": "plank.png",
+    "bytes": 68789
+  },
+  {
+    "path": "pot.glb",
+    "bytes": 5980
+  },
+  {
+    "path": "pot.png",
+    "bytes": 94848
+  },
+  {
+    "path": "snow.glb",
+    "bytes": 1748
+  },
+  {
+    "path": "snow.png",
+    "bytes": 150086
+  },
+  {
+    "path": "stone.glb",
+    "bytes": 7256
+  },
+  {
+    "path": "stone.png",
+    "bytes": 127085
+  },
+  {
+    "path": "temple.glb",
+    "bytes": 6448
+  },
+  {
+    "path": "temple.png",
+    "bytes": 43854
+  },
+  {
+    "path": "valley.glb",
+    "bytes": 1752
+  },
+  {
+    "path": "valley.png",
+    "bytes": 140719
+  }
+]
