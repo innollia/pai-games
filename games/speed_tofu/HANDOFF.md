@@ -1,0 +1,78 @@
+# 인계 (2026-10-30 밤 기준)
+
+새 세션이 이 파일 하나로 이어받는다. 마감: **2026-11-01 00:00 KST** (slap jam #2, 주제 speed). 마감 뒤에는 빌드 수정 불가.
+
+## 지금 상태
+
+- 플레이: `https://innollia.github.io/pai-games/games/speed_tofu/web/` (GitHub Pages, push 후 1~2분)
+- 메뉴: 본 목록 34개 · "1차 폐기 (판정 탈락)" 32개 · "2차 폐기 (평가 낮음)" 10개 · 맨 아래 "아이디어 제출하기". 이름 옆 `vN`은 게임 버전(`main.gd`의 `GAME_VER`).
+- 세대: 1세대(첫 판) → 2세대(유전자 표) → 메모 판 → 3세대(평가 적합도 + Codex 아이디어) → 4세대(별 4+ 강화·번식, 2 이하 폐기, 별 3 한마디 수정). 기록은 [GA.md](GA.md).
+- 평가 파이프라인: 게임 끝 화면 별점 + 게임 중 오른쪽 위 "평가" 버튼 + 별 없는 한마디 → Firestore(`innollia-blog`, 컬렉션 `tofu_ratings`·`tofu_ideas`) → `python tools/feedback.py` → [FEEDBACK.md](FEEDBACK.md). 규칙은 이미 콘솔에 붙어 있다.
+- 모든 피드백은 사용자·팀이 **폰으로 플레이하고** 준 것이다.
+
+## 문서 지도
+
+| 파일 | 내용 |
+| --- | --- |
+| [README.md](README.md) | 게임 목록(세대별 표), 구조, 명령, 평가·아이디어 |
+| [GA.md](GA.md) | 적합도 계산, 유전자 가중치, 강화·번식·폐기·별 3 규칙, 교배 절차, 세대별 선발 |
+| [DESIGNS.md](DESIGNS.md) | 게임별 설계서(한 문장, 속도의 인과, 구역 5개, 약점, 자체 점수). 아이디어는 코드가 아니라 여기서 읽는다 |
+| [FEEDBACK.md](FEEDBACK.md) | 최신 별점·한마디·아이디어(스크립트가 만듦) |
+| [REVIEW_G2.md](REVIEW_G2.md) | 2세대 제작자 검사 기록(지금은 검증 최소화로 이 방식은 안 씀) |
+| [PLANS.md](PLANS.md) | 초기 완성형 기획 4개 |
+| `../slapjam2/docs/JAM_ANALYSIS.md` | 대회 규칙·팁·FAQ, 수상작 분석, 팀 기준, 사용자 판정 기록, 유전자 표 |
+| `../slapjam2/docs/METHODS.md` | 발상·검증·코어 루프 설계 방법론(Codex 조사), kill criteria, 브리프 양식 |
+
+## 한 세대 돌리는 법 ("유전알고리즘 작동")
+
+1. `python tools/feedback.py --json` → FEEDBACK.md 읽기.
+2. [GA.md](GA.md)에 적합도 표 추가: 별 4+ → 콘텐츠·비주얼 강화(같은 id, `GAME_VER` +1) **그리고** 자식 하나(이긴 유전자 유지, 소재·두 번째 규칙 변경, 시점만 바꾼 건 자식 아님). 별 3 + 한마디 → 한마디만 수정(사용자가 재미없다 하면 폐기). 별 2 이하 → `DROPPED2`로 이동. 한마디는 유전자 ±로.
+3. 외부 아이디어: 안티그래비티(`mcp__antigravity__antigravity_prompt`, 10/30 할당량 소진·약 41시간 뒤 재개) 또는 Codex(`mcp__all-tomorrow__dispatch_task`, project `pai-games`, worker `codex`; bash에 `codex` 명령은 없음). 제출 아이디어(`tofu_ideas`)도 반영. 속도·규칙에 안 맞으면 대회에 맞게 고쳐 구현해도 된다.
+4. 서브에이전트 하나 = 게임 하나, **설계서 먼저**(스크래치 `designs/<id>.md`) → `g/<id>.gd` 첫 조각. 교배는 "A의 결과가 B의 조건이 되는 인과"를 먼저 적고, 없으면 만들지 않는다.
+5. 오케스트레이터만: `main.gd`(GAMES/`GAME_VER`) · `tools/smoke.gd` ALL 등록 → smoke **한 번** → 빌드 → DESIGNS.md에 설계서 붙이기 → 커밋·푸시.
+
+## 명령 (모두 timeout 필수, 출력은 파일로)
+
+```bash
+cd /c/projects/pai-games/games/speed_tofu
+timeout 590 "$LOCALAPPDATA/Temp/opencode/godot/Godot_v4.7.2-stable_win64_console.exe" --headless --path . --fixed-fps 60 -s tools/smoke.gd -- <id들> > "$TEMP/smoke.txt" 2>&1; grep -E "ERROR|끝남|smoke done" "$TEMP/smoke.txt"
+```
+
+```powershell
+Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '*http.server*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -Confirm:$false }; Set-Location C:\projects\pai-games\games\speed_tofu; powershell -NoProfile -ExecutionPolicy Bypass -File tools/build.ps1 > "$env:TEMP\build.txt"
+```
+
+```bash
+cd /c/projects/pai-games && git add -A games/speed_tofu && git commit -m "<요약>
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" && GIT_TERMINAL_PROMPT=0 timeout 300 git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push
+```
+
+- 빌드 전에 로컬 `http.server`를 꼭 끈다(`web/`를 잡고 있으면 빌드가 실패하거나 멈춘다).
+- 메뉴에 등록했는데 파일이 아직 없는 게임이 있으면 메뉴에서 열 때 터진다. 미완성 자식은 주석 처리하고 빌드.
+- 서브에이전트에게 git 금지를 꼭 적는다(10/30 한 에이전트가 `git stash`를 돌려 복구 소동).
+- 메뉴 기호는 Pretendard에 있는 것만: ★ ☆ ◇ ◆ ▲ ● ▶ ◀ (◎ ✕ 없음).
+
+## 사용자 규칙 (요약, 자세한 건 메모리·JAM_ANALYSIS 5절)
+
+- 한국어로 답한다. 오케스트레이션만, 직접 작업은 등록·빌드·푸시 정도.
+- 매 작업 push. 질문 최소, 자율 진행.
+- **설계 깊이가 먼저**: 작동 안 해도 아이디어가 읽히면 좋은 게임. 탈락작은 "루프부터 대충, 확장 가능성 없음".
+- **검증 최소**: smoke 한 번. 봇·밸런스 측정·스크린샷·브라우저 확인 안 함.
+- 미니게임·표절(레퍼런스 + 우리 요소 없음)·뻔함·술래잡기·제한시간 퍼즐·읽히지 않음·속도가 왜인지 모름 = 탈락 유전자.
+- 속도가 주인공, 몸의 물리 결과. 구역마다 플레이 방식 자체가 바뀐다. 죽음이 실제로 일어난다. 3D 선호, 세로 720×1280, 밝은 화면, 소리, 외곽선 상자.
+
+## 열려 있는 결정 (사용자 몫)
+
+1. **제출작 고르기**: 여러 개 제출 가능, 각각 따로 심사. 고른 게임은 영어 howto·설명, 스타일 통일 여부, itch.io 업로드(`Mobile friendly`·`Portrait`·`Public`, 잼 페이지 Submit), 사용 도구 표기. 제출 절차 문서: `../slapjam2/docs/SUBMISSION_PAGE.md`.
+2. screenrace에 남은 원작 뼈대(화면 왼쪽 밖 탈락·1등 추적 카메라)를 바꿀지 — 아직 답 없음, 그대로 둠.
+3. 깊은 검 × 빠르면 고통(옆모습)은 합격작인데 별점이 0건이라 강화·번식 대상에서 빠져 있다(평가 버튼이 4세대에 생김).
+
+## 현재 적합도 상위 (FEEDBACK 19:35 기준)
+
+별 5: boulder(v4), screenrace_over(v3). 별 4: overpower(v3), rain_slow(v3), scale_prison(v2), screenrace(v4). 4세대 자식: wheel_down, bounce_race, phase_runner, echo_bat, counterweight, lantern_race, tooslow_rpg. 다음 세대는 이들의 새 별점부터 본다.
+
+## 저장소 메모
+
+- `games/blade_path/`는 이 세션이 만든 것이 아니다(10/30 저녁에 생김, 미추적). 손대지 않았다.
+- 스크래치(서브에이전트 브리프·설계서 원본): `C:\Users\fixme\AppData\Local\Temp\claude\C--projects-pai-games\a6f2a317-a6bc-4c33-a6c9-144d0650cabb\scratchpad\` — `tofu_rules.md`(공통 규칙), `design_brief.md`(설계서 양식), `ga4_upgrade.md`·`ga4_kids.md`(4세대 브리프 예시), `designs/`. 새 세션은 이 폴더를 읽을 수 있지만 지워질 수 있으니, 필요한 규칙은 위에 옮겨 두었다.
