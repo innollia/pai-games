@@ -495,6 +495,34 @@ var wall_pops: Array[Dictionary] = []  # 빠져나가는 벽돌 {on, p, v, rot, 
 var kit_live := true  # stick + jump/box answer touches (false on title and menus)
 
 
+## 경제 실험판(screenrace_t_*.gd)이 바꾸는 배수. 비어 있으면 원래 게임
+var tune := {}
+
+
+func tn(k: String) -> float:
+	return float(tune.get(k, 1.0))
+
+
+func _load0() -> int:
+	return maxi(1, roundi(LOAD0 * tn("load")))
+
+
+func _load_max() -> int:
+	return maxi(1, roundi(LOAD_MAX * tn("load")))
+
+
+func _wide() -> float:
+	return WIDE * tn("view")
+
+
+func _narrow() -> float:
+	return NARROW * tn("view")
+
+
+func _mb_r() -> float:
+	return MB_R * tn("mb_r")
+
+
 func L(ko: String, en: String) -> String:
 	return ko if lang == "ko" else en
 
@@ -870,7 +898,7 @@ func _update_content_hud() -> void:
 		route_l.text = "%s\n%s: %s\n%s: %s" % [L("특전 고르기", "Pick a perk"), _perk(perk_offer[0]), _perk_say(perk_offer[0]), _perk(perk_offer[1]), _perk_say(perk_offer[1])]
 		return
 	if phase == "route":
-		route_l.text = "%s\n%s: %s\n%s: %s" % [L("다음 길? 내 짐 %d", "Next road? You carry %d") % (LOAD0 + load_bonus), _tw(route_offer[0], 0), _tw(route_offer[0], 1), _tw(route_offer[1], 0), _tw(route_offer[1], 1)]
+		route_l.text = "%s\n%s: %s\n%s: %s" % [L("다음 길? 내 짐 %d", "Next road? You carry %d") % (_load0() + load_bonus), _tw(route_offer[0], 0), _tw(route_offer[0], 1), _tw(route_offer[1], 0), _tw(route_offer[1], 1)]
 		return
 	if _opening():
 		# no text in the race: a skipper is taught by the torn edge itself (forced warning pulse, _fx_tick)
@@ -1109,6 +1137,14 @@ func _setup() -> void:
 	cam.keep_aspect = Camera3D.KEEP_WIDTH
 	var layer := CanvasLayer.new()
 	add_child(layer)
+	if not tune.is_empty():  # 경제 실험판 표시 (오른쪽 아래 작게, 모든 화면 위)
+		var tl := CanvasLayer.new()
+		tl.layer = 40
+		add_child(tl)
+		var t := _label(tl, 22, 1240, 36)
+		t.text = "TEST " + ", ".join(tune.keys().map(func(k): return "%s x%s" % [k, str(tune[k])]))
+		t.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		t.size.x = 700
 	mode_l = _label(layer, 28, 130, 64)
 	route_l = _label(layer, 30, 250, 160)
 	result_l = _label(layer, 30, 240, 570)
@@ -1318,7 +1354,7 @@ func _make_body(r: Courier) -> void:
 		g.material_override = _fx_mat(r.col.lightened(0.15), 0.4 - k * 0.11)
 		g.visible = false
 		r.ghosts.append(g)
-	for k in LOAD_MAX + 1:
+	for k in _load_max() + 1:
 		var q := box(Vector3(-0.5, -0.2 + k * 0.4, 0), Vector3(0.5, 0.38, 0.6) * VIS_K, PARCEL, r.node)
 		if _art_model("parcel", q, Vector3(0, -0.5, 0), 1.0):
 			q.mesh = null
@@ -1853,7 +1889,7 @@ func _place_mailboxes() -> void:
 		return
 	var x0 := 24.0
 	var x1 := goal_x - 8.0
-	var want := gen.randi_range(7, 9)
+	var want := maxi(1, roundi(gen.randi_range(7, 9) * tn("mail")))
 	var step := (x1 - x0) / float(want)
 	var offs := [0.0, 2.0, -2.0, 4.0, -4.0, 6.0, -6.0, 8.0, -8.0, 11.0, -11.0, 14.0]
 	for k in want:
@@ -1866,7 +1902,7 @@ func _place_mailboxes() -> void:
 				break
 	# 평평한 곳이 모자란 코스: 앞에서부터 더 찾아 6개는 채운다
 	var sx := x0
-	while mailboxes.size() < 6 and sx < x1:
+	while mailboxes.size() < mini(6, want) and sx < x1:
 		var sy := _mb_spot(sx)
 		if sy > -1.0e8:
 			_add_mailbox(sx, sy)
@@ -1951,7 +1987,7 @@ func _mb_reset() -> void:
 func _mb_at(r: Courier) -> int:
 	for i in mailboxes.size():
 		var mb: Dictionary = mailboxes[i]
-		if not mb.full and absf(float(mb.x) - r.p.x) < MB_R and r.p.y - float(mb.y) > -0.6 and r.p.y - float(mb.y) < 2.2:
+		if not mb.full and absf(float(mb.x) - r.p.x) < _mb_r() and r.p.y - float(mb.y) > -0.6 and r.p.y - float(mb.y) < 2.2:
 			return i
 	return -1
 
@@ -2052,7 +2088,7 @@ func _start_round() -> void:
 		r.v = Vector2.ZERO
 		r.alive = true
 		# v12: 판마다 짐을 새로 받는다 (배달할 짐이 넉넉해야 우체통 다툼이 생긴다)
-		r.cargo = LOAD0 + (0 if r.ai else load_bonus)
+		r.cargo = _load0() + (0 if r.ai else load_bonus)
 		r.got = 0
 		r.back_t = 0.0
 		r.fin = -1
@@ -2273,7 +2309,7 @@ func _race(dt: float) -> void:
 			r.p.x = goal_x + 26.0  # 결승 뒤 마당 끝에서 멈춘다
 			r.v.x = minf(r.v.x, 0.0)
 	if last_call < 0.0 and (fin_n > 0 or rt > 240.0):
-		last_call = LAST_CALL
+		last_call = LAST_CALL * tn("last")
 		_stamp("마감 임박", "LAST CALL", ST_BAD, null, 1.2)
 		_sfx("bell")
 	elif last_call >= 0.0:
@@ -2629,7 +2665,7 @@ func _after_round() -> void:
 	routes.shuffle()
 	route_offer = routes.slice(0, 2)
 	phase = "route"
-	menus.show_routes(route_offer, LOAD0 + load_bonus)  # v12: 다음 판은 짐을 새로 받는다
+	menus.show_routes(route_offer, _load0() + load_bonus)  # v12: 다음 판은 짐을 새로 받는다
 
 
 func _pick_route(n: String) -> void:
@@ -2677,7 +2713,7 @@ func _weight(r: Courier) -> float:
 
 
 func _top(r: Courier) -> float:
-	var top := RUN_MAX * (r.skill if r.ai else spd_mul) * (1.0 - LOAD_SLOW * _weight(r))
+	var top := RUN_MAX * tn("speed") * (r.skill if r.ai else spd_mul) * (1.0 - LOAD_SLOW * tn("weight") * _weight(r))
 	if r.slip:
 		top *= 1.0 + 0.12 * (1.0 if r.ai else slip_mul)
 	elif _in_wind(r):  # 맞바람: 무거우면 덜 밀린다, 앞사람 뒤(바람 타기)면 바람이 없다
@@ -2693,7 +2729,7 @@ func _in_wind(r: Courier) -> bool:
 
 
 func _jump_v(r: Courier) -> float:
-	return (24.0 if _overpowered(r) else JUMP_V) * (1.0 if r.ai else jump_mul) * (1.0 - LOAD_JUMP * _weight(r))
+	return (24.0 if _overpowered(r) else JUMP_V) * (1.0 if r.ai else jump_mul) * (1.0 - LOAD_JUMP * tn("weight") * _weight(r))
 
 
 func _runner(r: Courier, dt: float) -> void:
@@ -2744,7 +2780,7 @@ func _runner(r: Courier, dt: float) -> void:
 			r.v.x = minf(r.v.x + (4.0 + 1.8 * _weight(r)) * dt, cap)
 	if r.dash > 0.0:
 		r.dash -= dt
-		r.v.x = maxf(r.v.x, 32.0 if _overpowered(r) else DASH_V)
+		r.v.x = maxf(r.v.x, 32.0 if _overpowered(r) else DASH_V * tn("dash"))
 	if r.grounded and up > 0.0:  # 오르막: 딱 멈추지 않고 경사·짐만큼 깎인다
 		r.v.x = move_toward(r.v.x, 0.0, RAMP_DRAG * up * (1.0 + 0.2 * _weight(r)) * dt)
 	r.v.y = maxf(r.v.y - GRAV * dt, -MAX_FALL)
@@ -2766,7 +2802,7 @@ func _runner(r: Courier, dt: float) -> void:
 		_land_fx(r, vy0)
 	r.sq = move_toward(r.sq, 0.0, dt * 2.5)
 	if r.grounded and r.sup == 1:
-		r.v.y = PAD_V * (1.0 - LOAD_JUMP * _weight(r))
+		r.v.y = PAD_V * (1.0 - LOAD_JUMP * tn("weight") * _weight(r))
 		r.grounded = false
 		r.cut = true
 		_sfx("spring", r)
@@ -2779,7 +2815,7 @@ func _drop(r: Courier) -> void:
 	r.cargo -= 1
 	r.drop_cd = 0.4
 	r.dash = DASH_T
-	r.v.x = maxf(r.v.x, 32.0 if _overpowered(r) else DASH_V)
+	r.v.x = maxf(r.v.x, 32.0 if _overpowered(r) else DASH_V * tn("dash"))
 	var x := r.p.x - r.face * 1.2
 	var y := _floor_top(x, r.p.y + 0.5)
 	var from := Vector3(r.p.x - r.face * 0.5, r.p.y + 0.6 + r.cargo * 0.4, 0.0)
@@ -3001,7 +3037,7 @@ func _pickups() -> void:
 		for r in runners:
 			if not r.alive or (r == pc.owner and pc.cd > 0.0):
 				continue
-			if r.cargo >= LOAD_MAX + (0 if r.ai else load_bonus):
+			if r.cargo >= _load_max() + (0 if r.ai else load_bonus):
 				continue
 			if absf(r.p.x - cp.x) < 0.8 and r.p.y - cp.y > -0.6 and r.p.y - cp.y < HH:
 				r.cargo += 1
@@ -3086,14 +3122,14 @@ func _ai(r: Courier, dt: float) -> void:
 		for i in mailboxes.size():
 			var mb: Dictionary = mailboxes[i]
 			var d: float = float(mb.x) - r.p.x
-			if not mb.full and d > -MB_R and d < 6.0:
+			if not mb.full and d > -_mb_r() and d < 6.0:
 				mi = i
 				break
 		if mi >= 0:
 			var mb: Dictionary = mailboxes[mi]
 			if r.mb_seen != mi:
 				r.mb_seen = mi
-				var p := 0.55 + 2.0 * (r.skill - 0.93)  # 기술만큼 (0.5 ~ 0.75)
+				var p := minf((0.55 + 2.0 * (r.skill - 0.93)) * tn("ai"), 0.98)  # 기술만큼 (0.5 ~ 0.75), 실험판 배수
 				var fast := clampf((absf(r.v.x) - RUN_MAX * 0.7) / (RUN_MAX * 0.4), 0.0, 1.0)
 				if _leader() == r:
 					p -= 0.35 * fast + 0.1
@@ -3109,7 +3145,7 @@ func _ai(r: Courier, dt: float) -> void:
 				var dx: float = float(mb.x) - r.p.x
 				if dx > 0.4:
 					r.mx = minf(r.mx, clampf(dx / 4.5, 0.3, 1.0))  # 다가가며 늦춘다
-				if absf(dx) < MB_R * 0.8 and r.drop_cd <= 0.0:
+				if absf(dx) < _mb_r() * 0.8 and r.drop_cd <= 0.0:
 					r.i_drop = true  # 배달 (_runner -> _deliver)
 	r.think -= dt
 	if r.think > 0.0:
@@ -3169,7 +3205,7 @@ func _want_w() -> float:
 	for r in runners:
 		if _in_play(r):
 			all += r.cargo
-	return lerpf(NARROW, WIDE, clampf(float(all) / float(LOAD0 * 4), 0.0, 1.0))
+	return lerpf(_narrow(), _wide(), clampf(float(all) / float(_load0() * 4), 0.0, 1.0))
 
 
 func _camera(dt: float) -> void:
@@ -3349,7 +3385,7 @@ func _draw_all() -> void:
 	marker.visible = pl.alive and MARKER_PHASES.has(phase)
 	if marker.visible:
 		# box() keeps the mesh size in scale: keep the 0.36 base so it stays ~30 px at any view width
-		var mk := maxf(0.36 * (hwv / NARROW) * 0.8, 0.6)
+		var mk := maxf(0.36 * (hwv / _narrow()) * 0.8, 0.6)
 		marker.scale = Vector3(mk, mk, 0.05)
 		# just above the head / top box of the stack (whichever is higher), never floating among posts
 		var stack_top := 0.33 + 0.4 * VIS_K * pl.cargo
