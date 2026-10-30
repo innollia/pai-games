@@ -24,9 +24,9 @@ const SUN_MELT := 0.035  # 녹는 길 1m 마다 작아지는 양
 # 깔 것: 크기, 깔 수 있는 내 크기, 점수, 커지는 양, 무게(깔 때 속도가 줄어드는 정도), 색
 const KIND := {
 	"pot": {"size": Vector3(1.4, 1.4, 1.4), "need": 0.0, "pts": 1, "grow": 0.09, "mass": 0.06, "col": [A, D]},
-	"statue": {"size": Vector3(1.8, 3.2, 1.8), "need": 2.5, "pts": 3, "grow": 0.25, "mass": 0.18, "col": [WHITE, C]},
+	"statue": {"size": Vector3(1.8, 3.2, 1.8), "need": 2.5, "pts": 3, "grow": 0.25, "mass": 0.18, "col": [WHITE, STONE]},
 	"pillar": {"size": Vector3(2.2, 10.0, 2.2), "need": 99.0, "pts": 0, "grow": 0.0, "mass": 0.0, "col": [WHITE]},
-	"fence": {"size": Vector3(3.6, 1.2, 0.4), "need": 0.0, "pts": 1, "grow": 0.04, "mass": 0.04, "col": [WHITE, B]},
+	"fence": {"size": Vector3(3.6, 1.2, 0.4), "need": 0.0, "pts": 1, "grow": 0.04, "mass": 0.04, "col": [WHITE, ROCK]},
 	"house": {"size": Vector3(5.0, 4.0, 5.0), "need": 3.4, "pts": 8, "grow": 0.5, "mass": 0.4, "col": [A, B, C]},
 	"wall": {"size": Vector3(4.4, 1.4, 1.2), "need": 99.0, "pts": 0, "grow": 0.0, "mass": 0.0, "col": [ROCK]},
 	"post": {"size": Vector3(1.4, 6.0, 1.4), "need": 99.0, "pts": 0, "grow": 0.0, "mass": 0.0, "col": [D]},
@@ -36,11 +36,17 @@ const KIND := {
 	"crystal": {"size": Vector3(3.6, 3.2, 1.2), "need": 99.0, "pts": 4, "grow": 0.0, "mass": 0.0, "col": [C], "nodive": true, "shot": true},
 	# 파란 머리(버티기 색) = 공중에서 버티기로 내려찍어야 부서진다. 그냥 굴러 박거나 그냥 떨어지면 튕긴다.
 	# 부수면 느려지지 않고 오히려 빨라진다(boost). 집 다음 단계: 탑 → 황금 신상.
-	"tower": {"size": Vector3(4.2, 9.0, 4.2), "need": 6.5, "pts": 20, "grow": 0.4, "mass": 0.0, "col": [A, C, WHITE], "slam": true, "boost": 9.0},
+	"tower": {"size": Vector3(4.2, 9.0, 4.2), "need": 99.0, "pts": 20, "grow": 0.4, "mass": 0.0, "col": [Color("cfe6ff"), WHITE], "slam": true, "boost": 9.0},
 	"gold": {"size": Vector3(5.6, 7.0, 5.6), "need": 99.0, "pts": 50, "grow": 0.2, "mass": 0.0, "col": [D], "slam": true, "boost": 16.0},
+	# 숨은 길 봉인(한 차선에만, 빨간 띠 없음): 못 열면 살짝 튕겨 큰길로 밀려날 뿐(soft). ram = 이 속도면 몸으로 뚫는다(게이지 금빛 눈금)
+	"door": {"size": Vector3(4.0, 5.0, 1.2), "need": 6.0, "pts": 10, "grow": 0.0, "mass": 0.05, "col": [STONE], "nodive": true, "soft": true, "ram": 42.0},
+	"icedoor": {"size": Vector3(3.6, 4.5, 1.6), "need": 4.5, "pts": 6, "grow": 0.0, "mass": 0.1, "col": [ICEWALL], "nodive": true, "soft": true, "ram": 42.0},
+	"vein": {"size": Vector3(3.6, 3.2, 1.2), "need": 99.0, "pts": 4, "grow": 0.0, "mass": 0.0, "col": [C], "nodive": true, "shot": true, "soft": true},
 }
 const DASH_T := 1.3  # 쪼갠 뒤 돌진 시간: 집·석상·얼음벽을 크기와 상관없이 뚫는다
-const CAVE_SKY := Color("cbb8ff")
+# 수로 밑 협곡: 떨어지면 공간이 이어진 채 DEEP 아래 "잠든 지하 신전"에 닿는다
+const DEEP := 90.0
+const UNDER_SKY := Color("9cc3d6")
 # 신전 계곡 깔 것 [종류, 거리, 길 가운데에서 옆으로]
 const PUT1 := [
 	["pot", 36, 0.0], ["pot", 48, 0.0], ["pot", 64, -2.0], ["pot", 84, -3.0], ["pot", 88, 3.0],
@@ -54,6 +60,15 @@ const PUT1 := [
 ]
 const ROCK_R := [1.6, 3.0, 2.0, 4.4, 1.4, 3.6, 2.4, 5.2, 1.8, 3.2]
 const ROCK_X := [-4.0, 2.0, 0.0, -2.0, 4.0, -1.0, 3.0, -3.0, 1.0, -4.5]
+# 새긴 돌 디자인 시스템: 새긴 글자색, 그림자, 안내판, 메달, 지하 먼지
+const GLYPH := Color("5a3a1e")
+const GLYPH_SUB := Color("8a6d4b")
+const UI_SH_COL := Color(0.227, 0.165, 0.102, 0.32)
+const UI_SH := Vector2(0, 6)
+const PLATE := Color(0.937, 0.882, 0.769, 0.88)
+const SILVER := Color("ced4da")
+const BRONZE := Color("e8a06a")
+const DUST := Color("e6d2ad")
 
 
 class Thing:
@@ -181,11 +196,101 @@ var result_values: Label
 var result_note: Label
 var retry_button: Button
 var failure_reason := ""
+var bonk_at := -99.0   # 마지막으로 부딪힌 시각: 곧 멈추면 결과 카드에 부딪힌 까닭을 쓴다
+var bonk_why := ""
 var arrow_mesh: ArrayMesh
 # v7: 쪼개기 돌진, 수로 밑 수정 동굴(떨어지면 딴 세상)
 var dash_t := 0.0
 var cave_nodes: Array = []  # 동굴 장식: 떨어지기 전엔 숨겨 둔다
-var gems: Array = []        # [거리, 높이(동굴 바닥 위), 노드]
+var gems: Array = []
+var under_route: Array = []  # 지금 떨어진 협곡 구간 [시작, 끝]
+var geysers: Array = []     # [거리, 노드] 끝의 물기둥: 타면 수로 위로 솟는다
+var rising := false         # 물기둥에 실려 올라가는 중
+# 튜토리얼: 짧은 연습 코스 5개. 동작이 필요한 자리(gate)에 오면 느려지고 그 버튼이 깜빡인다
+var tutorial := false
+var gates: Array = []  # [거리, 버튼, 글]        # [거리, 높이(동굴 바닥 위), 노드]
+# 손맛: 멈칫(hit-stop)·느린 동작은 _step 안의 dt 로만 (Engine.time_scale 은 튜토리얼 문만 쓴다)
+var hs_t := 0.0
+var slo_t := 0.0
+var slo_k := 1.0
+var sq_v := 0.0
+var rings: Array = []  # 충격 고리 3개 돌려 쓰기
+var ring_i := 0
+var dust: Array = []   # 굴러가며 이는 흙먼지
+var dust_t := 0.0
+# 새긴 돌판 도장·지명판·돌 조각
+var stamp_layer: CanvasLayer
+var stamps: Array = []
+var chips: Array = []
+var chip_sb: StyleBoxFlat
+var stamp_at := {}
+var stamp_gap := 0.0
+var stamp_pri := 0
+var plaque: Control
+var plaque_l: Label
+var plaque_sub: Label
+var plaque_stripe: ColorRect
+var plaque_crack: Line2D
+var plaque_tw: Tween
+var plaque_pending: Array = []
+var chip_at := -99.0
+var score_tw: Tween
+var wind: AudioStreamPlayer
+var wind_lin := 0.0
+# 세상 분위기: 색 입힌 그림 재질 모음, 돌 테두리, 구역 지평선 색, 공기 알갱이, 발밑 그림자
+var art_tinted := {}
+var hero_rim: ShaderMaterial
+var hz_to := Color("fff5df")
+var air_pt: CPUParticles3D
+var blob: MeshInstance3D
+var blob_mat: StandardMaterial3D
+# 90m 낙하: 첫 착지 한 번만 크게, 수정이 차례로 깨어난다, 솟아오른 뒤 둘러보기
+var deep_landed := false
+var glows: Array = []  # [거리, 수정 노드, 빛 색, 깨어남]
+var reveal_t := 0.0
+# 끝 장면: 신전 뒤 금빛 기둥, 혼자 도는 카메라
+var rays: Array = []
+var ray_mat: StandardMaterial3D
+var end_cam := Vector3.ZERO
+var end_fov := 55.0
+# 결과 돌판·도장, 안내 판, 속도 게이지, 키트 버튼
+var result_band_sb: StyleBoxFlat
+var result_seal: Control
+var seal_sb: StyleBoxFlat
+var seal_l: Label
+var seal_crack: Line2D
+var seal_tw: Tween
+var result_tw: Tween
+var result_tw2: Tween
+var route_plate: Panel
+var action_plate: Panel
+var msg_plate: Panel
+var score_plate: Panel
+var back_l: Label
+var back_plate: Panel
+var rate_plate: Panel
+var gauge_frame_sb: StyleBoxFlat
+var gauge_fill: Panel
+var gauge_fill_sb: StyleBoxFlat
+var gauge_hl: Panel
+var gauge_last_v := 0.0
+var gauge_kick := 0.0
+var _btn_born := {}
+# 숨은 길(지름길): 바람 줄·턱 틈·동작 색 봉인·속도 눈금으로 읽힌다. 모으는 것·세는 것·저장 없음
+var lanes: Array = []         # 바람 줄: {pts, yw, s:[{n, ph, ox, oy}]}
+var floor_cracks: Array = []  # 내려찍으면 깨지는 바닥판 → 숨은 방
+var ram_tick: ColorRect       # 앞에 '빠르면 뚫리는' 봉인이 있을 때 게이지 위 금빛 눈금
+var sling_keep := 0.0         # 물기둥 새총: 착지하면 이 속도를 돌려준다
+var drum_last := 0.0          # 마지막 발판 발사 때 힘
+var drum_last_d := -999.0
+# 구역마다 지평선 색 (안개·주변광이 따라간다)
+const HZ := ["fff1d6", "eefbea", "fff3d2", "fbf3e6", "fff0f4", "f4fbff", "ffe9cc", "eafcff", "eef6f2", "fff4ea", "fff3cf"]
+# 공기 알갱이: 색, 중력, 처음 속도 최소·최대, 크기 최소·최대
+const AIR := {"dust": [Color("fff3d6"), Vector3(0, 0.3, 0), 0.3, 1.0, 0.7, 1.3], "pollen": [Color("f4ffd0"), Vector3(0.8, 0.1, 0), 0.3, 1.0, 0.6, 1.1],
+	"petal": [Color("ffd6ec"), Vector3(1.0, -0.8, 0), 0.5, 1.2, 0.8, 1.4], "snow": [WHITE, Vector3(0.5, -2.8, 0), 0.5, 1.5, 1.0, 1.9],
+	"sand": [Color("ffc98a"), Vector3(5.0, -0.2, 0), 1.0, 3.0, 0.5, 1.0], "spray": [Color("e6fbff"), Vector3(0, -1.5, 0), 0.8, 2.4, 0.6, 1.5],
+	"cave": [Color("ffe39a"), Vector3(0, 0.7, 0), 0.1, 0.5, 0.5, 1.2]}
+const AIR_OF := {"rock": "dust", "aq": "pollen", "village": "pollen", "cliff": "dust", "plaza": "petal", "snow": "snow", "canyon": "sand", "coast": "spray"}
 
 
 func _setup() -> void:
@@ -195,11 +300,15 @@ func _setup() -> void:
 	if TranslationServer.get_locale() == "en":
 		howto = HOWTO_EN
 	_load_art()
+	# 돌 몸에 먹선 테두리 (눈 구역에서만 크림색으로 바꾼다)
+	hero_rim = OUTLINE.duplicate() as ShaderMaterial
+	(art_materials["stone"] as StandardMaterial3D).next_pass = hero_rim
 	var record := ConfigFile.new()
 	if record.load(RECORD) == OK:
 		best_time = maxf(0.0, float(record.get_value("record", "time", 0.0)))
 		record_score = maxi(0, int(record.get_value("record", "score", 0)))
 	_build_journey_ui()
+	_stamp_build()
 	for c in get_children():
 		if c is WorldEnvironment:
 			sky_env = (c as WorldEnvironment).environment
@@ -209,6 +318,14 @@ func _setup() -> void:
 	tick.size = Vector2(6, 48)
 	tick.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_bar_bg.add_child(tick)
+	_gauge_build()
+	ram_tick = ColorRect.new()
+	ram_tick.color = D
+	ram_tick.size = Vector2(6, 48)
+	ram_tick.position = Vector2(600.0 * 42.0 / VMAX - 3.0, -10.0)
+	ram_tick.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ram_tick.visible = false
+	_bar_bg.add_child(ram_tick)
 	Z = _zones_def()
 	if sky_env:
 		sky_mat = ProceduralSkyMaterial.new()
@@ -219,6 +336,22 @@ func _setup() -> void:
 		sky.sky_material = sky_mat
 		sky_env.sky = sky
 		sky_env.background_mode = Environment.BG_SKY
+		# 땅 쪽 하늘은 따뜻한 모래빛, 멀리 갈수록 지평선 색 안개로 겹이 진다
+		sky_mat.ground_bottom_color = Color("e9dcc6")
+		sky_env.fog_enabled = true
+		sky_env.fog_mode = Environment.FOG_MODE_DEPTH
+		sky_env.fog_depth_begin = 80.0
+		sky_env.fog_depth_end = 520.0
+		sky_env.fog_depth_curve = 1.3
+		sky_env.fog_density = 0.6
+		sky_env.fog_sky_affect = 0.0
+	_air_make()
+	# 바람 소리: 빠를수록, 깊이 떨어질수록 커진다
+	wind = AudioStreamPlayer.new()
+	wind.stream = _wind_stream()
+	wind.volume_db = -60.0
+	add_child(wind)
+	wind.play()
 	_kit_on()
 
 
@@ -243,15 +376,24 @@ func _zones_def() -> Array:
 		zs[i]["sky"] = Color(lk[0])
 		zs[i]["far"] = lk[1]
 		zs[i]["farcol"] = lk[2]
+		zs[i]["hz"] = Color(HZ[mini(i, HZ.size() - 1)])
 	return zs
 
 
 func _zones_list() -> Array:
+	if tutorial:
+		return _tutorial_list()
 	return [
 		{"msg": "신전 계곡", "mode": "back", "skill": "", "road": STONE, "floor": WATER, "accent": ROCK, "posts": false, "scen": "rock",
-			"items": [{"legs": [[30, 0, 7], [100, -22, 7], [40, -2, 7], [60, 8, 6], [20, 0, 6], [100, -23, 4], [20, 5, 4, 0, "ramp"],
-				[22, -10, 5, 0, "gap"], [28, 0, 5], [70, -4, 3.5, 0, "bridge"], [50, -10, 6], [60, 6, 6]], "put": PUT1,
-				"say": [[2, "11개의 길 너머\n마지막 신전으로"], [24, "끌어서 항아리를 깔아봐"], [100, "빨간 기둥은 옆으로 피해"], [224, "큰 돌은 무거워\n오르막 전엔 욕심내지 마"], [322, "노란 경사대에서\n저절로 날아간다"], [432, "다리는 가운데로"]]}]},
+			# 숨은 길 1 (옛 배수로): 왼쪽 끝 차선에 바람 줄, 왼쪽 턱 줄이 끊긴 곳으로 꺾어 내려가면 오르막과 석상을 건너뛴다
+			"items": [{"legs": [[30, 0, 7], [88, -19.4, 7], [12, -2.6, 7, 0, "mouthL"]], "put": _cut(PUT1, 0, 130),
+					"say": [[2, "11개의 길 너머\n마지막 신전으로"], [24, "끌어서 항아리를 깔아봐"], [100, "빨간 기둥은 옆으로 피해"]]},
+				{"fork": [
+					{"legs": [[14, -0.7, 7, 70], [10, -2, 5], [54, -9, 4.5, -70], [12, 0, 4.5]], "put": [["pot", 30, 0], ["pot", 46, 0], ["pot", 62, 0]]},
+					{"legs": [[40, -2, 7], [60, 8, 6]], "put": _cut(PUT1, 130, 230), "say": [[30, "큰 돌은 무거워\n오르막 전엔 욕심내지 마"]]}],
+					"hidden": true, "pick_x": -4.0, "lane_x": -5.5, "name": "옛 배수로"},
+				{"legs": [[20, 0, 6], [100, -23, 4], [20, 5, 4, 0, "ramp"], [22, -10, 5, 0, "gap"], [28, 0, 5], [70, -4, 3.5, 0, "bridge"], [50, -10, 6], [60, 6, 6]],
+					"put": _cut(PUT1, 230, 9999), "say": [[92, "노란 경사대에서\n저절로 날아간다"], [180, "다리는 가운데로"]]}]},
 		{"msg": "수로 · 뛰기", "mode": "side", "skill": "jump", "road": STONE, "floor": GRASS, "accent": B, "posts": false, "scen": "aq",
 			# 뛰면 30m 가까이 난다: 틈 뒤에는 착지할 자리를 두고, 담은 착지 뒤 한참 지나서
 			"items": [{"legs": [[12, -2, 5], [13, -2, 2.2, 0, "aq"], [45, -6, 2.2, 0, "aq"], [10, -1, 2.2, 0, "gap"], [80, -10, 2.2, 0, "aq"],
@@ -259,7 +401,9 @@ func _zones_list() -> Array:
 				[30, -3, 2.2, 0, "aq"], [15, 0, 4]],
 				"put": [["pot", 38, 0], ["pot", 48, 0], ["pot", 60, 0], ["wall", 125, 0], ["pot", 148, 0], ["pot", 153, 0],
 					["wall", 222, 0], ["pot", 240, 0], ["pot", 246, 0], ["statue", 310, 0], ["pot", 322, 0]],
-				"say": [[60, "틈! 뛰기"], [112, "담도 뛰어"], [296, "석상!\n뛰거나 깔거나"]]},
+				"say": [[60, "틈! 뛰기"], [112, "담도 뛰어"], [296, "석상!\n뛰거나 깔거나"]],
+				# 숨은 길 2 (깊은 물길): 지하 바닥 위 뛰는 높이에 바람 줄이 물기둥을 넘어간다. 물기둥을 뛰어넘으면 다음 수로 밑까지 이어 달려 속도를 지킨 채 솟는다
+				"lane": [[345, 391, 0.0, -85.0]]},
 				# 섞기: 항아리로 커져야 석상을 깐다. 석상 바로 뒤가 틈이라 튕기면 빠진다. 담 바로 뒤도 틈.
 				{"legs": [[30, -4, 2.2, 0, "aq"], [40, -8, 2.2, 0, "aq"], [16, -1, 2.2, 0, "gap"], [40, -6, 2.2, 0, "aq"],
 					[12, -1, 2.2, 0, "gap"], [40, -6, 2.2, 0, "aq"], [15, 0, 4]],
@@ -274,7 +418,12 @@ func _zones_list() -> Array:
 					{"legs": [[26, -3, 6, 90], [70, -12, 7]], "put": [["house", 34, -3], ["pot", 40, 3], ["house", 48, 3], ["pot", 56, -3],
 						["house", 62, -3], ["house", 76, 3], ["pot", 84, 0]], "fence": [92]},
 					{"legs": [[26, -3, 5, -90], [70, -18, 4.5]], "put": [["pot", 45, 0], ["pot", 70, -2], ["pot", 72, 2]], "fence": [56]}]},
-				{"legs": [[24, -5, 7]], "put": [["pot", 10, -3], ["pot", 12, 3]]},
+				{"legs": [[12, -2.5, 7], [12, -2.5, 7, 0, "mouthL"]], "put": [["pot", 8, 0], ["pot", 12, 3]]},
+				# 숨은 길 3 (뒷골목): 왼쪽 차선에만 보라 금 돌문. 쪼개 돌진하거나 42m/s 로 들이받으면 열리고, 다음 갈림길을 건너뛴다
+				{"fork": [
+					{"legs": [[14, -2, 7, 70], [12, -4, 5], [46, -12, 4.5, -70], [12, -1, 5]], "put": [["pot", 30, 0], ["pot", 44, 0], ["pot", 58, 0]]},
+					{"legs": [[56, -8, 7]], "put": [["pot", 14, -3], ["pot", 26, 3], ["pot", 40, 0]]}],
+					"hidden": true, "pick_x": -3.5, "seal": ["door", 10, -4.8], "skip": 1, "name": "뒷골목"},
 				{"fork": [
 					{"legs": [[22, -2, 6, 100], [50, -10, 7]], "put": [["house", 30, 3], ["house", 40, -3], ["house", 52, 2], ["statue", 60, -2]]},
 					{"legs": [[22, -2, 6, -100], [26, -6, 6], [10, 4, 6, 0, "ramp"], [12, -4, 6, 0, "gap"], [22, -4, 6]],
@@ -286,10 +435,10 @@ func _zones_list() -> Array:
 					"say": [[2, "섞기: 깔면 무거워\n회전에서 밀린다"], [22, "쪼개서 가볍게!"], [64, "뛰어!"]]}]},
 		{"msg": "절벽 · 버티기", "mode": "fall", "skill": "hold", "road": ROCK, "floor": WATER, "accent": WHITE, "posts": true, "scen": "cliff",
 			"items": [
-				{"legs": [[40, -6, 7], [30, -5, 7]], "put": [["pot", 20, -2], ["pot", 25, 2]], "say": [[50, "떨어지며 조종"]]},
+				{"legs": [[40, -6, 7], [30, -5, 7]], "put": [["pot", 20, -2], ["pot", 25, 2]], "say": [[34, "떨어지며 조종"]]},
 				{"legs": [[3, -40, 7, 0, "drop"], [55, -6, 12], [25, -3, 8]],
 					"put": [["tower", 23, 0], ["house", 38, 6], ["tower", 52, -6], ["pot", 30, -8], ["pot", 45, 8]],
-					"holes": [[30, 42, -12.3, -2], [44, 54, 2, 12.3]], "say": [[30, "파란 머리 탑!\n떨어지며 버티기로 쾅"], [80, "탑을 부수면 빨라진다"]]},
+					"holes": [[30, 42, -12.3, -2], [44, 54, 2, 12.3]], "say": [[2, "파란 머리 탑!\n떨어지며 버티기로 쾅"], [80, "탑을 부수면 빨라진다"]]},
 				{"legs": [[3, -30, 8, 0, "drop"], [60, -8, 12], [30, -5, 7]],
 					"put": [["tower", 20, -5], ["tower", 34, 5], ["gold", 48, 0], ["pot", 56, -6], ["pot", 58, 6]],
 					"holes": [[25, 35, -4, 4], [44, 55, -12.3, -3]], "say": [[2, "황금 신상은\n버티기로만 깨진다"]]},
@@ -298,7 +447,11 @@ func _zones_list() -> Array:
 					[30, -5, 7, 60], [20, -3, 7]],
 					"put": [["gold", 92, -6], ["pot", 96, 0], ["tower", 100, 6], ["tower", 118, -4]],
 					"holes": [[86, 98, 0, 12.3], [102, 114, -12.3, 0]],
-					"say": [[2, "섞기: 뛰고\n내려찍고"], [70, "구멍 피해\n신상을 내려찍어"], [124, "회전!\n버티거나 쪼개"]]}]},
+					"say": [[2, "섞기: 뛰고\n내려찍고"], [70, "구멍 피해\n신상을 내려찍어"], [124, "회전!\n버티거나 쪼개"]],
+					# 숨은 길 4 (숨은 저수조): 경사대 착지 자리의 파란 금 바닥판. 버티기로 내려찍으면 깨져 22m 아래 방으로 → 물기둥 새총으로 광장
+					"crack": [46, 64, -5.0, 5.0], "lane": [[22, 56, 0.0, 3.0]],
+					# from 34: 경사대에서 일찍 버텨 틈(30~46)에 짧게 떨어져도 판이 깨진 셈으로 방에 떨어진다 (_try_crack)
+					"under": {"from": 34, "to": 179, "depth": 22.0, "geyser": 158, "lo": 183, "hi": 209, "vmin": 38.0, "name": "숨은 저수조"}}]},
 		{"msg": "광장 · 위에서", "mode": "top", "skill": "", "road": SOFT, "floor": GRASS, "accent": C, "posts": false, "scen": "plaza",
 			"items": [{"legs": [[25, -4, 7], [150, -15, 22, 0, "plaza"], [14, -1, 4, 0, "gate"], [25, -4, 6]],
 				"put": [["pillar", 55, -8], ["pillar", 55, 8], ["pillar", 70, 0], ["pillar", 88, -10], ["pillar", 88, 10],
@@ -312,27 +465,39 @@ func _zones_list() -> Array:
 					"say": [[0, "섞기: 깔고 뛰기"]]}]},
 		# 설산: 굴리는 길 자체가 자원. 흰 눈 줄에서 커지고(얼음벽을 깰 자격) 노란 길에서 녹는다(오르막을 넘을 가벼움).
 		{"msg": "설산 · 눈 굴리기", "mode": "iso", "skill": "", "road": ICE, "floor": Color("abcbd8"), "accent": B, "posts": false, "scen": "snow",
-			"items": [{"legs": [[20, -3, 8], [130, -24, 9], [24, -1, 9], [70, -13, 9], [14, -1, 9], [55, 19, 8], [10, -1, 8],
-				[90, -16, 9], [20, -1, 9], [40, -6, 8], [20, -2, 8]],
-				"snow": [[28, 142, -9, -1], [182, 240, -9, -1], [322, 410, -9, 9]],
-				"sun": [[182, 240, 1, 9], [432, 470, -9, 9]],
-				"put": [["pot", 50, 5], ["pot", 72, 4], ["pot", 96, 6], ["pot", 122, 4], ["pot", 200, 5], ["pot", 226, 6], ["pot", 350, 0]],
-				"row": [[164, "ice"], [422, "ice"]],
+			"items": [{"legs": [[20, -3, 8], [130, -24, 9], [24, -1, 9], [58, -10.8, 9], [12, -2.2, 9, 0, "mouthL"]],
+				"snow": [[28, 142, -9, -1], [182, 240, -9, -1]],
+				"sun": [[182, 240, 1, 9]],
+				"put": [["pot", 50, 5], ["pot", 72, 4], ["pot", 96, 6], ["pot", 122, 4], ["pot", 200, 5], ["pot", 226, 6]],
+				"row": [[164, "ice"]],
 				"holes": [[205, 214, -2.5, 2.5]],
-				"say": [[8, "흰 눈 위를 구르면\n커진다"], [140, "얼음벽만큼 커야\n깬다"], [176, "오르막 전에\n노란 길에서 녹여"], [312, "다시 키워!"], [428, "녹는 길"]]},
+				"say": [[8, "흰 눈 위를 구르면\n커진다"], [140, "얼음벽만큼 커야\n깬다"], [176, "오르막 전에\n노란 길에서 녹여"]]},
+				# 숨은 길 5 (얼음 골짜기): '녹여'라는 말과 반대로 왼쪽 눈길에 남아 커지면, 왼쪽 차선 얼음판을 깨고 오르막 없이 내려간다
+				{"fork": [
+					# 둘째 다리는 살짝 오른다: 큰길이 바로 오르막이라, 내려가면 큰길 판 밑으로 파고든다
+					{"legs": [[14, -1, 9, 45], [16, 1, 6], [60, -19, 6, -45], [14, -3, 6]], "put": [["pot", 34, 0], ["pot", 54, 0]]},
+					{"legs": [[14, -1, 9], [55, 19, 8], [10, -1, 8]], "say": [[68, "다시 키워!"]]}],
+					"hidden": true, "pick_x": -4.5, "seal": ["icedoor", 12, -6.0], "name": "얼음 골짜기"},
+				{"legs": [[90, -16, 9], [20, -1, 9], [40, -6, 8], [20, -2, 8]],
+					"snow": [[0, 87, -9, 9]], "sun": [[109, 147, -9, 9]], "row": [[99, "ice"]], "put": [["pot", 27, 0]], "say": [[105, "녹는 길"]]},
 				# 섞기: 눈으로 키워 얼음벽 깨기 → 커진(무거운) 몸으로 틈 뛰기 → 오르막 앞 쪼개기
 				{"legs": [[20, -4, 9], [90, -16, 9], [14, -1, 9], [12, -1, 8, 0, "gap"], [30, -4, 8], [30, 6, 8], [20, -3, 8]],
 					"snow": [[2, 108, -9, 9]], "row": [[114, "ice"]], "put": [["pot", 40, 5], ["pot", 60, -5], ["pot", 80, 3]],
 					"say": [[2, "섞기: 눈으로 키워\n얼음벽 깨기"], [116, "무거운 몸으로\n뛰어!"], [150, "오르막!\n쪼개서 가볍게"]]}]},
 		# 협곡: 던지기(크기 1을 앞으로 던져 수정을 깬다). 흔들다리는 입구 기둥 높이보다 크면 끊어진다. 무게가 탄약이자 죄.
 		{"msg": "협곡 · 던지기", "mode": "low", "skill": "throw", "road": STONE, "floor": WATER, "accent": A, "posts": false, "scen": "canyon",
-			"items": [{"legs": [[20, -3, 7], [60, -10, 7], [20, -2, 7], [45, -3, 4, 0, "rope", 3.6], [15, -1, 7], [50, -9, 7], [20, -2, 7],
-				[55, -4, 3.2, 0, "rope", 3.0], [15, -1, 7], [40, -7, 7], [20, -1, 7]],
+			"items": [{"legs": [[20, -3, 7], [60, -10, 7], [20, -2, 7], [45, -3, 4, 0, "rope", 3.6], [15, -1, 7], [38, -6.84, 7], [12, -2.16, 7, 0, "mouthL"]],
 				"put": [["pot", 30, -3], ["pot", 34, 3], ["pot", 42, 0], ["statue", 52, -3], ["pot", 60, 3], ["pot", 66, -2], ["pot", 72, 2],
 					["pot", 165, -4], ["pot", 168, 0], ["pot", 171, 4], ["house", 182, -3.5], ["statue", 186, 3.5], ["pot", 194, -4], ["pot", 197, 0],
-					["pot", 200, 4], ["statue", 206, 0], ["pot", 310, 0]],
-				"row": [[90, "crystal"], [222, "crystal"]],
-				"say": [[6, "던지기 = 내 몸 한 덩이를\n앞으로 (작아진다)"], [50, "보라 벽은 몸으로 못 지나간다\n점선이 초록이면 던져"], [96, "기둥보다 크면\n다리가 끊어진다"], [150, "다시 키워"], [206, "빠를수록 멀리 닿는다"], [228, "더 좁은 다리"]]},
+					["pot", 200, 4], ["statue", 206, 0]],
+				"row": [[90, "crystal"]],
+				"say": [[6, "던지기 = 내 몸 한 덩이를\n앞으로 (작아진다)"], [50, "보라 벽은 몸으로 못 지나간다\n점선이 초록이면 던져"], [96, "기둥보다 크면\n다리가 끊어진다"], [150, "다시 키워"], [206, "빠를수록 멀리 닿는다"]]},
+				# 숨은 길 6 (수정 맥 길): 조준선이 막히지 않은 왼쪽 차선의 수정 하나를 가리킨다. 던져 깨면 좁은 흔들다리 없이 벼랑 틈으로 내려간다
+				{"fork": [
+					{"legs": [[14, -1.4, 7, 70], [12, -4, 5], [44, -15, 4.5, -70], [12, -2, 5]], "put": [["pot", 26, 0], ["pot", 44, 0]]},
+					{"legs": [[20, -2, 7], [55, -4, 3.2, 0, "rope", 3.0], [15, -1, 7]], "row": [[12, "crystal"]], "say": [[18, "더 좁은 다리"]]}],
+					"hidden": true, "pick_x": -3.5, "seal": ["vein", 14, -5.0], "name": "수정 맥 길"},
+				{"legs": [[40, -7, 7], [20, -1, 7]], "put": [["pot", 10, 0]]},
 				# 섞기: 깔아서 커지고 → 수정에 던지면 작아져 → 바로 뒤 좁은 흔들다리를 건넌다 → 경사대 틈 뛰기
 				{"legs": [[20, -4, 7], [40, -8, 7], [16, -1, 7], [45, -3, 3.4, 0, "rope", 3.2], [12, -1, 7], [10, 4, 6, 0, "ramp"], [14, -4, 6, 0, "gap"], [30, -5, 7]],
 					"put": [["pot", 8, -3], ["pot", 12, 3], ["house", 30, -3], ["statue", 44, 3], ["pot", 50, 0]],
@@ -371,10 +536,16 @@ func _zones_list() -> Array:
 		{"msg": "공명 제단 · 눌렀다 놓기", "mode": "back", "skill": "", "road": STONE, "floor": Color("b8cbd8"), "accent": D, "posts": true, "scen": "plaza",
 			"objective": "황금 발판에서 버티기 → 힘이 차면 손을 떼 발사",
 			"items": [
-				{"legs": [[38, -6, 10], [50, -5, 10, 0, "drum"], [36, -4, 10, 0, "gap"], [90, -12, 12], [30, -4, 10]],
+				{"legs": [[38, -6, 10], [50, -5, 10, 0, "drum"], [9, -1, 10, 0, "gap"]],
 					"drum": [[38, 88]],
-					"put": [["pot", 12, -3], ["pot", 18, 3], ["pot", 24, 0], ["pot", 166, -4], ["pot", 180, 0]],
-					"say": [[4, "앞의 넓은 틈:\n보통 점프로는 짧다"], [26, "황금 발판에서 버티기!\n초록이 되면 손을 떼"], [140, "공중에서 버티면 내려찍기\n착지까지는 손을 떼자"]]},
+					"put": [["pot", 12, -3], ["pot", 18, 3], ["pot", 24, 0]],
+					"say": [[4, "앞의 넓은 틈:\n보통 점프로는 짧다"], [26, "황금 발판에서 버티기!\n초록이 되면 손을 떼"]]},
+				# 숨은 길 7 (하늘 수로): 초록을 넘겨 줄무늬가 금빛으로 깜빡일 때까지 버텼다 떼면, 위에 떠 있는 부서진 수로에 내려 다음 제단을 통째로 건너뛴다
+				{"fork": [
+					{"legs": [[27, 8, 9, 20, "gap"], [140, -16, 7, 0, "aq"], [3, -20, 9, -20, "drop"], [50, -4, 10]], "put": [["pot", 90, 0], ["pot", 120, 0]]},
+					{"legs": [[27, -3, 10, 0, "gap"], [90, -12, 12], [30, -4, 10]], "put": [["pot", 69, -4], ["pot", 83, 0]],
+						"say": [[43, "공중에서 버티면 내려찍기\n착지까지는 손을 떼자"]]}],
+					"hidden": true, "pick_air": 0.95, "skip": 1, "lane_x": 0.0, "lane_dy": 16.0, "name": "하늘 수로"},
 				{"legs": [[24, -4, 10], [46, -5, 10, 0, "drum"], [38, -5, 10, 0, "gap"], [90, -12, 12], [25, -3, 9]],
 					"drum": [[24, 70]], "row": [[170, "crystal"]],
 					"snow": [[2, 24, -9, 9]],
@@ -399,6 +570,7 @@ func _reset() -> void:
 		run_deaths = 0
 	finish_time = 0.0
 	failure_reason = ""
+	bonk_at = -99.0
 	new_record = false
 	drum_charge = 0.0
 	was_holding = false
@@ -407,6 +579,15 @@ func _reset() -> void:
 	drums.clear()
 	if result_card:
 		result_card.visible = false
+		result_card.position = Vector2.ZERO
+		result_card.modulate.a = 1.0
+		for tw: Tween in [seal_tw, result_tw, result_tw2]:
+			if tw:
+				tw.kill()
+		if seal_l:
+			seal_l.scale = Vector2.ONE
+		gauge_last_v = 0.0
+		gauge_kick = 0.0
 	dist = 0.0
 	v = 16.0
 	s = 2.0
@@ -418,9 +599,27 @@ func _reset() -> void:
 	fallen = false
 	underground = false
 	tunnels.clear()
+	lanes.clear()
+	floor_cracks.clear()
+	sling_keep = 0.0
+	drum_last = 0.0
+	drum_last_d = -999.0
+	if ram_tick:
+		ram_tick.visible = false
 	cave_nodes.clear()
 	gems.clear()
+	under_route = []
+	geysers.clear()
+	# 수정·빛 기둥은 구역을 지을 때 채우므로 _open_zone 보다 먼저 비운다
+	glows.clear()
+	rays.clear()
+	rising = false
+	gates.clear()
+	Engine.time_scale = 1.0
 	dash_t = 0.0
+	hs_t = 0.0
+	slo_t = 0.0
+	slo_k = 1.0
 	fall_t = 0.0
 	slow_t = 0.0
 	warn_t = 0.0
@@ -454,6 +653,7 @@ func _reset() -> void:
 	pad_t = 0.0
 	shot_t = 0.0
 	sq = 0.0
+	sq_v = 0.0
 	far_k = -1
 	far = Node3D.new()
 	world.add_child(far)
@@ -510,10 +710,65 @@ func _reset() -> void:
 		n.visible = false
 		bits.append({"n": n, "v": Vector3.ZERO, "life": 0.0, "max": 1.0, "sz": 0.5})
 	streaks.clear()
-	for i in 8:
+	for i in 14:
 		var n := box(Vector3.ZERO, Vector3(0.09, 0.09, 1.0), WHITE)
 		n.visible = false
-		streaks.append({"n": n, "d": 30.0 * i / 8.0 - 8.0, "x": 0.0, "y": 0.0})
+		n.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		streaks.append({"n": n, "d": 30.0 * i / 14.0 - 8.0, "x": 0.0, "y": 0.0, "p": false})
+	# 충격 고리: 착지·탑 깨기 때 땅 위로 퍼지는 납작한 고리
+	rings.clear()
+	ring_i = 0
+	for i in 3:
+		var tm := TorusMesh.new()
+		tm.inner_radius = 0.86
+		tm.outer_radius = 1.0
+		tm.rings = 24
+		tm.ring_segments = 4
+		var rm := StandardMaterial3D.new()
+		rm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		rm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		rm.cull_mode = BaseMaterial3D.CULL_DISABLED
+		var rn := MeshInstance3D.new()
+		rn.mesh = tm
+		rn.material_override = rm
+		rn.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		rn.visible = false
+		world.add_child(rn)
+		rings.append(rn)
+	# 흙먼지
+	dust.clear()
+	dust_t = 0.0
+	for i in 14:
+		var n := box(Vector3.ZERO, Vector3.ONE, WHITE)
+		n.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		n.visible = false
+		dust.append({"n": n, "life": 0.0, "max": 1.0, "v": Vector3.ZERO, "sz": 1.0})
+	# 도장·조각·점수 튐은 판이 바뀌면 다 거둔다
+	if stamp_layer:
+		stamp_layer.layer = 7
+		for st: Dictionary in stamps:
+			var stw: Tween = st.tw
+			if stw and stw.is_valid():
+				stw.kill()
+			(st.root as Control).visible = false
+			st.busy = false
+			st.pri = 0
+		for c: Panel in chips:
+			_chip_kill(c)
+			c.visible = false
+		if plaque_tw:
+			plaque_tw.kill()
+		plaque.visible = false
+		plaque_pending = []
+		stamp_at.clear()
+		stamp_gap = 0.0
+		stamp_pri = 0
+		chip_at = -99.0
+		if score_tw:
+			score_tw.kill()
+		if _score_l:
+			_score_l.scale = Vector2.ONE
+			_score_l.label_settings.font_color = INK
 	rocks.clear()
 	for i in 6:
 		var n := box(Vector3.ZERO, Vector3.ONE, BAD)
@@ -533,10 +788,31 @@ func _reset() -> void:
 	look_off = fw * 14.0
 	cam_up = Vector3.UP
 	cam.fov = 55.0
+	deep_landed = false
+	reveal_t = 0.0
+	end_cam = Vector3.ZERO
+	end_fov = 55.0
+	# 발밑 그림자: 먹색 둥근 판. 높이 뜰수록 작고 옅어진다
+	blob = MeshInstance3D.new()
+	var bm := CylinderMesh.new()
+	bm.top_radius = 0.5
+	bm.bottom_radius = 0.5
+	bm.height = 0.02
+	bm.radial_segments = 20
+	bm.rings = 1
+	blob.mesh = bm
+	blob_mat = StandardMaterial3D.new()
+	blob_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	blob_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	blob_mat.albedo_color = Color(INK, 0.38)
+	blob.material_override = blob_mat
+	blob.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	world.add_child(blob)
 	_place(0.0)
 
 
 func _unlock(nm: String) -> void:
+	_btn_born[nm] = Time.get_ticks_msec() * 0.001
 	match nm:
 		"jump":
 			kit_button("jump", tr("뛰기"), Vector2(610, 1150), 88.0, D)
@@ -687,20 +963,38 @@ func _zone_items(z: Dictionary) -> void:
 			var st := _end_st()
 			var d0 := float(_len())
 			var pair := []
+			var o0: Dictionary = {}
 			for side in 2:
 				var br: Dictionary = it.fork[side]
+				# 갈래에 거리로 전역 등록되는 것(발판·구멍·물살…)을 두면 안 고른 갈래 것이 새어 나온다
+				for bad: String in ["snow", "sun", "holes", "flow", "drum", "cam", "gate", "goal", "rocks", "under", "crack"]:
+					if br.has(bad):
+						push_error("fork branch cannot carry '%s'" % bad)
 				var o := _gen(st, br.legs)
+				if side == 0:
+					o0 = o
+				# 숨은 갈림길 두 갈래는 가까이 붙어 가서, 옆 풍경 기둥이 다른 갈래 길 위에 선다 (옛 배수로: 큰길 155m 왼쪽 반을 막는 20m 기둥) → 풍경 없이
+				z["bare"] = bool(it.get("hidden", false))
 				_draw_road(o, 0, o.px.size() - 1, z)
-				pair.append(_make_things(br, o, 0.0, d0, z))
-			z.fork = {"at": d0, "things": pair}
-			says.append([d0 - 45.0, "← 갈림길 →"])
+				z.erase("bare")
+				_fork_arches(br, o, z)
+				# 안내 글은 고른 갈래 것만 (_choose 에서 등록)
+				var vis: Dictionary = br.duplicate()
+				vis.erase("say")
+				pair.append(_make_things(vis, o, 0.0, d0, z))
+			z.fork = {"at": d0, "things": pair, "seal": null}
+			if bool(it.get("hidden", false)):
+				_hidden_fork(it, d0, o0, z)
+			else:
+				says.append([d0 - 45.0, "← 갈림길 →"])
 			_relist()
 			return
 		var d1 := float(maxi(_len(), 0))
 		_extend(it.legs)
 		_draw_road(pd, int(d1), _len(), z)
-		if int(z.k) == 1:
-			_build_tunnel(d1, float(_len()), z.node)
+		if int(z.k) == 1 and not tutorial:
+			# 다음 조각이 있으면 바닥 연장 없이 이어 붙인다 (연장 바닥이 다음 조각 바닥 위에 뜨지 않게)
+			_build_tunnel(d1, float(_len()), z.node, {"ext": 0.0 if int(z.item) + 1 < items.size() else 80.0})
 		var acc := d1
 		for lg: Array in it.legs:
 			if lg.size() > 5 and str(lg[4]) == "rope":
@@ -708,22 +1002,150 @@ func _zone_items(z: Dictionary) -> void:
 				_arch(acc + 1.0, float(lg[5]), z.node)
 			acc += float(lg[0])
 		z.things.append_array(_make_things(it, pd, d1, d1, z))
+		if it.has("under") and not tutorial:
+			_hidden_chamber(it, d1, z)
 		z.item += 1
 	z.end = float(_len())
 	_extras(z)
 	_relist()
 
 
-## 갈림길: 그 순간 서 있는 쪽 갈래로 간다
+## 갈림길: 그 순간 서 있는 쪽 갈래로 간다.
+## 숨은 갈림길: 갈래 0 이 지름길. 봉인이 열렸고(없으면 그냥) 그쪽 끝 차선에 있을 때만, 하늘 수로는 금빛 발사로 공중에 있을 때만.
 func _choose(z: Dictionary) -> void:
-	var side := 0 if bx < 0.0 else 1
 	var it: Dictionary = Z[z.k].items[z.item]
-	_extend(it.fork[side].legs)
-	z.things.append_array(z.fork.things[side])
+	var fk: Dictionary = z.fork
+	var hidden := bool(it.get("hidden", false))
+	var side := 0 if bx < 0.0 else 1
+	if hidden:
+		side = 1
+		var sl: Thing = fk.get("seal")
+		var open := sl == null or sl.flat
+		if it.has("pick_air"):
+			if not on_ground and drum_last >= float(it.pick_air) and dist - drum_last_d < 90.0:
+				side = 0
+		else:
+			var px := float(it.get("pick_x", -4.0))
+			if open and ((bx < px) if px < 0.0 else (bx > px)):
+				side = 0
+	var br: Dictionary = it.fork[side]
+	_extend(br.legs)
+	z.things.append_array(fk.things[side])
+	var acc := float(fk.at)
+	for lg: Array in br.legs:
+		if lg.size() > 5 and str(lg[4]) == "rope":
+			ropes.append([acc, acc + float(lg[0]), float(lg[5])])
+		acc += float(lg[0])
+	for sy: Array in br.get("say", []):
+		says.append([float(fk.at) + float(sy[0]), sy[1]])
 	z.fork = null
 	z.item += 1
-	sfx("tick")
+	if hidden and side == 0:
+		# 깔때기: 가운데 쪽으로 모으되 ±2.5 까지만 (0 으로 모으면 수정 맥 길 앞 206m 가운데 석상에 박는다)
+		x_goal = clampf(x_goal, -2.5, 2.5)
+		z.item += int(it.get("skip", 0))
+		if not fallen:
+			_secret(str(it.get("name", "")))
+	if not hidden:
+		sfx("tick")
 	_zone_items(z)
+
+
+## 숨은 갈림길을 미리 지을 때: 봉인(한 차선) + 바람 줄 두 토막(갈림길 앞 36m, 지름길 첫 24m)
+func _hidden_fork(it: Dictionary, d0: float, o0: Dictionary, z: Dictionary) -> void:
+	var lx := float(it.get("pick_x", 0.0))
+	if it.has("seal"):
+		var sl: Array = it.seal
+		var l := d0 - float(sl[1])
+		var th := _thing(pd, l, l, float(sl[2]), str(sl[0]), z)
+		z.things.append(th)
+		z.fork["seal"] = th
+		lx = float(sl[2])
+	lx = float(it.get("lane_x", lx))
+	var ldy := float(it.get("lane_dy", 1.6))
+	_lane(pd, maxf(0.0, d0 - 36.0), d0 - 1.0, lx, ldy, z.node)
+	if not o0.is_empty():
+		_lane(o0, 1.0, 24.0, 0.0, ldy, z.node)
+
+
+## 갈래 안 흔들다리 입구 기둥 (갈래 표본 o 위에)
+func _fork_arches(br: Dictionary, o: Dictionary, z: Dictionary) -> void:
+	var acc := 0.0
+	for lg: Array in br.legs:
+		if lg.size() > 5 and str(lg[4]) == "rope":
+			_arch_o(o, acc + 1.0, float(lg[5]), z.node)
+		acc += float(lg[0])
+
+
+## 지름길을 찾았다: 새긴 지명판에 그곳 이름 (모으는 것·세는 것 없음)
+func _secret(nm: String) -> void:
+	if nm == "":
+		return
+	_plaque(nm, tr("지름길!"), D, 1.2)
+	sfx("launch", -4.0, 1.3)
+	shake = maxf(shake, 0.3)
+
+
+## [a, b) 거리에 있는 깔 것만 a 를 0 으로 옮겨 복사
+func _cut(list: Array, a: float, b: float) -> Array:
+	var out := []
+	for e: Array in list:
+		if float(e[1]) >= a and float(e[1]) < b:
+			var c := e.duplicate()
+			c[1] = float(e[1]) - a
+			out.append(c)
+	return out
+
+
+## 바람 줄: 빠른 공기가 이쪽으로 흐른다는 표시. 길 표본 o 의 [la, lb] 를 따라 흰 줄 6개가 흘러간다
+func _lane(o: Dictionary, la: float, lb: float, x: float, dy: float, nd: Node3D) -> void:
+	var pts := PackedVector3Array()
+	var yws := PackedFloat32Array()
+	var l := la
+	while l <= lb:
+		pts.append(_opos(o, l, x, _oh(o, l) + dy))
+		yws.append(_oyaw(o, l))
+		l += 1.0
+	if pts.size() < 3:
+		return
+	var ss := []
+	for i in 6:
+		var n := box(Vector3.ZERO, Vector3(0.16, 0.16, 3.6), WHITE, nd)
+		n.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		ss.append({"n": n, "ph": randf() * float(pts.size() - 1), "ox": randf_range(-1.5, 1.5), "oy": randf_range(0.0, 2.0)})
+	lanes.append({"pts": pts, "yw": yws, "s": ss})
+
+
+## 바람 줄 흐르기 + 깨지는 바닥판 금 깜빡임
+func _lane_tick(dt: float) -> void:
+	for i in range(lanes.size() - 1, -1, -1):
+		var ln: Dictionary = lanes[i]
+		var ss: Array = ln.s
+		if ss.is_empty() or not is_instance_valid((ss[0] as Dictionary).n):
+			lanes.remove_at(i)
+			continue
+		var pts: PackedVector3Array = ln.pts
+		var yws: PackedFloat32Array = ln.yw
+		var m := float(pts.size() - 1)
+		for sd: Dictionary in ss:
+			var ph := fposmod(float(sd.ph) + 26.0 * dt, m)
+			sd.ph = ph
+			var k := mini(int(ph), pts.size() - 2)
+			var f := ph - float(k)
+			var yw := lerpf(yws[k], yws[k + 1], f)
+			var ox: float = sd.ox
+			var n: MeshInstance3D = sd.n
+			n.position = pts[k].lerp(pts[k + 1], f) + Vector3(cos(yw) * ox, float(sd.oy), -sin(yw) * ox)
+			n.rotation = Vector3(0.0, yw, 0.0)
+			# 양 끝에서는 짧아져 순간이동처럼 보이지 않는다
+			n.scale = Vector3(0.16, 0.16, 3.6 * clampf(sin(PI * ph / m) * 3.0, 0.05, 1.0))
+	var blink := B if fmod(clock, 0.5) < 0.25 else WHITE
+	for ck: Dictionary in floor_cracks:
+		if bool(ck.open) or absf(float(ck.a) - dist) > 70.0:
+			continue
+		for n in ck.seam:
+			if is_instance_valid(n):
+				(n as MeshInstance3D).material_override = mat(blink)
 
 
 func _relist() -> void:
@@ -792,6 +1214,9 @@ func _draw_road(o: Dictionary, a: int, b: int, z: Dictionary) -> void:
 					e.position = p0 + dir * ((q + 0.5) / nb) + up * 0.03
 			elif tg != "plaza":
 				for sd: float in [-1.0, 1.0]:
+					# 숨은 길 입구(mouthL/R): 그쪽 턱 줄이 끊겨 있다
+					if (tg == "mouthL" and sd < 0.0) or (tg == "mouthR" and sd > 0.0):
+						continue
 					var e := box(Vector3.ZERO, Vector3.ONE, Color("24566b"), nd)
 					e.basis = bs
 					e.scale = Vector3(0.22, 0.1, ln + 0.4)
@@ -803,6 +1228,8 @@ func _draw_road(o: Dictionary, a: int, b: int, z: Dictionary) -> void:
 			var edge := q - 1 if o.sol[q - 1] == 1 else q
 			_plate(o, float(edge), float(edge) + 0.65, -float(o.hw[edge]), float(o.hw[edge]), BAD, nd, 0.18)
 	# 기둥(속도 눈금)과 옆 풍경
+	if bool(z.get("bare", false)):
+		return
 	var rng := RandomNumberGenerator.new()
 	rng.seed = int(z.k) * 1000 + a + int(absf(float(o.px[a])))
 	for q in range(a, b):
@@ -822,7 +1249,7 @@ func _draw_road(o: Dictionary, a: int, b: int, z: Dictionary) -> void:
 						_column(o, fq, sd * (hw + rng.randf_range(9.0, 34.0)), h + rng.randf_range(-12.0, 26.0), rng.randf_range(6.0, 13.0), [ROCK, STONE, WHITE].pick_random(), nd)
 			"aq":
 				if q % 15 == 0 and tg == "aq":
-					_column(o, fq, 0.0, h - 1.2, 1.6, WHITE, nd)
+					_column(o, fq, 0.0, h - 1.2, 1.6, WHITE, nd, DEEP + 2.0 if int(z.k) == 1 and not tutorial else 70.0)
 				if q % 25 == 5:
 					_column(o, fq, -(28.0 + rng.randf_range(0.0, 20.0)), h + rng.randf_range(-4.0, 18.0), rng.randf_range(6.0, 12.0), [GRASS, ROCK].pick_random(), nd)
 			"village":
@@ -869,8 +1296,8 @@ func _draw_road(o: Dictionary, a: int, b: int, z: Dictionary) -> void:
 
 
 ## 땅 밑 깊은 곳에서 top 까지 솟은 기둥
-func _column(o: Dictionary, d: float, x: float, top: float, w: float, col: Color, nd: Node3D) -> void:
-	var bot := _oh(o, d) - 70.0
+func _column(o: Dictionary, d: float, x: float, top: float, w: float, col: Color, nd: Node3D, depth := 70.0) -> void:
+	var bot := _oh(o, d) - depth
 	var m := box(_opos(o, d, x, (top + bot) * 0.5), Vector3(w, top - bot, w), col, nd)
 	_apply_art(m, "pillar")
 	m.rotation.y = _oyaw(o, d)
@@ -952,6 +1379,13 @@ func _make_things(it: Dictionary, o: Dictionary, loc0: float, d0: float, z: Dict
 	if it.has("say"):
 		for sy: Array in it.say:
 			says.append([d0 + float(sy[0]), sy[1]])
+	if it.has("lane"):
+		# 바람 줄은 보이기만 한다 (갈래에 두어도 새지 않는다)
+		for ln: Array in it.lane:
+			_lane(o, loc0 + float(ln[0]), loc0 + float(ln[1]), float(ln[2]), float(ln[3]), z.node)
+	if it.has("gate"):
+		for g: Array in it.gate:
+			gates.append([d0 + float(g[0]), g[1], g[2]])
 	if it.has("goal"):
 		goal_d = d0 + float(it.goal)
 	if it.has("rocks"):
@@ -979,13 +1413,18 @@ func _plate(o: Dictionary, la: float, lb: float, x0: float, x1: float, col: Colo
 ## 흔들다리 입구 기둥: 기둥 높이(빨간 머리 밑) = 버티는 크기. 돌이 기둥보다 크면 끊어진다.
 ## (가로대를 두면 낮은 카메라가 그 속을 지나가 화면이 가려져서 기둥 두 개만 둔다)
 func _arch(d: float, lim: float, nd: Node3D) -> void:
-	var hw: float = pd.hw[_oi(pd, d)]
-	var h := _h(d)
-	var yw := _yaw(d)
+	_arch_o(pd, d, lim, nd)
+
+
+## _arch 를 아무 길 표본 o 위에 (갈림길 갈래는 고르기 전에 미리 그린다)
+func _arch_o(o: Dictionary, d: float, lim: float, nd: Node3D) -> void:
+	var hw: float = o.hw[_oi(o, d)]
+	var h := _oh(o, d)
+	var yw := _oyaw(o, d)
 	for sd: float in [-1.0, 1.0]:
-		var p := box(_pos(d, sd * (hw + 0.8), h + lim * 0.5), Vector3(1.0, lim, 1.0), D, nd)
+		var p := box(_opos(o, d, sd * (hw + 0.8), h + lim * 0.5), Vector3(1.0, lim, 1.0), D, nd)
 		p.rotation.y = yw
-		var cap := box(_pos(d, sd * (hw + 0.8), h + lim + 0.3), Vector3(1.6, 0.6, 1.6), BAD, nd)
+		var cap := box(_opos(o, d, sd * (hw + 0.8), h + lim + 0.3), Vector3(1.6, 0.6, 1.6), BAD, nd)
 		cap.rotation.y = yw
 
 
@@ -999,24 +1438,28 @@ func _thing(o: Dictionary, l: float, d: float, x: float, kind: String, z: Dictio
 	th.col = (th.kd.col as Array).pick_random()
 	th.n = box(_opos(o, l, x, th.base + sz.y * 0.5), sz, th.col, z.node)
 	th.n.rotation.y = _oyaw(o, l)
-	if kind in ["pot", "pillar", "post", "crystal"]:
+	if kind in ["pot", "pillar", "post", "crystal", "vein"]:
 		var shape := CylinderMesh.new()
 		shape.radial_segments = 6
 		shape.height = 1.0
 		shape.bottom_radius = 0.5
-		shape.top_radius = 0.0 if kind == "crystal" else (0.34 if kind == "pot" else 0.5)
+		shape.top_radius = 0.0 if kind in ["crystal", "vein"] else (0.34 if kind == "pot" else 0.5)
 		th.n.mesh = shape
-	if kind in ["pot", "pillar", "post", "crystal"]:
-		_apply_art(th.n, "pillar" if kind == "post" else kind)
+	if kind in ["pot", "pillar", "post", "crystal", "vein"]:
+		# 위험 기둥은 연어빛: 빨강 = 위험 하나로 읽힌다
+		var art := "pillar" if kind == "post" else ("crystal" if kind == "vein" else kind)
+		_apply_art(th.n, art, Color("ffb3a6") if kind in ["pillar", "post"] else Color.WHITE)
 	elif kind == "house":
 		_apply_art(th.n, "temple")
-	elif kind == "ice":
+	elif kind == "door":
+		_apply_art(th.n, "temple", STONE)
+	elif kind == "ice" or kind == "icedoor":
 		_apply_art(th.n, "crystal")
 		th.n.material_override = art_materials["ice_wall"]
 	elif kind == "statue":
 		_apply_art(th.n, "pillar")
 	elif kind == "tower":
-		_apply_art(th.n, "pillar", th.col.lightened(0.2))
+		_apply_art(th.n, "pillar", Color("cfe6ff"))
 	elif kind == "gold":
 		_apply_art(th.n, "temple", D)
 	if th.kd.get("slam", false):
@@ -1024,13 +1467,51 @@ func _thing(o: Dictionary, l: float, d: float, x: float, kind: String, z: Dictio
 		box(Vector3(0, 0.56, 0), Vector3(1.3, 0.14, 1.3), B, th.n)
 		box(Vector3(0, 0.2, 0), Vector3(1.08, 0.06, 1.08), B, th.n)
 		return th
+	if bool(th.kd.get("soft", false)):
+		_seal_marks(th, kind)  # 숨은 길 봉인: 빨간 띠 없음(위험이 아니라 선택), 여는 동작 색 무늬
+		return th
 	if float(th.kd.need) > 90.0 or kind == "ice":
 		box(Vector3(0, -0.43, 0), Vector3(1.05, 0.18, 1.05), BAD, th.n)
 	if kind == "house":
 		box(Vector3(0, 0.6, 0), Vector3(1.15, 0.25, 1.15), BAD, th.n)
 	elif kind == "pillar" or kind == "post":
-		box(Vector3(0, 0.46, 0), Vector3(1.4, 0.08, 1.4), D if kind == "pillar" else BAD, th.n)
+		box(Vector3(0, 0.46, 0), Vector3(1.4, 0.08, 1.4), BAD, th.n)
 	return th
+
+
+## 봉인 무늬 = 여는 버튼 색: 돌문은 쪼개기 보라 지그재그 금, 얼음판은 눈(키우기) 흰 서리 띠, 수정 하나는 밝은 받침
+func _seal_marks(th: Thing, kind: String) -> void:
+	match kind:
+		"door":
+			var zz := [[-0.2, 0.25, 0.7], [0.1, 0.0, -0.7], [-0.1, -0.25, 0.7]]
+			for q: Array in zz:
+				var sm := box(Vector3(float(q[0]), float(q[1]), 0.0), Vector3(0.06, 0.32, 1.06), C, th.n)
+				sm.rotation.z = float(q[2])
+		"icedoor":
+			box(Vector3(0, 0.3, 0), Vector3(1.04, 0.06, 1.04), WHITE, th.n)
+		"vein":
+			box(Vector3(0, -0.45, 0), Vector3(1.1, 0.1, 1.1), C.lightened(0.3), th.n)
+
+
+## 게이지 금빛 눈금: 80m 안에 '이 속도면 뚫리는' 봉인이 있으면 그 속도 자리에. 그만큼 빠르면 초록
+func _ram_gauge() -> void:
+	if ram_tick == null:
+		return
+	var rt: Thing = null
+	for th: Thing in things:
+		if th.flat or not th.kd.has("ram"):
+			continue
+		var dd := th.d - dist
+		if dd > 0.0 and dd < 80.0:
+			rt = th
+			break
+	if rt == null or fallen or won:
+		ram_tick.visible = false
+		return
+	var rv := float(rt.kd.ram)
+	ram_tick.visible = true
+	ram_tick.position.x = 600.0 * rv / VMAX - 3.0
+	ram_tick.color = GOOD if v >= rv else D
 
 
 ## 구역이 다 이어진 뒤: 바닥, 신전, 다음 구역 문
@@ -1046,7 +1527,7 @@ func _extras(z: Dictionary) -> void:
 		mn = minf(mn, pd.hh[i])
 		lo = Vector2(minf(lo.x, pd.px[i]), minf(lo.y, pd.pz[i]))
 		hi = Vector2(maxf(hi.x, pd.px[i]), maxf(hi.y, pd.pz[i]))
-	var fy := mn - (3.0 if z.k == Z.size() - 1 else 30.0)
+	var fy := mn - (3.0 if z.k == Z.size() - 1 else (DEEP + 4.0 if z.k == 1 and not tutorial else 30.0))
 	var mid := (lo + hi) * 0.5
 	var margin := 600.0 if z.k == Z.size() - 1 else 80.0
 	box(Vector3(mid.x, fy, mid.y), Vector3(hi.x - lo.x + margin, 1.0, hi.y - lo.y + margin), def.floor, nd)
@@ -1058,6 +1539,24 @@ func _extras(z: Dictionary) -> void:
 		for side: float in [-1.0, 1.0]:
 			var column := box(_pos(goal_d + 2.0, side * 13.0, _h(goal_d) + 8.0), Vector3(3, 16, 3), WHITE, nd)
 			_apply_art(column, "pillar")
+		# 신전 뒤 금빛 기둥 7개: 닿기 전엔 숨어 있다가 도착하면 부채꼴로 솟는다
+		if not ray_mat:
+			ray_mat = StandardMaterial3D.new()
+			ray_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			ray_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			ray_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+			ray_mat.albedo_color = Color(1.0, 0.85, 0.3, 0.3)
+		for i in 7:
+			var rh := Node3D.new()
+			nd.add_child(rh)
+			rh.position = _pos(temple_d - 10.0, 0.0, _h(temple_d) + 2.0)
+			rh.rotation = Vector3(0.0, _yaw(temple_d), (i - 3) * 0.22)
+			var bx2 := box(Vector3(0, 0.5, 0), Vector3(1.6, 1.0, 1.6), D, rh)
+			bx2.material_override = ray_mat
+			bx2.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			rh.scale = Vector3(1, 0.001, 1)
+			rh.visible = false
+			rays.append(rh)
 	if z.k == 0:
 		var p := _pos(0.0, 0.0, 0.0)
 		var h := _h(0.0)
@@ -1077,6 +1576,7 @@ func _extras(z: Dictionary) -> void:
 			_apply_art(g, "pillar")
 			g.rotation.y = yw
 		var bar := box(_pos(gd, 0.0, gh + 10.0), Vector3(hw * 2.0 + 3.4, 1.6, 1.6), col, nd)
+		z["lintel"] = bar
 		bar.rotation.y = yw
 
 
@@ -1113,11 +1613,30 @@ func _enter(z: Dictionary) -> void:
 	cur_k = z.k
 	var def: Dictionary = Z[cur_k]
 	mode = def.mode
+	# 돌 테두리: 어두운 얼음길(설산)에서는 크림색이라야 돌이 보인다
+	if hero_rim:
+		hero_rim.set_shader_parameter("ink", Color("fff5df") if (cur_k == 5 and not tutorial) else INK)
 	sky_to = def.sky
-	if first and sky_env:
-		sky_env.background_color = sky_to
+	hz_to = def.hz
+	if first and sky_mat:
+		sky_mat.sky_top_color = sky_to
+		sky_mat.sky_horizon_color = hz_to
+		sky_mat.ground_horizon_color = hz_to
 	_far_build(cur_k)
-	msg(def.msg, 1.6)
+	_air_set(str(AIR_OF.get(def.get("scen", "rock"), "dust")))
+	# 구역 이름은 새긴 지명판으로 쾅
+	_plaque(def.msg, "%02d / %02d" % [cur_k + 1, Z.size()], SKILL_COL.get(def.skill, ROCK))
+	# 방금 지난 문 상판이 쿵 하고 내려앉으며 먼지를 턴다
+	if cur_k > 0:
+		for zz: Dictionary in zones:
+			if int(zz.k) != cur_k - 1 or not zz.has("lintel") or not is_instance_valid(zz.lintel):
+				continue
+			var bar: Node3D = zz.lintel
+			_burst(bar.global_position, STONE, 6, 5.0, 0.5)
+			var y0 := bar.position.y
+			var ltw := bar.create_tween()
+			ltw.tween_property(bar, "position:y", y0 - 0.5, 0.06)
+			ltw.tween_property(bar, "position:y", y0, 0.25).set_trans(Tween.TRANS_BACK)
 	if def.skill != "":
 		_unlock(def.skill)
 	if cur_k > 0:
@@ -1126,7 +1645,7 @@ func _enter(z: Dictionary) -> void:
 		cp_k = cur_k
 		cp_st = {"x": pd.px[i], "z": pd.pz[i], "yw": pd.yw[i], "h": pd.hh[i]}
 		cp_s = s_goal
-		cp_score = score
+		cp_score = score_base + int(dist) + bonus
 
 
 ## 먼 실루엣: 카메라를 따라다니는 고리 위의 큰 상자들 (구역마다 모양·색, 하늘색 쪽으로 흐리게)
@@ -1139,7 +1658,7 @@ func _far_build(k: int, cave := false) -> void:
 			c.queue_free()
 	var def: Dictionary = Z[k]
 	if cave:
-		def = {"sky": CAVE_SKY, "far": "spire", "farcol": [C, Color("ff8fd8"), Color("7ff0ff"), D]}
+		def = {"sky": UNDER_SKY, "far": "peak", "farcol": [ROCK, Color("8a6d4b"), STONE]}
 	clouds.visible = not cave
 	var sky: Color = def.sky
 	var cols: Array = def.farcol
@@ -1220,23 +1739,222 @@ func _fx(dt: float) -> void:
 		bn.position += (b.v as Vector3) * dt
 		bn.rotation.x += dt * 9.0
 		bn.scale = Vector3.ONE * float(b.sz) * (0.3 + 0.7 * float(b.life) / float(b.max))
-	sq = move_toward(sq, 0.0, dt * 2.2)
+	# 찌그러짐은 용수철: 납작했다가 살짝 늘어나며 되돌아온다 (긴 프레임에도 터지지 않게 dt 를 묶는다)
+	var fdt := minf(dt, 0.033)
+	sq_v += (-sq * 260.0 - sq_v * 22.0) * fdt
+	sq = maxf(-0.14, sq + sq_v * fdt)
 	if sky_mat:
 		sky_mat.sky_top_color = sky_mat.sky_top_color.lerp(sky_to, minf(1.0, dt * 1.5))
-		var hz := Color("ffc4ee") if underground else Color("fff5df")
+		var hz := hz_to
 		sky_mat.sky_horizon_color = sky_mat.sky_horizon_color.lerp(hz, minf(1.0, dt * 1.5))
 		sky_mat.ground_horizon_color = sky_mat.sky_horizon_color
+		# 안개·주변광은 지평선 색을 따라간다 (지하는 가까운 호박빛 안개)
+		if sky_env:
+			sky_env.fog_light_color = sky_mat.sky_horizon_color
+			sky_env.fog_depth_begin = lerpf(sky_env.fog_depth_begin, 18.0 if underground else 80.0, minf(1.0, dt))
+			sky_env.fog_depth_end = lerpf(sky_env.fog_depth_end, 190.0 if underground else 520.0, minf(1.0, dt))
+			sky_env.ambient_light_color = WHITE.lerp(sky_mat.sky_horizon_color, 0.5)
 	if clouds:
 		clouds.rotation.y += dt * 0.015
 
 
+## 멈칫: sec 실제 초 동안 판이 거의 멈춘다. fov_kick 은 순간 화각 튐 (그 뒤 _place 가 되돌린다)
+func _hitstop(sec: float, fov_kick := 0.0) -> void:
+	hs_t = maxf(hs_t, sec)
+	if cam and fov_kick != 0.0:
+		cam.fov = clampf(cam.fov + fov_kick, 35.0, 110.0)
+
+
+## 느린 동작: sec 실제 초 동안 판이 k 배로 흐른다
+func _slowmo(sec: float, k: float) -> void:
+	slo_t = maxf(slo_t, sec)
+	slo_k = k
+
+
+## 충격 고리: p 에서 땅 위로 납작하게 퍼지며 사라진다
+func _ring(p: Vector3, col: Color, r: float, dur := 0.35) -> void:
+	if rings.is_empty():
+		return
+	var n: MeshInstance3D = rings[ring_i % rings.size()]
+	ring_i += 1
+	if not is_instance_valid(n):
+		return
+	if n.has_meta("tw"):
+		var old: Tween = n.get_meta("tw")
+		if old and old.is_valid():
+			old.kill()
+	var m := n.material_override as StandardMaterial3D
+	m.albedo_color = Color(col, 0.85)
+	n.position = p
+	n.scale = Vector3(0.6, 1.0, 0.6)
+	n.visible = true
+	var tw := n.create_tween().set_parallel()
+	tw.tween_property(n, "scale", Vector3(r, 1.0, r), dur).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tw.tween_property(m, "albedo_color:a", 0.0, dur)
+	tw.chain().tween_callback(n.hide)
+	n.set_meta("tw", tw)
+
+
+## 땅 먼지 색 하나: 구역 땅에 맞춘다 (지하는 먼지 크림, 눈은 흰색, 해안은 모래)
+func _dust_col() -> Color:
+	if underground:
+		return DUST
+	match _ground_art(maxi(cur_k, 0)):
+		"snow":
+			return WHITE
+		"coast":
+			return Color("f3dcaa")
+	return Color("ecd3a0")
+
+
+## 발밑 그림자: 땅(또는 협곡 바닥) 위에 먹색 원. 높이 뜰수록 작고 옅다
+func _blob_tick(yw: float) -> void:
+	var g := _ground(dist, bx)
+	if is_nan(g) and not underground and _tunnel_depth(dist) > 0.0:
+		g = _h(dist) - _tunnel_depth(dist)
+	blob.visible = not is_nan(g) and not fallen and not won
+	if blob.visible:
+		var k := clampf(1.0 - maxf(0.0, by - g) / 30.0, 0.22, 1.0)
+		blob.position = _pos(dist, bx, g + 0.3)
+		blob.rotation = Vector3(atan(_slope(dist)), yw, 0.0)
+		blob.scale = Vector3.ONE * s * 1.05 * k
+		blob_mat.albedo_color.a = 0.38 * k
+
+
+## 공기 알갱이: 카메라에 붙은 입자 하나. 구역마다 먼지·꽃가루·꽃잎·눈·모래·물보라로 바뀐다
+func _air_make() -> void:
+	if not cam:
+		return
+	air_pt = CPUParticles3D.new()
+	air_pt.amount = 44
+	air_pt.lifetime = 3.0
+	air_pt.preprocess = 3.0
+	air_pt.local_coords = false
+	air_pt.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
+	air_pt.emission_box_extents = Vector3(24, 10, 24)
+	air_pt.position = Vector3(0, -2, -24)
+	var qm := QuadMesh.new()
+	qm.size = Vector2(0.3, 0.3)
+	air_pt.mesh = qm
+	var am := StandardMaterial3D.new()
+	am.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	am.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	am.vertex_color_use_as_albedo = true
+	am.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	air_pt.material_override = am
+	var fade := Gradient.new()
+	fade.set_color(0, Color(1, 1, 1, 0))
+	fade.set_color(1, Color(1, 1, 1, 0))
+	fade.add_point(0.2, WHITE)
+	fade.add_point(0.8, WHITE)
+	air_pt.color_ramp = fade
+	air_pt.direction = Vector3.UP
+	air_pt.spread = 180.0
+	cam.add_child(air_pt)
+	_air_set("dust")
+
+
+func _air_set(kind: String) -> void:
+	if not air_pt or not AIR.has(kind):
+		return
+	var p: Array = AIR[kind]
+	air_pt.color = p[0]
+	air_pt.gravity = p[1]
+	air_pt.initial_velocity_min = p[2]
+	air_pt.initial_velocity_max = p[3]
+	air_pt.scale_amount_min = p[4]
+	air_pt.scale_amount_max = p[5]
+	if kind == "cave":
+		# 지하: 수정 빛 네 가지가 섞인 반딧불
+		var gl := Gradient.new()
+		gl.set_color(0, Color("7ff0ff"))
+		gl.set_color(1, Color("9cf2c4"))
+		gl.add_point(0.33, Color("ffd27a"))
+		gl.add_point(0.66, C.lightened(0.35))
+		air_pt.color_initial_ramp = gl
+	else:
+		air_pt.color_initial_ramp = null
+
+
+## 흙먼지: 빠를수록 촘촘히 돌 뒤에서 피어올라 부풀다 사라진다
+func _dust(dt: float) -> void:
+	for p: Dictionary in dust:
+		if float(p.life) <= 0.0:
+			continue
+		p.life = float(p.life) - dt
+		var pn: MeshInstance3D = p.n
+		if float(p.life) <= 0.0:
+			pn.visible = false
+			continue
+		p.v = (p.v as Vector3) * exp(-3.0 * dt)
+		pn.position += (p.v as Vector3) * dt
+		pn.rotation.y += dt * 2.0
+		var t01 := 1.0 - float(p.life) / float(p.max)
+		pn.scale = Vector3.ONE * maxf(0.01, float(p.sz) * sin(PI * clampf(t01 * 0.85 + 0.15, 0.0, 1.0)))
+	dust_t -= dt
+	var spd := clampf((v - 16.0) / 39.0, 0.0, 1.0)
+	if not on_ground or fallen or won or spd <= 0.0 or dust_t > 0.0:
+		return
+	dust_t = lerpf(0.1, 0.035, spd)
+	for p: Dictionary in dust:
+		if float(p.life) > 0.0:
+			continue
+		var pn: MeshInstance3D = p.n
+		pn.material_override = mat(_dust_col())
+		pn.position = _pos(dist - s * 0.4, bx + randf_range(-0.35, 0.35) * s, by + 0.2)
+		pn.scale = Vector3.ONE * 0.01
+		pn.visible = true
+		p.v = Vector3(randf_range(-2.0, 2.0), randf_range(1.5, 3.5) + spd * 2.0, randf_range(-2.0, 2.0))
+		p.sz = s * randf_range(0.22, 0.32) * (0.8 + spd * 0.7)
+		p.max = randf_range(0.45, 0.75)
+		p.life = p.max
+		break
+
+
+## 바람 소리 고리: 저역 잡음 1초, 끝과 처음을 겹쳐 이음매 없이 돈다
+func _wind_stream() -> AudioStreamWAV:
+	var n := 22050
+	var f := 2000
+	var raw := PackedFloat32Array()
+	raw.resize(n)
+	var lp := 0.0
+	for i in n:
+		lp += (randf_range(-1.0, 1.0) - lp) * 0.12
+		raw[i] = clampf(lp * 2.2, -1.0, 1.0)
+	var m := n - f
+	var data := PackedByteArray()
+	data.resize(m * 2)
+	for i in m:
+		var x: float = raw[i] if i >= f else lerpf(raw[m + i], raw[i], float(i) / float(f))
+		data.encode_s16(i * 2, int(x * 16000.0))
+	var w := AudioStreamWAV.new()
+	w.format = AudioStreamWAV.FORMAT_16_BITS
+	w.mix_rate = 22050
+	w.stereo = false
+	w.data = data
+	w.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	w.loop_begin = 0
+	w.loop_end = m
+	return w
+
+
 # ---- 판 ----
 func _step(dt: float) -> void:
+	# 멈칫·느린 동작: 실제 초로 세고, 판 안의 dt 만 줄인다
+	var real_dt := dt / maxf(Engine.time_scale, 0.05)
+	if hs_t > 0.0:
+		hs_t -= real_dt
+		dt *= 0.04
+	elif slo_t > 0.0:
+		slo_t -= real_dt
+		dt *= slo_k
 	clock += dt
 	if not won:
 		run_elapsed += dt
 	_fx(dt)
+	_dust(dt)
 	_zones_tick()
+	_lane_tick(dt)
 	s = lerpf(s, s_goal, minf(1.0, dt * 4.0))
 	var mm := s / 2.0
 	hurt -= dt
@@ -1258,6 +1976,7 @@ func _step(dt: float) -> void:
 			end()
 		return
 	var hold := kit_held("hold")
+	_gate_tick()
 	_drum_tick(dt, hold)
 	_current_tick(dt, hold)
 	if kit_just("jump") and on_ground:
@@ -1284,7 +2003,7 @@ func _step(dt: float) -> void:
 				sfx("creak", -2.0)
 			if crack_t > 0.4:
 				_burst(_pos(dist, bx, by), A, 10, 9.0, 0.8)
-				_fall("다리가 끊어졌다!")
+				_fall("와장창!")
 				_place(dt)
 				return
 		else:
@@ -1297,6 +2016,8 @@ func _step(dt: float) -> void:
 	var k := _curv(dist)
 	if on_ground and absf(k) > 0.0005:
 		x_goal += k * v * v * TURN_C * mm * (0.35 if hold else 1.0) * dt
+	if underground:
+		x_goal = clampf(x_goal, -5.0, 5.0)  # 지하 바닥판은 12m 폭
 	bx = lerpf(bx, x_goal, minf(1.0, dt * 10.0 / sqrt(mm)))
 	if on_ground:
 		var sl := _slope(dist)
@@ -1311,14 +2032,17 @@ func _step(dt: float) -> void:
 		v = maxf(v, 0.0)
 	else:
 		v -= DRAG * 0.3 * v * v * dt
-		if hold:
+		if hold and not rising:
 			v *= exp(-2.2 * dt)
 			vy -= 46.0 * dt
 	dist += v * dt
 	vy -= FALL * dt
 	by += vy * dt
-	if cur_k == 1 and not underground and by < _h(dist) - 4.0:
-		_fall("지하로!")
+	_geyser_tick()
+	if cur_k == 1 and not tutorial and not underground and by < _h(dist) - 4.0:
+		_fall("퐁당!")
+	if not floor_cracks.is_empty() and hold and not on_ground and not underground and not fallen and vy < -10.0:
+		_try_crack()
 	var g := _ground(dist, bx)
 	if is_nan(g):
 		var i := _oi(pd, dist)
@@ -1329,24 +2053,44 @@ func _step(dt: float) -> void:
 				sfx("jump", -2.0, 1.2)
 		on_ground = false
 		if by < _h(dist) - 4.0 and not won:
-			_fall("떨어짐!")
+			_fall("퐁당!" if pd.sol[i] == 0 else "데구루루~")
 	elif by <= g:
-		if by < g - 1.4 and not won:
-			_fall("쾅!")
+		# 지난 프레임에도 이미 땅보다 한참 아래였을 때만 턱에 박은 것 (빠른 착지가 한 프레임에 파고든 것은 착지)
+		if by < g - 1.4 and by - vy * dt < g - 1.4 and not won:
+			_fall("턱!")
 		else:
 			if not on_ground:
 				if underground:
-					_burst(_pos(dist, bx, g), Color("68cfca"), 12, 8.0)
-					shake = 0.35
-					sq = 0.2
-					sfx("land", -2.0, 0.9)
+					if not deep_landed:
+						# 90m 아래 첫 착지: 멈칫, 먼지 고리, 수정이 차례로 깨어나고, 이곳의 이름
+						deep_landed = true
+						_burst(_pos(dist, bx, g), DUST, 16, 12.0, 0.9)
+						shake = 1.0
+						sq = 0.4
+						sfx("land", 2.0, 0.8)
+						sfx("cave", -2.0)
+						v = maxf(v, float(under_route[8]) if under_route.size() > 8 else 30.0)
+						_hitstop(0.15, -12.0)
+						_ring(_pos(dist, bx, g + 0.3), DUST, 16.0, 0.5)
+						_wake(dist, 45.0, 60.0)
+						var rname := str(under_route[7]) if under_route.size() > 7 else "잠든 지하 신전"
+						if rname == "잠든 지하 신전":
+							_plaque(rname, tr("지하 90m"), C, 2.2)
+						else:
+							_secret(rname)  # 숨은 방: 그곳 이름을 새긴 지명판
+					else:
+						# 지하에서 뛰고 내려앉기: 작은 착지 (_land 는 위 수로 항아리까지 깔아서 쓰지 않는다)
+						sq = maxf(sq, clampf(-vy / 45.0, 0.0, 0.42))
+						sfx("land", -10.0, 1.2)
+						if vy < -14.0:
+							_ring(_pos(dist, bx, g + 0.3), DUST, s * 1.6)
 				else:
 					_land(vy, hold)
+					if sling_keep > 0.0:
+						# 물기둥 새총 착지: 지하에서 달리던 속도를 돌려준다
+						v = maxf(v, sling_keep)
+						sling_keep = 0.0
 			by = g
-			if underground and _tunnel_depth(dist) <= 0.01:
-				underground = false
-				_cave(false)
-				msg("다음 틈을 봐", 1.4)
 			vy = v * _slope(dist)
 			on_ground = true
 	else:
@@ -1369,10 +2113,15 @@ func _step(dt: float) -> void:
 			var dive_ok: bool = diving and not th.kd.get("nodive", false) and (hold if slam else need < 90.0)
 			# 쪼갠 직후 돌진: 크기가 모자라도 집·석상·얼음벽을 뚫고, 느려지지 않는다 (수정·담·탑은 안 됨)
 			var dash_ok: bool = dash_t > 0.0 and not slam and not th.kd.has("shot") and need < 90.0
-			if s_goal >= need or dive_ok or dash_ok:
-				_crush(th, mm, not diving and not dash_ok)
+			# 숨은 길 돌문·얼음판: 이 속도(게이지 금빛 눈금) 이상이면 몸으로 뚫고 느려지지 않는다
+			var ram_ok: bool = v >= float(th.kd.get("ram", 999.0))
+			if s_goal >= need or dive_ok or dash_ok or ram_ok:
+				_crush(th, mm, not diving and not dash_ok and not ram_ok)
 			elif hurt <= 0.0:
 				_bonk(th)
+			elif bool(th.kd.get("soft", false)):
+				# 봉인은 밀려나는 동안만 막는다 (속도는 그대로: 멈춤 탈락으로 이어지지 않게)
+				dist = minf(dist, th.d - (s + sz.z) * 0.5 - 0.2)
 			elif th.kd.get("nodive", false) or slam:
 				# 얼음벽·수정은 진짜 벽: 튕긴 뒤에도 못 지나간다
 				dist = minf(dist, th.d - (s + sz.z) * 0.5 - 0.2)
@@ -1380,6 +2129,7 @@ func _step(dt: float) -> void:
 	_rocks(dt, mm)
 	if underground:
 		_gems()
+		_wake(dist + 6.0, 10.0)
 	# 멈춤 검사
 	if on_ground and v < VSTOP and not won:
 		slow_t += dt
@@ -1388,13 +2138,16 @@ func _step(dt: float) -> void:
 			warn_t = 0.3
 			sfx("warn", -4.0)
 		if slow_t > STOP_T:
-			failure_reason = tr("속도 %.0f 아래에서 1.5초 · 오르막 전엔 가볍게") % VSTOP
+			failure_reason = bonk_why if clock - bonk_at < 2.2 else tr("털썩…")
 			end()
 			return
 	else:
 		slow_t = 0.0
 		warn_t = 0.0
 	if goal_d > 0.0 and dist >= goal_d and not won:
+		if tutorial:
+			_tutorial_done()
+			return
 		_finish()
 	score = score_base + int(dist) + bonus
 	var col := GOOD
@@ -1402,6 +2155,7 @@ func _step(dt: float) -> void:
 		col = BAD
 	elif v < VSTOP * 1.8:
 		col = D
+	_ram_gauge()
 	gauge(v / VMAX, col)
 	_place(dt)
 
@@ -1490,8 +2244,7 @@ func _shot(dt: float) -> void:
 			# 닿기 전에 떨어졌다: 몸만 작아졌다
 			_burst(shot.position, ME, 4, 5.0)
 			sfx("bonk", -8.0, 1.5)
-			msg("안 닿았다!
-더 빨리, 더 가까이", 0.8)
+			msg("안 닿았다!\n더 빨리, 더 가까이", 0.8)
 		shot_t = 0.0
 		shot.visible = false
 
@@ -1565,15 +2318,16 @@ func _smash(th: Thing) -> void:
 	th.flat = true
 	th.n.visible = false
 	bonus += int(th.kd.pts) * 5
+	_score_chip(th.n.global_position, th.col)
 	_burst(th.n.position, th.col, 8, 11.0, 0.7)
-	sfx("glass" if th.kd.has("shot") else "crush_s")
+	sfx("glass" if th.kd.has("shot") else "crush_s", 7.0 if th.kd.has("shot") else 0.0)
 
 
 ## 착지: 높이 떨어질수록(버티면 더) 넓게 부순다
 func _land(vy0: float, hard: bool) -> void:
 	sq = maxf(sq, clampf(-vy0 / 45.0, 0.0, 0.42))
 	if vy0 < -10.0:
-		_burst(_pos(dist, bx, by + 0.2), (Z[cur_k].road as Color).darkened(0.1), 3 + int(-vy0 / 8.0), 4.0 + -vy0 * 0.25)
+		_burst(_pos(dist, bx, by + 0.2), _dust_col(), 3 + int(-vy0 / 8.0), 4.0 + -vy0 * 0.25)
 	if vy0 > -14.0:
 		if vy0 < -7.0:
 			sfx("land", -12.0, 1.3)
@@ -1591,10 +2345,18 @@ func _land(vy0: float, hard: bool) -> void:
 	if vy0 < -20.0:
 		v *= 0.9
 	shake = minf(1.2, 0.2 + (-vy0) / 50.0 + n * 0.15)
+	# 무거운 착지: 땅색 고리, 여럿 깔면 멈칫, 아주 높은 데서면 쿠웅! 돌판
+	if vy0 < -14.0:
+		_ring(_pos(dist, bx, by + 0.3), _dust_col(), s * 1.6 + -vy0 * 0.08)
+	if n >= 2 or vy0 < -34.0:
+		_hitstop(minf(0.1, 0.04 + n * 0.015), -6.0)
+	if not underground and vy0 < -30.0 and (n >= 2 or vy0 < -40.0):
+		_stamp("쿠웅!", 3, _pos(dist, bx, by), GLYPH, 0.9)
 	sfx("land", minf(0.0, -12.0 - vy0 * 0.3), clampf(1.25 - s * 0.06, 0.8, 1.2))
 
 
 func _crush(th: Thing, mm: float, slow := true) -> void:
+	var top_p: Vector3 = th.n.global_position + Vector3.UP * float(th.kd.size.y) * 0.6
 	th.flat = true
 	var sz: Vector3 = th.kd.size
 	_burst(th.n.position, th.col, 3 + int(sz.y), 6.0 + sz.y, clampf(sz.y * 0.25, 0.4, 1.0))
@@ -1607,34 +2369,69 @@ func _crush(th: Thing, mm: float, slow := true) -> void:
 	if slow:
 		v *= mm / (mm + float(th.kd.mass))
 	if th.kd.has("boost"):
-		v = minf(VMAX + 10.0, v + float(th.kd.boost))
+		v = maxf(v, minf(VMAX + 10.0, v + float(th.kd.boost)))
 		_burst(th.n.position + Vector3.UP * 2.0, B, 10, 14.0, 0.9)
 	var before := floori(s_goal)
 	s_goal = minf(SMAX, s_goal + float(th.kd.grow))
 	bonus += int(th.kd.pts) * 5
 	shake = maxf(shake, 0.1 + float(th.kd.mass))
-	sfx("crush_big" if th.kd.get("slam", false) else ("glass" if th.kd.get("nodive", false) else ("crush_s" if float(th.kd.size.y) < 2.0 else "crush_m")), -2.0 if float(th.kd.size.y) < 2.0 else 0.0, randf_range(0.9, 1.12))
+	sfx("crush_big" if th.kd.get("slam", false) else ("glass" if th.kd.get("nodive", false) else ("crush_s" if float(th.kd.size.y) < 2.0 else "crush_m")), 7.0 if th.kd.get("nodive", false) else (-2.0 if float(th.kd.size.y) < 2.0 else 0.0), randf_range(0.9, 1.12))
+	if th.kd.get("slam", false):
+		# 탑·신상 내려찍기: 멈칫 + 고리 + 새긴 돌판
+		var gold: bool = th.kd == KIND.gold
+		_hitstop(0.13 if gold else 0.09, -10.0)
+		_ring(th.n.global_position + Vector3.UP * 0.3, D if gold else B.lightened(0.5), 7.0 + float(th.kd.size.x))
+		if gold:
+			_stamp("번쩍!", 5, top_p, D.darkened(0.6), 1.15, 0.45, D.lightened(0.55))
+		else:
+			_stamp("와르르!", 4, top_p)
+	else:
+		_score_chip(top_p, th.col.lerp(STONE, 0.3))
 	if floori(s_goal) > before:
 		play("good")
 
 
 func _bonk(th: Thing) -> void:
 	var sz: Vector3 = th.kd.size
+	if bool(th.kd.get("soft", false)):
+		# 숨은 길 봉인을 못 열었다: 조금 느려지고 큰길 쪽으로 밀려날 뿐 (멈춤 탈락 까닭이 되지 않는다)
+		v = maxf(v * 0.75, minf(v, VSTOP + 4.0))
+		dist = minf(dist, th.d - (s + sz.z) * 0.5 - 0.2)
+		hurt = 0.5
+		x_goal = th.x + signf(-th.x) * ((s + sz.x) * 0.45 + 0.6)
+		shake = 0.4
+		sq = 0.25
+		_burst(_pos(dist + s * 0.5, bx, by + s * 0.5), th.col, 4, 6.0)
+		play("bad")
+		if th.kd.has("shot"):
+			msg("수정은 던져서!", 0.8)
+		elif th.kd == KIND.icedoor:
+			msg("더 커지거나\n직전에 쪼개서 돌진!", 0.9)
+		else:
+			msg("쪼개서 돌진!\n아니면 더 빨리", 0.9)
+		return
 	v *= 0.3
 	dist = minf(dist, th.d - (s + sz.z) * 0.5 - 0.2)
 	hurt = 0.5
+	bonk_at = clock
+	bonk_why = "쿵!" if float(th.kd.need) < 90.0 else "쾅!"
 	shake = 0.6
+	_hitstop(0.05)
 	sq = 0.35
 	_burst(_pos(dist + s * 0.5, bx, by + s * 0.5), th.col, 4, 6.0)
 	play("bad")
 	if th.kd.has("shot"):
 		msg("수정은 던져서!", 0.8)
+		bonk_why = "띵!"
 	elif th.kd.get("slam", false):
 		msg("위에서 버티기로 쾅!", 0.9)
+		bonk_why = "꽝!"
 	elif th.kd == KIND.ice and _btns.has("split"):
 		msg("더 커지거나\n직전에 쪼개서 돌진!", 0.9)
+		bonk_why = "쩡!"
 	elif th.kd.get("nodive", false):
 		msg("더 커져야!", 0.8)
+		bonk_why = "쿵!"
 
 
 ## 쪼개기: 한 덩이 떼어 버리고 그만큼 가볍고 빨라진다. 떼어낸 덩이는 뒤로 굴러 뒤에서 오는 돌을 막는다.
@@ -1657,6 +2454,9 @@ func _split() -> void:
 	sq = maxf(sq, 0.22)
 	_burst(_pos(dist - s * 0.5, bx, by + 1.0), STONE, 5, 7.0)
 	sfx("split")
+	_hitstop(0.05, 12.0)
+	if s_goal >= 3.0 and not tutorial:
+		_stamp("쩌억!", 2, _pos(dist, bx, by + s), C.darkened(0.45), 0.75, 0.08)
 	for rk: Dictionary in rocks:
 		if rk.on and rk.d < dist and dist - float(rk.d) < 45.0 and absf(float(rk.x) - bx) < 4.0:
 			rk.on = false
@@ -1711,7 +2511,7 @@ func _rocks(dt: float, mm: float) -> void:
 		n.position = _pos(rd, rk.x, _h(rd) + r * 0.5)
 		n.rotation = Vector3(-float(rk.a), _yaw(rd), 0.0)
 		n.scale = Vector3.ONE * r
-		n.material_override = art_materials["stone"]
+		n.material_override = mat(D if s_goal >= r else BAD)  # 쫓아오는 돌은 내 돌과 다른 색: 노랑=받기, 빨강=위험
 		(n.get_child(0) as MeshInstance3D).material_override = mat(D if s_goal >= r else BAD)
 		if absf(rd - dist) < (s + r) * 0.5 and absf(float(rk.x) - bx) < (s + r) * 0.45 and by < _h(rd) + r:
 			rk.on = false
@@ -1720,6 +2520,7 @@ func _rocks(dt: float, mm: float) -> void:
 				s_goal = minf(SMAX, s_goal + r * 0.1)
 				v += maxf(0.0, float(rk.v) - v) * 0.5
 				bonus += int(r * 10.0)
+				_score_chip(n.global_position, D)
 				sfx("catch")
 			else:
 				v *= 0.6
@@ -1730,20 +2531,30 @@ func _rocks(dt: float, mm: float) -> void:
 
 
 func _fall(text: String) -> void:
-	if cur_k == 1 and not underground and _tunnel_depth(dist) > 0.0:
+	# 밑에 열린 지하(수로 밑 신전, 깨고 들어간 숨은 방)가 있으면 떨어져도 이어진다. 닫힌 방은 0 이라 보통 추락은 그대로 탈락
+	if not underground and _tunnel_depth(dist) > 0.0:
 		underground = true
 		on_ground = false
-		bx = 0.0
 		x_goal = 0.0
-		v = maxf(v, 32.0) # 낙하 운동량으로 출구 오르막을 넘을 여유
+		for route: Array in tunnels:
+			if bool(route[6]) and dist >= float(route[0]) and dist < float(route[1]):
+				under_route = route.duplicate()
+				break
+		sfx("fall", 0.0, 0.8)
+		deep_landed = false
 		_cave(true)
-		msg("숨은 수정 동굴", 2.2)
 		return
+	sling_keep = 0.0
+	if ram_tick:
+		ram_tick.visible = false
 	fallen = true
 	failure_reason = text
+	Engine.time_scale = 1.0  # 튜토리얼 문(0.2배)에서 떨어져도 떨어지는 장면은 제 속도로
 	fall_t = 0.0
 	v = minf(v, 6.0)
 	sfx("fall")
+	# 떨어지는 순간이 느리게 보인다 (카메라는 _place 에서 아래로 내려다본다)
+	_slowmo(0.7, 0.4)
 
 
 func _place(dt: float) -> void:
@@ -1757,6 +2568,9 @@ func _place(dt: float) -> void:
 	pivot.rotation = Vector3(0.0, yw, 0.0)
 	pivot.scale = Vector3(1.0 + sq * 0.55 - air * 0.5 - fast * 0.4, 1.0 - sq + air, 1.0 + sq * 0.3 - air * 0.5 + fast)
 	ball.rotation = Vector3(-ang, 0.0, 0.0)
+	# 느려지면 무거운 돌이 좌우로 비틀거린다 (곧 멈출 것 같은 무게)
+	if on_ground and not won and not fallen and v < VSTOP * 1.8:
+		ball.rotation.z = sin(clock * 16.0) * 0.07 * clampf((VSTOP * 1.8 - v) / VSTOP, 0.0, 1.0)
 	ball.scale = Vector3.ONE * s
 	_streaks(dt, yw)
 	ball.material_override = mat(BAD) if hurt > 0.0 and fmod(hurt, 0.2) < 0.1 else art_materials["stone"]
@@ -1766,12 +2580,23 @@ func _place(dt: float) -> void:
 	roll_t -= dt
 	if q != quarter:
 		quarter = q
-		if roll_t <= 0.0 and on_ground:
+		if roll_t <= 0.0 and on_ground and not fallen:
 			roll_t = 0.07
 			sfx("roll", -10.0 + minf(6.0, v * 0.12), clampf(1.35 - s * 0.08, 0.7, 1.3))
 	# 카메라: 구역마다 구도가 다르다 (돌 기준 거리만 부드럽게 옮겨 간다)
+	if blob:
+		_blob_tick(yw)
+	# 90m 낙하: 처음엔 카메라가 늦게 따라가 돌이 멀어지고, 바닥이 가까울수록 빨리 따라붙는다
+	var plunge := underground and not on_ground and not rising and vy < -2.0 and not fallen
 	if not fallen:
-		cam_y = lerpf(cam_y, by, minf(1.0, dt * 6.0))
+		var rate := 6.0
+		if plunge:
+			var dp := maxf(_tunnel_depth(dist), 1.0)
+			var ff := clampf(1.0 - (by - (_h(dist) - dp)) / dp, 0.0, 1.0)
+			rate = lerpf(1.2, 9.0, ff * ff)
+		cam_y = lerpf(cam_y, by, minf(1.0, dt * rate))
+		if plunge:
+			cam_y = minf(cam_y, by + 30.0)
 	var fw := Vector3(-sin(yw), 0.0, -cos(yw))
 	var rt := Vector3(cos(yw), 0.0, -sin(yw))
 	var c := _pos(dist, bx, cam_y)
@@ -1779,7 +2604,8 @@ func _place(dt: float) -> void:
 	var look := Vector3.ZERO
 	var up := Vector3.UP
 	var fov := 55.0
-	match mode:
+	# 지하에서는 위에서 내려다보는 카메라가 길 판 위에 걸리므로 낮은 등뒤로
+	match ("low" if underground and mode != "side" else mode):
 		"side":
 			off = rt * (34.0 + v * 0.4 + s * 1.5) + fw * (8.0 + v * 0.12) + Vector3.UP * (3.0 + s * 0.5)
 			look = fw * (12.0 + v * 0.2) + Vector3.UP * (1.0 + s * 0.4)
@@ -1811,7 +2637,30 @@ func _place(dt: float) -> void:
 			off = -fw * (8.0 + s * 2.0 + v * 0.1) - rt * bx * 0.4 + Vector3.UP * (3.2 + s * 1.3)
 			look = _pos(dist + 20.0 + v * 0.25, bx * 0.5, cam_y + s * 0.4 - 1.5) - c
 			fov = clampf(52.0 + v * 0.55, 52.0, 90.0)
-	var kk := minf(1.0, dt * (5.0 if mode == "back" else 3.5)) if dt > 0.0 else 1.0
+	if plunge:
+		# 옆에서 길게: 돌은 화면 위 가운데, 아래로 잠든 도시가 달려든다
+		var lag := cam_y - by
+		off = rt * (30.0 + lag * 0.6) - fw * 4.0 + Vector3.UP * (2.0 + lag * 0.15)
+		look = Vector3.UP * (by - cam_y - 8.0) + fw * (4.0 + v * 0.1)
+		up = (Vector3.UP + rt * 0.12).normalized()
+		fov = 70.0
+	elif rising and by < _h(dist) - 2.0:
+		# 물기둥: 아래에서 올려다본다
+		off = rt * 16.0 - fw * 8.0 + Vector3.UP * -6.0
+		look = Vector3.UP * (by - cam_y + 14.0) + fw * 6.0
+		fov = 74.0
+	if reveal_t > 0.0:
+		# 솟아오른 뒤: 넓게 물러나 수로와 아래 협곡을 한 번 보여 준다
+		reveal_t -= dt
+		var r := clampf(reveal_t / 1.4, 0.0, 1.0)
+		off = off.lerp(rt * 48.0 - fw * 4.0 + Vector3.UP * 16.0, r)
+		look = look.lerp(fw * 20.0 + Vector3.UP * -4.0, r)
+		fov = lerpf(fov, 66.0, r)
+	if fallen:
+		# 실패: 제자리에서 떨어지는 돌을 내려다본다
+		look = Vector3.UP * (by - cam_y) * 0.75 + fw * 4.0
+		fov = 44.0
+	var kk :=minf(1.0, dt * (5.0 if mode == "back" else 3.5)) if dt > 0.0 else 1.0
 	cam_off = cam_off.lerp(off, kk)
 	look_off = look_off.lerp(look, minf(1.0, kk * 1.4))
 	cam_up = cam_up.lerp(up, minf(1.0, dt * 3.0)).normalized()
@@ -1831,24 +2680,52 @@ func _place(dt: float) -> void:
 
 
 ## 바람 줄: 빠를 때 돌 둘레를 스쳐 뒤로 날아가는 가는 흰 상자
+## 협곡으로 곧게 떨어질 때는 세로 줄: 지층을 스치며 위로 솟구친다 (물기둥을 탈 때는 물빛)
 func _streaks(dt: float, yw: float) -> void:
-	var on := (v > 26.0 or dash_t > 0.0) and mode != "top" and not fallen
-	for sk: Dictionary in streaks:
+	var plunge := underground and not on_ground and absf(vy) > 18.0 and not fallen
+	var spd := clampf((v - 22.0) / 33.0, 0.0, 1.0)
+	if dash_t > 0.0:
+		spd = maxf(spd, 0.8)
+	var on := plunge or ((v > 26.0 or dash_t > 0.0) and mode != "top" and not fallen)
+	var count := 14 if plunge else int(lerpf(5.0, 14.0, spd))
+	for i in streaks.size():
+		var sk: Dictionary = streaks[i]
 		var n: MeshInstance3D = sk.n
-		if not on:
+		if not on or i >= count:
 			n.visible = false
 			continue
-		sk.d = float(sk.d) - v * 0.7 * dt
-		if float(sk.d) < -10.0:
-			sk.d = randf_range(18.0, 34.0)
+		var was_p: bool = sk.get("p", false)
+		if plunge:
+			sk.y = float(sk.y) - vy * 0.85 * dt
+			var gone: bool = (float(sk.y) > 16.0) if vy < 0.0 else (float(sk.y) < -16.0)
+			if gone or not was_p:
+				var sy := randf_range(-22.0, -12.0) if vy < 0.0 else randf_range(12.0, 22.0)
+				if not was_p:
+					sy = randf_range(-22.0, 16.0) * (1.0 if vy < 0.0 else -1.0)  # 처음엔 위아래로 고루
+				sk.y = sy
+				sk.x = bx + (1.0 if randf() < 0.5 else -1.0) * (s * 0.5 + randf_range(1.5, 7.0))
+				sk.d = randf_range(-6.0, 8.0)
+			sk.p = true
+			n.visible = true
+			n.position = _pos(dist + float(sk.d), float(sk.x), by + s * 0.5 + float(sk.y))
+			n.rotation = Vector3(0.0, yw, 0.0)
+			n.scale = Vector3(0.12, clampf(absf(vy) * 0.09, 1.5, 8.0), 0.12)
+			n.material_override = mat(Color("9fe8ff") if rising else WHITE)
+			continue
+		sk.p = false
+		sk.d = float(sk.d) - v * (0.7 + spd * 0.5) * dt
+		if float(sk.d) < -10.0 or was_p:
+			sk.d = randf_range(18.0, 34.0) if not was_p else randf_range(-8.0, 30.0)
 			var sd := 1.0 if randf() < 0.5 else -1.0
 			sk.x = bx + sd * (s * 0.5 + randf_range(1.0, 5.0))
 			sk.y = randf_range(0.4, s + 3.0)
 		var d := dist + float(sk.d)
 		n.visible = true
-		n.position = _pos(d, float(sk.x), _h(d) + float(sk.y)) if on_ground else _pos(d, float(sk.x), by + float(sk.y) - s * 0.5)
+		n.material_override = mat(WHITE)
+		n.position = _pos(d, float(sk.x), _h(d) - (_tunnel_depth(d) if underground else 0.0) + float(sk.y)) if on_ground else _pos(d, float(sk.x), by + float(sk.y) - s * 0.5)
 		n.rotation = Vector3(0.0, _yaw(d), 0.0)
-		n.scale = Vector3(0.09, 0.09, clampf((v - 20.0) * 0.12, 0.5, 6.0))
+		var th := 0.06 + spd * 0.07
+		n.scale = Vector3(th, th, clampf((v - 20.0) * 0.16, 0.5, 9.0))
 
 
 # ---- 입력 ----
@@ -1868,7 +2745,7 @@ func _drag(p: Vector2) -> void:
 ## 공통 삑 소리 대신 nkido 효과음 (submit/boulder/build_sfx.py)
 func play(nm: String) -> void:
 	if nm == "bad" and won:
-		nm = "win"
+		return  # 결승 순간에 이미 win 소리를 냈다
 	match nm:
 		"good": sfx("gem", -6.0, 0.75)
 		"bad": sfx("bonk")
@@ -1880,9 +2757,14 @@ func play(nm: String) -> void:
 var _sfx := {}
 var _sfx_pool: Array = []
 var _sfx_i := 0
+var _sfx_at := {}  # 소리 이름 → 마지막으로 낸 시각(ms): 같은 소리가 한꺼번에 겹치지 않게
 
 
 func sfx(nm: String, db := 0.0, pitch := 1.0) -> void:
+	var now := Time.get_ticks_msec()
+	if now - int(_sfx_at.get(nm, -1000)) < 50:
+		return
+	_sfx_at[nm] = now
 	if _sfx_pool.is_empty():
 		for i in 10:
 			var pl := AudioStreamPlayer.new()
@@ -1890,7 +2772,13 @@ func sfx(nm: String, db := 0.0, pitch := 1.0) -> void:
 			_sfx_pool.append(pl)
 	if not _sfx.has(nm):
 		_sfx[nm] = load("res://art/boulder/sfx/%s.wav" % nm)
+	# 쉬는 자리부터 쓴다: 굴러가는 딸깍 소리가 긴 소리(동굴·탑 깨기)를 끊지 않게
 	var pl: AudioStreamPlayer = _sfx_pool[_sfx_i % _sfx_pool.size()]
+	for i in _sfx_pool.size():
+		var c: AudioStreamPlayer = _sfx_pool[(_sfx_i + i) % _sfx_pool.size()]
+		if not c.playing:
+			pl = c
+			break
 	_sfx_i += 1
 	pl.stream = _sfx[nm]
 	pl.volume_db = db - 4.0
@@ -1902,101 +2790,338 @@ func _stone_mesh(n: MeshInstance3D) -> void:
 	_apply_art(n, "stone")
 
 
-## 수정 동굴에 들어가고 나온다: 하늘·먼 풍경·지평선 색이 통째로 바뀐다
+## 협곡 아래로 내려가고 올라온다: 올려다본 하늘·먼 절벽 색이 바뀐다
 func _cave(on: bool) -> void:
-	for n in cave_nodes:
-		if is_instance_valid(n):
-			(n as Node3D).visible = on
-	sky_to = CAVE_SKY if on else Z[maxi(cur_k, 0)].sky
+	sky_to = UNDER_SKY if on else Z[maxi(cur_k, 0)].sky
+	hz_to = Color("f2dcb8") if on else (Z[maxi(cur_k, 0)].hz as Color)
+	if hero_rim:
+		hero_rim.set_shader_parameter("ink", INK)
+	_air_set("cave" if on else str(AIR_OF.get(Z[maxi(cur_k, 0)].get("scen", "rock"), "dust")))
 	far_k = -1
 	_far_build(maxi(cur_k, 0), on)
 	if on:
 		shake = 0.6
-		sfx("cave")
 	else:
 		play("good")
+
+
+## 지하 수정이 깨어난다: center 둘레 radius 안의 수정이 번쩍 커졌다 제 빛으로. speed 가 있으면 가까운 것부터 물결처럼
+func _wake(center: float, radius: float, speed := 0.0) -> void:
+	for gl: Array in glows:
+		if gl[3] or not is_instance_valid(gl[1]) or absf(float(gl[0]) - center) > radius:
+			continue
+		gl[3] = true
+		var n: MeshInstance3D = gl[1]
+		var m := n.material_override as StandardMaterial3D
+		var base_sc := n.scale
+		var gc: Color = gl[2]
+		var tw := n.create_tween()
+		if speed > 0.0:
+			tw.tween_interval(absf(float(gl[0]) - center) / speed)
+		tw.tween_property(m, "albedo_color", gc.lightened(0.45), 0.08)
+		tw.parallel().tween_property(n, "scale", base_sc * 1.3, 0.08)
+		tw.tween_property(m, "albedo_color", gc, 0.35)
+		tw.parallel().tween_property(n, "scale", base_sc, 0.35).set_trans(Tween.TRANS_BACK)
 
 
 ## 동굴 보석: 닿으면 점수와 조금의 속도
 func _gems() -> void:
 	var fl := _h(dist) - _tunnel_depth(dist)
 	for gm: Array in gems:
+		if not is_instance_valid(gm[2]):
+			continue
 		var n: MeshInstance3D = gm[2]
-		if not is_instance_valid(n) or not n.visible:
+		if not n.visible:
 			continue
 		n.rotation.y += 0.05
 		if absf(float(gm[0]) - dist) < s * 0.5 + 0.9 and absf(fl + float(gm[1]) - (by + s * 0.5)) < s * 0.5 + 1.2:
 			n.visible = false
 			bonus += 40
+			_score_chip(n.global_position, Color("ff8fd8"), true)
 			v += 2.0
 			_burst(n.global_position, Color("ff8fd8"), 6, 9.0, 0.5)
 			sfx("gem", -3.0, randf_range(0.94, 1.12))
 
 
-func _tunnel_depth(d: float) -> float:
+## 협곡 깊이: 수로 구간 [시작, 끝] 어디서 떨어져도 DEEP 아래 지하 신전 바닥. 떨어진 뒤에는 끝 너머 80m 까지 바닥이 이어진다.
+
+
+## 물기둥: 지하 바닥에서 닿으면 다음 수로 위 단단한 곳까지 정확히 날려 올린다. 수로 높이를 넘으면 다시 위 세상.
+func _geyser_tick() -> void:
+	if not underground:
+		return
+	if rising:
+		# 물기둥을 타는 동안: 돌 밑에서 물보라가 튀고 기둥이 꿈틀댄다
+		if fmod(clock, 0.06) < get_process_delta_time():
+			_burst(pivot.position - Vector3.UP * s * 0.5, Color("9fe8ff"), 2, 5.0, 0.45)
+		for gy: Array in geysers:
+			if is_instance_valid(gy[1]):
+				var gn: Node3D = gy[1]
+				gn.scale.x = 5.0 + sin(clock * 30.0) * 0.5
+				gn.scale.z = 5.0 + sin(clock * 30.0) * 0.5
+		if vy < 0.0 and by > _h(dist) + 0.5:
+			var classic := under_route.size() > 4 and float(under_route[4]) < 0.0
+			underground = false
+			rising = false
+			under_route = []
+			_cave(false)
+			if classic:
+				msg("다음 틈을 봐", 1.4)
+			# 수로 위로 솟아 나옴: 물보라, 잠깐 느리게, 넓게 한 번 둘러보기
+			_burst(_pos(dist, 0.0, _h(dist)), WATER, 12, 12.0, 0.7)
+			_slowmo(0.35, 0.45)
+			reveal_t = 1.4
+		return
+	if under_route.size() < 9:
+		return
+	var gd := float(under_route[3])
+	if dist < gd:
+		return
+	# 깊은 물길: 물기둥 자리(gd..gd+6)를 공중으로 넘기면 물기둥이 안 솟고, 바로 다음 수로 밑 바닥으로 이어 달린다
+	var nxt := _route_after(float(under_route[1]))
+	if not nxt.is_empty() and dist > gd + 6.0:
+		if dist >= float(under_route[1]):
+			under_route = nxt.duplicate()
+			under_route[4] = float(nxt[1]) + 6.0
+			under_route[5] = float(nxt[1]) + 32.0
+			_secret("깊은 물길")
+		return
+	if not on_ground:
+		return
+	if float(under_route[4]) >= 0.0:
+		_sling()
+		return
+	var target := float(under_route[1]) + 12.0
+	var apex := _h(target) + 12.0
+	vy = sqrt(2.0 * FALL * maxf(4.0, apex - by))
+	var t_all := vy / FALL + sqrt(2.0 * maxf(1.0, apex - _h(target)) / FALL)
+	v = maxf(8.0, (target - dist) / t_all)
+	on_ground = false
+	rising = true
+	by += 0.2
+	shake = 0.8
+	sq = 0.3
+	_burst(_pos(dist, bx, by), Color("9fe8ff"), 16, 14.0, 0.8)
+	sfx("launch", 2.0, 0.9)
+	_hitstop(0.0, 16.0)
+	_ring(_pos(dist, bx, by), Color("9fe8ff"), 8.0)
+	_stamp("푸화악!", 3, _pos(dist, bx, by), Color("1c7ed6"), 0.9)
+
+
+## 물기둥 새총(숨은 길): 지하에서 달리던 속도를 기억하고, 창 [lo, hi] 안 단단한 길로 쏘아 올린다. 착지하면 그 속도를 돌려준다
+func _sling() -> void:
+	var lo := float(under_route[4])
+	var hi := float(under_route[5])
+	var keep := minf(v, 44.0)  # 착지 직후 회전에서 밀려 떨어지지 않을 만큼만
+	var target := hi
+	var apex := 0.0
+	var t_all := 1.0
+	for i in 3:
+		# 꼭대기는 물기둥 자리 길보다 높게: 솟는 동안 길 판 밑에 걸리지 않는다
+		apex = maxf(_h(target), _h(dist)) + 7.0
+		vy = sqrt(2.0 * FALL * maxf(4.0, apex - by))
+		t_all = vy / FALL + sqrt(2.0 * maxf(1.0, apex - _h(target)) / FALL)
+		if i < 2:
+			target = clampf(dist + keep * t_all, lo, hi)
+	v = maxf(8.0, (target - dist) / t_all)
+	sling_keep = keep
+	on_ground = false
+	rising = true
+	by += 0.2
+	shake = 0.8
+	sq = 0.3
+	_burst(_pos(dist, bx, by), Color("9fe8ff"), 16, 14.0, 0.8)
+	sfx("launch", 2.0, 0.9)
+	_hitstop(0.0, 16.0)
+	_ring(_pos(dist, bx, by), Color("9fe8ff"), 8.0)
+	_stamp("푸화악!", 3, _pos(dist, bx, by), Color("1c7ed6"), 0.9)
+
+
+## 끝이 b 인 지하에서 바로 이어지는 열린 지하 (없으면 빈 배열)
+func _route_after(b: float) -> Array:
 	for route: Array in tunnels:
-		if d >= float(route[0]) and d < float(route[1]):
-			return 14.0 * clampf((float(route[1]) - 5.0 - d) / 70.0, 0.0, 1.0)
+		if bool(route[6]) and absf(float(route[0]) - b) < 0.5:
+			return route
+	return []
+
+
+## 지하 깊이: 떨어진 지하는 끝 너머 80m 까지, 아니면 열린 지하 [a, b) 안. 닫힌 숨은 방은 0
+## 지하 배열: [a, b, 깊이, 물기둥 거리, 창 lo, 창 hi, 열림, 이름, 착지 최소 속도]  (lo < 0 = 예전처럼 b+12 로 정확히)
+func _tunnel_depth(d: float) -> float:
+	if underground and under_route.size() > 2 and d >= float(under_route[0]) and d < float(under_route[1]) + 80.0:
+		return float(under_route[2])
+	for route: Array in tunnels:
+		if bool(route[6]) and d >= float(route[0]) and d < float(route[1]):
+			return float(route[2])
 	return 0.0
 
 
-func _build_tunnel(a: float, b: float, nd: Node3D) -> void:
-	tunnels.append([a, b])
-	var d := a
-	while d < b:
-		var end_d := minf(d + 4.0, b)
-		var p0 := _pos(d, 0.0, _h(d) - _tunnel_depth(d))
-		# 끝 표본은 다음 조각이 아닌 이 출구의 높이.
-		var depth1 := 14.0 * clampf((b - 5.0 - end_d) / 70.0, 0.0, 1.0)
-		var p1 := _pos(end_d, 0.0, _h(end_d) - depth1)
-		var basis := Basis.looking_at((p1 - p0).normalized(), Vector3.UP)
-		var slab := box((p0 + p1) * 0.5 - basis.y * 0.7, Vector3.ONE, Color("68cfca"), nd)
-		slab.basis = basis
-		slab.scale = Vector3(12.0, 1.4, p0.distance_to(p1) + 0.3)
-		if _tunnel_depth(d) > 6.0:
-			var wall := box((p0 + p1) * 0.5 - basis.x * 6.5 + Vector3.UP * 3.0, Vector3.ONE, ICE, nd)
-			wall.basis = basis
-			wall.scale = Vector3(1.0, 6.0, p0.distance_to(p1) + 0.3)
-		var stripe := box((p0 + p1) * 0.5 + basis.y * 0.12, Vector3.ONE, D if _tunnel_depth(d) < 14.0 else WHITE, nd)
-		stripe.basis = basis
-		stripe.scale = Vector3(0.5, 0.1, 2.0)
-		d = end_d
-	# 수정 동굴: 떨어지기 전엔 숨겨 둔다. 떨어지면 배경째 바뀐다 (보라 벽, 빛나는 수정 숲, 공중 보석).
-	var cave := Node3D.new()
-	cave.visible = underground
-	nd.add_child(cave)
-	cave_nodes.append(cave)
+## 숨은 방: 처음엔 안 보이고 닫혀 있다. 파란 금 바닥판을 내려찍어 깨면 열린다
+func _hidden_chamber(it: Dictionary, d1: float, z: Dictionary) -> void:
+	var u: Dictionary = it.under
+	var cn := Node3D.new()
+	(z.node as Node3D).add_child(cn)
+	cn.visible = false
+	var route := _build_tunnel(d1 + float(u["from"]), d1 + float(u["to"]), cn, {"depth": float(u["depth"]), "gd": d1 + float(u["geyser"]),
+		"lo": d1 + float(u["lo"]), "hi": d1 + float(u["hi"]), "open": false, "name": str(u["name"]), "vmin": float(u["vmin"]), "gems": false, "ext": 30.0})
+	if not it.has("crack"):
+		return
+	var ck: Array = it.crack
+	var a := d1 + float(ck[0])
+	var b := d1 + float(ck[1])
+	var x0 := float(ck[2])
+	var x1 := float(ck[3])
+	var ckn := Node3D.new()
+	(z.node as Node3D).add_child(ckn)
+	_plate(pd, a, b, x0, x1, ROCK.darkened(0.3), ckn, 0.12)
+	# 버티기 색(파랑) 지그재그 금: 탑·신상 머리와 같은 색 = 내려찍어라
+	var seam := []
+	for i in 4:
+		var dd := a + 2.0 + i * 3.0
+		var sn := box(_pos(dd, -1.0 if i % 2 == 0 else 1.0, _h(dd) + 0.25), Vector3(0.25, 0.08, 2.6), B, ckn)
+		sn.rotation.y = _yaw(dd) + (0.7 if i % 2 == 0 else -0.7)
+		seam.append(sn)
+	floor_cracks.append({"a": a, "b": b, "x0": x0, "x1": x1, "ckn": ckn, "seam": seam, "route": route, "cn": cn, "nd": z.node, "open": false})
+
+
+## 버티기로 내려찍으며 금 간 바닥판에 닿으면: 판이 깨져 구멍이 되고, 그대로 아래 숨은 방으로 떨어진다
+func _try_crack() -> void:
+	for ck: Dictionary in floor_cracks:
+		if bool(ck.open):
+			continue
+		# 판 앞 틈 위(방 시작부터)에서 버티며 떨어져도 연다: 판을 노리다 짧게 떨어져 죽지 않게
+		var lo := minf(float(ck.a), float((ck.route as Array)[0]))
+		if dist > lo - 1.0 and dist < float(ck.b) + 1.0 and bx > float(ck.x0) - 0.5 and bx < float(ck.x1) + 0.5 and by <= _h(dist) + 1.0:
+			ck.open = true
+			holes.append([float(ck.a), float(ck.b), float(ck.x0), float(ck.x1)])
+			if is_instance_valid(ck.ckn):
+				(ck.ckn as Node3D).visible = false
+			if is_instance_valid(ck.nd):
+				_plate(pd, float(ck.a), float(ck.b), float(ck.x0), float(ck.x1), Color("183e53"), ck.nd as Node3D, 0.16)
+			var route: Array = ck.route
+			route[6] = true  # tunnels 안 같은 배열
+			if is_instance_valid(ck.cn):
+				(ck.cn as Node3D).visible = true
+			_burst(_pos(dist, bx, by), B, 16, 14.0, 0.8)
+			sfx("crush_big")
+			shake = 1.0
+			_hitstop(0.1, -8.0)
+			_stamp("와르르!", 4, _pos(dist, bx, by + s))
+			# 깨진 판 가장자리에 걸리지 않게 바로 아래 방으로
+			if _tunnel_depth(dist) > 0.0:
+				_fall("")
+			return
+
+## 수로 밑 협곡과 잠든 지하 신전. 숨기지 않는다: 위에서도 저 아래가 보여 궁금하게 만든다.
+## 뒤 절벽(지층 띠), 바닥 길, 옛 기둥·신전 폐허, 빛나는 수정, 수로 틈으로 내려오는 햇빛 기둥, 끝의 물기둥.
+func _build_tunnel(a: float, b: float, nd: Node3D, opt := {}) -> Array:
+	var dp := float(opt.get("depth", DEEP))
+	var ext := float(opt.get("ext", 80.0))
+	var route := [a, b, dp, float(opt.get("gd", b - 40.0)), float(opt.get("lo", -1.0)), float(opt.get("hi", -1.0)), bool(opt.get("open", true)), str(opt.get("name", "잠든 지하 신전")), float(opt.get("vmin", 30.0))]
+	tunnels.append(route)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = int(a) * 7 + 3
-	var pal := [C.lightened(0.25), Color("ff8fd8"), Color("7ff0ff"), D]
+	var strata := [ROCK, Color("d4b483"), Color("b98f62"), Color("9c7650"), Color("7d6047"), Color("5f4b3d")]
+	var glow := [Color("7ff0ff"), Color("ffd27a"), C.lightened(0.35), Color("9cf2c4")]
+	# 바닥 길: 수로 끝 너머 80m 까지 (늦게 떨어져도 착지할 곳). 끝 너머는 마지막 방향으로 곧게 잇는다.
+	var e := b - 1.0
+	var fwe := Vector3(-sin(_yaw(e)), 0.0, -cos(_yaw(e)))
+	var d := a
+	while d < b + ext:
+		var end_d := minf(d + 4.0, b + ext)
+		var p0 := _pos(d, 0.0, _h(d) - dp) if d <= e else _pos(e, 0.0, _h(e) - dp) + fwe * (d - e)
+		var p1 := _pos(end_d, 0.0, _h(end_d) - dp) if end_d <= e else _pos(e, 0.0, _h(e) - dp) + fwe * (end_d - e)
+		var bs := Basis.looking_at((p1 - p0).normalized(), Vector3.UP)
+		var slab := box((p0 + p1) * 0.5 - bs.y * 1.0, Vector3.ONE, Color("c9b28c"), nd)
+		_apply_art(slab, "valley", Color("e6d2ad"))
+		slab.basis = bs
+		slab.scale = Vector3(12.0, 2.0, p0.distance_to(p1) + 0.3)
+		d = end_d
 	d = a
-	while d < b - 10.0:
-		var fl := _h(d) - _tunnel_depth(d)
+	while d < b:
+		var h := _h(d)
+		var fl := h - dp
 		var yw := _yaw(d)
-		var back := box(_pos(d, -16.0, fl + 12.0), Vector3(1.0, 34.0, 8.4), Color("9d7bff"), cave)
-		back.rotation.y = yw
-		for q in rng.randi_range(1, 3):
-			var cr := box(_pos(d + rng.randf_range(-3.0, 3.0), rng.randf_range(-13.0, -8.0), fl), Vector3.ONE, WHITE, cave)
-			_apply_art(cr, "crystal", pal.pick_random())
-			var hgt := rng.randf_range(4.0, 14.0)
-			cr.scale = Vector3(hgt * 0.35, hgt, hgt * 0.35)
-			cr.position.y += hgt * 0.5
-			cr.rotation = Vector3(0.0, yw, rng.randf_range(-0.3, 0.3))
-		# 천장에서 늘어진 수정 (머리 위 수로 바닥 아래)
-		if fmod(d - a, 16.0) < 8.0 and _tunnel_depth(d) > 9.0:
-			var st := box(_pos(d, rng.randf_range(-6.0, -2.0), fl + _tunnel_depth(d) - 3.5), Vector3(1.6, 4.0, 1.6), WHITE, cave)
-			_apply_art(st, "crystal", pal.pick_random())
-			st.rotation = Vector3(PI, yw, 0.0)
+		# 뒤 절벽: 위는 밝은 사암, 아래로 갈수록 진한 흙빛 (떨어지며 지층을 지나친다)
+		if int(d - a) % 12 == 0:
+			for li in strata.size():
+				var top := h - 4.0 - li * (dp - 4.0) / strata.size()
+				var ht := (dp - 4.0) / strata.size() + 0.4
+				var w := box(_pos(d + 6.0, -22.0 - li * 0.6, top - ht * 0.5), Vector3(2.0, ht, 12.4), strata[li], nd)
+				w.rotation.y = yw
+		# 옛 기둥 폐허 (뒤쪽, 높이 제각각 = 부서진 기둥)
+		if int(d - a) % 24 == 8:
+			var x := -rng.randf_range(9.0, 18.0)
+			var ph := rng.randf_range(6.0, 22.0)
+			var col := box(_pos(d, x, fl + ph * 0.5), Vector3(2.4, ph, 2.4), STONE, nd)
+			_apply_art(col, "pillar", Color("e9dcc2"))
+			col.rotation.y = yw
+		# 신전 정면 (멀리, 반쯤 묻힘)
+		if int(d - a) % 96 == 40:
+			var tp := box(_pos(d, -34.0, fl + 7.0), Vector3(30, 18, 12), STONE, nd)
+			_apply_art(tp, "temple", Color("d8c6a4"))
+			tp.rotation.y = yw
+		# 빛나는 수정 무리 (바닥 가까이, 앞뒤 양쪽)
+		if int(d - a) % 10 == 4:
+			for sd: float in [-1.0, 1.0]:
+				if rng.randf() < 0.6:
+					var cr := box(_pos(d + rng.randf_range(-3.0, 3.0), sd * rng.randf_range(7.0, 11.0), fl), Vector3.ONE, WHITE, nd)
+					# 잠든 수정: 제 재질을 따로 갖고(깨어날 때 빛이 바뀐다) 처음엔 흐릿하다
+					var gc: Color = glow.pick_random()
+					_apply_art(cr, "crystal")
+					var cm: StandardMaterial3D = art_materials["crystal"].duplicate()
+					cm.albedo_color = gc.lerp(Color("b9a58a"), 0.4)
+					cr.material_override = cm
+					glows.append([d, cr, gc, false])
+					var hg := rng.randf_range(2.5, 7.0)
+					cr.scale = Vector3(hg * 0.4, hg, hg * 0.4)
+					cr.position.y += hg * 0.5
+					cr.rotation = Vector3(0.0, yw, rng.randf_range(-0.4, 0.4))
 		# 보석: 바닥에 하나, 뛰어야 닿는 높이에 하나씩 번갈아
-		if _tunnel_depth(d) > 8.0 and int(d - a) % 16 < 8:
+		if bool(opt.get("gems", true)) and int(d - a) % 16 < 8 and d > a + 20.0 and d < b - 50.0 and int(d) % 8 == 0:
 			var up := 1.6 if int(d / 16.0) % 2 == 0 else 7.0
-			var gm := box(_pos(d, 0.0, fl + up), Vector3(1.2, 1.8, 1.2), WHITE, cave)
-			_apply_art(gm, "crystal", pal[int(d) % pal.size()])
+			var gm := box(_pos(d, 0.0, fl + up), Vector3(1.2, 1.8, 1.2), WHITE, nd)
+			_apply_art(gm, "crystal", glow[int(d) % glow.size()])
 			gems.append([d, up, gm])
-		d += 8.0
+		d += 1.0
+	# 수로 틈으로 내려오는 햇빛 기둥: 위와 아래가 이어진 공간이라는 걸 보여 준다
+	var shaft := StandardMaterial3D.new()
+	shaft.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	shaft.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	shaft.albedo_color = Color(1.0, 0.95, 0.75, 0.16)
+	shaft.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var i := int(a)
+	while i < int(b):
+		if pd.tg[i] == "gap":
+			var j := i
+			while j < int(b) and pd.tg[j] == "gap":
+				j += 1
+			var mid := (i + j) * 0.5
+			var sh := box(_pos(mid, 0.0, _h(mid) - dp * 0.5), Vector3(4.0, dp, float(j - i)), WHITE, nd)
+			sh.material_override = shaft
+			sh.rotation.y = _yaw(mid)
+			i = j
+		i += 1
+	# 끝의 물기둥: 바닥에서 수로 위까지 솟는 물. 타면 다음 수로 위로 날아오른다.
+	var gd := float(route[3])
+	var water := StandardMaterial3D.new()
+	water.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	water.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	water.albedo_color = Color(0.62, 0.92, 1.0, 0.55)
+	var gy := box(_pos(gd, 0.0, _h(gd) - dp * 0.5 + 3.0), Vector3(5.0, dp + 6.0, 5.0), WHITE, nd)
+	var cyl := CylinderMesh.new()
+	cyl.radial_segments = 10
+	cyl.top_radius = 0.5
+	cyl.bottom_radius = 0.5
+	cyl.height = 1.0
+	gy.mesh = cyl
+	gy.material_override = water
+	for r in 6:
+		var ring := box(_pos(gd, 0.0, _h(gd) - dp + 2.0 + r * dp / 6.0), Vector3(6.4, 0.5, 6.4), WHITE, nd)
+		ring.mesh = cyl
+	geysers.append([gd, gy])
+	return route
 
-
-# ---- v6 painted models / UI / two new verbs ----
 func _load_art() -> void:
 	for name: String in ART_NAMES:
 		var scene := load(ART_ROOT + name + ".glb") as PackedScene
@@ -2034,9 +3159,13 @@ func _apply_art(node: MeshInstance3D, name: String, tint := Color.WHITE) -> void
 	node.mesh = art_meshes[name]
 	node.material_override = art_materials[name]
 	if tint != Color.WHITE:
-		var material: StandardMaterial3D = art_materials[name].duplicate()
-		material.albedo_color = tint
-		node.material_override = material
+		# 같은 그림·같은 색이면 재질 하나를 같이 쓴다 (지하 협곡은 수백 개라 폰에서 무겁다)
+		var key: String = name + tint.to_html()
+		if not art_tinted.has(key):
+			var m: StandardMaterial3D = art_materials[name].duplicate()
+			m.albedo_color = tint
+			art_tinted[key] = m
+		node.material_override = art_tinted[key]
 	node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 
@@ -2044,6 +3173,448 @@ func _ground_art(k: int) -> String:
 	if k == 5:
 		return "snow"
 	return "coast" if k in [7, 8, 10] else "valley"
+
+
+# ---- 새긴 돌판: 도장·지명판·돌 조각·점수 튐 ----
+## 큰 순간에 쾅 박히는 돌판 3개, 지명판 1개, 날아가는 조각 18개를 미리 만든다 (자신에 붙어 다시 시작해도 남는다)
+func _stamp_build() -> void:
+	stamp_layer = CanvasLayer.new()
+	stamp_layer.layer = 7
+	add_child(stamp_layer)
+	stamps.clear()
+	for i in 3:
+		var root := Control.new()
+		root.size = Vector2(340, 150)
+		root.pivot_offset = root.size * 0.5
+		root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		root.visible = false
+		stamp_layer.add_child(root)
+		var a := ui_slab(root, Vector2(0, 0), Vector2(170, 150), 1)
+		var b := ui_slab(root, Vector2(170, 0), Vector2(170, 150), 2)
+		var lab := ui_glyph(root, 76)
+		var crack := Line2D.new()
+		crack.default_color = INK
+		crack.width = 0.0
+		crack.joint_mode = Line2D.LINE_JOINT_SHARP
+		crack.begin_cap_mode = Line2D.LINE_CAP_NONE
+		crack.end_cap_mode = Line2D.LINE_CAP_NONE
+		root.add_child(crack)
+		stamps.append({"root": root, "a": a, "b": b, "lab": lab, "crack": crack,
+			"boxes": [a.get_meta("sb"), b.get_meta("sb")], "tw": null, "busy": false, "pri": 0, "base": Vector2.ZERO, "word": ""})
+	# 지명판: 구역에 들어설 때·지하 신전에 닿을 때
+	plaque = Control.new()
+	# 왼쪽 안내 줄(x 24..524)에 맞춘다: 오른쪽 키트 버튼(x 534~)을 가리지 않게
+	plaque.position = Vector2(24, 520)
+	plaque.size = Vector2(500, 120)
+	plaque.pivot_offset = Vector2(250, 60)
+	plaque.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	plaque.visible = false
+	stamp_layer.add_child(plaque)
+	ui_slab(plaque, Vector2.ZERO, Vector2(500, 120))
+	plaque_stripe = ColorRect.new()
+	plaque_stripe.position = Vector2(18, 14)
+	plaque_stripe.size = Vector2(464, 8)
+	plaque_stripe.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	plaque.add_child(plaque_stripe)
+	for x: float in [30.0, 464.0]:
+		var cap := ColorRect.new()
+		cap.color = ROCK.darkened(0.2)
+		cap.position = Vector2(x, 30)
+		cap.size = Vector2(6, 60)
+		cap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		plaque.add_child(cap)
+	plaque_l = ui_glyph(plaque, 50)
+	plaque_l.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+	plaque_l.position = Vector2(0, 22)
+	plaque_l.size = Vector2(500, 62)
+	plaque_sub = ui_glyph(plaque, 22, GLYPH_SUB)
+	plaque_sub.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+	plaque_sub.position = Vector2(0, 82)
+	plaque_sub.size = Vector2(500, 26)
+	plaque_crack = Line2D.new()
+	plaque_crack.default_color = INK
+	plaque_crack.width = 0.0
+	plaque_crack.joint_mode = Line2D.LINE_JOINT_SHARP
+	plaque.add_child(plaque_crack)
+	# 돌·보석 조각
+	chip_sb = ui_box(WHITE, 3, 3, false)
+	chips.clear()
+	for i in 18:
+		var c := Panel.new()
+		c.size = Vector2(16, 16)
+		c.pivot_offset = Vector2(8, 8)
+		c.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		c.visible = false
+		c.add_theme_stylebox_override("panel", chip_sb)
+		stamp_layer.add_child(c)
+		chips.append(c)
+
+
+## 돌판 가운데로 내려가는 금: 6점, 옆으로 들쭉날쭉
+func _crack_pts() -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	for i in 6:
+		pts.append(Vector2(170.0 + randf_range(-14.0, 14.0), lerpf(8.0, 142.0, i / 5.0)))
+	return pts
+
+
+func _chip_kill(c: Panel) -> void:
+	if c.has_meta("tw"):
+		var old: Tween = c.get_meta("tw")
+		if old and old.is_valid():
+			old.kill()
+
+
+## 돌 조각 n개가 center 둘레에서 튀어 올랐다가 떨어진다
+func _stamp_chips(center: Vector2, n: int, col: Color) -> void:
+	for c: Panel in chips:
+		if n <= 0:
+			break
+		if c.visible:
+			continue
+		n -= 1
+		_chip_kill(c)
+		c.visible = true
+		c.self_modulate = col
+		c.modulate.a = 1.0
+		c.scale = Vector2.ONE
+		c.position = center + Vector2(randf_range(-120.0, 120.0), randf_range(-20.0, 50.0))
+		var up := c.position + Vector2(randf_range(-170.0, 170.0), randf_range(-160.0, -60.0))
+		var tw := create_tween().set_ignore_time_scale(true)
+		tw.tween_property(c, "position", up, 0.18).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tw.parallel().tween_property(c, "rotation", c.rotation + randf_range(-6.0, 6.0), 0.53)
+		tw.tween_property(c, "position:y", up.y + 200.0, 0.35).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		tw.parallel().tween_property(c, "modulate:a", 0.0, 0.25).set_delay(0.1)
+		tw.tween_callback(c.hide)
+		c.set_meta("tw", tw)
+
+
+## 새긴 돌판 도장: 크게 떨어져 쾅 박히고(bonk), 잠깐 버틴 뒤 금이 가 둘로 갈라져 떨어진다.
+## pri 가 높을수록 중요한 순간: 낮은 도장은 높은 도장을 덮지 못한다
+func _stamp(word: String, pri: int, at: Vector3, tint := GLYPH, big := 1.0, hold := 0.32, slab := STONE) -> void:
+	if not stamp_layer or stamps.is_empty():
+		return
+	if fallen or (over and pri < 6) or Engine.time_scale < 1.0:
+		return
+	var cd := 4.0 if word == "쩌억!" else 2.5
+	if clock - float(stamp_at.get(word, -99.0)) < cd:
+		return
+	if clock < stamp_gap and pri <= stamp_pri:
+		return
+	var st: Dictionary = {}
+	for c: Dictionary in stamps:
+		if not bool(c.busy):
+			st = c
+			break
+	if st.is_empty():
+		for c: Dictionary in stamps:
+			if st.is_empty() or int(c.pri) < int(st.pri):
+				st = c
+		if int(st.pri) > pri:
+			return
+		# 덜 중요한 도장을 바로 부수고 그 자리를 쓴다
+		var old: Tween = st.tw
+		if old and old.is_valid():
+			old.kill()
+		var oroot: Control = st.root
+		_stamp_chips(oroot.position + oroot.size * 0.5, 6, STONE)
+	stamp_at[word] = clock
+	stamp_gap = clock + 0.7
+	stamp_pri = pri
+	var root: Control = st.root
+	var a: Control = st.a
+	var b: Control = st.b
+	var lab: Label = st.lab
+	var crack: Line2D = st.crack
+	var sp := Vector2(360, 600) if cam.is_position_behind(at) else cam.unproject_position(at)
+	# 오른쪽 키트 버튼(x 534~)을 덮지 않게: 돌판 오른쪽 끝이 x 520 안에 들도록
+	var hw := 170.0 * big
+	sp = sp.clamp(Vector2(hw + 8.0, 430), Vector2(maxf(hw + 8.0, 520.0 - hw), 820))
+	root.position = sp - root.size * 0.5
+	st.base = root.position
+	st.word = word
+	root.rotation = randf_range(-0.12, 0.12)
+	root.scale = Vector2.ONE * 1.6 * big
+	root.modulate.a = 0.0
+	root.visible = true
+	a.position = Vector2(0, 0)
+	b.position = Vector2(170, 0)
+	a.rotation = 0.0
+	b.rotation = 0.0
+	a.modulate.a = 1.0
+	b.modulate.a = 1.0
+	for sb: StyleBoxFlat in st.boxes:
+		sb.bg_color = slab
+	lab.text = tr(word)
+	lab.modulate.a = 1.0
+	lab.label_settings.font_color = tint
+	lab.label_settings.font_size = fit_fs(tr(word), 76, 296.0)
+	crack.points = _crack_pts()
+	crack.width = 0.0
+	var tw := create_tween().set_ignore_time_scale(true)
+	st.tw = tw
+	st.busy = true
+	st.pri = pri
+	tw.tween_property(root, "modulate:a", 1.0, 0.05)
+	tw.parallel().tween_property(root, "scale", Vector2.ONE * big, 0.16).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_callback(func() -> void:
+		sfx("bonk", 2.0, 0.7)
+		shake = maxf(shake, 0.35)
+		_stamp_chips(root.position + root.size * 0.5 + Vector2(0, 60), 4, STONE))
+	var wob := func(k: float) -> void:
+		root.position.x = (st.base as Vector2).x + sin(k * 42.0) * 10.0 * (1.0 - k)
+	tw.tween_method(wob, 0.0, 1.0, 0.18)
+	tw.tween_interval(hold)
+	tw.tween_callback(_stamp_break.bind(st, false))
+
+
+## 도장 깨짐: 가운데 금이 가고, 두 쪽이 기울며 떨어지고, 조각이 튄다
+func _stamp_break(st: Dictionary, fast: bool) -> void:
+	var f := 0.4 if fast else 1.0
+	var root: Control = st.root
+	var a: Control = st.a
+	var b: Control = st.b
+	var lab: Label = st.lab
+	var crack: Line2D = st.crack
+	_stamp_chips(root.position + root.size * 0.5, 6, STONE.darkened(0.08))
+	if not fast:
+		sfx("crush_s", -4.0, 1.3)
+	var tw := create_tween().set_ignore_time_scale(true).set_parallel()
+	st.tw = tw
+	tw.tween_property(crack, "width", 5.0, 0.06 * f)
+	tw.tween_property(lab, "modulate:a", 0.0, 0.08 * f)
+	tw.tween_property(a, "position", a.position + Vector2(-70, 120), 0.4 * f).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tw.tween_property(a, "rotation", -0.45, 0.4 * f).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tw.tween_property(b, "position", b.position + Vector2(80, 130), 0.45 * f).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tw.tween_property(b, "rotation", 0.5, 0.45 * f).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tw.tween_property(root, "modulate:a", 0.0, 0.3 * f).set_delay(0.12 * f)
+	tw.chain().tween_callback(func() -> void:
+		root.visible = false
+		st.busy = false)
+
+
+## 지명판: 새긴 돌판에 곳 이름. 플레이 방법 상자가 떠 있으면 닫힐 때까지 기다린다
+func _plaque(word: String, sub: String, accent: Color, hold := 1.3) -> void:
+	if not plaque:
+		return
+	# 설명 카드가 떠 있거나 곧 뜰 때(Tofu._ready 는 restart 뒤에 카드를 만든다)는 닫힐 때까지 미룬다
+	if (_howto_box and _howto_box.visible) or (_howto_box == null and howto != ""):
+		plaque_pending = [word, sub, accent, hold]
+		return
+	if plaque_tw:
+		plaque_tw.kill()
+	plaque_l.text = tr(word)
+	plaque_l.label_settings.font_size = fit_fs(tr(word), 50, 420.0)
+	plaque_sub.text = sub
+	plaque_stripe.color = accent
+	plaque_crack.points = PackedVector2Array([Vector2(270, 14), Vector2(288, 44), Vector2(276, 74), Vector2(300, 104)])
+	plaque_crack.width = 0.0
+	plaque.visible = true
+	plaque.position = Vector2(24, 520)
+	plaque.modulate.a = 0.0
+	plaque.scale = Vector2.ONE * 1.5
+	plaque.rotation = -0.05
+	plaque_tw = create_tween().set_ignore_time_scale(true)
+	plaque_tw.tween_property(plaque, "modulate:a", 1.0, 0.06)
+	plaque_tw.parallel().tween_property(plaque, "scale", Vector2.ONE, 0.16).set_ease(Tween.EASE_IN)
+	plaque_tw.parallel().tween_property(plaque, "rotation", 0.0, 0.16)
+	plaque_tw.tween_callback(func() -> void:
+		sfx("bonk", -2.0, 0.75)
+		shake = maxf(shake, 0.25)
+		plaque_crack.width = 3.0
+		_stamp_chips(Vector2(274, 640), 8, DUST))
+	plaque_tw.tween_property(plaque, "scale", Vector2(1.04, 0.96), 0.05)
+	plaque_tw.tween_property(plaque, "scale", Vector2.ONE, 0.08)
+	plaque_tw.tween_interval(hold)
+	plaque_tw.tween_property(plaque, "position:y", 490.0, 0.25).set_ease(Tween.EASE_IN)
+	plaque_tw.parallel().tween_property(plaque, "modulate:a", 0.0, 0.25)
+	plaque_tw.tween_callback(plaque.hide)
+
+
+## 점수 글에서 숫자 끝자리쯤 (조각이 날아가 닿는 곳)
+func _score_target() -> Vector2:
+	var fs := _score_l.label_settings.font_size
+	var w := _font.get_string_size(_score_l.text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+	var nw := _font.get_string_size(str(score), HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+	return _score_l.position + Vector2(_score_l.size.x * 0.5 - w * 0.5 + nw * 0.5, _score_l.size.y * 0.5)
+
+
+## 점수가 톡 커졌다 돌아오고, 잠깐 받은 것의 색으로 물든다
+func _score_bump(col := D) -> void:
+	if not _score_l:
+		return
+	_score_l.pivot_offset = Vector2(_score_target().x - _score_l.position.x, _score_l.size.y * 0.5)
+	if score_tw:
+		score_tw.kill()
+	_score_l.scale = Vector2.ONE * 1.2
+	_score_l.label_settings.font_color = col.darkened(0.35)
+	score_tw = create_tween().set_ignore_time_scale(true).set_parallel()
+	score_tw.tween_property(_score_l, "scale", Vector2.ONE, 0.24).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	score_tw.tween_property(_score_l.label_settings, "font_color", INK, 0.3)
+
+
+## 작은 것을 깔거나 주우면 돌·보석 조각 하나가 점수로 날아가 닿고 점수가 톡
+func _score_chip(at: Vector3, col: Color, gem := false) -> void:
+	if not stamp_layer:
+		return
+	if clock - chip_at < 0.05 or cam.is_position_behind(at):
+		_score_bump(col)
+		return
+	var c: Panel = null
+	for k: Panel in chips:
+		if not k.visible:
+			c = k
+			break
+	if c == null:
+		_score_bump(col)
+		return
+	chip_at = clock
+	_chip_kill(c)
+	var p0 := cam.unproject_position(at)
+	var p1 := _score_target()
+	var mid := (p0 + p1) * 0.5 + Vector2(randf_range(-90.0, 90.0), -150.0)
+	c.visible = true
+	c.self_modulate = col
+	c.modulate.a = 1.0
+	c.scale = Vector2.ONE * 1.5
+	c.rotation = PI / 4.0 if gem else 0.0
+	c.position = p0 - Vector2(8, 8)
+	var tw := create_tween().set_ignore_time_scale(true)
+	var fly := func(k: float) -> void:
+		c.position = p0.lerp(mid, k).lerp(mid.lerp(p1, k), k) - Vector2(8, 8)
+	tw.tween_method(fly, 0.0, 1.0, 0.42).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	tw.parallel().tween_property(c, "scale", Vector2.ONE * 0.7, 0.42)
+	tw.tween_callback(func() -> void:
+		c.visible = false
+		_score_bump(col))
+	c.set_meta("tw", tw)
+
+
+# ---- UI 디자인 시스템 ----
+# 새긴 돌 한 벌: 알약 버튼(반지름 = 높이/2, 테 5), 카드 반지름 24, 돌판 반지름 14 + 아래 두께 12, 그림자는 곧게 아래로.
+# main.gd 도 game.call 로 이 함수들을 쓴다.
+func ui_box(fill: Color, r := 24, bw := 5, shadow := true) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = fill
+	sb.set_corner_radius_all(r)
+	sb.set_border_width_all(bw)
+	sb.border_color = INK
+	sb.anti_aliasing = true
+	if shadow:
+		sb.shadow_color = UI_SH_COL
+		sb.shadow_size = 2
+		sb.shadow_offset = UI_SH
+	return sb
+
+
+func ui_panel(parent: Node, pos: Vector2, size: Vector2, sb: StyleBox) -> Panel:
+	var p := Panel.new()
+	p.position = pos
+	p.size = size
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.add_theme_stylebox_override("panel", sb)
+	parent.add_child(p)
+	return p
+
+
+## 누르면 납작해졌다가 뗄 때 탄력 있게 돌아온다
+func ui_squash(b: BaseButton) -> void:
+	b.button_down.connect(func() -> void:
+		b.pivot_offset = b.size * 0.5
+		if b.has_meta("sq_tw"):
+			var old: Tween = b.get_meta("sq_tw")
+			if old and old.is_valid():
+				old.kill()
+		var tw := b.create_tween().set_ignore_time_scale(true)
+		tw.tween_property(b, "scale", Vector2(1.07, 0.88), 0.06)
+		b.set_meta("sq_tw", tw))
+	b.button_up.connect(func() -> void:
+		if b.has_meta("sq_tw"):
+			var old: Tween = b.get_meta("sq_tw")
+			if old and old.is_valid():
+				old.kill()
+		var tw := b.create_tween().set_ignore_time_scale(true)
+		tw.tween_property(b, "scale", Vector2.ONE, 0.4).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+		b.set_meta("sq_tw", tw))
+
+
+## 알약 버튼 겉모습: 평소·눌림(가라앉음: 그림자 짧게, 12% 어둡게). 폰에서는 hover 가 남으므로 hover = 평소
+func ui_button_styles(b: Button, fill: Color) -> void:
+	var n := ui_box(fill, int(b.size.y * 0.5))
+	var dn := n.duplicate() as StyleBoxFlat
+	dn.bg_color = fill.darkened(0.12)
+	dn.shadow_offset = Vector2(0, 2)
+	dn.content_margin_top = 4
+	b.add_theme_stylebox_override("normal", n)
+	b.add_theme_stylebox_override("hover", n)
+	# focus 는 눌림 위에 덧그려지므로 비워 둔다 (채운 상자면 가라앉은 모습을 덮는다)
+	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	b.add_theme_stylebox_override("pressed", dn)
+	b.add_theme_stylebox_override("hover_pressed", dn)
+	for fc: String in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color"]:
+		b.add_theme_color_override(fc, INK)
+
+
+## 새긴 돌판: 테 5 + 아래 두께 12, 안쪽에 파인 테두리. half 1 = 왼쪽 반, 2 = 오른쪽 반 (가운데 이음매에는 테가 없다)
+func ui_slab(parent: Node, pos: Vector2, size: Vector2, half := 0, slab := STONE) -> Panel:
+	var sb := ui_box(slab, 14, 5)
+	sb.border_width_bottom = 12
+	if half == 1:
+		sb.border_width_right = 0
+		sb.corner_radius_top_right = 0
+		sb.corner_radius_bottom_right = 0
+	elif half == 2:
+		sb.border_width_left = 0
+		sb.corner_radius_top_left = 0
+		sb.corner_radius_bottom_left = 0
+	var p := ui_panel(parent, pos, size, sb)
+	p.set_meta("sb", sb)
+	var fr := StyleBoxFlat.new()
+	fr.draw_center = false
+	fr.set_border_width_all(3)
+	fr.border_color = ROCK.darkened(0.15)
+	fr.set_corner_radius_all(6)
+	fr.anti_aliasing = true
+	var fp := Vector2(12, 12)
+	var fsz := size - Vector2(24, 30)
+	if half == 1:
+		fr.border_width_right = 0
+		fr.corner_radius_top_right = 0
+		fr.corner_radius_bottom_right = 0
+		fsz.x += 12.0
+	elif half == 2:
+		fr.border_width_left = 0
+		fr.corner_radius_top_left = 0
+		fr.corner_radius_bottom_left = 0
+		fp.x = 0.0
+		fsz.x += 12.0
+	ui_panel(p, fp, fsz, fr)
+	return p
+
+
+## 돌에 새긴 글자: 진한 갈색, 아래에 밝은 입술(파인 홈의 아랫단)
+func ui_glyph(parent: Control, fs: int, col := GLYPH) -> Label:
+	var ls := LabelSettings.new()
+	ls.font = _font
+	ls.font_size = fs
+	ls.font_color = col
+	ls.outline_size = 0
+	ls.shadow_color = Color(1, 1, 1, 0.75)
+	ls.shadow_offset = Vector2(0, 3)
+	ls.shadow_size = 0
+	var l := Label.new()
+	l.label_settings = ls
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(l)
+	l.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	return l
+
+
+## 글이 폭 w 안에 들어가는 글자 크기 (영어가 길어도 넘치지 않게)
+func fit_fs(txt: String, base: int, w: float) -> int:
+	return mini(base, int(base * w / maxf(1.0, _font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, base).x)))
 
 
 func _build_journey_ui() -> void:
@@ -2064,10 +3635,24 @@ func _build_journey_ui() -> void:
 	_msg_l.size = Vector2(500, 146)
 	_msg_l.label_settings = _msg_l.label_settings.duplicate()
 	_msg_l.label_settings.font_size = 42
+	_msg_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_score_l.label_settings = _score_l.label_settings.duplicate()
 	_score_l.label_settings.font_size = 40
 	_score_l.position = Vector2(24, 82)
 	_score_l.size = Vector2(672, 50)
+	# 안내 판: 글 뒤에 크림 돌판을 깔고 글 길이에 맞춘다 (_fit_plates)
+	action_label.label_settings.outline_size = 6
+	_msg_l.label_settings.outline_size = 6
+	route_plate = _ui_plate(route_label)
+	action_plate = _ui_plate(action_label)
+	msg_plate = _ui_plate(_msg_l, 24, 4)
+	score_plate = _ui_plate(_score_l, 24, 3)
+	for c in _score_l.get_parent().get_children():
+		if c is Label and (c as Label).text.begins_with("<"):
+			back_l = c as Label
+			back_plate = _ui_plate(back_l, 24, 3)
+	if _rate_btn_l:
+		rate_plate = _ui_plate(_rate_btn_l, 24, 3)
 	var result_layer := CanvasLayer.new()
 	result_layer.layer = 8
 	add_child(result_layer)
@@ -2075,29 +3660,65 @@ func _build_journey_ui() -> void:
 	result_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	result_card.visible = false
 	result_layer.add_child(result_card)
-	var panel := ColorRect.new()
-	panel.position = Vector2(40, 250)
-	panel.size = Vector2(640, 466)
-	panel.color = STONE
-	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	result_card.add_child(panel)
-	var stripe := ColorRect.new()
-	stripe.position = Vector2(40, 250)
-	stripe.size = Vector2(640, 8)
-	stripe.color = D
-	stripe.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	result_card.add_child(stripe)
-	result_title = _label(result_card, 52, 280, 72)
-	result_values = _label(result_card, 36, 364, 140)
-	result_note = _label(result_card, 26, 520, 96)
+	# 결과 = 새긴 돌판: 크림 판 + 위에 메달색 띠, 가운데 위에 도장이 쾅
+	ui_panel(result_card, Vector2(40, 230), Vector2(640, 520), ui_box(STONE, 28, 6))
+	result_band_sb = ui_box(D, 0, 0, false)
+	result_band_sb.corner_radius_top_left = 24
+	result_band_sb.corner_radius_top_right = 24
+	ui_panel(result_card, Vector2(43, 233), Vector2(634, 60), result_band_sb)
+	result_title = _label(result_card, 52, 316, 72)
+	result_values = _label(result_card, 36, 392, 140)
+	result_note = _label(result_card, 26, 536, 96)
 	result_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	result_note.position.x = 64
 	result_note.size.x = 592
-	retry_button = _journey_button(result_card, "구역 다시", Vector2(64, 634))
+	# 돌판 위 글은 먹색만 (흰 테두리는 3D 위에 바로 쓰는 글에만)
+	for l: Label in [result_title, result_values, result_note]:
+		l.label_settings.outline_size = 0
+	result_seal = Control.new()
+	result_seal.position = Vector2(285, 150)
+	result_seal.size = Vector2(150, 150)
+	result_seal.pivot_offset = Vector2(75, 75)
+	result_seal.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	result_card.add_child(result_seal)
+	seal_sb = ui_box(BAD.darkened(0.12), 22, 6)
+	seal_sb.border_width_bottom = 10
+	ui_panel(result_seal, Vector2.ZERO, Vector2(150, 150), seal_sb)
+	var seal_fr := StyleBoxFlat.new()
+	seal_fr.draw_center = false
+	seal_fr.set_border_width_all(3)
+	seal_fr.border_color = Color(STONE, 0.85)
+	seal_fr.set_corner_radius_all(12)
+	seal_fr.anti_aliasing = true
+	ui_panel(result_seal, Vector2(12, 12), Vector2(126, 122), seal_fr)
+	var seal_ls := LabelSettings.new()
+	seal_ls.font = _font
+	seal_ls.font_size = 52
+	seal_ls.font_color = STONE
+	seal_ls.outline_size = 0
+	seal_ls.shadow_color = Color(0, 0, 0, 0.25)
+	seal_ls.shadow_offset = Vector2(0, -2)
+	seal_ls.shadow_size = 0
+	seal_l = Label.new()
+	seal_l.label_settings = seal_ls
+	seal_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	seal_l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	seal_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	result_seal.add_child(seal_l)
+	seal_l.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	seal_l.pivot_offset = Vector2(75, 75)
+	seal_crack = Line2D.new()
+	seal_crack.default_color = INK
+	seal_crack.width = 3.0
+	seal_crack.joint_mode = Line2D.LINE_JOINT_SHARP
+	seal_crack.points = PackedVector2Array([Vector2(18, 30), Vector2(64, 62), Vector2(52, 96), Vector2(132, 128)])
+	seal_crack.visible = false
+	result_seal.add_child(seal_crack)
+	retry_button = _journey_button(result_card, "구역 다시", Vector2(64, 640))
 	retry_button.pressed.connect(func() -> void:
 		if wait <= 0.0:
 			restart())
-	var fresh := _journey_button(result_card, "처음부터", Vector2(368, 634))
+	var fresh := _journey_button(result_card, "처음부터", Vector2(368, 640))
 	fresh.pressed.connect(func() -> void:
 		if wait <= 0.0:
 			cp_k = 0
@@ -2109,31 +3730,172 @@ func _journey_button(parent: Control, text: String, pos: Vector2) -> Button:
 	var button := Button.new()
 	button.text = text
 	button.position = pos
-	button.size = Vector2(288, 60)
+	button.size = Vector2(288, 70)
 	button.add_theme_font_override("font", _font)
 	button.add_theme_font_size_override("font_size", 30)
-	button.add_theme_color_override("font_color", INK)
-	var style := StyleBoxFlat.new()
-	style.bg_color = WHITE
-	style.set_border_width_all(3)
-	style.border_color = D
-	button.add_theme_stylebox_override("normal", style)
-	var pressed := style.duplicate() as StyleBoxFlat
-	pressed.bg_color = D
-	button.add_theme_stylebox_override("pressed", pressed)
-	button.add_theme_stylebox_override("hover", pressed)
-	button.add_theme_stylebox_override("focus", pressed)
+	# 다시 하기(금) / 처음부터(흰): 알약 + 누르면 가라앉고 납작
+	ui_button_styles(button, D if text in ["구역 다시", "한 번 더"] else WHITE)
+	ui_squash(button)
 	parent.add_child(button)
 	return button
 
 
+## 글 뒤에 까는 크림 안내 판 (글의 자식이라 글이 커지고 숨으면 같이 따라간다)
+func _ui_plate(l: Label, r := 18, bw := 3) -> Panel:
+	var p := Panel.new()
+	p.show_behind_parent = true
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.add_theme_stylebox_override("panel", ui_box(PLATE, r, bw, false))
+	l.add_child(p)
+	return p
+
+
+## 판을 글 길이에 맞춘다. 글이 바뀔 때만 다시 잰다. force 를 주면 그 글로 잰다
+func _ui_fit(l: Label, p: Panel, force := "") -> void:
+	var txt := force if force != "" else tr(l.text)
+	if str(p.get_meta("t", "")) == txt:
+		return
+	p.set_meta("t", txt)
+	p.visible = txt != ""
+	if txt == "":
+		return
+	var ls := l.label_settings
+	var w := ls.font.get_multiline_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, l.size.x if l.autowrap_mode != TextServer.AUTOWRAP_OFF else -1.0, ls.font_size).x
+	w = minf(w, l.size.x)
+	var h := l.get_line_count() * l.get_line_height()
+	var x := 0.0
+	if l.horizontal_alignment == HORIZONTAL_ALIGNMENT_RIGHT:
+		x = l.size.x - w
+	elif l.horizontal_alignment != HORIZONTAL_ALIGNMENT_LEFT:
+		x = (l.size.x - w) * 0.5
+	p.position = Vector2(x - 16.0, -6.0)
+	p.size = Vector2(w + 32.0, h + 12.0)
+	# 새 안내가 뜨면 톡 커졌다 앉는다
+	if l == _msg_l:
+		l.pivot_offset = l.size * 0.5
+		l.scale = Vector2(1.18, 1.18)
+		l.create_tween().set_ignore_time_scale(true).tween_property(l, "scale", Vector2.ONE, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+
+## _process 앞쪽에서 부른다: 한 프레임 전 글에 맞추지만 눈에 띄지 않는다
+func _fit_plates() -> void:
+	if route_plate == null:
+		return
+	_ui_fit(route_label, route_plate)
+	_ui_fit(action_label, action_plate)
+	# 숨은 동안은 비워 둔다: 같은 안내가 다시 떠도 톡 커진다
+	if _msg_l.visible:
+		_ui_fit(_msg_l, msg_plate)
+	else:
+		msg_plate.set_meta("t", "")
+	# 점수 글은 Tofu 가 숫자만 넣은 뒤 아래에서 다시 쓴다: 게임 중에는 보일 글로 잰다
+	_ui_fit(_score_l, score_plate, "" if over else tr("%d점   ·   속도 %02d m/s") % [score, int(v)])
+	if back_plate:
+		_ui_fit(back_l, back_plate)
+	if rate_plate:
+		_ui_fit(_rate_btn_l, rate_plate)
+
+
+## 속도 게이지 = 돌 알약: 크림 테, 멈춤 구간은 옅은 빨강, 채움은 둥근 막대 + 윗빛
+func _gauge_build() -> void:
+	_bar_bg.self_modulate.a = 0.0
+	_bar.self_modulate.a = 0.0
+	gauge_frame_sb = ui_box(STONE, 22, 4)
+	var frame := ui_panel(_bar_bg, Vector2(-8, -8), Vector2(616, 44), gauge_frame_sb)
+	_bar_bg.move_child(frame, 0)
+	var danger := ui_panel(_bar_bg, Vector2(0, 0), Vector2(600.0 * VSTOP / VMAX, 28), ui_box(Color(BAD, 0.3), 14, 0, false))
+	_bar_bg.move_child(danger, 1)
+	gauge_fill_sb = ui_box(GOOD, 14, 0, false)
+	gauge_fill = ui_panel(_bar, Vector2.ZERO, Vector2(28, 28), gauge_fill_sb)
+	gauge_hl = ui_panel(gauge_fill, Vector2(8, 4), Vector2(0, 6), ui_box(Color(1, 1, 1, 0.4), 3, 0, false))
+	tick.color = INK
+	tick.size = Vector2(8, 48)
+	tick.position.x = 600.0 * VSTOP / VMAX - 4.0
+	_bar_bg.pivot_offset = Vector2(300, 14)
+
+
+func gauge(frac: float, color: Color) -> void:
+	super(frac, color)
+	if gauge_fill == null:
+		return
+	var now := Time.get_ticks_msec() * 0.001
+	var c := color
+	if dash_t > 0.0:
+		c = C.lerp(WHITE, 0.25 + 0.25 * sin(now * 30.0))
+	elif frac >= 0.88:
+		c = D.lerp(WHITE, 0.5 + 0.5 * sin(now * 22.0))
+	gauge_fill_sb.bg_color = c
+	gauge_fill.size.x = maxf(_bar.size.x, 28.0)
+	gauge_hl.size.x = maxf(0.0, gauge_fill.size.x - 16.0)
+	gauge_frame_sb.border_color = BAD if slow_t > 0.0 else INK
+	# 느려지면 떨고, 확 빨라지면 위아래로 불룩
+	_bar_bg.position.x = 60.0 + (sin(now * 55.0) * 5.0 * slow_t / STOP_T if slow_t > 0.0 else 0.0)
+	if v - gauge_last_v > 5.0:
+		gauge_kick = 1.0
+	gauge_last_v = v
+	gauge_kick = move_toward(gauge_kick, 0.0, get_process_delta_time() / maxf(Engine.time_scale, 0.05) * 4.0)
+	_bar_bg.scale = Vector2(1.0 + gauge_kick * 0.04, 1.0 + gauge_kick * 0.45)
+
+
+## 키트 버튼 = 둥근 돌 단추: 곧은 아래 그림자, 누르면 가라앉음, 먹 테, 먹 글자. 새로 열리면 톡 튀어나온다
+func _kit_draw(c: Control) -> void:
+	if _stick_zone.has_area():
+		super(c)
+		return
+	var now := Time.get_ticks_msec() * 0.001
+	for n in _btns:
+		var b: Dictionary = _btns[n]
+		var down: bool = b.down
+		var br: float = b.r
+		var bp: Vector2 = b.pos
+		var col: Color = b.color
+		var lab: String = b.label
+		var pop := clampf((now - float(_btn_born.get(n, -9.0))) / 0.4, 0.0, 1.0)
+		var r := br * (1.0 + 0.3 * sin(pop * PI) * (1.0 - pop)) * (0.93 if down else 1.0)
+		var p := bp + (Vector2(0, 5) if down else Vector2.ZERO)
+		c.draw_circle(bp + Vector2(0, 7), br, Color(INK, 0.32))
+		c.draw_circle(p, r, col.darkened(0.12) if down else col)
+		c.draw_circle(p + Vector2(-r * 0.28, -r * 0.32), r * 0.22, Color(1, 1, 1, 0.35))
+		c.draw_arc(p, r, 0.0, TAU, 48, INK, 5.0, true)
+		var fs := int(clampf(br * 0.38, 22.0, 40.0))
+		var tp := p + Vector2(-r, fs * 0.35)
+		c.draw_string_outline(_font, tp, lab, HORIZONTAL_ALIGNMENT_CENTER, r * 2.0, fs, 7, WHITE)
+		c.draw_string(_font, tp, lab, HORIZONTAL_ALIGNMENT_CENTER, r * 2.0, fs, INK)
+		if n == "split" and dash_t > 0.0:
+			c.draw_arc(p, r + 11.0, -PI / 2.0, -PI / 2.0 + TAU * dash_t / DASH_T, 40, C, 9.0, true)
+		elif n == "split" and cool > 0.0:
+			c.draw_circle(p, r, Color(INK, 0.25))
+		if n == "hold" and drum_charge > 0.0:
+			var acol := GOOD if drum_charge >= 0.4 else D
+			if drum_charge >= 0.95 and fmod(now, 0.24) < 0.12:
+				acol = D  # 끝까지 찼다: 발판 줄무늬처럼 금빛 깜빡
+			c.draw_arc(p, r + 11.0, -PI / 2.0, -PI / 2.0 + TAU * drum_charge, 40, acol, 9.0, true)
+
+
 func _process(dt: float) -> void:
 	super(dt)
+	if stamp_layer:
+		stamp_layer.visible = not _rating
+		if plaque_pending.size() == 4 and not (_howto_box and _howto_box.visible):
+			var pp := plaque_pending
+			plaque_pending = []
+			_plaque(str(pp[0]), str(pp[1]), pp[2] as Color, float(pp[3]))
+	if wind:
+		var wt := 0.0
+		if not over and not won and not fallen and not _rating and not (_howto_box and _howto_box.visible):
+			wt = clampf((v - 14.0) / 41.0, 0.0, 1.0) * 0.6 + (0.3 if dash_t > 0.0 else 0.0)
+			if underground and not on_ground:
+				wt = maxf(wt, clampf(absf(vy) / 70.0, 0.0, 1.0) * 0.9)
+		wind_lin = move_toward(wind_lin, wt, dt * 1.5)
+		wind.volume_db = linear_to_db(maxf(wind_lin, 0.001)) - 8.0
+		wind.pitch_scale = 0.7 + wind_lin * 0.8
+	_fit_plates()
 	if not route_label:
 		return
 	var howto_visible := _howto_box != null and _howto_box.visible
 	route_label.visible = not howto_visible and not _rating and not over
 	action_label.visible = route_label.visible
+	_score_l.visible = not howto_visible  # 설명 카드·타이틀 위에 "0점" 판이 떠 있지 않게
 	result_card.visible = over and not _rating
 	if over:
 		_over_l.visible = false
@@ -2141,7 +3903,7 @@ func _process(dt: float) -> void:
 	_score_l.text = tr("%d점   ·   속도 %02d m/s") % [score, int(v)]
 	var k := maxi(cur_k, cp_k)
 	route_label.text = tr("%02d / %02d   ·   %s   ·   크기 %.1f") % [k + 1, Z.size(), _format_time(run_elapsed), s_goal]
-	var hints := ["끌어서 항아리를 깔고 빨간 기둥은 피해", "뛰기 · 놓치면 숨은 수정 동굴로", "쪼개면 1초 돌진 · 집을 뚫고 가볍게 회전", "파란 머리 탑·신상 = 공중에서 버티기로 쾅 → 가속", "집을 깔거나 뛰어넘어 길을 골라", "흰 빗금 눈 = 성장 · 노란 길 = 해빙", "초록 점선에서 던져 수정에 통로를 열어", "노란 돌은 받아 · 빨간 돌은 피해 / 쪼개서 막아"]
+	var hints := ["끌어서 항아리를 깔고 빨간 기둥은 피해", "뛰기 · 떨어지면 저 아래 지하 신전으로", "쪼개면 잠깐 돌진 · 집을 뚫고 가볍게 회전", "파란 머리 탑·신상 = 공중에서 버티기로 쾅 → 가속", "집을 깔거나 뛰어넘어 길을 골라", "흰 빗금 눈 = 성장 · 노란 길 = 해빙", "초록 점선에서 던져 수정에 통로를 열어", "노란 돌은 받아 · 빨간 돌은 피해 / 쪼개서 막아"]
 	action_label.text = tr(str(Z[k].get("objective", hints[mini(k, hints.size() - 1)])))
 	for drum: Dictionary in drums:
 		if dist >= float(drum.a) and dist < float(drum.b) and on_ground:
@@ -2151,7 +3913,7 @@ func _process(dt: float) -> void:
 		if float(rope[0]) - dist > 0.0 and float(rope[0]) - dist < 60.0:
 			action_label.text = tr("앞 다리 한계 %.1f / 내 몸 %.1f\n%s") % [float(rope[2]), s_goal, tr("더 쪼개서 가볍게!" if s_goal > float(rope[2]) else "가운데로 건너자")]
 			return
-	if k == 5:
+	if k == 5 and not tutorial:
 		for th: Thing in things:
 			if not th.flat and th.kd == KIND.ice and th.d > dist and th.d - dist < 85.0:
 				action_label.text = tr("얼음벽 4.5 / 내 몸 %.1f\n%s") % [s_goal, tr(("돌진 중! 그대로 뚫어" if dash_t > 0.0 else "눈으로 키우거나 · 벽 앞에서 쪼개 돌진") if s_goal < 4.5 else "충분히 커졌다 · 벽을 깨자")]
@@ -2197,13 +3959,21 @@ func _drum_tick(dt: float, hold: bool) -> void:
 			_burst(_pos(dist, bx, by), D, 12, 10.0, 0.6)
 			shake = 0.4
 			bonus += 60
+			_hitstop(0.0, 10.0)
+			_score_chip(_pos(dist, bx, by), D)
 			sfx("launch")
+			drum_last = drum_charge  # 하늘 수로: 금빛(0.95+)에서 뗐는지 갈림길이 본다
+			drum_last_d = dist
 			drum_charge = 0.0
 		else:
 			drum_charge = maxf(0.0, drum_charge - dt * 0.8)
+		# 줄무늬: 흰색 → 초록(쏠 수 있다) → 금빛 깜빡임(끝까지 찼다)
+		var dcol := GOOD if drum_charge >= 0.4 else WHITE
+		if drum_charge >= 0.95 and fmod(clock, 0.24) < 0.12:
+			dcol = D
 		for node: MeshInstance3D in active.nodes:
 			if is_instance_valid(node):
-				node.material_override = mat(GOOD if drum_charge >= 0.4 else WHITE)
+				node.material_override = mat(dcol)
 	else:
 		drum_charge = 0.0
 	was_holding = hold
@@ -2227,6 +3997,17 @@ func _finish() -> void:
 	config.save(RECORD)
 	play("win")
 	_burst(_pos(dist, bx, by + s), D, 16, 12.0, 0.8)
+	# 신전 뒤 금빛 기둥이 가운데부터 부채꼴로 솟는다
+	for i in rays.size():
+		if not is_instance_valid(rays[i]):
+			continue
+		var rh: Node3D = rays[i]
+		rh.visible = true
+		rh.create_tween().tween_property(rh, "scale:y", 55.0, 0.9).set_delay(0.2 + absf(i - 3) * 0.08).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
+	_ring(_pos(dist, bx, by + 0.3), D, 12.0, 0.6)
+	_stamp("바다다!", 6, _pos(dist, bx, by + s), INK, 1.25, 2.2, D.lightened(0.6))
+	end_cam = cam.position
+	end_fov = cam.fov
 
 
 func _ending_tick(dt: float) -> void:
@@ -2237,9 +4018,21 @@ func _ending_tick(dt: float) -> void:
 	bx = lerpf(bx, 0.0, dt * 2.0)
 	on_ground = true
 	_place(dt)
-	var target := _pos(goal_d + 20.0, 0.0, _h(goal_d) + 8.0)
-	cam.position = cam.position.lerp(_pos(goal_d - 24.0, 26.0, _h(goal_d) + 24.0), minf(1.0, dt * 1.5))
-	cam.look_at(target, Vector3.UP)
+	# 끝 카메라: 제 상태로 돌아 올라가며 신전과 바다를 넓게 연다 (_place 의 카메라를 덮어쓴다)
+	var e := ease(clampf(won_t / 3.2, 0.0, 1.0), -2.0)
+	var yw := _yaw(goal_d)
+	var fw := Vector3(-sin(yw), 0.0, -cos(yw))
+	var rt := Vector3(cos(yw), 0.0, -sin(yw))
+	var center := _pos(goal_d + 10.0, 0.0, _h(goal_d))
+	var a := lerpf(-1.1, 0.4, e)
+	var want := center + (rt * sin(a) - fw * cos(a)) * lerpf(16.0, 46.0, e) + Vector3.UP * lerpf(4.0, 26.0, e)
+	end_cam = end_cam.lerp(want, minf(1.0, dt * 2.5))
+	cam.position = end_cam
+	cam.look_at(pivot.position.lerp(_pos(goal_d + 24.0, 0.0, _h(goal_d) + 12.0), e), Vector3.UP)
+	end_fov = lerpf(end_fov, lerpf(48.0, 64.0, e), minf(1.0, dt * 2.0))
+	cam.fov = end_fov
+	if fmod(won_t, 0.45) < dt:
+		_burst(_pos(goal_d + 24.0, randf_range(-14.0, 14.0), _h(goal_d) + 20.0), [D, STONE, B].pick_random(), 8, 10.0, 0.6)
 	if won_t > 3.2:
 		end()
 
@@ -2247,6 +4040,9 @@ func _ending_tick(dt: float) -> void:
 func end() -> void:
 	if over:
 		return
+	Engine.time_scale = 1.0
+	if ram_tick:
+		ram_tick.visible = false
 	if not won:
 		run_deaths += 1
 	super()
@@ -2257,6 +4053,68 @@ func end() -> void:
 	retry_button.text = tr("한 번 더" if won else "구역 다시")
 	_over_l.visible = false
 	result_card.visible = true
+	# 결과 돌판 위 도장이 속도 게이지와 겹치지 않게 숨기고, 돌 조각은 돌판 위로 (지명판은 거둔다)
+	_bar_bg.visible = false
+	if stamp_layer:
+		stamp_layer.layer = 9
+		if plaque_tw:
+			plaque_tw.kill()
+		plaque.visible = false
+		plaque_pending = []
+	# 도장: 완주 = 메달색 별, 실패 = 붉은 도장에 의성어 한 마디 (까닭은 도장이 말하므로 아래 글에서 뺀다)
+	if won:
+		var medal: Color = D if finish_time <= GOLD_TIME else (SILVER if finish_time <= SILVER_TIME else BRONZE)
+		seal_sb.bg_color = medal
+		seal_sb.border_color = INK
+		seal_l.text = "★"
+		seal_l.label_settings.font_size = 84
+		seal_l.label_settings.font_color = INK
+		result_band_sb.bg_color = medal
+		seal_crack.visible = false
+	else:
+		seal_sb.bg_color = BAD.darkened(0.12)
+		seal_sb.border_color = BAD.darkened(0.45)
+		var w := tr(failure_reason if failure_reason != "" else "털썩…")
+		seal_l.text = w
+		seal_l.label_settings.font_size = fit_fs(w, 52, 118)
+		seal_l.label_settings.font_color = STONE
+		result_band_sb.bg_color = ROCK
+		seal_crack.visible = true
+		result_note.text = tr("%s에서 이어서") % tr(str(Z[maxi(cp_k, 0)].msg))
+	# 돌판이 아래에서 튀어 올라 앉는다
+	result_card.pivot_offset = Vector2(360, 490)
+	result_card.position = Vector2(0, 90)
+	result_card.modulate.a = 0.0
+	if result_tw:
+		result_tw.kill()
+	result_tw = create_tween().set_ignore_time_scale(true).set_parallel()
+	result_tw.tween_property(result_card, "position:y", 0.0, 0.32).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	result_tw.tween_property(result_card, "modulate:a", 1.0, 0.15)
+	# 도장이 크게 기울어 내려와 쾅 찍히고, 돌판이 덜컹
+	result_seal.scale = Vector2.ONE * 2.6
+	result_seal.rotation = -0.5
+	result_seal.modulate.a = 0.0
+	if result_tw2:
+		result_tw2.kill()
+	result_tw2 = create_tween().set_ignore_time_scale(true)
+	result_tw2.tween_interval(0.3)
+	result_tw2.tween_property(result_seal, "modulate:a", 1.0, 0.05)
+	result_tw2.parallel().tween_property(result_seal, "scale", Vector2.ONE, 0.14).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	result_tw2.parallel().tween_property(result_seal, "rotation", -0.08, 0.14)
+	result_tw2.tween_callback(func() -> void:
+		sfx("bonk", 4.0, 0.6)
+		_stamp_chips(result_seal.position + Vector2(75, 150), 6, seal_sb.bg_color))
+	var jolt := func(k: float) -> void:
+		result_card.position = Vector2(sin(k * 50.0) * 8.0 * (1.0 - k), cos(k * 37.0) * 5.0 * (1.0 - k))
+	result_tw2.tween_method(jolt, 0.0, 1.0, 0.22)
+	if seal_tw:
+		seal_tw.kill()
+	seal_l.scale = Vector2.ONE
+	if new_record:
+		seal_l.pivot_offset = seal_l.size * 0.5
+		seal_tw = seal_l.create_tween().set_ignore_time_scale(true).set_loops()
+		seal_tw.tween_property(seal_l, "scale", Vector2.ONE * 1.08, 0.5).set_trans(Tween.TRANS_SINE)
+		seal_tw.tween_property(seal_l, "scale", Vector2.ONE, 0.5).set_trans(Tween.TRANS_SINE)
 
 
 func _format_time(seconds: float) -> String:
@@ -2277,13 +4135,134 @@ func _flow_arrow() -> ArrayMesh:
 	return arrow_mesh
 
 
+## 설명 카드 = 크림 돌판 + 금 띠 제목 + 색 점 세 줄 (조향 · 멈춤 · 목표). Tofu 것을 쓰지 않는다
 func _howto_card() -> Control:
-	var card := super()
-	for node in card.get_children():
-		if node is Label:
-			(node as Label).label_settings.font_size = 32
+	var top := CanvasLayer.new()
+	top.layer = 10
+	add_child(top)
+	var card := ui_panel(top, Vector2(60, 330), Vector2(600, 560), ui_box(STONE, 28, 6))
+	var band := ui_box(D, 0, 0, false)
+	band.corner_radius_top_left = 24
+	band.corner_radius_top_right = 24
+	ui_panel(card, Vector2(3, 3), Vector2(594, 104), band)
+	var lines := howto.split("\n")
+	if lines.size() < 3:
+		var body := _howto_text(card, howto, 34, Vector2(40, 130), Vector2(520, 320))
+		body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	else:
+		var head := _howto_text(card, lines[0], fit_fs(lines[0], 48, 560), Vector2(0, 3), Vector2(600, 104))
+		head.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		var rows := Array(lines[1].split(" · ")) + [lines[2]]
+		for i in mini(rows.size(), 3):
+			var dot: Color = [ME, BAD, D][i]
+			ui_panel(card, Vector2(40, 140 + i * 100), Vector2(56, 56), ui_box(dot, 28, 4))
+			var row := _howto_text(card, str(rows[i]), 34, Vector2(120, 142 + i * 100), Vector2(440, 56))
+			row.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	var go := _howto_text(card, "탭해서 시작", 40, Vector2(0, 470), Vector2(600, 60))
+	go.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	go.label_settings.font_color = ME
+	var blink := go.create_tween().set_ignore_time_scale(true).set_loops()
+	blink.tween_property(go, "modulate:a", 0.4, 0.6).set_trans(Tween.TRANS_SINE)
+	blink.tween_property(go, "modulate:a", 1.0, 0.6).set_trans(Tween.TRANS_SINE)
+	card.visibility_changed.connect(func() -> void:
+		if card.visible:
+			card.pivot_offset = card.size * 0.5
+			card.scale = Vector2.ONE * 1.15
+			card.create_tween().set_ignore_time_scale(true).tween_property(card, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT))
 	return card
 
+
+func _howto_text(parent: Control, txt: String, fs: int, pos: Vector2, size: Vector2) -> Label:
+	var ls := LabelSettings.new()
+	ls.font = _font
+	ls.font_size = fs
+	ls.font_color = INK
+	var l := Label.new()
+	l.label_settings = ls
+	l.text = txt
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	l.position = pos
+	l.size = size
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(l)
+	return l
+
+
+# ---- 튜토리얼 ----
+## 타이틀의 [튜토리얼] 버튼: 짧은 연습 코스로 다시 시작한다. 끝 신전에 닿으면 진짜 길 처음으로.
+func start_tutorial() -> void:
+	tutorial = true
+	Z = _zones_def()
+	cp_k = 0
+	fresh_run = true
+	restart()
+
+
+func _tutorial_done() -> void:
+	tutorial = false
+	Engine.time_scale = 1.0
+	Z = _zones_def()
+	cp_k = 0
+	fresh_run = true
+	restart()
+	sfx("charge", 0.0, 0.8)
+	msg("튜토리얼 끝!\n이제 진짜 길로", 2.5)
+
+
+## 동작이 필요한 자리: 그 버튼을 누를 때까지 느리게(0.2배), 버튼은 깜빡이고 무엇을 할지 크게 보여 준다
+func _gate_tick() -> void:
+	for i in range(gates.size() - 1, -1, -1):
+		var g: Array = gates[i]
+		if dist < float(g[0]) or fallen:
+			continue
+		var nm: String = g[1]
+		if kit_just(nm) or kit_held(nm) or dist > float(g[0]) + 40.0 or not _btns.has(nm):
+			gates.remove_at(i)
+			Engine.time_scale = 1.0
+			if _btns.has(nm):
+				_btns[nm].color = SKILL_COL[nm]
+			continue
+		Engine.time_scale = 0.2
+		_btns[nm].color = WHITE if fmod(clock, 0.24) < 0.12 else SKILL_COL[nm]
+		msg(tr(str(g[2])), 0.2)
+		return
+
+
+func _tutorial_list() -> Array:
+	return [
+		{"msg": "연습 1 · 끌어서 조향", "mode": "back", "skill": "", "road": STONE, "floor": WATER, "accent": ROCK, "posts": false, "scen": "rock",
+			"objective": "손가락을 좌우로 끌어 항아리를 깔아 봐",
+			"items": [{"legs": [[30, -4, 7], [100, -15, 7], [30, -4, 7]],
+				"put": [["pot", 28, -3], ["pot", 36, 3], ["pot", 44, -3], ["pot", 52, 3], ["pot", 60, 0], ["pot", 66, 0], ["pillar", 84, -3],
+					["pot", 90, 3], ["pot", 95, 3], ["pillar", 110, 3], ["pot", 116, -3], ["pot", 121, -3], ["pot", 132, 0], ["pot", 140, 0]],
+				"say": [[3, "손가락을 좌우로 끌어 봐"], [24, "항아리를 깔면 커진다"], [76, "빨간 기둥은 피해!"]]}]},
+		{"msg": "연습 2 · 뛰기", "mode": "side", "skill": "jump", "road": STONE, "floor": GRASS, "accent": B, "posts": false, "scen": "aq",
+			"objective": "틈 앞에서 뛰기",
+			"items": [{"legs": [[12, -2, 5], [34, -5, 2.2, 0, "aq"], [14, -1, 2.2, 0, "gap"], [44, -6, 2.2, 0, "aq"], [16, -1, 2.2, 0, "gap"], [36, -4, 2.2, 0, "aq"], [15, 0, 4]],
+				"put": [["pot", 20, 0], ["pot", 28, 0], ["pot", 70, 0]],
+				"gate": [[38, "jump", "지금 뛰기!"], [94, "jump", "한 번 더, 뛰기!"]],
+				"say": [[2, "앞에 틈이 있다"]]}]},
+		{"msg": "연습 3 · 쪼개기", "mode": "back", "skill": "split", "road": GRASS, "floor": GRASS, "accent": A, "posts": true, "scen": "village",
+			"objective": "쪼개면 가볍고 1초 동안 돌진한다",
+			"items": [{"legs": [[30, -5, 7], [70, -9, 7], [30, -4, 7]],
+				"put": [["pot", 6, -2], ["pot", 10, 2], ["pot", 14, -2], ["pot", 18, 2], ["pot", 22, 0], ["pot", 72, 0], ["pot", 80, 0]],
+				"row": [[56, "house"]],
+				"gate": [[40, "split", "쪼개기!\n돌진해서 집을 뚫어"]],
+				"say": [[2, "집은 너무 커서 못 깐다"]]}]},
+		{"msg": "연습 4 · 버티기", "mode": "fall", "skill": "hold", "road": ROCK, "floor": WATER, "accent": WHITE, "posts": true, "scen": "cliff",
+			"objective": "공중에서 버티기 = 내려찍기 · 땅에서는 제동",
+			"items": [{"legs": [[28, -5, 8], [3, -40, 8, 0, "drop"], [70, -8, 12], [30, -5, 7]],
+				"put": [["tower", 50, 0], ["tower", 58, -6], ["tower", 58, 6], ["tower", 68, 0], ["pot", 90, 0]],
+				"gate": [[33, "hold", "버티기를 꾹!\n파란 머리 탑을 쾅"]],
+				"say": [[2, "절벽이다"], [80, "탑을 부수면 빨라진다"]]}]},
+		{"msg": "연습 5 · 던지기", "mode": "low", "skill": "throw", "road": ICE, "floor": Color("abcbd8"), "accent": B, "posts": false, "scen": "snow",
+			"objective": "흰 눈으로 커지고 초록 점선이면 던지기",
+			"items": [{"legs": [[30, -4, 8], [90, -9, 8], [40, -4, 8]],
+				"snow": [[2, 34, -8, 8]], "row": [[80, "crystal"]],
+				"gate": [[50, "throw", "초록 점선!\n던지기"]],
+				"say": [[2, "흰 눈 위를 굴러 커져"], [38, "보라 수정은 몸으로 못 지나간다"]], "goal": 140}]},
+	]
 
 # ---- English: 폰·브라우저 언어가 한국어가 아니면(또는 주소에 ?lang=en) 영어로 ----
 # 라벨은 Godot 자동 번역(같은 글이면 바뀜), 그려지는 버튼·서식 글은 tr() 로 감싼다.
@@ -2310,6 +4289,34 @@ func _lang() -> void:
 const HOWTO_EN := "Roll, Temple Stone!\nDrag to steer · too slow = out\nRoll all the way to the sea temple!"
 
 const EN := {
+	# 실패 의성어
+	"와장창!": "Crash!",
+	"퐁당!": "Plop!",
+	"데구루루~": "Whoops~",
+	"턱!": "Bonk!",
+	"털썩…": "Thud…",
+	"띵!": "Clink!",
+	"꽝!": "Bonk!",
+	"쩡!": "Clank!",
+	# 새긴 돌판 도장·지명판
+	"와르르!": "CRUMBLE!", "번쩍!": "GLEAM!", "쿠웅!": "THOOM!", "쩌억!": "CRACK!", "푸화악!": "WHOOSH!", "바다다!": "THE SEA!",
+	"지하 90m": "90 m below", "%s에서 이어서": "Continue from %s",
+	# 타이틀·튜토리얼
+	"굴러라 신전석": "Roll, Temple Stone!", "신전에서 풀려난 돌,\n바다까지 멈추지 말고 굴러라": "A temple stone breaks free.\nDon't stop until the sea!",
+	"최고 완주 %s": "Best run %s", "▶  시작": "▶  Play", "튜토리얼": "Tutorial",
+	"튜토리얼 끝!\n이제 진짜 길로": "Tutorial done!\nNow the real road",
+	"연습 1 · 끌어서 조향": "Practice 1 · Steer", "연습 2 · 뛰기": "Practice 2 · JUMP", "연습 3 · 쪼개기": "Practice 3 · SPLIT",
+	"연습 4 · 버티기": "Practice 4 · HOLD", "연습 5 · 던지기": "Practice 5 · THROW",
+	"손가락을 좌우로 끌어 항아리를 깔아 봐": "Drag left and right to crush pots", "손가락을 좌우로 끌어 봐": "Drag left and right",
+	"항아리를 깔면 커진다": "Crushing pots makes you bigger", "빨간 기둥은 피해!": "Dodge the red pillars!",
+	"틈 앞에서 뛰기": "JUMP before the gap", "앞에 틈이 있다": "A gap ahead", "지금 뛰기!": "JUMP now!", "한 번 더, 뛰기!": "Again, JUMP!",
+	"쪼개면 가볍고 1초 동안 돌진한다": "SPLIT = lighter + 1s dash", "집은 너무 커서 못 깐다": "Houses are too big to crush",
+	"쪼개기!\n돌진해서 집을 뚫어": "SPLIT!\nDash through the houses",
+	"공중에서 버티기 = 내려찍기 · 땅에서는 제동": "HOLD in the air = slam · on the ground = brake", "절벽이다": "A cliff",
+	"버티기를 꾹!\n파란 머리 탑을 쾅": "Press and keep HOLD!\nSlam the blue-capped tower",
+	"흰 눈으로 커지고 초록 점선이면 던지기": "Grow in white snow, THROW when the line is green",
+	"흰 눈 위를 굴러 커져": "Roll on white snow to grow", "보라 수정은 몸으로 못 지나간다": "Purple crystal blocks your body",
+	"초록 점선!\n던지기": "Green line!\nTHROW",
 	# tofu.gd (공통 화면)
 	"< 메뉴": "< Menu", "< 처음부터": "< Restart", "< 목록": "< List", "평가": "Rate", "탭해서 시작": "Tap to start",
 	"이 게임 어때요?": "How was it?", "닫기": "Close", "한마디": "Comment", "고마워요!": "Thanks!",
@@ -2383,10 +4390,10 @@ const EN := {
 	"돌아왔다\n신전의 빛을 향해": "Home again\ntoward the temple light",
 	# 순간 글
 	"← 갈림길 →": "← Fork →", "왼쪽!": "Left!", "오른쪽!": "Right!", "삐걱!": "Creak!",
-	"다리가 끊어졌다!": "The bridge snapped!", "지하로!": "Down below!", "떨어진다!": "Falling!", "날아라!": "Fly!",
+	"지하로!": "Down below!", "떨어진다!": "Falling!", "날아라!": "Fly!",
 	"떨어짐!": "Fell off!", "쾅!": "Crash!", "수로 합류! 다음 틈을 봐": "Back on the aqueduct! Watch the next gap",
 	"돌진 관통!": "Dashed through!", "느려!": "Too slow!", "멈췄다": "Stopped",
-	"속도 %.0f 아래에서 1.5초 · 오르막 전엔 가볍게": "Under speed %.0f for 1.5s · get light before hills",
+
 	"커진다": "Growing", "녹는다": "Melting", "너무 작다": "Too small", "던졌다!": "Thrown!", "깼다!": "Broken!",
 	"닿는다! 던져": "In range! THROW", "%d개 쾅!": "%d smashed!", "쾅 착지!": "Big landing!",
 	"황금 신상 쾅! 가속": "Idol smashed! Speed up", "탑 쾅! 가속": "Tower smashed! Speed up", "커졌다!": "Bigger!",
@@ -2397,19 +4404,35 @@ const EN := {
 	"숨은 수정 동굴!\n보석을 모아 노란 출구로": "Hidden crystal cave!\nGrab gems, head for the yellow exit",
 	"보석 +40": "Gem +40", "힘이 찼다!\n손을 떼서 날아": "Charged!\nLet go to fly", "공명 도약!": "Echo leap!",
 	"바다에 도착했다!": "You reached the sea!",
+	"숨은 수정 동굴": "Hidden crystal cave", "잠든 지하 신전": "The Sleeping Under-Temple", "다음 틈을 봐": "Watch the next gap",
+	"안 닿았다!\n더 빨리, 더 가까이": "Fell short!\nFaster, or get closer",
+	# 숨은 길(지름길) 지명판
+	"지름길!": "Shortcut!", "옛 배수로": "Old Drain", "깊은 물길": "Deep Current", "뒷골목": "Back Alley",
+	"숨은 저수조": "Hidden Cistern", "얼음 골짜기": "Ice Gully", "수정 맥 길": "Crystal Vein Cut", "하늘 수로": "Sky Aqueduct",
+	"쪼개서 돌진!\n아니면 더 빨리": "SPLIT-dash it!\nOr come in faster",
+	# 결과 카드: 왜 끝났는지
+
+
+
+
+
+
+
+
+
 	# 화면 글
 	"구역 다시": "Retry region", "처음부터": "From start", "한 번 더": "Once more",
 	"%d점   ·   속도 %02d m/s": "%d pts   ·   speed %02d m/s",
 	"%02d / %02d   ·   %s   ·   크기 %.1f": "%02d / %02d   ·   %s   ·   size %.1f",
 	"끌어서 항아리를 깔고 빨간 기둥은 피해": "Drag to crush pots, dodge red pillars",
-	"뛰기 · 놓치면 숨은 수정 동굴로": "JUMP · miss and fall into the crystal cave",
-	"쪼개면 1초 돌진 · 집을 뚫고 가볍게 회전": "SPLIT = 1s dash · smash houses, turn light",
+	"뛰기 · 떨어지면 저 아래 지하 신전으로": "JUMP · fall and you land in the temple far below",
+	"쪼개면 잠깐 돌진 · 집을 뚫고 가볍게 회전": "SPLIT = short dash · smash houses, turn light",
 	"파란 머리 탑·신상 = 공중에서 버티기로 쾅 → 가속": "Blue caps = HOLD-slam from the air → speed up",
 	"집을 깔거나 뛰어넘어 길을 골라": "Crush or jump houses, pick your path",
 	"흰 빗금 눈 = 성장 · 노란 길 = 해빙": "White snow = grow · yellow = melt",
 	"초록 점선에서 던져 수정에 통로를 열어": "THROW on the green line to open crystals",
 	"노란 돌은 받아 · 빨간 돌은 피해 / 쪼개서 막아": "Catch yellow rocks · dodge red / SPLIT to block",
-	"발판 힘 %d%% · %s": "Pad power %d%% · %s", "손을 떼서 발사!": "Let go to launch!", "버티기를 길게 눌러": "Hold HOLD",
+	"발판 힘 %d%% · %s": "Pad power %d%% · %s", "손을 떼서 발사!": "Let go to launch!", "버티기를 길게 눌러": "Keep holding HOLD",
 	"앞 다리 한계 %.1f / 내 몸 %.1f\n%s": "Bridge limit %.1f / you %.1f\n%s",
 	"더 쪼개서 가볍게!": "SPLIT to get lighter!", "가운데로 건너자": "Cross in the center",
 	"얼음벽 4.5 / 내 몸 %.1f\n%s": "Ice wall 4.5 / you %.1f\n%s",
