@@ -1439,6 +1439,7 @@ func _parry(perfect: bool) -> void:
 
 func _cut() -> void:
 	sfx(SND["hit"])
+	var dmg := _pow() * (2 if gp else 1)  # 간파로 연 빈틈에 벤 칼은 피해 두 배
 	body.material_override = mat(GOOD)
 	flash_t = 0.15
 	fl = Vector3(0, 0, -1.2)
@@ -1447,9 +1448,11 @@ func _cut() -> void:
 	_clear()
 	if tut >= 0:
 		return
-	foe_hp -= _pow()
+	foe_hp -= dmg
+	if gp:
+		msg("간파 일격! x2", 0.6)
 	if ftype == 4:
-		boss_dmg += _pow()
+		boss_dmg += dmg
 		foe_hp = maxi(foe_hp, 1)  # 끝판왕은 쓰러지지 않는다
 	_hp_bar()
 	if foe_hp <= 0:
@@ -1741,6 +1744,11 @@ func _input(event: InputEvent) -> void:
 
 
 ## 효과음 한 번 (효과음 전용 줄 넷을 돌려 쓴다. 삑 소리와 섞여 끊기지 않게. 소리 크기 설정은 버스 0 에 걸려 있다)
+## 파이 요청(10/31): 파이가 보낸 효과음(sfx)만 쓴다. 틀(tofu)의 삑 소리는 전부 끈다.
+func beep(_freq: float, _dur := 0.08, _to := 0.0, _vol := 0.2) -> void:
+	pass
+
+
 func sfx(st: AudioStream) -> void:
 	var p: AudioStreamPlayer = sfx_p[sfx_i]
 	sfx_i = (sfx_i + 1) % sfx_p.size()
