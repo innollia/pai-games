@@ -1,9 +1,7 @@
-Run with the left stick, tap JUMP to jump. The camera follows whoever is in front — fall off the LEFT edge of the screen and you lose a parcel; with no parcels left you're out. The first 10 seconds are a safe practice stretch.
+Push the stick right to run, tap JUMP to hop. Win a round by DELIVERING the most parcels: stop at a red mailbox and tap BOX to post one (each mailbox takes one parcel). Tap BOX anywhere else to throw a parcel backward for a speed dash.
 
-Parcels (boxes on your back) make you slower and jump lower, but they keep you alive at the edge. Tap PARCEL to throw one away for a burst. You need at least one parcel at the finish. The screen is as wide as all parcels being carried.
+The camera follows the leader. Run fast in front and you see less ahead — easy to overshoot mailboxes. Following close behind shows you the mailboxes coming.
 
-Crates and walls have ramps: running up a ramp slows you down (steeper and heavier = slower), running down speeds you up a little. Jump over to keep your speed.
+Fall off the LEFT edge and you drop a parcel and climb back in. The side walls of the screen are made of every parcel being carried; as parcels are delivered, thrown or lost, the screen gets narrower. Parcels also weigh you down: slower runs, lower jumps. Ramps slow you uphill; jump over to keep speed.
 
-Some spots want you heavy (scales launch 3+ parcels up, trapdoors break under heavy runners), others want you light (updrafts lift 2 or fewer, low gates), and shutters punish the leader — tuck in behind. Each new rule is shown on a sign when it first appears.
-
-Six courses, win 2 rounds each, then the final delivery. Modes: Classic, Night Lantern (stay in the leader's light), Overspeed (2 or fewer parcels: ceiling boost and wall bounce). Earn gold/silver/bronze per course and beat your best delivery.
+When the first courier reaches the finish, there are 3 seconds of LAST CALL, then the round ends. Six towns, 2 round wins each, then the final delivery. Modes: Classic, Night Lantern (mailboxes show only in the leader's light), Rush (2 or fewer parcels: ceiling boost and wall bounce). Earn gold/silver/bronze per town and beat your best delivery count.
