@@ -70,27 +70,27 @@ Mosa Lina · Rain World · He Is Coming · Deepest Sword의 실제 문법에 속
 | deepsword | 깊은 검 × 빠르면 고통 (옆모습) | 칼을 끌어 돌려 장대 넘기. 심장을 찌르면 칼이 길어져 빠른 동작이 재앙이 된다 |
 | deepsword_3d | 깊은 검 × 폭주 (등뒤) | 찌를수록 칼도 길어지고 걸음도 빨라진다. 브레이크 없음, 칼 세우기만 잠깐의 느림 |
 
-### 유전 변형 (10/30, ◎ 새 종류 · ● 합격작 자식)
+### 유전 변형 (10/30, ☆ 새 종류 · ◇ 합격작 자식)
 
-합격 9개가 공유하는 특징을 +, 탈락 32개가 공유하는 특징을 −로 뽑아(`JAM_ANALYSIS.md` 6절 아래 유전자 표) + 둘 이상·− 없음으로 만들었다. ◎는 부모 없이 + 유전자만으로 만든 새 종류, ●는 합격작의 돌연변이(시점 바꾸기)나 교배(두 루프 합치기).
+합격 9개가 공유하는 특징을 +, 탈락 32개가 공유하는 특징을 −로 뽑아(`JAM_ANALYSIS.md` 6절 아래 유전자 표) + 둘 이상·− 없음으로 만들었다. ☆는 부모 없이 + 유전자만으로 만든 새 종류, ◇는 합격작의 돌연변이(시점 바꾸기)나 교배(두 루프 합치기).
 
 | id | 이름 | 한 줄 |
 | --- | --- | --- |
-| shockwave | ◎ 음속 (등뒤) | 달리면 뒤에 충격파가 따라온다. 느려지거나 돌면 가까워지고 덮치면 죽는다. 멈출 수 없는 질주 |
-| glider | ◎ 활공 (1인칭) | 속도가 양력. 내려꽂으면 빨라지고 들면 실속해 떨어진다. 너무 빠르면 날개가 부러진다. 협곡 3개 |
-| ice_courier | ◎ 빙판 배달 (위에서) | 가속만 되고 멈추려면 벽을 차야 한다. 상자를 들면 더 못 멈춘다. 얇은 얼음은 빨라야 건넌다 |
-| runaway_train | ◎ 폭주 열차 지붕 (등뒤) | 가속하는 열차 위에서 맞바람에 밀리며 앞으로. 객차를 떼면 느려지지만 발판이 준다 |
-| molten | ◎ 식는 바위 (옆모습) | 밟고 서면 가라앉는 바위. 빨리 밟되 미끄러워 지나치면 용암. 뒤에서 용암 파도 |
-| blade_1p | ● 일격의 길 (1인칭) | 검객이 화면을 채운다. 간파 중 FOV가 좁아졌다 터진다. 검객 3명, 점점 빠름 |
-| quicksilver_fp | ● 퀵실버 (1인칭) | 멈춘 폭발 속에서 사람을 업어 나른다. 움직일수록 속도력이 닳고 바닥나면 터진다 |
-| rain_fp | ● 레인월드 느림 (1인칭) | 풀 아래로 기면 안 보이고 뛰면 발소리에 도마뱀이 온다. 비 오기 전 열매 2개 |
-| deepsword_fp | ● 깊은 검 (1인칭) | 눈앞의 긴 칼을 룩패드로 내리꽂아 넘어간다. 시야가 몸과 같이 돈다 |
-| boulder_race | ● 신전석 × 화면 밖 경주 | 돌 넷의 내리막 경주. 산사태가 뒤를 쫓고, 1등이면 앞이 늦게 보인다 |
-| screenrace_over | ● 화면 밖 경주 × 과속 | 내 점프·대시만 과해서 천장·벽에 박히는 사이 화면이 밀어낸다. 무게추를 주울지 선택 |
-| rain_coming | ● 레인월드 × 그가 온다 (등뒤) | 낮에 기어서 먹고, 밤에 그가 뛰어오며 비로 미끄럽다. 셸터 먼저냐 전투냐 |
-| overpower_rain | ● 과속 플랫포머 × 레인월드 | 과한 몸으로 도마뱀 방은 조용히, 비 방은 전력으로. 방 7개 |
-| coming_boulder | ● 그가 온다 × 신전석 (등뒤) | 돌 타고 내리막, 뒤에서 그가 뛰어온다. 걸린 돌을 떨어뜨려 늦춘다 |
-| blade_run | ● 일격의 길 × 화면 밖 경주 | 달리면서 결투. 맞으면 속도가 꺾여 화면 밖으로 밀린다. 간파하면 앞선다 |
+| shockwave | ☆ 음속 (등뒤) | 달리면 뒤에 충격파가 따라온다. 느려지거나 돌면 가까워지고 덮치면 죽는다. 멈출 수 없는 질주 |
+| glider | ☆ 활공 (1인칭) | 속도가 양력. 내려꽂으면 빨라지고 들면 실속해 떨어진다. 너무 빠르면 날개가 부러진다. 협곡 3개 |
+| ice_courier | ☆ 빙판 배달 (위에서) | 가속만 되고 멈추려면 벽을 차야 한다. 상자를 들면 더 못 멈춘다. 얇은 얼음은 빨라야 건넌다 |
+| runaway_train | ☆ 폭주 열차 지붕 (등뒤) | 가속하는 열차 위에서 맞바람에 밀리며 앞으로. 객차를 떼면 느려지지만 발판이 준다 |
+| molten | ☆ 식는 바위 (옆모습) | 밟고 서면 가라앉는 바위. 빨리 밟되 미끄러워 지나치면 용암. 뒤에서 용암 파도 |
+| blade_1p | ◇ 일격의 길 (1인칭) | 검객이 화면을 채운다. 간파 중 FOV가 좁아졌다 터진다. 검객 3명, 점점 빠름 |
+| quicksilver_fp | ◇ 퀵실버 (1인칭) | 멈춘 폭발 속에서 사람을 업어 나른다. 움직일수록 속도력이 닳고 바닥나면 터진다 |
+| rain_fp | ◇ 레인월드 느림 (1인칭) | 풀 아래로 기면 안 보이고 뛰면 발소리에 도마뱀이 온다. 비 오기 전 열매 2개 |
+| deepsword_fp | ◇ 깊은 검 (1인칭) | 눈앞의 긴 칼을 룩패드로 내리꽂아 넘어간다. 시야가 몸과 같이 돈다 |
+| boulder_race | ◇ 신전석 × 화면 밖 경주 | 돌 넷의 내리막 경주. 산사태가 뒤를 쫓고, 1등이면 앞이 늦게 보인다 |
+| screenrace_over | ◇ 화면 밖 경주 × 과속 | 내 점프·대시만 과해서 천장·벽에 박히는 사이 화면이 밀어낸다. 무게추를 주울지 선택 |
+| rain_coming | ◇ 레인월드 × 그가 온다 (등뒤) | 낮에 기어서 먹고, 밤에 그가 뛰어오며 비로 미끄럽다. 셸터 먼저냐 전투냐 |
+| overpower_rain | ◇ 과속 플랫포머 × 레인월드 | 과한 몸으로 도마뱀 방은 조용히, 비 방은 전력으로. 방 7개 |
+| coming_boulder | ◇ 그가 온다 × 신전석 (등뒤) | 돌 타고 내리막, 뒤에서 그가 뛰어온다. 걸린 돌을 떨어뜨려 늦춘다 |
+| blade_run | ◇ 일격의 길 × 화면 밖 경주 | 달리면서 결투. 맞으면 속도가 꺾여 화면 밖으로 밀린다. 간파하면 앞선다 |
 
 합격 9 + 2세대 15의 **설계서**(한 문장, 속도의 인과, 구역 5개, 몸의 변화, 약점, 자체 점수)는 [DESIGNS.md](DESIGNS.md). 아이디어는 코드가 아니라 거기서 읽는다. 2세대 15개는 만든 뒤 [REVIEW_G2.md](REVIEW_G2.md)의 제작자 검사(kill criteria + 봇 플레이)를 거쳤다. 15개 중 9개가 수정 전엔 깨져 있었다(무입력 생존, 1단계 불가, 위협이 작동 안 함 등). 방법론은 [slapjam2/docs/METHODS.md](../slapjam2/docs/METHODS.md).
 
@@ -99,6 +99,34 @@ Mosa Lina · Rain World · He Is Coming · Deepest Sword의 실제 문법에 속
 - `tofu.gd`: 공통(상자, 카메라, 점수·시간·최고점, 다시하기, 소리, 입력). 게임은 `g/<id>.gd` 하나로 `Tofu`를 extends 한다.
 - 액션 조작 키트(선택, 여러 손가락): `_setup`에서 `kit_stick()`(왼쪽 조이스틱 → `kit_move`), `kit_lookpad()`(오른쪽 끌기 → `kit_look`), `kit_button(이름, 글자, 자리, 반지름)`(→ `kit_held`/`kit_just`). 안 부르면 예전 입력 그대로. 예: `g/hot.gd`.
 - `main.gd`: 메뉴. 새 게임은 `GAMES`와 `tools/smoke.gd`의 `ALL`에 id를 더한다.
+
+## 평가·아이디어
+
+플레이어가 게임 안에서 바로 평가하고, 메뉴 맨 아래에서 아이디어를 낸다. 로그인 없이 Firebase(`innollia-blog`) Firestore 에 쌓인다.
+
+- 게임 끝 화면: 별 5개를 탭하면 그 수로 평가가 간다(한 판에 한 번). "한마디"는 `window.prompt` 로 글을 받아 같이 보낸다(별을 먼저 탭했으면 같은 별 수로 글만 한 건 더 쌓인다). 보내면 "고마워요!", 못 보내면 "저장 안 됨".
+- 메뉴 맨 아래 "아이디어 제출하기": 글을 받아 `tofu_ideas` 에 보낸다. 버튼 글자가 잠깐 "보냈어요!" / "저장 안 됨" 으로 바뀐다.
+- 컬렉션: `tofu_ratings` {game, ver, stars 1~5, text ≤500, score, ua, ts}, `tofu_ideas` {text ≤2000, ver, ua, ts}.
+- 버전: `tools/build.ps1` 이 export 전에 `ver.txt`(`2026-10-30 6ffb428` 꼴: 날짜 + 그때 HEAD 짧은 해시)를 쓰고, `tofu.gd` 가 `res://ver.txt` 를 읽어 `Tofu.VER` 로 모든 평가·아이디어에 붙인다. 그래서 나중에 버전별로 별점을 가른다.
+- 코드: `tools/tofu_fb.js`(웹에서 `window.tofuRate/tofuIdea/tofuAsk`, 결과는 `window.tofuLast`), export 뒤 `web/` 에 복사되고 `export_presets.cfg` 의 `html/head_include` 로 로드된다. Godot 은 `JavaScriptBridge.eval` 로 부른다(웹이 아니면 건너뜀).
+- 받아 보기: `python tools/feedback.py` → `FEEDBACK.md`(게임별 평균·개수·버전별 분포·한마디, 아이디어 최신순). 다음 세대 유전 알고리즘의 입력.
+
+Firebase 콘솔 → Firestore → 규칙에 아래를 붙여야 쓰기가 된다(붙이기 전에는 "저장 안 됨"이 뜬다):
+
+```
+match /tofu_ratings/{id} {
+  allow read: if true;
+  allow create: if request.resource.data.game is string && request.resource.data.game.size() <= 40
+    && request.resource.data.ver is string && request.resource.data.ver.size() <= 40
+    && request.resource.data.stars is int && request.resource.data.stars >= 1 && request.resource.data.stars <= 5
+    && request.resource.data.text is string && request.resource.data.text.size() <= 500;
+}
+match /tofu_ideas/{id} {
+  allow read: if true;
+  allow create: if request.resource.data.text is string && request.resource.data.text.size() > 0
+    && request.resource.data.text.size() <= 2000;
+}
+```
 
 ## 명령 (이 폴더에서)
 

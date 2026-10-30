@@ -65,6 +65,16 @@ var _btns := {}  # 이름 -> {label, pos, r, color, down}
 var _justs := {}
 var _own := {}  # 손가락 번호 -> "game" / "stick" / "look" / 버튼 이름
 var _last := {}
+# 게임 끝 화면 평가 (별 5개 + 한마디). 웹(JavaScriptBridge)에서만 보내고, 아니면 겉모습만 바뀐다.
+static var VER: String = _read_ver()  # 빌드 버전 (res://ver.txt, build.ps1 이 쓴다)
+const _STAR_RECT := Rect2(100, 860, 520, 120)
+const _WORD_RECT := Rect2(200, 1000, 320, 90)
+var _rate_box: Control
+var _stars: Array[Label] = []
+var _rate_status: Label
+var _rated := 0  # 이번 판에 보낸 별 수 (0이면 아직)
+var _rate_text := ""
+var _rate_wait := false  # 보내고 window.tofuLast 를 기다리는 중
 
 
 class _Pad extends Control:
@@ -116,6 +126,7 @@ func _ready() -> void:
 		var p := AudioStreamPlayer.new()
 		add_child(p)
 		_players.append(p)
+	_rate_box = _rate_card()
 	best = int(_load().get(id, 0))
 	_setup()
 	restart()
@@ -176,6 +187,122 @@ func _howto_card() -> Control:
 	return card
 
 
+## 게임 끝 화면 아래 별 5개와 "한마디" (게임마다 다른 CanvasLayer 보다 위, 플레이 방법 상자보다 아래)
+func _rate_card() -> Control:
+	var top := CanvasLayer.new()
+	top.layer = 9
+	add_child(top)
+	var card := Control.new()
+	card.size = Vector2(720, 1280)
+	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card.visible = false
+	top.add_child(card)
+	var s := LabelSettings.new()
+	s.font = _font
+	s.font_size = 84
+	s.font_color = SOFT
+	s.outline_size = 10
+	s.outline_color = INK
+	for i in 5:
+		var l := Label.new()
+		l.label_settings = s.duplicate()
+		l.text = "★"
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		l.position = Vector2(_STAR_RECT.position.x + 4 + i * 104, _STAR_RECT.position.y)
+		l.size = Vector2(104, _STAR_RECT.size.y)
+		l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		card.add_child(l)
+		_stars.append(l)
+	var btn := ColorRect.new()
+	btn.color = WHITE
+	btn.position = _WORD_RECT.position
+	btn.size = _WORD_RECT.size
+	btn.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card.add_child(btn)
+	var bl := Label.new()
+	var bs := LabelSettings.new()
+	bs.font = _font
+	bs.font_size = 40
+	bs.font_color = ME
+	bl.label_settings = bs
+	bl.text = "한마디"
+	bl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	bl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	bl.size = _WORD_RECT.size
+	bl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	btn.add_child(bl)
+	_rate_status = _label(card, 36, 1100, 60)
+	return card
+
+
+## 별·한마디 영역 탭이면 처리하고 true (재시작 탭으로 안 간다)
+func _rate_hit(p: Vector2) -> bool:
+	if not over or wait > 0.0:
+		return false
+	if _STAR_RECT.has_point(p):
+		if _rated == 0:
+			_rated = clampi(int((p.x - _STAR_RECT.position.x) / (_STAR_RECT.size.x / 5.0)) + 1, 1, 5)
+			play("tap")
+			_rate_send()
+		return true
+	if _WORD_RECT.has_point(p):
+		play("tap")
+		var s := _js_ask("이 게임에 한마디 (선택)")
+		if s.strip_edges() != "":
+			_rate_text = s.strip_edges().left(500)
+			if _rated > 0:
+				_rate_send()  # 별은 이미 보냈으니 같은 별 수로 글만 한 건 더
+			else:
+				_rate_status.text = "별도 탭해 주세요"
+		return true
+	return false
+
+
+func _rate_send() -> void:
+	for i in 5:
+		_stars[i].label_settings.font_color = D if i < _rated else SOFT
+	if not OS.has_feature("web"):
+		_rate_status.text = "고마워요!"
+		return
+	var js := "window.tofuRate && window.tofuRate(%s, %s, %d, %s, %d)" % [
+		JSON.stringify(id), JSON.stringify(VER), _rated, JSON.stringify(_rate_text), score]
+	JavaScriptBridge.eval(js, true)
+	_rate_wait = true
+	_rate_status.text = "보내는 중"
+
+
+## 매 프레임: 보낸 결과(window.tofuLast)를 읽는다
+func _rate_poll() -> void:
+	if not _rate_wait:
+		return
+	var r: Variant = JavaScriptBridge.eval("window.tofuLast", true)
+	if r == "ok":
+		_rate_wait = false
+		_rate_status.text = "고마워요!"
+	elif r == "fail":
+		_rate_wait = false
+		_rate_status.text = "저장 안 됨"
+
+
+## 웹이면 window.prompt, 아니면 ""
+func _js_ask(msg: String) -> String:
+	if not OS.has_feature("web"):
+		return ""
+	var r: Variant = JavaScriptBridge.eval("window.tofuAsk ? window.tofuAsk(%s) : ''" % JSON.stringify(msg), true)
+	return str(r) if r != null else ""
+
+
+static func _read_ver() -> String:
+	if FileAccess.file_exists("res://ver.txt"):
+		var f := FileAccess.open("res://ver.txt", FileAccess.READ)
+		if f:
+			var v := f.get_as_text().strip_edges()
+			if v != "":
+				return v.left(40)
+	return "dev"
+
+
 func restart() -> void:
 	if world:
 		world.queue_free()
@@ -188,6 +315,7 @@ func restart() -> void:
 	t = time_limit
 	_bar_bg.visible = false
 	_msg_t = 0.0
+	_rate_box.visible = false
 	_kit_clear()
 	_reset()
 
@@ -197,6 +325,13 @@ func end() -> void:
 		return
 	over = true
 	wait = 0.7
+	_rated = 0
+	_rate_text = ""
+	_rate_wait = false
+	_rate_status.text = ""
+	for l in _stars:
+		l.label_settings.font_color = SOFT
+	_rate_box.visible = true
 	_kit_clear()
 	if score > best:
 		best = score
@@ -233,6 +368,7 @@ func _process(dt: float) -> void:
 	_over_l.visible = over
 	if over:
 		_over_l.text = "%d\n최고 %d%s" % [score, best, "\n탭해서 다시" if wait <= 0.0 else ""]
+		_rate_poll()
 	_kit_frame()
 
 
@@ -251,6 +387,8 @@ func _unhandled_input(event: InputEvent) -> void:
 				play("tap")
 				return
 			if over:
+				if _rate_hit(p):
+					return
 				if wait <= 0.0:
 					restart()
 					play("tap")
@@ -377,6 +515,8 @@ func _finger(id: int, p: Vector2, kind: int) -> void:
 			play("tap")
 			return
 		if over:
+			if _rate_hit(p):
+				return
 			if wait <= 0.0:
 				restart()
 				play("tap")

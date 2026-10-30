@@ -14,22 +14,22 @@ const GAMES := [
 	["deepsword", "★ 깊은 검 × 빠르면 고통 (옆모습)"],
 	["bigball", "큰 공 굴리기 (강철코일)"],
 	# 새 종류 5 (부모 없음, 합격 유전자만으로)
-	["shockwave", "◎ 음속 (등뒤)"],
-	["glider", "◎ 활공 (1인칭)"],
-	["ice_courier", "◎ 빙판 배달 (위에서)"],
-	["runaway_train", "◎ 폭주 열차 지붕 (등뒤)"],
-	["molten", "◎ 식는 바위 (옆모습)"],
+	["shockwave", "☆ 음속 (등뒤)"],
+	["glider", "☆ 활공 (1인칭)"],
+	["ice_courier", "☆ 빙판 배달 (위에서)"],
+	["runaway_train", "☆ 폭주 열차 지붕 (등뒤)"],
+	["molten", "☆ 식는 바위 (옆모습)"],
 	# 합격작 유전 변형 10 (돌연변이·교배)
-	["blade_1p", "● 일격의 길 (1인칭)"],
-	["quicksilver_fp", "● 퀵실버 (1인칭)"],
-	["rain_fp", "● 레인월드 느림 (1인칭)"],
-	["deepsword_fp", "● 깊은 검 (1인칭)"],
-	["boulder_race", "● 신전석 × 화면 밖 경주"],
-	["screenrace_over", "● 화면 밖 경주 × 과속"],
-	["rain_coming", "● 레인월드 × 그가 온다 (등뒤)"],
-	["overpower_rain", "● 과속 플랫포머 × 레인월드"],
-	["coming_boulder", "● 그가 온다 × 신전석 (등뒤)"],
-	["blade_run", "● 일격의 길 × 화면 밖 경주"],
+	["blade_1p", "◇ 일격의 길 (1인칭)"],
+	["quicksilver_fp", "◇ 퀵실버 (1인칭)"],
+	["rain_fp", "◇ 레인월드 느림 (1인칭)"],
+	["deepsword_fp", "◇ 깊은 검 (1인칭)"],
+	["boulder_race", "◇ 신전석 × 화면 밖 경주"],
+	["screenrace_over", "◇ 화면 밖 경주 × 과속"],
+	["rain_coming", "◇ 레인월드 × 그가 온다 (등뒤)"],
+	["overpower_rain", "◇ 과속 플랫포머 × 레인월드"],
+	["coming_boulder", "◇ 그가 온다 × 신전석 (등뒤)"],
+	["blade_run", "◇ 일격의 길 × 화면 밖 경주"],
 ]
 # 탈락 (보존). 메뉴의 "탈락 게임 모음" 폴더 안에서만 보인다
 const DROPPED := [
@@ -68,6 +68,7 @@ const DROPPED := [
 ]
 const FOLDER := "__dropped"
 const UP := "__up"
+const IDEA := "__idea"  # 맨 아래 "아이디어 제출하기" -> window.prompt -> Firestore tofu_ideas (tools/tofu_fb.js)
 const INK := Color("3a2a1a")
 
 const DRAG := 15.0  # 이보다 많이 끌면 넘기기, 아니면 탭
@@ -81,6 +82,8 @@ var press_at := Vector2.ZERO
 var press_scroll := 0
 var pressing := false
 var dragged := false
+var idea_btn: Button
+var idea_wait := false  # 아이디어를 보내고 window.tofuLast 를 기다리는 중
 
 
 func _ready() -> void:
@@ -143,6 +146,9 @@ func _fill(dropped: bool) -> void:
 	else:
 		rows.append_array(GAMES)
 		rows.append([FOLDER, "▶ 탈락 게임 모음 (%d)" % DROPPED.size()])
+	rows.append([IDEA, "아이디어 제출하기"])
+	idea_btn = null
+	idea_wait = false
 	for g in rows:
 		var b := Button.new()
 		b.text = g[1]
@@ -151,6 +157,8 @@ func _fill(dropped: bool) -> void:
 		b.set_meta("id", g[0])
 		list.add_child(b)
 		buttons.append(b)
+		if g[0] == IDEA:
+			idea_btn = b
 	scroll.scroll_vertical = 0
 
 
@@ -216,6 +224,9 @@ func _open(id: String) -> void:
 	if id == FOLDER or id == UP:
 		_fill(id == FOLDER)
 		return
+	if id == IDEA:
+		_idea()
+		return
 	menu.visible = false
 	game = load("res://g/%s.gd" % id).new()
 	game.process_mode = Node.PROCESS_MODE_PAUSABLE
@@ -228,6 +239,42 @@ func _close() -> void:
 	game.queue_free()
 	game = null
 	menu.visible = true
+
+
+## 아이디어 제출: 웹에서만 (window.prompt -> tofuIdea). 결과는 버튼 글자를 잠깐 바꿔 보여 준다
+func _idea() -> void:
+	if not OS.has_feature("web") or idea_wait:
+		return
+	var r: Variant = JavaScriptBridge.eval("window.tofuAsk ? window.tofuAsk('속도 게임 아이디어를 적어 주세요') : ''", true)
+	var text := (str(r) if r != null else "").strip_edges().left(2000)
+	if text == "":
+		return
+	JavaScriptBridge.eval("window.tofuIdea && window.tofuIdea(%s, %s)" % [JSON.stringify(text), JSON.stringify(Tofu.VER)], true)
+	idea_wait = true
+	_idea_say("보내는 중")
+
+
+func _idea_say(s: String, restore := false) -> void:
+	if not idea_btn:
+		return
+	idea_btn.text = s
+	if restore:
+		var b := idea_btn
+		get_tree().create_timer(2.0, true).timeout.connect(func() -> void:
+			if is_instance_valid(b):
+				b.text = "아이디어 제출하기")
+
+
+func _process(_dt: float) -> void:
+	if not idea_wait:
+		return
+	var r: Variant = JavaScriptBridge.eval("window.tofuLast", true)
+	if r == "ok":
+		idea_wait = false
+		_idea_say("보냈어요!", true)
+	elif r == "fail":
+		idea_wait = false
+		_idea_say("저장 안 됨", true)
 
 
 func _notification(what: int) -> void:
