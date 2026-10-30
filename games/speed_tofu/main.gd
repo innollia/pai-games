@@ -8,38 +8,24 @@ const GAMES := [
 	# 합격 (10/30 판정)
 	["overpower", "★ 과속 플랫포머 (옆모습)"],
 	["overpower_edit", "▶ 스테이지 제작 (PC)"],
-	["rain_slow", "★ 레인월드 × 느림 (옆모습)"],
-	["deepsword", "★ 깊은 검 × 빠르면 고통 (옆모습)"],
-	# 새 종류 5 (부모 없음, 합격 유전자만으로)
-	["molten", "☆ 식는 바위 (옆모습)"],
 	# 합격작 유전 변형 10 (돌연변이·교배)
 	["quicksilver_fp", "◇ 퀵실버 (1인칭)"],
-	["boulder_race", "◇ 신전석 × 화면 밖 경주"],
 	["screenrace_over", "◇ 화면 밖 경주 × 과속"],
-	["coming_boulder", "◇ 그가 온다 × 신전석 (등뒤)"],
 	# 메모 2차 7 (설계서 먼저 쓰고 첫 조각만 구현)
-	["snapshot", "◆ 순간 포착 (1인칭)"],
 	["tinyplanet", "◆ 작은 행성 (등뒤)"],
-	["bombcrawl", "◆ 폭탄 애벌레 (옆모습)"],
 	# 3세대 (유전 알고리즘: 평가 적합도 + Codex 아이디어 + 교배)
 	["scale_prison", "▲ 저울 감옥 (옆모습)"],
 	["compress", "▲ 압축 스프링 (옆모습)"],
 	["stretch_roll", "▲ 늘어나는 돌"],
-	# 4세대
-	# 4세대 번식: 별 4 이상 부모의 자식
-	["phase_runner", "▲ 빠르면 투명 (← 과속 플랫포머)"],
-	["echo_bat", "▲ 초음파 박쥐 (← 레인월드)"],
-	["counterweight", "▲ 균형추 배달부 (← 저울 감옥)"],
-	# 6세대 자식 (세대당 하나, 핵심 규칙을 바꾼 것)
-	["climb_race", "▲ 위로 경주 (세로)"],
-	# 5세대 번식
-	["speed_snake", "▲ 빠르면 긴 뱀 (← 과속 플랫포머)"],
 ]
 # 보류 (폐기 아님: 다른 목적으로 다시 볼 것 — 멀티플레이, 이전 판, 모드로 합쳐진 원본). 메뉴의 "보류" 폴더
 const HOLD := [
 	["loud_race", "▲ 시끄러운 1등 (옆모습)"],
 	["lantern_race", "▲ 등불 경주 (← 화면 밖 경주)"],
 	["overpower_map", "과속 플랫포머 v3 이어진 지도 (보류)"],
+	# 7세대: 아직 폰 평가를 못 받은 새 게임
+	["climb_race", "▲ 위로 경주 (세로)"],
+	["speed_snake", "▲ 빠르면 긴 뱀 (← 과속 플랫포머)"],
 ]
 # 2차 폐기 (게임 안 평균 별점 2 이하). 메뉴의 "2차 폐기 (평가 낮음)" 폴더 안에서만 보인다
 const DROPPED2 := [
@@ -63,9 +49,20 @@ const DROPPED2 := [
 	["rain_fp", "◇ 레인월드 느림 (1인칭)"],
 	["shockwave", "☆ 음속 (등뒤)"],
 	["taiji_speed", "◆ 흘러가는 퍼즐 판"],
+	# 7세대 대멸종 (최근 판 별 3 이하, 또는 여러 번 평가 기회에도 별 없음)
+	["rain_slow", "★ 레인월드 × 느림 (옆모습)"],
+	["deepsword", "★ 깊은 검 × 빠르면 고통 (옆모습)"],
+	["molten", "☆ 식는 바위 (옆모습)"],
+	["boulder_race", "◇ 신전석 × 화면 밖 경주"],
+	["coming_boulder", "◇ 그가 온다 × 신전석 (등뒤)"],
+	["snapshot", "◆ 순간 포착 (1인칭)"],
+	["bombcrawl", "◆ 폭탄 애벌레 (옆모습)"],
+	["phase_runner", "▲ 빠르면 투명 (← 과속 플랫포머)"],
+	["echo_bat", "▲ 초음파 박쥐 (← 레인월드)"],
+	["counterweight", "▲ 균형추 배달부 (← 저울 감옥)"],
 ]
 # 게임 버전: 강화할 때마다 올린다. 메뉴 글자 끝에 " v3" 로 붙고 평가 ver 에 "v3 <빌드>" 로 들어간다 (없으면 1)
-const GAME_VER := {"bigball": 3, "blade": 2, "blade_1p": 2, "blade_fp": 1, "blade_run": 2, "bombcrawl": 2, "boulder": 8, "boulder_fp": 1, "boulder_race": 2, "coaster": 1, "coil_side": 1, "coming_boulder": 2, "coming_fp": 2, "coming_top": 1, "compress": 2, "deepsword": 2, "deepsword_3d": 1, "deepsword_fp": 2, "fallcards": 1, "glider": 2, "hot": 2, "hot_side": 2, "hotpack": 2, "ice_courier": 2, "icecream": 1, "kitchen": 1, "lickghost": 1, "loud_race": 1, "magnet": 1, "matchspeed": 2, "molten": 2, "nerve": 3, "onedot": 1, "onlyfast": 2, "overpower": 5, "overpower_3d": 1, "overpower_edit": 1, "overpower_map": 3, "overpower_rain": 2, "pitcrew": 1, "piton": 1, "predict": 1, "puzzlerace": 1, "quicksilver": 2, "quicksilver_fp": 3, "quicksilver_tp": 1, "rain_coming": 2, "rain_flee": 1, "rain_fp": 2, "rain_slow": 3, "runaway": 2, "runaway_train": 2, "scale_prison": 2, "screenrace": 10, "screenrace_over": 3, "shockwave": 2, "slowbike": 2, "climb_race": 1, "phase_runner": 2, "counterweight": 2, "speed_snake": 1, "snapshot": 1, "speedcop": 2, "speedthief": 2, "stretch_roll": 3, "superhot": 2, "sword": 2, "synapse": 2, "taiji_speed": 1, "timedebt": 2, "tinyplanet": 3, "tooslow": 1, "tooslow_rpg": 1, "trafficwizard": 2, "wombat_dial": 1, "wombat_fast": 1}
+const GAME_VER := {"bigball": 3, "blade": 2, "blade_1p": 2, "blade_fp": 1, "blade_run": 2, "bombcrawl": 2, "boulder": 8, "boulder_fp": 1, "boulder_race": 2, "coaster": 1, "coil_side": 1, "coming_boulder": 2, "coming_fp": 2, "coming_top": 1, "compress": 3, "deepsword": 2, "deepsword_3d": 1, "deepsword_fp": 2, "fallcards": 1, "glider": 2, "hot": 2, "hot_side": 2, "hotpack": 2, "ice_courier": 2, "icecream": 1, "kitchen": 1, "lickghost": 1, "loud_race": 1, "magnet": 1, "matchspeed": 2, "molten": 2, "nerve": 3, "onedot": 1, "onlyfast": 2, "overpower": 5, "overpower_3d": 1, "overpower_edit": 1, "overpower_map": 3, "overpower_rain": 2, "pitcrew": 1, "piton": 1, "predict": 1, "puzzlerace": 1, "quicksilver": 2, "quicksilver_fp": 4, "quicksilver_tp": 1, "rain_coming": 2, "rain_flee": 1, "rain_fp": 2, "rain_slow": 3, "runaway": 2, "runaway_train": 2, "scale_prison": 3, "screenrace": 10, "screenrace_over": 3, "shockwave": 2, "slowbike": 2, "climb_race": 1, "phase_runner": 2, "counterweight": 2, "speed_snake": 1, "snapshot": 1, "speedcop": 2, "speedthief": 2, "stretch_roll": 3, "superhot": 2, "sword": 2, "synapse": 2, "taiji_speed": 1, "timedebt": 2, "tinyplanet": 4, "tooslow": 1, "tooslow_rpg": 1, "trafficwizard": 2, "wombat_dial": 1, "wombat_fast": 1}
 # 1차 폐기 (사용자 판정 탈락 + 첫 판 보존작). 메뉴의 "1차 폐기 (판정 탈락)" 폴더 안에서만 보인다
 const DROPPED := [
 	["quicksilver", "퀵실버 시티"],

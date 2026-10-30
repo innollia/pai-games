@@ -5,6 +5,8 @@ extends Tofu
 ## 건물 → 지하철 → 다리 → 고속도로 → 항구 → 다리 위 추돌. 방마다 2명 이상 다치면 끝. 불덩이·열차·꺼지는 다리·해일은 나도 죽인다.
 ## v3 핵심: 내 속도가 닿은 것에 옮겨 간다. 4구역 고속도로: 차에 부딪히면 내 속도로 미끄러진다(세게 밀면 사람을 친다).
 ## 5구역 항구: '던지기' = 업은 사람이 내 달리기 속도로 날아간다(느리면 물, 빠르면 다침). 6구역은 꺼지는 다리+밀기+던지기를 섞는다.
+## v4: 구역 문 = 세이브포인트(user:// 저장, 죽으면 그 구역부터·강화 유지), 강화 카드에 숫자 설명, 소모 1.0→0.88.
+## 7구역 고층 화재: 창문에서 뛰어내리는 사람을 그림자 자리에서 '받는다'(5m/s 넘게 빠르면 다침) → 에어매트로 던져 비운다.
 
 const MAXP := 8
 const MAXR := 12
@@ -17,16 +19,20 @@ const SNAP_REAL := 1.4
 const CLOCK := 10.0
 const ALLOW := 1
 const TOP := 9.0  # 내 최고 속도 m/s
-const COST := 1.0  # 1m 달릴 때 닳는 속도력 (1.25였을 때는 첫 방에서 5명 구할 최단 경로 65m가 예산 80m에 안 들어가 2단계에 못 갔다)
-const ROOM_NAME := ["건물 폭발", "지하철 승강장", "무너지는 다리", "고속도로 추돌", "항구 해일", "다리 위 연쇄 추돌"]
-const ROOM_PW := [1.0, 1.35, 1.7, 1.5, 1.6, 1.9]
-const LAST := 5
+const COST := 0.88  # 1m 달릴 때 닳는 속도력 (v4: 1.0→0.88 "조금만 더 쉽게". 1.25였을 때는 첫 방 최단 경로가 예산에 안 들어갔다)
+const ROOM_NAME := ["건물 폭발", "지하철 승강장", "무너지는 다리", "고속도로 추돌", "항구 해일", "다리 위 연쇄 추돌", "고층 화재 — 받아라"]
+const ROOM_PW := [1.0, 1.35, 1.7, 1.5, 1.6, 1.9, 1.8]
+const ROOM_SKY := ["d8eeff", "c9d3e0", "ffe8c2", "ffc9a0", "bfe6ee", "d6d6de", "ffd2b0"]
+const LAST := 6
+const SAVE_QS := "user://quicksilver_fp_save.json"
+const CATCH_OK := 5.0  # 받을 때 이보다 빠르면 부딪혀 다친다 (장갑 +2)
+const FALL_H := 11.0
 const MAXC := 6
 const CAR_F := 2.5  # 미끄러지는 차의 마찰 (세상 시간 기준 m/s²)
 const THROW_UP := 4.0  # 던질 때 위로 주는 속도 (늘 같다. 멀리 가는 건 내 달리기 속도)
 const THROW_HURT := 7.5  # 이보다 빠르게 떨어지면 다친다
 const GRAV_W := 9.8
-const UP_NAME := ["업기+1", "속도력+", "절약", "내열"]
+const UP_NAME := ["업기+1", "속도력+", "절약", "내열", "받기 장갑"]
 const PLAY := 0
 const RESULT := 1
 const PICK := 2
@@ -108,12 +114,50 @@ var wave_z := 0.0
 var marks: Array[MeshInstance3D] = []
 var hands: Array[MeshInstance3D] = []
 var hand_ph := 0.0
+# v4: 받기·세이브·카드
+var glove := 0.0
+var f_fall: Array[bool] = []  # 창문에서 뛰어내린 사람 (땅에 닿으면 다침, 매트면 구함)
+var p_drop := PackedFloat32Array()  # 창가에서 뛰어내릴 세상 시각
+var p_sh: Array[MeshInstance3D] = []
+var fires: Array[Rect2] = []
+var resumed := false
+var env: Environment
+var card_layer: CanvasLayer
+var card_bg: Array[ColorRect] = []
+var card_name: Array[Label] = []
+var card_desc: Array[Label] = []
 
 
 func _setup() -> void:
 	time_limit = 1000.0
 	cam.fov = 75.0
-	howto = "왼쪽 조이스틱으로 달리고, 오른쪽을 끌어 둘러본다. 달린 만큼 속도력이 닳고, 바닥나면 멈춰 있던 재난이 제 속도로 터진다.\n사람(파랑, 머리 위 노란 표시) 곁에 가면 업고, 초록 문 앞에 가면 내려 준다. 업을수록 느려진다. 보라 잔해는 쳐내기.\n4구역부터 내 속도가 닿은 것에 옮겨 간다: 차를 세게 밀면 멀리 미끄러져 사람을 친다. 5구역부터 '던지기' = 업은 사람이 내 달리기 속도로 날아간다(느리면 물·구멍, 빠르면 다침).\n2명 다치거나 불·열차·구멍·해일에 내가 당하면 끝."
+	howto = "왼쪽 조이스틱으로 달리고, 오른쪽을 끌어 둘러본다. 달린 만큼 속도력이 닳고, 바닥나면 멈춰 있던 재난이 제 속도로 터진다.\n사람(파랑, 머리 위 노란 표시) 곁에 가면 업고, 초록 문 앞에 가면 내려 준다. 업을수록 느려진다. 보라 잔해는 쳐내기.\n4구역부터 내 속도가 닿은 것에 옮겨 간다: 차를 세게 밀면 멀리 미끄러져 사람을 친다. 5구역부터 '던지기' = 업은 사람이 내 달리기 속도로 날아간다(느리면 물·구멍, 빠르면 다침).\n7구역: 창문에서 뛰어내리는 사람을 그림자 자리에서 받는다. 5m/s보다 빠르면 부딪혀 다치니 앞에서 늦춘다. 꽉 차면 초록 매트로 던진다.\n2명 다치거나 불·열차·구멍·해일에 내가 당하면 끝. 구역을 깨면 세이브: 다시 하면 그 구역부터(강화 유지)."
+	for c in get_children():
+		if c is WorldEnvironment:
+			env = c.environment
+	card_layer = CanvasLayer.new()
+	card_layer.layer = 6
+	add_child(card_layer)
+	for k in 2:
+		var bg := ColorRect.new()
+		bg.position = Vector2(24 + k * 344, 700)
+		bg.size = Vector2(328, 250)
+		bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		card_layer.add_child(bg)
+		card_bg.append(bg)
+		var nl := _label(card_layer, 40, 716, 60)
+		nl.position.x = bg.position.x
+		nl.size.x = bg.size.x
+		card_name.append(nl)
+		var dl := _label(card_layer, 28, 784, 150)
+		dl.position.x = bg.position.x + 14
+		dl.size.x = bg.size.x - 28
+		dl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		card_desc.append(dl)
+	var hint := _label(card_layer, 30, 960, 50)
+	hint.text = "둘러보기·조이스틱으로 고르고 버튼으로 정한다"
+	card_desc.append(hint)
+	card_layer.visible = false
 	kit_stick()
 	kit_lookpad()
 	kit_button("hit", "쳐내기", Vector2(590, 1080), 100.0, BAD)
@@ -175,6 +219,14 @@ func _reset() -> void:
 	f_from.resize(MAXP)
 	f_v.resize(MAXP)
 	f_t.resize(MAXP)
+	p_drop.resize(MAXP)
+	f_fall.clear()
+	p_sh.clear()
+	for i in MAXP:
+		f_fall.append(false)
+		var sh := box(Vector3.ZERO, Vector3(1.0, 0.03, 1.0), INK)
+		sh.visible = false
+		p_sh.append(sh)
 	cars.clear()
 	roofs.clear()
 	car_r.clear()
@@ -189,13 +241,63 @@ func _reset() -> void:
 	opt_box.clear()
 	for k in 2:
 		opt_box.append(box(Vector3.ZERO, Vector3(1.5, 1.5, 0.3), B if k == 0 else D))
+	failed = false
+	dead = false
+	card_layer.visible = false
+	_fresh_stats()
+	var sv := _sv_load()
+	var r0 := int(sv.get("room", 0))
+	resumed = r0 > 0 and r0 <= LAST
+	if resumed:
+		cap = int(sv.get("cap", 2))
+		pw_max = float(sv.get("pw_max", 100.0))
+		thrift = float(sv.get("thrift", 1.0))
+		heatproof = bool(sv.get("heat", false))
+		glove = float(sv.get("glove", 0.0))
+		score = int(sv.get("score", 0))
+		kit_button("new", "처음부터", Vector2(110, 300), 62.0, INK)
+	else:
+		r0 = 0
+		_drop_new_btn()
+	_begin(r0)
+	if resumed:
+		msg("세이브: %d구역부터\n%s" % [r0 + 1, ROOM_NAME[r0]], 2.5)
+
+
+func _fresh_stats() -> void:
 	cap = 2
 	pw_max = 100.0
 	thrift = 1.0
 	heatproof = false
-	failed = false
-	dead = false
-	_begin(0)
+	glove = 0.0
+	score = 0
+
+
+func _sv_load() -> Dictionary:
+	if not FileAccess.file_exists(SAVE_QS):
+		return {}
+	var f := FileAccess.open(SAVE_QS, FileAccess.READ)
+	if f == null:
+		return {}
+	var parsed: Variant = JSON.parse_string(f.get_as_text())
+	return parsed if parsed is Dictionary else {}
+
+
+## 구역 문 = 세이브포인트: 이 구역을 시작할 때의 강화·점수를 남긴다
+func _sv_store(r: int) -> void:
+	var f := FileAccess.open(SAVE_QS, FileAccess.WRITE)
+	if f:
+		f.store_string(JSON.stringify({"room": r, "cap": cap, "pw_max": pw_max, "thrift": thrift, "heat": heatproof, "glove": glove, "score": score}))
+
+
+func _sv_clear() -> void:
+	if FileAccess.file_exists(SAVE_QS):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_QS))
+
+
+func _drop_new_btn() -> void:
+	if _btns.has("new"):  # 지우면 누르고 있던 손가락이 뗄 때 터진다 → 화면 밖으로
+		_btns["new"]["pos"] = Vector2(-999, -999)
 
 
 # ---- 방 차리기 ----
@@ -213,9 +315,14 @@ func _begin(r: int) -> void:
 	hot_t = 0.0
 	carry.clear()
 	blocks.clear()
+	fires.clear()
 	for i in MAXP:
 		p_s[i] = 0
 		ppl[i].visible = false
+		f_fall[i] = false
+		p_sh[i].visible = false
+	if env:
+		env.background_color = Color(ROOM_SKY[r])
 	for i in MAXR:
 		rk_on[i] = false
 		rk_down[i] = false
@@ -237,6 +344,7 @@ func _begin(r: int) -> void:
 	n_car = 0
 	safe_r = Rect2()
 	_btns["hit"]["label"] = "던지기" if r >= 4 else "쳐내기"
+	card_layer.visible = false
 	rng.seed = 4321 + r
 	match r:
 		0:
@@ -259,6 +367,10 @@ func _begin(r: int) -> void:
 			rx0 = -5.0
 			rx1 = 1.0
 			rz0 = -24.0
+		6:
+			rx0 = -6.0
+			rx1 = 6.0
+			rz0 = -20.0
 		_:
 			rx0 = -4.0
 			rx1 = 4.0
@@ -272,7 +384,8 @@ func _begin(r: int) -> void:
 		2: _room_bridge()
 		3: _room_highway()
 		4: _room_harbor()
-		_: _room_pileup()
+		5: _room_pileup()
+		_: _room_tower()
 	for m in dust:
 		m.position = Vector3(rng.randf_range(rx0, rx1), rng.randf_range(0.4, 2.6), rng.randf_range(rz0, rz1))
 		m.rotation = Vector3(rng.randf() * TAU, rng.randf() * TAU, 0)
@@ -489,6 +602,86 @@ func _room_pileup() -> void:
 		_person(q.x, q.y)
 
 
+func _room_tower() -> void:
+	# 고층 화재. 창가 사람들이 차례로 뛰어내린다. 그림자 자리에 가서 '느리게' 받고, 꽉 차면 초록 매트로 던진다.
+	_walls(true)
+	var d := rz1 - rz0
+	var cz := (rz0 + rz1) * 0.5
+	_deco(Vector3(rx0 - 0.15, 0.5, cz), Vector3(0.3, 1.0, d), WHITE)  # 낮은 담 (하늘·건물이 보인다)
+	_deco(Vector3(rx1 + 0.15, 0.5, cz), Vector3(0.3, 1.0, d), WHITE)
+	_deco(Vector3(0, 7.0, rz0 - 0.6), Vector3(13.4, 14.0, 0.6), SOFT)  # 건물 정면
+	_deco(Vector3(0, 14.3, rz0 - 0.6), Vector3(14.0, 0.6, 1.0), WHITE)  # 옥상 난간
+	_deco(Vector3(-2.5, 16.0, rz0 - 1.0), Vector3(3.0, 2.6, 2.0), INK)  # 연기
+	_deco(Vector3(2.8, 17.2, rz0 - 1.4), Vector3(2.2, 2.0, 1.6), INK)
+	for row in 2:
+		for col in 4:
+			var wy := 8.0 + row * 3.0
+			var wx := -4.5 + col * 3.0
+			_deco(Vector3(wx, wy + 0.4, rz0 - 0.28), Vector3(1.8, 2.0, 0.1), A if (row + col) % 3 == 0 else B.darkened(0.3))
+	_deco(Vector3(4.3, 0.3, -6.5), Vector3(2.6, 0.6, 5.0), GOOD)  # 에어매트
+	_deco(Vector3(4.3, 0.62, -6.5), Vector3(2.0, 0.05, 4.4), GOOD.lightened(0.4))
+	safe_r = Rect2(3.0, -9.0, 2.6, 5.0)
+	fires.append(Rect2(-5.6, -12.2, 3.2, 1.8))
+	fires.append(Rect2(-1.2, -8.6, 3.2, 1.6))
+	fires.append(Rect2(-4.4, -4.6, 2.6, 1.6))
+	for k in 3:
+		var fr: Rect2 = fires[k]
+		fb[k].material_override = mat(A if k != 1 else BAD)
+		fb[k].visible = true
+		fb[k].position = Vector3(fr.get_center().x, 0.3, fr.get_center().y)
+		fb[k].scale = Vector3(fr.size.x, 0.6, fr.size.y)
+	# 창가 사람: 위층·아래층, 왼쪽·오른쪽을 번갈아. 첫 사람은 정면이라 첫 몇 초에 '받기'를 본다.
+	_jumper(1.5, 8.0, 0.6, 2.2)
+	_jumper(-4.5, 11.0, 1.5, 3.0)
+	_jumper(4.5, 8.0, 2.5, 4.2)
+	_jumper(-1.5, 11.0, 3.4, 2.0)
+	_jumper(4.5, 11.0, 4.5, 2.6)
+	_jumper(-4.5, 8.0, 5.6, 4.6)
+	for k in 2:  # 깨진 유리 조각
+		var sx := -3.0 if k == 0 else 3.0
+		_chunk(Vector3(sx, 1.5, rz0 + 0.6), Vector3(-sx * 0.12, 0.0, 1.1))
+	crackle = 0.4
+
+
+## 창가에서 기다리다 drop 시각에 앞으로 vz 만큼 뛰어내리는 사람
+func _jumper(x: float, y: float, drop: float, vz: float) -> void:
+	var j := n_ppl
+	n_ppl += 1
+	p_s[j] = 6
+	p_drop[j] = drop
+	f_fall[j] = true
+	f_from[j] = Vector3(x, y, rz0 + 0.6)
+	f_v[j] = Vector3(0.0, 0.0, vz)
+	f_t[j] = 0.0
+	var tl := sqrt(2.0 * (y - 0.55) / GRAV_W)
+	p_xz[j] = Vector2(x, rz0 + 0.6 + vz * tl)
+	var m := ppl[j]
+	m.visible = true
+	m.material_override = mat(B)
+	m.scale = Vector3(0.5, 1.1, 0.4)
+	m.rotation = Vector3.ZERO
+	m.position = f_from[j]
+
+
+func _blaze(wd: float) -> void:
+	for j in MAXP:
+		if p_s[j] == 6:
+			if wt >= p_drop[j]:
+				p_s[j] = 5
+				f_t[j] = 0.0
+				beep(900.0, 0.35, 300.0, 0.25)
+				msg("뛰어내렸다! 그림자로", 0.8)
+			else:
+				var hurry := clampf(1.0 - (p_drop[j] - wt) / 1.5, 0.0, 1.0)  # 곧 뛰는 사람은 들썩인다
+				ppl[j].position = f_from[j] + Vector3(sin(wt * 30.0 + j) * 0.06 * hurry, 0, 0)
+	for k in 3:
+		fb[k].scale.y = 0.6 + sin(wt * 9.0 + k * 2.0) * 0.15
+	crackle -= wd
+	if crackle <= 0.0:
+		crackle = 0.35
+		beep(75.0, 0.1, 55.0, 0.12)
+
+
 func _car(x: float, z: float, w: float, l: float, m: float) -> void:
 	var c := n_car
 	n_car += 1
@@ -611,6 +804,17 @@ func _step(dt: float) -> void:
 func _move(dt: float) -> void:
 	yaw -= kit_look.x * 0.007
 	pitch = clampf(pitch - kit_look.y * 0.004, -0.6, 0.4)
+	if kit_just("new") and resumed:
+		_sv_clear()
+		_fresh_stats()
+		resumed = false
+		_drop_new_btn()
+		_begin(0)
+		msg("처음부터!", 1.2)
+		return
+	if resumed and kit_move.length() > 0.3:
+		resumed = false
+		_drop_new_btn()
 	var top := (TOP if not snapped else 3.0) / (1.0 + 0.45 * carry.size())
 	if stun > 0.0:
 		stun -= dt
@@ -734,6 +938,16 @@ func _touch() -> void:
 			hot_t = 0.5
 			msg("앗 뜨거")
 			beep(240.0, 0.08, 150.0, 0.2)
+	elif room == 6 and _in_fire(me_p):
+		if snapped:
+			_die("불에 탔다")
+			return
+		hot_t -= get_process_delta_time()
+		pw -= get_process_delta_time() * (8.0 if heatproof else 30.0)
+		if hot_t <= 0.0:
+			hot_t = 0.5
+			msg("앗 뜨거")
+			beep(240.0, 0.08, 150.0, 0.2)
 	elif room == 1 and me_p.x > rx1 - 0.9 and absf(me_p.y - train_z) < 7.2:
 		_die("열차에 치였다")
 	elif (room == 2 or room == 5) and _over_hole(me_p):
@@ -745,12 +959,19 @@ func _touch() -> void:
 			return
 		me_p.y = wave_z + 1.0
 		vel.y = maxf(vel.y, 0.0)
-		pw -= get_process_delta_time() * 30.0
+		pw -= get_process_delta_time() * (8.0 if heatproof else 30.0)
 		if hot_t <= 0.0:
 			hot_t = 0.5
 			msg("앗 차가")
 			beep(300.0, 0.08, 200.0, 0.2)
 		hot_t -= get_process_delta_time()
+
+
+func _in_fire(q: Vector2) -> bool:
+	for fr in fires:
+		if fr.has_point(q):
+			return true
+	return false
 
 
 func _over_hole(q: Vector2) -> bool:
@@ -790,6 +1011,7 @@ func _world(wd: float, dt: float) -> void:
 		0, 3: _fireball()
 		1: _train(wd)
 		4: _wave(wd)
+		6: _blaze(wd)
 		_: _panels(wd)
 	if n_car > 0:
 		_cars(wd)
@@ -998,6 +1220,7 @@ func _throw() -> void:
 	var j: int = carry.pop_back()
 	var dirv := Vector3(vel.x, 0.0, vel.y)
 	p_s[j] = 5
+	f_fall[j] = false
 	f_from[j] = Vector3(me_p.x, 1.2, me_p.y) + (dirv.normalized() * 0.4 if dirv.length() > 0.1 else Vector3.ZERO)
 	f_v[j] = Vector3(vel.x, THROW_UP, vel.y)
 	f_t[j] = 0.0
@@ -1019,6 +1242,26 @@ func _fly(wd: float) -> void:
 		var tt := f_t[j]
 		var pp := f_from[j] + f_v[j] * tt + Vector3(0.0, -0.5 * GRAV_W * tt * tt, 0.0)
 		var p2 := Vector2(pp.x, pp.z)
+		if f_fall[j] and pp.y < 2.4 and p2.distance_to(me_p) < 1.2 and not dead:
+			if carry.size() >= cap:
+				msg("손이 꽉 찼다 — 매트로 던져!", 0.6)
+			elif vel.length() > CATCH_OK + glove:
+				p_xz[j] = me_p
+				f_fall[j] = false
+				_hurt(j, true)
+				stun = 0.3
+				msg("너무 빨리 받았다 %.0f" % vel.length(), 0.9)
+				continue
+			else:
+				p_s[j] = 2
+				f_fall[j] = false
+				carry.append(j)
+				ppl[j].visible = false
+				ppl[j].rotation = Vector3.ZERO
+				vel *= 0.6
+				beep(700.0 + carry.size() * 150.0, 0.1, 1000.0, 0.25)
+				msg("받았다! 업음 %d" % carry.size(), 0.7)
+				continue
 		if not fly_r.has_point(p2):
 			_land(j, p2, 99.0)
 		elif pp.y <= 0.55 and tt > 0.05:
@@ -1032,6 +1275,14 @@ func _fly(wd: float) -> void:
 func _land(j: int, p2: Vector2, hs: float) -> void:
 	p_xz[j] = p2
 	ppl[j].rotation = Vector3.ZERO
+	if f_fall[j]:  # 창문에서 떨어진 사람: 매트면 구함, 땅이면 다침
+		f_fall[j] = false
+		if safe_r.has_point(p2):
+			hs = 0.0
+		else:
+			_hurt(j, true)
+			msg("땅에 떨어졌다", 0.8)
+			return
 	if hs > THROW_HURT:
 		_hurt(j, true)
 		msg("너무 세게!" if hs < 90.0 else "쾅", 0.8)
@@ -1039,7 +1290,7 @@ func _land(j: int, p2: Vector2, hs: float) -> void:
 		p_s[j] = 4
 		n_saved += 1
 		score += 1
-		ppl[j].position = Vector3(p2.x, 0.55 + (0.6 if room == 4 else 0.0), p2.y)
+		ppl[j].position = Vector3(p2.x, 0.55 + (0.6 if room == 4 or room == 6 else 0.0), p2.y)
 		play("good")
 		msg("받았다!", 0.7)
 	elif _walkable(p2):
@@ -1063,9 +1314,21 @@ func _place() -> void:
 	for j in MAXP:
 		if p_s[j] == 1:
 			ppl[j].position = Vector3(p_xz[j].x, 0.55, p_xz[j].y)
-		marks[j].visible = p_s[j] == 1 and mode == PLAY
+		marks[j].visible = (p_s[j] == 1 or p_s[j] == 6) and mode == PLAY
 		if marks[j].visible:
-			marks[j].position = Vector3(p_xz[j].x, 1.55 + sin(wt * 6.0 + j) * 0.05, p_xz[j].y)
+			if p_s[j] == 6:
+				marks[j].position = f_from[j] + Vector3(0, 1.0 + sin(wt * 6.0 + j) * 0.05, 0)
+			else:
+				marks[j].position = Vector3(p_xz[j].x, 1.55 + sin(wt * 6.0 + j) * 0.05, p_xz[j].y)
+		# 떨어질 자리 그림자: 기다리는 동안 작게, 떨어지면서 커진다
+		p_sh[j].visible = f_fall[j] and (p_s[j] == 5 or p_s[j] == 6) and mode == PLAY
+		if p_sh[j].visible:
+			var k := 0.0
+			if p_s[j] == 5:
+				k = 1.0 - clampf((ppl[j].position.y - 0.55) / (f_from[j].y - 0.55), 0.0, 1.0)
+			var sz := 0.5 + k * 1.3
+			p_sh[j].position = Vector3(p_xz[j].x, 0.03, p_xz[j].y)
+			p_sh[j].scale = Vector3(sz, 0.03, sz)
 
 
 # ---- 입력 ----
@@ -1111,7 +1374,12 @@ func _pick_step() -> void:
 	for k in 2:
 		var m := opt_box[k]
 		m.scale = Vector3(1.9, 1.9, 0.3) if k == sel else Vector3(1.3, 1.3, 0.3)
-	msg("%s%s   %s%s" % ["▶" if sel == 0 else "", UP_NAME[opts[0]], UP_NAME[opts[1]], "◀" if sel == 1 else ""], 999.0)
+	msg("강화 고르기", 999.0)
+	for k in 2:
+		card_bg[k].color = D.lightened(0.3) if k == sel else WHITE
+		card_bg[k].scale = Vector2.ONE
+		card_name[k].text = ("▶ " if k == sel else "") + UP_NAME[opts[k]]
+		card_desc[k].text = _up_desc(opts[k])
 	if kit_just("hit"):
 		_choose(sel)
 
@@ -1146,7 +1414,8 @@ func _die(why: String) -> void:
 	dead = true
 	vel = Vector2.ZERO
 	stun = 9.0
-	msg(why, 2.0)
+	msg("%s
+다시 하면 %d구역부터" % [why, room + 1], 3.0)
 	time_limit = 0.0
 	end()
 
@@ -1161,7 +1430,8 @@ func _finish() -> void:
 			var p2 := Vector2(f_from[j].x + f_v[j].x * tl, f_from[j].z + f_v[j].z * tl)
 			_land(j, p2, 99.0 if not fly_r.has_point(p2) else Vector2(f_v[j].x, f_v[j].z).length())
 	for j in MAXP:
-		if p_s[j] == 1 or p_s[j] == 2:
+		if p_s[j] == 1 or p_s[j] == 2 or p_s[j] == 6:
+			f_fall[j] = false
 			_hurt(j, false)
 	carry.clear()
 	for k in 4:
@@ -1176,14 +1446,23 @@ func _finish() -> void:
 func _after() -> void:
 	if failed:
 		time_limit = 0.0  # 실패 소리가 나게
+		msg("다침 %d — 다시 하면 %d구역부터" % [n_hurt, room + 1], 3.0)
 		end()
 		return
 	if room >= LAST:
+		_sv_clear()  # 다 깼다: 다음 판은 처음부터
+		msg("모든 구역 구조 완료!", 3.0)
 		end()
 		return
 	mode = PICK
-	var pool: Array[int] = [0, 1, 2, 3]
+	var pool: Array[int] = [0, 1, 2]
+	if not heatproof:
+		pool.append(3)
+	if room + 1 == 6 and glove == 0.0:
+		pool.append(4)
 	pool.shuffle()
+	if room + 1 == 6 and glove == 0.0 and not pool.slice(0, 2).has(4):
+		pool[1] = 4  # 받기 구역 앞에서는 장갑을 늘 보여 준다
 	opts = [pool[0], pool[1]]
 	pick_yaw = yaw
 	sel = 0
@@ -1194,6 +1473,7 @@ func _after() -> void:
 		m.visible = true
 		m.position = cam.position + fwd * 3.2 + right * (-1.1 if k == 0 else 1.1) + Vector3(0, -0.3, 0)
 		m.rotation = Vector3(0, yaw, 0)
+	card_layer.visible = true
 	beep(700.0, 0.15, 1000.0, 0.2)
 
 
@@ -1203,5 +1483,27 @@ func _choose(k: int) -> void:
 		1: pw_max += 30.0
 		2: thrift *= 0.75
 		3: heatproof = true
+		4: glove += 2.0
+	card_layer.visible = false
+	var nr := room + 1
+	_sv_store(nr)
 	play("good")
-	_begin(room + 1)
+	_begin(nr)
+	msg("세이브!
+%d구역 %s" % [nr + 1, ROOM_NAME[nr]], 2.0)
+	beep(1200.0, 0.2, 1600.0, 0.2)
+
+
+## 카드 한 줄 설명: 지금 값 → 고른 뒤 값
+func _up_desc(k: int) -> String:
+	match k:
+		0: return "한 번에 업는 사람
+%d → %d명 (업을수록 발이 무거움)" % [cap, cap + 1]
+		1: return "속도력 막대
+%d → %d" % [int(pw_max), int(pw_max) + 30]
+		2: return "1m 달릴 때 닳는 양
+%.2f → %.2f (-25%%)" % [COST * thrift, COST * thrift * 0.75]
+		3: return "불·물 속에서 닳는 양
+초당 30 → 8"
+		_: return "받아도 안 다치는 속도
+%.0f → %.0f m/s (7구역)" % [CATCH_OK + glove, CATCH_OK + glove + 2.0]

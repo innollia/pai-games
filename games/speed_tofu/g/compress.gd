@@ -7,6 +7,7 @@ extends Tofu
 ## v2 구역4 받기: 날다가 걸기를 쥐고 부딪히면 그 면을 미는 속도가 압축으로 저장되고 붙는다. 걸기를 놓으면 스틱 쪽으로 튄다.
 ## v2 구역5 프레스: 보라 프레스가 내 힘보다 더 납작하게(과압축) 눌러 준다. 스틱을 아래로 쥔 채 기어 나와 놓으면 아주 높이. 빨간 바닥 프레스는 터진다.
 ## v2 구역6 바깥 벽: 틈 대포 -> 받기 -> 프레스를 한 방에 섞는다. 비주얼: 날아갈 길 점선(빨강 = 으깨짐), 구역별 뒷벽·창문, 먼지.
+## v3 스테이지 선택(깬 방까지 열림, user:// 저장, 처음 켜면 선택 판 + '이어하기') + 구역7 옥상 가는 길 6방: 틈·목은 되돌아 나가도 쏜다, 과압축은 덜어 내야 사는 천장, 눌린 몸은 다리, 천장 받기, 종합. 비주얼: 먼 건물·구름, 눈 둘+입, 문틀+화살표.
 # 한 문장: 나는 살아 있는 완충재로서 무너진 아파트의 좁은 틈 속에서 몸을 밀어 넣어 눌렀다 놓아 바깥으로 튀어나가지만, 많이 눌릴수록 멀리 가는 대신 벽에 으깨지고 철근에 찢기는 대가를 감수한다.
 
 const S0 := 1.2  # 안 눌린 몸 (정사각)
@@ -37,7 +38,9 @@ const Q_MAX := 1.35  # 프레스가 눌러 주는 최대 압축 (내 힘은 1.0)
 const CATCH_MIN := 4.0  # 받기: 이보다 느린 충돌은 그냥 닿음
 const CATCH_K := 1.6  # 받기에서 튈 때 스틱으로 꺾는 정도 (보통 0.9)
 const PRESSC := Color("b197fc")
-const ZONEC := {"1": Color("f6eedd"), "2": Color("eef3f7"), "3": Color("f6efe6"), "4": Color("e7f1fb"), "5": Color("f3eaf8"), "6": Color("e8f6ea")}
+const ZONEC := {"1": Color("f6eedd"), "2": Color("eef3f7"), "3": Color("f6efe6"), "4": Color("e7f1fb"), "5": Color("f3eaf8"), "6": Color("e8f6ea"), "7": Color("dcefff")}
+const ZONE_NAMES := {"1": "현관 틈", "2": "수직 배관", "3": "갈라진 거실", "4": "받기", "5": "프레스", "6": "바깥 벽", "7": "옥상 가는 길"}
+const SAVE_V3 := "user://compress_v3.json"
 
 # 방: solid/rebar(빠르게 닿으면 찢김)/wallbar(짚으면 찢김) = [x0,y0,x1,y1], slit = [x0,y0,x1,y1, 세로면 1] (틈의 빈 칸), start = 발 가운데
 const ROOMS := [
@@ -89,7 +92,50 @@ const ROOMS := [
 			[6, 8.84, 7, 12], [7, -1, 22, 0], [22, -1, 42, 4], [35, 17.4, 42, 18]],
 		"slit": [[6, 8, 7, 8.84, 0]],
 		"press": [[26, 31, 4.35, 11, 30, 4.0, 0.0, 0]]},
+	# 구역7 옥상 가는 길 (v3): 같은 대포가 반대로도, 덜어 내서도 쓰인다
+	# 7-1 목은 들어간 뒤 위로 되돌아 나오면 위로 25 쏜다 (통로 폭 1.8 = 내 힘으론 3.5칸뿐, 지나가면 철근)
+	{"name": "7-1 되돌아 나오는 목", "cam": 14.0, "start": [0, 0], "door": [4.5, 8, 6.5, 10.2],
+		"solid": [[-1.9, -5, -0.9, 13], [0.9, -5, 1.9, 8], [-0.9, -1, -0.25, 0], [0.25, -1, 0.9, 0], [-0.9, -5, 0.9, -3.9],
+			[1.9, -5, 7, 8], [7, -5, 8, 13], [-1.9, 12, 8, 13]],
+		"slit": [[-0.25, -0.5, 0.25, 0, 1]],
+		"rebar": [[-0.9, -3.9, 0.9, -3.5]]},
+	# 7-2 가로 틈도 되돌아 나오면 들어간 쪽으로 쏜다. 천장 2.3이라 벽 누르기는 호가 끊김, 지나가면 벽장 철근, 걸기 쥐면 꼬리가 걸림. 문엔 미끄러져 지나 되돌아온다
+	{"name": "7-2 뒤로 쏘는 틈", "cam": 17.0, "start": [0.3, 0], "door": [-20, 0, -18, 2.2],
+		"solid": [[-24, -1, -23, 3.3], [-23, -1, -9, 0], [-9, -5, -1, -3.9], [-1, -1, 1.5, 0], [1.5, 0.5, 2.5, 2.3],
+			[2.5, -1, 4.5, 0], [4.5, -1, 5.5, 3.3], [-24, 2.3, 5.5, 3.3]],
+		"slit": [[1.5, 0, 2.5, 0.5, 0]],
+		"rebar": [[-9, -3.9, -1, -3.5], [4.3, 0, 4.5, 2.3]]},
+	# 7-3 과압축(34)은 천장 11에 박힌다. 기어 나온 뒤 살짝 기울여 1.0까지 덜어 내고 비스듬히(20~32°) 쏘면 선반 7.6
+	{"name": "7-3 덜어 내기", "cam": 17.0, "start": [3.5, 0], "door": [18, 7.6, 20, 9.8],
+		"solid": [[-1, -5, 1, 11], [1, -1, 13, 0], [6, 0.6, 7, 11], [13, -5, 24, 7.6], [24, -5, 25, 12], [-1, 11, 25, 12]],
+		"press": [[1, 6, 0.26, 4, 11, 4.0, 0.0, 0]]},
+	# 7-4 눌린 몸(폭 5.6)은 4.5 틈 위의 다리. 건넌 뒤 천장 2.3 밑에선 놓으면 죽으니 천천히 편다
+	{"name": "7-4 납작한 다리", "cam": 17.0, "start": [3, 0], "door": [18, 0, 20, 2.2],
+		"solid": [[-1, -5, 1, 12], [1, -1, 5, 0], [5, -5, 9.5, -3.9], [9.5, -1, 21, 0], [12, 2.3, 21, 12], [21, -5, 22, 13], [-1, 12, 22, 13]],
+		"press": [[1, 5, 0.26, 4, 12, 4.0, 0.0, 0]],
+		"rebar": [[5, -3.9, 9.5, -3.5]]},
+	# 7-5 목으로 위로 쏜 뒤 천장(9.5)에 걸기 쥐고 받기, 오른쪽으로 놓아 벽 위 선반(7)에. 통로 2.2라 짚기는 안 되고 내 힘은 6.5칸
+	{"name": "7-5 천장 받기", "cam": 14.0, "start": [0, 0], "door": [5, 7, 7, 9.2], "catch": true,
+		"solid": [[-2.1, -5, -1.1, 13], [1.1, -5, 2.1, 7], [-1.1, -1, -0.25, 0], [0.25, -1, 1.1, 0], [-1.1, -5, 1.1, -3.9],
+			[2.1, -5, 9, 7], [9, -5, 10, 13], [-2.1, 9.5, 10, 10.5]],
+		"slit": [[-0.25, -0.5, 0.25, 0, 1]],
+		"rebar": [[-1.1, -3.9, 1.1, -3.5]]},
+	# 7-6 종합: 목 되돌아(1층→2층) → 프레스 다리(4.5 틈) → 천장 2.5 밑 살짝 펴기 → 높은 틈 대포 → 마당 미끄러져 문
+	{"name": "7-6 옥상", "cam": 17.0, "start": [0, 0], "door": [38, 8.5, 40, 10.7],
+		"solid": [[-1.9, -5, -0.9, 20], [-0.9, -1, -0.25, 0], [0.25, -1, 0.9, 0], [-0.9, -5, 0.9, -3.9],
+			[0.9, -5, 7, 8.5], [7, -5, 11.5, 5], [11.5, -5, 17, 8.5], [14, 11, 17, 20],
+			[17, 8.5, 18, 9.6], [17, 10.1, 18, 20], [18, -5, 45, 8.5], [45, -5, 46, 20], [-1.9, 20, 46, 21]],
+		"slit": [[17, 9.6, 18, 10.1, 0]],
+		"press": [[3, 7, 8.76, 10.5, 20, 4.0, 0.0, 0]],
+		"rebar": [[-0.9, -3.9, 0.9, -3.5], [7, 5, 11.5, 5.4]]},
 ]
+
+
+class _Hud extends Control:
+	var k
+
+	func _draw() -> void:
+		k._hud_draw(self)
 
 var lv := 0
 var stage: Node3D
@@ -146,20 +192,47 @@ var rt := 0.0  # 방 시간 (프레스 박자)
 var dust: Array = []  # {n: 상자, life, v}
 var dust_k := 0
 var dots: Array[MeshInstance3D] = []
+var cleared := {}  # 깬 방 번호 -> true (기기에 저장)
+var picking := false  # 스테이지 선택 판이 떠 있음
+var hud: _Hud
+var eye2: MeshInstance3D
+var mouth: MeshInstance3D
+var arrow: MeshInstance3D  # 문 위 통통 뛰는 화살표
+var clouds: Array[MeshInstance3D] = []
+var room_rect := Rect2()
 
 
 func _setup() -> void:
 	time_limit = 0.0
 	cam.fov = 58.0
-	howto = "스틱으로 벽·바닥에 몸을 밀면 눌리고, 손을 떼면 눌린 만큼 반대로 튄다(점선 = 날아갈 길, 빨간 점선 = 부딪히면 으깨짐). 좁은 틈은 밀고 지나가면 저절로 눌려 발사.\n'걸기': 쥔 채 튀면 꼬리가 걸려 가까이 멈춤, 좁은 배관에선 양쪽 벽 짚기. 4구역부터는 날다가 쥐고 부딪히면 그 힘을 받아 붙고, 놓으면 스틱 쪽으로 튄다.\n5구역 보라 프레스는 나보다 더 납작하게 눌러 준다: 스틱을 아래로 쥔 채 기어 나와 놓기. 빨간 바닥 프레스 밑은 터진다.\n세게 부딪히면 으깨지고, 빠르게 빨간 철근에 닿으면 찢긴다. 문엔 천천히."
+	howto = "스틱으로 벽·바닥에 몸을 밀면 눌리고, 손을 떼면 눌린 만큼 반대로 튄다(점선 = 날아갈 길, 빨간 점선 = 부딪히면 으깨짐). 좁은 틈은 밀고 지나가면 저절로 눌려 발사 — 되돌아 나가도 쏜다.\n'걸기': 쥔 채 튀면 꼬리가 걸려 가까이 멈춤, 좁은 배관에선 양쪽 벽 짚기. 4구역부터는 날다가 쥐고 부딪히면 그 힘을 받아 붙고, 놓으면 스틱 쪽으로 튄다.\n5구역 보라 프레스는 나보다 더 납작하게 눌러 준다: 스틱을 아래로 쥔 채 기어 나와 놓기. 살짝만 기울이면 터지지 않고 천천히 펴진다.\n세게 부딪히면 으깨지고, 빠르게 빨간 철근에 닿으면 찢긴다. 문엔 천천히. 깬 방은 '방'에서 골라 다시 할 수 있다."
 	kit_stick()
 	kit_button("hook", "걸기", Vector2(600, 1100), 105.0, A)
+	kit_button("retry", "다시", Vector2(420, 1060), 50.0, B)
+	kit_button("rooms", "방", Vector2(420, 1200), 50.0, C)
+	var layer := CanvasLayer.new()
+	layer.layer = 4
+	add_child(layer)
+	hud = _Hud.new()
+	hud.k = self
+	hud.size = Vector2(720, 1280)
+	hud.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(hud)
+	_load_cleared()
 
 
+## 처음 켜면 선택 판이 바로 뜨고, 이어할 방(첫 안 깬 방)이 강조된다
 func _reset() -> void:
-	lv = 0
 	stage = null
-	_room(0)
+	hud.visible = true
+	lv = ROOMS.size() - 1
+	for i in ROOMS.size():
+		if not cleared.has(i):
+			lv = i
+			break
+	score = cleared.size()
+	_room(lv)
+	picking = true
 
 
 func _rr(a: Array) -> Rect2:
@@ -212,8 +285,15 @@ func _room(i: int) -> void:
 		else:
 			box(Vector3(r.get_center().x, r.end.y - 0.04, 1.05), Vector3(r.size.x + 0.1, 0.08, 0.1), D, stage)
 			box(Vector3(r.get_center().x, r.position.y + 0.04, 1.05), Vector3(r.size.x + 0.1, 0.08, 0.1), D, stage)
+	# 문: 판 + 문틀(기둥 둘·상인방) + 손잡이 + 위에서 통통 뛰는 화살표
 	box(Vector3(door.get_center().x, door.get_center().y, -0.6), Vector3(door.size.x, door.size.y, 0.6), GOOD, stage)
+	var frame := GOOD.darkened(0.35)
+	box(Vector3(door.position.x - 0.1, door.get_center().y, -0.2), Vector3(0.2, door.size.y, 0.9), frame, stage)
+	box(Vector3(door.end.x + 0.1, door.get_center().y, -0.2), Vector3(0.2, door.size.y, 0.9), frame, stage)
+	box(Vector3(door.get_center().x, door.end.y + 0.1, -0.2), Vector3(door.size.x + 0.4, 0.2, 0.9), frame, stage)
 	box(Vector3(door.end.x - 0.3, door.get_center().y, -0.2), Vector3(0.15, 0.15, 0.2), D, stage)
+	arrow = box(Vector3(door.get_center().x, door.end.y + 0.9, 0.3), Vector3(0.45, 0.45, 0.3), D, stage)
+	arrow.rotation.z = PI * 0.25
 	# 눈금 (속도감 단서): 드러난 윗면·옆면에 2칸마다
 	var budget := 205 - stage.get_child_count()
 	for s in solids:
@@ -241,6 +321,8 @@ func _room(i: int) -> void:
 	for k in 3:
 		box(Vector3(0.0, -0.3 + k * 0.3, 0.0), Vector3(1.03, 0.07, 1.03), WHITE, body)
 	eye = box(Vector3(0.3, 0.85, 0.47), Vector3(0.16, 0.16, 0.05), WHITE, me)
+	eye2 = box(Vector3(0.05, 0.85, 0.47), Vector3(0.14, 0.14, 0.05), WHITE, me)
+	mouth = box(Vector3(0.2, 0.55, 0.47), Vector3(0.4, 0.06, 0.05), INK, me)
 	rope = box(Vector3.ZERO, Vector3(1.0, 0.16, 0.3), A, stage)
 	rope.visible = false
 	trail.clear()
@@ -364,6 +446,18 @@ func _step(dt: float) -> void:
 	var h := minf(dt, 1.0 / 30.0)
 	anim += dt
 	door_warn -= dt
+	hud.queue_redraw()
+	if kit_just("rooms") and clear_t <= 0.0:
+		picking = not picking
+		beep(700.0 if picking else 500.0, 0.06, 0.0, 0.15)
+	if picking:
+		_view(dt)
+		return
+	if kit_just("retry") and die_t <= 0.0 and clear_t <= 0.0:
+		beep(400.0, 0.08, 250.0, 0.2)
+		_room(lv)
+		msg("다시", 0.5)
+		return
 	if die_t > 0.0:
 		die_t -= dt
 		_view(dt)
@@ -374,12 +468,21 @@ func _step(dt: float) -> void:
 		clear_t -= dt
 		_view(dt)
 		if clear_t <= 0.0:
-			lv += 1
-			score = lv
-			if lv >= ROOMS.size():
-				msg("바깥!", 1.5)
+			cleared[lv] = true
+			_save_cleared()
+			score = cleared.size()
+			var nxt := lv + 1
+			if nxt >= ROOMS.size():
+				for i in ROOMS.size():
+					if not cleared.has(i):
+						nxt = i
+						break
+			if nxt >= ROOMS.size():
+				hud.visible = false
+				msg("옥상!", 1.5)
 				end()
 			else:
+				lv = nxt
 				_room(lv)
 		return
 	rt += h
@@ -974,6 +1077,19 @@ func _view(dt: float) -> void:
 	body.scale = Vector3(bw, bh, 0.9)
 	eye.position = Vector3(face * bw * 0.3, bh * 0.72, 0.47)
 	eye.scale = Vector3(0.16, minf(0.16, bh * 0.25), 0.05)
+	eye2.position = Vector3(face * bw * 0.06, bh * 0.72, 0.47)
+	eye2.scale = Vector3(0.14, minf(0.14, bh * 0.22), 0.05)
+	var gg := sq_q if mode == 1 else absf(q)
+	var scared := die_t > 0.0 or gg * LAUNCH > CRUSH or vel.length() > CRUSH
+	mouth.position = Vector3(face * bw * 0.18, bh * (0.38 if scared else 0.45), 0.47)
+	mouth.scale = Vector3(clampf(bw * 0.3, 0.12, 0.9), minf(0.2 if scared else 0.06, bh * 0.2), 0.05)
+	arrow.position.y = door.end.y + 0.9 + 0.25 * absf(sin(anim * 4.0))
+	arrow.rotation.z = PI * 0.25 + 0.3 * sin(anim * 2.0)
+	for i in clouds.size():
+		var cl := clouds[i]
+		cl.position.x += (0.25 + 0.1 * i) * dt
+		if cl.position.x > room_rect.end.x + 2.0:
+			cl.position.x = room_rect.position.x - 2.0
 	if die_t <= 0.0:
 		var g := sq_q if mode == 1 else absf(q)
 		var col := ME
@@ -1072,7 +1188,20 @@ func _backdrop(zone: String) -> void:
 	for s in solids:
 		r = r.merge(s)
 	var col: Color = ZONEC.get(zone, SOFT)
+	room_rect = r
 	box(Vector3(r.get_center().x, r.get_center().y, -1.5), Vector3(r.size.x, r.size.y, 0.2), col, stage)
+	# 뒷벽 뒤 먼 건물 실루엣 (높이가 다른 상자), 구역 7은 구름이 흐른다
+	var nb := clampi(int(r.size.x / 3.0), 4, 10)
+	var bwid := r.size.x / float(nb)
+	var far := col.darkened(0.2)
+	for i in nb:
+		var hgt := r.size.y * (0.25 + 0.5 * fposmod(sin(float(i) * 12.9898 + r.size.x) * 43758.5453, 1.0))
+		box(Vector3(r.position.x + (float(i) + 0.5) * bwid, r.position.y + hgt * 0.5, -2.4), Vector3(bwid * 0.78, hgt, 0.3), far, stage)
+	clouds.clear()
+	if zone == "7":
+		for i in 3:
+			var cl := box(Vector3(r.position.x + r.size.x * (0.15 + 0.3 * i), r.end.y - 2.0 - 2.5 * i, -2.0), Vector3(2.6 - 0.4 * i, 0.7, 0.2), WHITE, stage)
+			clouds.append(cl)
 	var win := col.darkened(0.12)
 	var n := 0
 	var y := r.position.y + 3.0
@@ -1084,3 +1213,113 @@ func _backdrop(zone: String) -> void:
 				n += 1
 			x += 6.0
 		y += 6.0
+
+
+# ---- 스테이지 선택 (v3) ----
+const PANEL := Rect2(16, 230, 688, 404)
+const CONT := Rect2(40, 282, 640, 52)
+
+
+func _zone_of(i: int) -> int:
+	return int(String(ROOMS[i].name).left(1)) - 1
+
+
+func _tile(i: int) -> Rect2:
+	var z := _zone_of(i)
+	var k := 0
+	for j in i:
+		if _zone_of(j) == z:
+			k += 1
+	return Rect2(196 + k * 70, 344 + z * 41, 64, 36)
+
+
+func _open(i: int) -> bool:
+	return i == 0 or cleared.has(i) or cleared.has(i - 1)
+
+
+func _tap(p: Vector2) -> void:
+	if not picking:
+		return
+	if CONT.has_point(p):
+		picking = false
+		play("tap")
+		_room(lv)
+		return
+	for i in ROOMS.size():
+		if _tile(i).has_point(p):
+			if _open(i):
+				play("tap")
+				lv = i
+				picking = false
+				_room(i)
+			else:
+				beep(150.0, 0.08, 0.0, 0.2)
+			return
+	if not PANEL.has_point(p):
+		picking = false
+		play("tap")
+
+
+func _hud_draw(c: Control) -> void:
+	if over or _rating or (_howto_box and _howto_box.visible):
+		return
+	c.draw_string(_font, Vector2(24, 268), String(ROOMS[lv].name), HORIZONTAL_ALIGNMENT_LEFT, 420, 28, INK)
+	for i in ROOMS.size():
+		var rr := Rect2(360 + i * 19 + _zone_of(i) * 4, 246, 15, 20)
+		var zc: Color = ZONEC.get(String(ROOMS[i].name).left(1), SOFT)
+		if i == lv:
+			c.draw_rect(rr, ME.lerp(WHITE, 0.2 + 0.2 * sin(anim * 6.0)))
+		elif cleared.has(i):
+			c.draw_rect(rr, GOOD)
+		else:
+			c.draw_rect(rr, zc)
+		c.draw_rect(rr, INK, false, 2.0)
+	if not picking:
+		return
+	c.draw_rect(PANEL, Color(1, 1, 1, 0.96))
+	c.draw_rect(PANEL, INK, false, 4.0)
+	c.draw_string(_font, Vector2(40, 268), "스테이지  (깬 방 %d/%d)" % [cleared.size(), ROOMS.size()], HORIZONTAL_ALIGNMENT_LEFT, 640, 28, INK)
+	c.draw_rect(CONT, ME)
+	var cont_s := "▶ 이어하기  %s" % String(ROOMS[lv].name)
+	if cleared.has(lv):
+		cont_s = "▶ 다시 하기  %s" % String(ROOMS[lv].name)
+	c.draw_string(_font, Vector2(CONT.position.x, CONT.position.y + 37), cont_s, HORIZONTAL_ALIGNMENT_CENTER, CONT.size.x, 28, WHITE)
+	for z in 7:
+		var zk := str(z + 1)
+		var zc: Color = ZONEC.get(zk, SOFT)
+		c.draw_rect(Rect2(32, 344 + z * 41, 158, 36), zc.darkened(0.08))
+		c.draw_string(_font, Vector2(40, 344 + z * 41 + 26), "%s %s" % [zk, ZONE_NAMES.get(zk, "")], HORIZONTAL_ALIGNMENT_LEFT, 150, 20, INK)
+	for i in ROOMS.size():
+		var rr := _tile(i)
+		var col := Color("dddddd")
+		if cleared.has(i):
+			col = GOOD.lightened(0.45)
+		elif _open(i):
+			col = WHITE
+		c.draw_rect(rr, col)
+		c.draw_rect(rr, ME if i == lv else INK, false, 5.0 if i == lv else 2.0)
+		var s := String(ROOMS[i].name).get_slice(" ", 0)
+		if cleared.has(i):
+			s += "✓"
+		elif not _open(i):
+			s = "·"
+		c.draw_string(_font, rr.position + Vector2(0, 26), s, HORIZONTAL_ALIGNMENT_CENTER, rr.size.x, 20, INK)
+
+
+func _load_cleared() -> void:
+	cleared = {}
+	if not FileAccess.file_exists(SAVE_V3):
+		return
+	var f := FileAccess.open(SAVE_V3, FileAccess.READ)
+	if f == null:
+		return
+	var d: Variant = JSON.parse_string(f.get_as_text())
+	if d is Dictionary:
+		for v in d.get("cleared", []):
+			cleared[int(v)] = true
+
+
+func _save_cleared() -> void:
+	var f := FileAccess.open(SAVE_V3, FileAccess.WRITE)
+	if f:
+		f.store_string(JSON.stringify({"cleared": cleared.keys()}))

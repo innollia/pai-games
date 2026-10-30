@@ -76,6 +76,12 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" && GIT_TERMINAL_PROMPT=
 - 퍼즐 방은 퍼즐 전담(Agent model fable, effort high)이 `PUZZLE_DESIGN.md`를 읽고 짠다. 큰 파일을 한 번에 쓰면 64k 출력 한도에 걸리니 "Edit 여러 번, 한 번에 300줄 이하"를 브리프에 넣는다.
 - smoke가 Godot 머리말만 찍고 멈추는 일이 두 번 있었다(다른 Godot 프로세스와 겹칠 때로 보임). 다시 돌리면 된다. 빌드 전 `Get-CimInstance Win32_Process`로 Godot이 안 도는지 본다(제출준비작 세션도 같은 web/을 빌드).
 
+## 현재 상태 (7세대 대멸종 끝, 10/31)
+
+- 메뉴 본 목록은 ● 2 + 생존 8개뿐(overpower, overpower_edit, quicksilver_fp, screenrace_over, tinyplanet, scale_prison, compress, stretch_roll). 멸종 10개는 2차 폐기, speed_snake·climb_race는 보류. 자세한 건 GA.md "7세대 = 대멸종".
+- 다음 세대는 생존작의 새 별점부터. 새 게임을 다시 만들지는 사용자가 정한다(7세대에 "새로운 거 만들지 말자").
+- 7세대 공통 브리프: 5세대 스크래치 폴더의 `ga7_common.md`.
+
 ## 저장소 메모
 
 - `games/blade_path/`는 이 세션이 만든 것이 아니다(10/30 저녁에 생김, 미추적). 손대지 않았다.

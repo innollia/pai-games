@@ -3,8 +3,9 @@ extends Tofu
 ## 손잡이 끈의 반대편 끝엔 감방(무게)이 매달려 있다. 잡으면 빗장이 풀려 감방이 떨어지고 나는 끌려 올라간다. 오래 잡을수록 빨라진다.
 ## 속도는 몸으로 읽는다: 빨라질수록 몸이 늘어나고 빨개지며 팔이 빠지려 늘어나고, 끈이 팽팽히 떨리고, 바람 줄무늬가 지나가고, 떨어지는 감방과 그 착지대가 같은 화면에 보인다.
 ## 끝까지 잡으면 감방이 착지대에 쾅 → 팔이 빠져 그 속도로 날아간다. 알맞은 때 놓아 턱에 손을 걸친다. 세게 부딪히면 으깨진다.
-## 구역 1 수직 감방(놓는 높이), 2 엇갈린 감방(그네 + 떨어지는 감방 문), 3 빈 저울(죄수를 업어 내 무게를 바꾼다, "놓기"),
+## 구역 1 수직 감방(놓는 높이, 착지대 거리 = 끝 속도, 팔 빠짐 = 발사), 2 엇갈린 감방(그네 + 떨어지는 감방 문 + 되감기 승강기), 3 빈 저울(죄수를 업어 내 무게를 바꾼다, "놓기", 끈마다 다른 무게),
 ## 4 눕는 탑(비스듬한 끈: 짧아질수록 그네가 저절로 빨라진다, 올라가는 흔들림에서 놓기), 5 출구의 저울(지금까지 떨군 감방이 쌓인 추가 발사 속도를 정한다, 죄수 업기로 맞춘다).
+## v3: 방 15개, '방' 버튼으로 깬 방까지 고르기(user:// 저장), '다시'. 속도 표시: 감방 줄의 빨간 "팔 빠짐 선"(지금 무게로 여기 지나면 팔이 빠진다), HUD 속도 자(14 팔·17 으깨·22 추락)와 무게 저울.
 # 한 문장: 나는 저울 감옥의 죄수 추로서 끈 반대편 감방이 떨어지는 힘으로만 움직이는 제약 속에서 손잡이를 잡고 놓아 출구까지 오르지만, 오래 잡을수록 빨라져 팔이 빠지거나 벽에 으깨지는 대가를 감수한다.
 
 const G := 30.0
@@ -31,14 +32,29 @@ const ZONES := ["수직 감방", "엇갈린 감방", "빈 저울", "눕는 탑",
 const ROOMS := [
 	{"zone": 0, "name": "첫 저울", "n": 1},
 	{"zone": 0, "name": "갈아잡기", "n": 2},
+	{"zone": 0, "name": "짧은 끈", "n": 3},
+	{"zone": 0, "name": "팔 빠짐 발사", "n": 4},
 	{"zone": 1, "name": "그네", "n": 1},
 	{"zone": 1, "name": "내려오는 감방", "n": 2},
+	{"zone": 1, "name": "느린 승강기", "n": 3},
+	{"zone": 1, "name": "흔들어 올라타기", "n": 4},
 	{"zone": 2, "name": "무거운 몸", "n": 1},
 	{"zone": 2, "name": "빈 저울", "n": 2},
+	{"zone": 2, "name": "갈아타는 무게", "n": 3},
 	{"zone": 3, "name": "기운 끈", "n": 1},
 	{"zone": 3, "name": "지그재그", "n": 2},
+	{"zone": 3, "name": "탑 꼭대기", "n": 3},
 	{"zone": 4, "name": "결산", "n": 1},
 ]
+const SAVE_V3 := "user://scale_prison_v3.json"
+const TRIM := Color("fff6e0")
+
+
+class _Hud extends Control:
+	var k
+
+	func _draw() -> void:
+		k._hud_draw(self)
 # 구역마다 색: 벽, 뒷벽, 뒷벽 무늬
 const PAL := [
 	[Color("c9b48f"), Color("efe1c4"), Color("e2cfa8")],
@@ -98,20 +114,88 @@ var strain := 0.0  # 0~1 팔이 빠질 만큼 빠른 정도 (몸·끈·소리로
 var warn_t := 0.0
 var zone := 0
 var tilt := 0.0
+var hud: _Hud
+var cleared := {}  # 깬 방 번호 -> true (user:// 저장)
+var picking := false  # 방 고르기 판이 떠 있음
+var near_h := -1  # 손이 닿는 손잡이 (초록)
+var show_v := 0.0  # HUD 속도 자에 보이는 속도
+
 
 func _setup() -> void:
 	time_limit = 0.0
 	cam.fov = 56.0
-	howto = "스틱: 걷기·흔들기. '잡기'를 누르는 동안 손잡이를 잡는다(떼면 놓음).\n반대편 감방이 떨어지는 만큼 나는 끌려 올라간다. 오래 잡을수록 빨라져 몸이 늘어나고 빨개진다.\n감방이 빨간 착지대에 닿기 전에 놓아라. 늦으면 팔이 빠져 날아간다. 턱에 손이 닿으면 올라선다.\n가시·세게 부딪힘·높은 추락은 죽음. 3구역부터 죄수를 업으면 무거워진다('놓기')."
+	howto = "스틱: 걷기·흔들기. '잡기'를 누르는 동안 손잡이를 잡는다(떼면 놓음).\n반대편 감방이 떨어지는 만큼 나는 끌려 올라간다. 오래 잡을수록 빨라져 몸이 늘어나고 빨개진다.\n감방 줄의 빨간 선 = 지금 무게로 감방이 거기 지나면 끈이 멈출 때 팔이 빠진다. 초록이면 끝까지 잡아도 안전.\n위 속도 자: 14 팔 빠짐·17 으깨짐·22 추락. 턱에 손이 닿으면 올라선다. 막히면 '다시', 깬 방 고르기는 '방'."
 	kit_stick()
 	kit_button("grab", "잡기", Vector2(600, 1100), 110.0, A)
+	kit_button("retry", "다시", Vector2(420, 1060), 50.0, B)
+	kit_button("rooms", "방", Vector2(420, 1200), 50.0, C)
+	var layer := CanvasLayer.new()
+	layer.layer = 4
+	add_child(layer)
+	hud = _Hud.new()
+	hud.k = self
+	hud.size = Vector2(720, 1280)
+	hud.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(hud)
+	_load_cleared()
 
 
 func _reset() -> void:
-	lv = 0
-	dropped = 0
 	stage = null
-	_room(0)
+	picking = false
+	lv = 0
+	for i in ROOMS.size():
+		if not cleared.has(i):
+			lv = i
+			break
+	dropped = cleared.size()
+	_room(lv)
+
+
+# ---- 깬 방 기록·방 고르기 ----
+func _load_cleared() -> void:
+	cleared = {}
+	if not FileAccess.file_exists(SAVE_V3):
+		return
+	var f := FileAccess.open(SAVE_V3, FileAccess.READ)
+	if f == null:
+		return
+	var d: Variant = JSON.parse_string(f.get_as_text())
+	if d is Dictionary:
+		for v in d.get("cleared", []):
+			cleared[int(v)] = true
+
+
+func _save_cleared() -> void:
+	var f := FileAccess.open(SAVE_V3, FileAccess.WRITE)
+	if f:
+		f.store_string(JSON.stringify({"cleared": cleared.keys()}))
+
+
+func _open(i: int) -> bool:
+	return i == 0 or cleared.has(i) or cleared.has(i - 1)
+
+
+func _tile(i: int) -> Rect2:
+	var z: int = ROOMS[i].zone
+	var n: int = ROOMS[i].n
+	return Rect2(176 + (n - 1) * 132, 300 + z * 104, 120, 72)
+
+
+func _tap(p: Vector2) -> void:
+	if not picking:
+		return
+	for i in ROOMS.size():
+		if _tile(i).has_point(p):
+			if _open(i):
+				play("tap")
+				picking = false
+				lv = i
+				_room(i)
+			else:
+				beep(150.0, 0.08, 0.0, 0.2)
+			return
+	picking = false
 
 
 # ---- 방 만들기 ----
@@ -158,6 +242,9 @@ func _rope(c: int, y: int, rs: float, rmin: float, rmax: float, m: float, dx: fl
 		var pg := o + Vector2(sin(th0), -cos(th0)) * rs
 		box(Vector3(pg.x, pg.y + 0.2, -0.5), Vector3(0.25, 0.6, 0.3), BEAMC, stage)
 	rp.stack = []
+	# 팔 빠짐 선: 지금 무게로 감방 꼭대기가 이 높이를 지나면 끈이 멈출 때 팔이 빠진다 (초록 = 끝까지 안전)
+	rp.tm = box(Vector3(o.x + dx, low, -0.15), Vector3(CW + 0.9, 0.14, 0.9), BAD, stage)
+	rp.tmf = box(Vector3(o.x + dx + CW * 0.5 + 0.6, low + 0.25, -0.15), Vector3(0.5, 0.36, 0.3), BAD, stage)
 	# 감방이 빠르게 떨어질 때 위로 남는 줄무늬
 	rp.cs = [box(Vector3.ZERO, Vector3(0.06, 1.0, 0.06), WHITE, stage), box(Vector3.ZERO, Vector3(0.06, 1.0, 0.06), WHITE, stage)]
 	ropes.append(rp)
@@ -171,7 +258,10 @@ func _pris(x: float, feet: float) -> void:
 
 func _door(c: int, y: int) -> void:
 	door = Rect2(c, y, 1.0, 2.0)
+	box(Vector3(c + 0.5, y + 1.15, -0.85), Vector3(1.7, 2.6, 0.3), INK.lerp(GOOD, 0.35), stage)  # 문틀
 	box(Vector3(c + 0.5, y + 1.0, -0.6), Vector3(1.1, 2.0, 0.6), GOOD, stage)
+	box(Vector3(c + 0.5, y + 1.3, -0.28), Vector3(0.45, 0.5, 0.06), SKY, stage)  # 창 (바깥 하늘)
+	box(Vector3(c + 0.5, y + 2.75, -0.8), Vector3(1.0, 0.5, 0.25), D, stage)  # 출구 등
 
 
 func _build(i: int) -> void:
@@ -192,7 +282,23 @@ func _build(i: int) -> void:
 			_rope(7, 26, 13.0, 1.5, 13.0, 2.5, 4.0)
 			start = Vector2(5.5, 1.0)
 			_door(2, 25)
-		2:  # 그네: 가시 구덩이 위를 흔들어 건넌다
+		2:  # 짧은 끈: 착지대가 가까운 끈 A(6칸, 끝 11)는 끝까지 잡아도 팔이 안 빠진다 → 매달려 턱에. 끈 B(9.6칸, 감방 2.5, 끝 15.7)는 중간(손 14~18)에서 놓아 높은 턱
+			_grid(18, 24)
+			_fill(5, 1, 7, 8, SOLID)
+			_fill(8, 1, 16, 16, SOLID)
+			_fill(5, 22, 9, 22, SPIKE)
+			_fill(1, 1, 2, 3, SOLID)
+			_rope(4, 12, 10.1, 4.1, 10.1, 2.0, -2.5)
+			_rope(7, 21, 11.1, 1.5, 11.1, 2.5, -2.5)
+			start = Vector2(3.6, 1.0)
+			_door(12, 17)
+		3:  # 팔 빠짐 발사: 위가 열려 있고 턱이 가깝다. 끝까지 잡아 팔이 빠지면 그 속도(16)로 솟아 턱(18)에 손이 걸린다. 중간에 놓으면 모자라 추락
+			_grid(14, 26)
+			_fill(5, 1, 12, 17, SOLID)
+			_rope(4, 16, 14.1, 1.5, 14.1, 2.0, -2.5)
+			start = Vector2(3.3, 1.0)
+			_door(10, 18)
+		4:  # 그네: 가시 구덩이 위를 흔들어 건넌다
 			_grid(23, 14)
 			_fill(1, 1, 4, 4, SOLID)
 			_fill(17, 1, 21, 4, SOLID)
@@ -201,7 +307,7 @@ func _build(i: int) -> void:
 			_rope(11, 12, 6.5, 5.0, 6.5, 1.6, 3.0)
 			start = Vector2(3.0, 5.0)
 			_door(20, 5)
-		3:  # 내려오는 감방: 잡은 끈의 감방이 앞길을 가로질러 떨어진다 (일찍 밑으로 / 늦게 위로)
+		5:  # 내려오는 감방: 잡은 끈의 감방이 앞길을 가로질러 떨어진다 (일찍 밑으로 / 늦게 위로)
 			_grid(29, 14)
 			_fill(1, 1, 4, 4, SOLID)
 			_fill(23, 1, 27, 4, SOLID)
@@ -211,7 +317,25 @@ func _build(i: int) -> void:
 			_rope(17, 12, 6.5, 2.0, 6.5, 1.6, 2.0)
 			start = Vector2(3.0, 5.0)
 			_door(26, 5)
-		4:  # 무거운 몸: 죄수 둘을 업고 시작. 둘이면 감방과 무게가 같아 꼼짝 않고, 다 내려놓으면 너무 빨라 팔이 빠진다
+		6:  # 느린 승강기: 끈은 짧아(7칸, 끝 12) 끝까지 잡아도 안전. 매달린 데서 놓아 착지한 감방 위로 떨어지면, 되감기는 감방이 4칸/초로 나를 턱(18)까지 올린다
+			_grid(14, 22)
+			_fill(1, 1, 5, 9, SOLID)
+			_fill(7, 1, 8, 7, SOLID)
+			_fill(9, 1, 12, 17, SOLID)
+			_fill(6, 1, 6, 1, SPIKE)
+			_rope(6, 19, 8.7, 1.5, 8.7, 2.0, 1.85, 3.0)
+			start = Vector2(4.5, 10.0)
+			_door(11, 18)
+		7:  # 흔들어 올라타기: 승강기 감방이 멀다(3.5칸). 매달린 채 스틱으로 흔들어 오른쪽으로 솟는 순간 놓아야 감방 위에 떨어진다
+			_grid(16, 22)
+			_fill(1, 1, 5, 9, SOLID)
+			_fill(7, 1, 9, 7, SOLID)
+			_fill(10, 1, 14, 17, SOLID)
+			_fill(6, 1, 6, 1, SPIKE)
+			_rope(6, 19, 8.7, 1.5, 8.7, 2.0, 2.85, 3.0)
+			start = Vector2(4.5, 10.0)
+			_door(12, 18)
+		8:  # 무거운 몸: 죄수 둘을 업고 시작. 둘이면 감방과 무게가 같아 꼼짝 않고, 다 내려놓으면 너무 빨라 팔이 빠진다
 			_grid(14, 20)
 			_fill(8, 1, 12, 13, SOLID)
 			_fill(1, 17, 12, 17, SPIKE)
@@ -219,7 +343,7 @@ func _build(i: int) -> void:
 			start = Vector2(5.0, 1.0)
 			carry0 = 2
 			_door(10, 14)
-		5:  # 빈 저울: 감방이 나보다 무겁다(1.4). 죄수를 업어야 내려가고, 많이 업으면 바닥에서 팔이 빠진다. 올라오는 감방과 엇갈린다
+		9:  # 빈 저울: 감방이 나보다 무겁다(1.4). 죄수를 업어야 내려가고, 많이 업으면 바닥에서 팔이 빠진다. 올라오는 감방과 엇갈린다
 			_grid(16, 22)
 			_fill(1, 1, 5, 15, SOLID)
 			_fill(9, 1, 14, 2, SOLID)
@@ -230,7 +354,19 @@ func _build(i: int) -> void:
 			_pris(2.3, 16.0)
 			_pris(3.1, 16.0)
 			_door(13, 3)
-		6:  # 기운 끈: 말뚝에 걸린 비스듬한 손잡이. 잡으면 감방이 끌어당기며 그네가 저절로 빨라진다. 오른쪽으로 솟는 흔들림에서 놓는다
+		10:  # 갈아타는 무게: 끈 A(감방 2.8, 12.6칸)는 둘 업어야 끝 11로 안전(안 업으면 18.9 팔 빠져 가시). 중간 턱에서 다 내려놓아야 끈 B(감방 1.4)가 올린다
+			_grid(17, 31)
+			_fill(6, 1, 10, 14, SOLID)
+			_fill(10, 16, 15, 25, SOLID)
+			_fill(3, 20, 5, 20, SPIKE)
+			_rope(5, 16, 14.1, 1.5, 14.1, 2.8, -3.5)
+			_rope(9, 28, 12.1, 1.5, 12.1, 1.4, -2.5)
+			start = Vector2(5.3, 1.0)
+			_pris(3.0, 1.0)
+			_pris(3.7, 1.0)
+			_pris(4.4, 1.0)
+			_door(12, 26)
+		11:  # 기운 끈: 말뚝에 걸린 비스듬한 손잡이. 잡으면 감방이 끌어당기며 그네가 저절로 빨라진다. 오른쪽으로 솟는 흔들림에서 놓는다
 			_grid(24, 16)
 			_fill(1, 1, 4, 4, SOLID)
 			_fill(19, 1, 22, 8, SOLID)
@@ -238,7 +374,7 @@ func _build(i: int) -> void:
 			_rope(13, 13, 10.5, 3.5, 10.5, 1.6, -3.0, 1.5, -0.84)
 			start = Vector2(3.0, 5.0)
 			_door(21, 9)
-		7:  # 지그재그: 비스듬한 끈 A로 오른쪽 선반, 끈 B로 왼쪽까지 흔들렸다가 짧아진 끈이 되돌려 올리는 흔들림에서 오른쪽 위 출구로
+		12:  # 지그재그: 비스듬한 끈 A로 오른쪽 선반, 끈 B로 왼쪽까지 흔들렸다가 짧아진 끈이 되돌려 올리는 흔들림에서 오른쪽 위 출구로
 			_grid(26, 26)
 			_fill(1, 1, 3, 3, SOLID)
 			_fill(4, 1, 24, 1, SPIKE)
@@ -248,7 +384,18 @@ func _build(i: int) -> void:
 			_rope(10, 22, 17.4, 5.5, 17.4, 1.5, -4.0, 1.5, 0.53)
 			start = Vector2(2.5, 4.0)
 			_door(23, 18)
-		8:  # 출구의 저울: 반대편 감방에 지금까지 떨군 감방이 쌓여 있다. 무거우면 세게 쏜다 → 죄수를 업어 맞춘다
+		13:  # 탑 꼭대기: 기운 끈 그네 → 낮은 받침 턱(7) → 긴 수직 끈(16.6칸, 끝 15.1). 천장 가시라 끝까지 잡으면 죽음, 손 17~22에서 놓아 내려오며 꼭대기 턱(20)
+			_grid(24, 28)
+			_fill(1, 1, 4, 4, SOLID)
+			_fill(19, 1, 22, 6, SOLID)
+			_fill(5, 1, 18, 1, SPIKE)
+			_fill(1, 14, 19, 19, SOLID)
+			_fill(18, 26, 22, 26, SPIKE)
+			_rope(13, 13, 10.5, 3.5, 10.5, 1.6, -3.0, 1.5, -0.84)
+			_rope(20, 27, 19.1, 1.5, 19.1, 1.6, 1.8)
+			start = Vector2(3.0, 5.0)
+			_door(3, 20)
+		14:  # 출구의 저울: 반대편 감방에 지금까지 떨군 감방이 쌓여 있다. 무거우면 세게 쏜다 → 죄수를 업어 맞춘다
 			_grid(26, 20)
 			_fill(1, 1, 4, 3, SOLID)
 			_fill(5, 1, 17, 1, SPIKE)
@@ -294,10 +441,20 @@ func _room(i: int) -> void:
 			if ch == SPIKE:
 				var sp := box(Vector3(c + 0.5, yy + 0.5, 0.0), Vector3(0.55, 0.55, 1.2), BAD, stage)
 				sp.rotation.z = PI * 0.25
+	# 바닥 윗면 테(밝은 띠): 서는 곳이 읽힌다
+	for yy in range(1, gh - 1):
+		var t0 := -1
+		for c in gw:
+			var top := c < gw - 1 and _solid(c, yy) and not _solid(c, yy + 1) and _ch(c, yy + 1) != SPIKE
+			if top and t0 < 0:
+				t0 = c
+			elif not top and t0 >= 0:
+				box(Vector3((t0 + c) * 0.5, yy + 0.96, 1.01), Vector3(c - t0, 0.1, 0.1), TRIM, stage)
+				t0 = -1
 	# 뒷벽과 눈금 (위아래·옆 속도를 읽는 기준)
 	box(Vector3(gw * 0.5, gh * 0.5, -1.4), Vector3(gw, gh, 0.2), pal[1], stage)
 	_deco(pal)
-	for yy in range(1, gh - 1, 2):
+	for yy in range(1, gh - 1, 3):
 		for c in range(1, gw - 1):
 			if _solid(c, yy):
 				continue
@@ -360,6 +517,8 @@ func _room(i: int) -> void:
 	clear_t = 0.0
 	cam_x = px
 	cam_y = py + 2.0
+	near_h = -1
+	show_v = 0.0
 	var title := "%s %d-%d\n%s" % [ZONES[zone], zone + 1, ROOMS[i].n, ROOMS[i].name]
 	if zone == 4:
 		title += "\n떨군 감방 %d개 = 추 무게" % dropped
@@ -383,6 +542,22 @@ func _deco(pal: Array) -> void:
 		clouds.append([cl, wr, randf_range(0.3, 0.7)])
 		for b in 3:
 			box(Vector3(wx - 0.6 + b * 0.6, wy, -1.2), Vector3(0.1, 1.8, 0.05), dc.darkened(0.25), stage)
+	# 천장에서 늘어진 쇠사슬과 벽 횃불 (감옥 분위기)
+	for k in 3:
+		var cx := 1.5 + (k * 2 + 1) * (gw - 3.0) / 6.0
+		var cl2 := clampf(gh * randf_range(0.15, 0.35), 2.0, 9.0)
+		if _solid(floori(cx), gh - 2):
+			continue
+		box(Vector3(cx, gh - 1.0 - cl2 * 0.5, -1.22), Vector3(0.09, cl2, 0.05), INK.lerp(dc, 0.5), stage)
+		box(Vector3(cx, gh - 1.0 - cl2, -1.2), Vector3(0.3, 0.3, 0.06), INK.lerp(dc, 0.3), stage)
+	for k in 2:
+		var tx := gw * (0.25 + 0.5 * k)
+		var ty := gh * 0.62
+		if _solid(floori(tx), floori(ty)) or _solid(floori(tx), floori(ty) + 1):
+			continue
+		box(Vector3(tx, ty, -1.2), Vector3(0.14, 0.7, 0.08), BEAMC, stage)
+		box(Vector3(tx, ty + 0.55, -1.2), Vector3(0.36, 0.42, 0.1), A, stage)
+		box(Vector3(tx, ty + 0.85, -1.19), Vector3(0.18, 0.26, 0.08), D, stage)
 	if zone == 3:
 		for k in 3:
 			var pl := box(Vector3(3.0 + k * gw / 3.0, gh * 0.5, -1.3), Vector3(0.6, gh * 0.9, 0.05), dc, stage)
@@ -454,6 +629,18 @@ func _cell_rect(rp: Dictionary) -> Rect2:
 func _step(dt: float) -> void:
 	var h := minf(dt, 1.0 / 30.0)
 	anim += dt
+	hud.queue_redraw()
+	if kit_just("rooms") and clear_t <= 0.0:
+		picking = not picking
+		beep(700.0 if picking else 500.0, 0.06, 0.0, 0.15)
+	if picking:
+		gauge(float(cleared.size()) / ROOMS.size(), GOOD)
+		return
+	if kit_just("retry") and die_t <= 0.0 and clear_t <= 0.0:
+		beep(400.0, 0.08, 250.0, 0.2)
+		_room(lv)
+		msg("다시", 0.5)
+		return
 	if die_t > 0.0:
 		die_t -= dt
 		_view(dt)
@@ -483,10 +670,37 @@ func _step(dt: float) -> void:
 		_prisoners(h)
 		_check()
 	_sounds(h)
-	# 속도는 막대가 아니라 몸·끈·소리로 보인다. 위 막대는 진행만
+	# 속도는 몸·끈·소리 + HUD 속도 자로 보인다. 위 막대는 깬 방 수
 	strain = clampf(absf(float(ropes[ri].rd)) / TEAR, 0.0, 1.2) if ri >= 0 else 0.0
-	gauge(float(lv) / ROOMS.size(), B)
+	var vnow := absf(float(ropes[ri].rd)) if ri >= 0 else Vector2(vx, vy).length()
+	show_v = lerpf(show_v, vnow, 1.0 - exp(-12.0 * dt))
+	near_h = -1
+	if ri < 0 and die_t <= 0.0:
+		var hands := Vector2(px, py + ARM)
+		var bd := GRAB_R
+		for k in ropes.size():
+			var d := hands.distance_to(_handle(ropes[k]))
+			if d < bd and float(ropes[k].cd) <= 0.0:
+				bd = d
+				near_h = k
+	gauge(float(cleared.size()) / ROOMS.size(), GOOD)
 	_view(dt)
+
+
+## 수직 끈에서 지금 무게로 끈이 멈출 때(감방 착지) 속도가 TEAR가 되는 끈 길이. 그보다 길면(아직 덜 떨어졐으면) 안전.
+## 음수면 끝까지 잡아도 팔이 안 빠진다. 잡고 있으면 지금 속도까지 넣는다.
+func _tear_r(rp: Dictionary, mine: bool) -> float:
+	var m := _mass()
+	var bm: float = rp.M
+	var a := G * (bm - m) / (bm + m)
+	if a <= 0.05:
+		return -1.0
+	var r0: float = rp.r if (mine or not bool(rp.lock)) else float(rp.rs)
+	var v0 := float(rp.rd) if mine else 0.0
+	var need := (TEAR * TEAR - v0 * v0) / (2.0 * a)
+	if need <= 0.0:
+		return r0
+	return r0 - need
 
 
 func _control(h: float) -> void:
@@ -890,6 +1104,9 @@ func _check() -> void:
 		for rp in ropes:
 			if bool(rp.used):
 				dropped += 1
+		if not cleared.has(lv):
+			cleared[lv] = true
+			_save_cleared()
 		_release(1.0)
 		clear_t = 1.0
 		vx = 0.0
@@ -965,6 +1182,26 @@ func _view(dt: float) -> void:
 		var hd: MeshInstance3D = rp.handle
 		hd.position = Vector3(hp.x, hp.y, 0.0)
 		hd.rotation.z = th
+		hd.material_override = mat(GOOD if k == near_h else A)
+		hd.scale = Vector3(0.6, 0.18, 0.3) * (1.0 + 0.12 * sin(anim * 9.0) if k == near_h else 1.0)
+		# 팔 빠짐 선: 감방 꼭대기가 이 높이를 지나면 끈이 멈출 때 팔이 빠진다
+		var tr := _tear_r(rp, mine)
+		var tm: MeshInstance3D = rp.tm
+		var tmf: MeshInstance3D = rp.tmf
+		var low2: float = o.y - LC0 - (float(rp.rmax) - float(rp.rmin)) - float(rp.chh)
+		var ty := low2 + float(rp.chh)  # 착지한 감방 꼭대기
+		var safe := tr < float(rp.rmin) + 0.05  # 끝까지 잡아도 팔 빠짐 속도에 못 미침
+		if not safe:
+			ty = o.y - LC0 - (float(rp.rmax) - tr)
+		var ttop := o.y - LC0 - (float(rp.rmax) - float(rp.rs))
+		tm.visible = die_t <= 0.0 and ty <= ttop + 0.05
+		var tcol := GOOD if safe else (BAD if (mine and strain > 0.55) else Color("ff6b6b"))
+		tm.material_override = mat(tcol)
+		tmf.material_override = mat(tcol)
+		tmf.visible = tm.visible
+		tm.position = Vector3(o.x + float(rp.dx), ty, -0.15)
+		tm.scale = Vector3(CW + 0.9, 0.14 if not mine else 0.14 + 0.1 * strain, 0.9)
+		tmf.position = Vector3(o.x + float(rp.dx) + CW * 0.5 + 0.6, ty + 0.25, -0.15)
 		var pul: MeshInstance3D = rp.pul
 		pul.rotation.z = -r * 1.6
 		var pul2: MeshInstance3D = rp.pul2
@@ -1117,3 +1354,69 @@ func _view(dt: float) -> void:
 	cam.position.y = cam_y + off.y
 	cam.rotation = Vector3(0.0, 0.0, tilt + off.x * 0.02)
 	cam.fov = lerpf(cam.fov, 56.0 + minf(speed, 30.0) * 0.3, k2)
+
+
+## HUD: 속도 자(지금 속도와 14 팔·17 으깨·22 추락 눈금), 무게 저울, 방 고르기 판
+func _hud_draw(c: Control) -> void:
+	if over:
+		return
+	var y0 := 244.0
+	c.draw_rect(Rect2(60, y0, 600, 26), Color(1, 1, 1, 0.9))
+	var vmax := 26.0
+	var w := 600.0 * clampf(show_v / vmax, 0.0, 1.0)
+	var vcol := ME if show_v < TEAR else (A if show_v < CRUSH else BAD)
+	c.draw_rect(Rect2(60, y0, w, 26), vcol)
+	c.draw_rect(Rect2(60, y0, 600, 26), INK, false, 2.0)
+	for tk: Array in [[TEAR, "팔 14", A], [CRUSH, "으깨 17", BAD], [FALL, "추락 22", BAD]]:
+		var tx := 60.0 + 600.0 * float(tk[0]) / vmax
+		c.draw_rect(Rect2(tx - 2, y0 - 6, 4, 38), tk[2])
+		c.draw_string(_font, Vector2(tx - 50, y0 + 54), tk[1], HORIZONTAL_ALIGNMENT_CENTER, 100, 20, tk[2])
+	var vs := "속도 %.0f" % show_v
+	if ri >= 0:
+		vs += "  (잡는 중: 감방이 떨어지는 속도)"
+	elif not on_floor and show_v > 1.0:
+		vs += "  (나는 중)"
+	c.draw_string(_font, Vector2(64, y0 + 20), vs, HORIZONTAL_ALIGNMENT_LEFT, 500, 20, WHITE if w > 180.0 else INK)
+	# 무게 저울: 잡은(또는 손 닿는) 끈의 감방과 나
+	var k := ri if ri >= 0 else near_h
+	var m := _mass()
+	var ws := "나 %.1f" % m
+	if k >= 0:
+		var bm: float = ropes[k].M
+		var a := G * (bm - m) / (bm + m)
+		var arrow := "◁" if a > 0.3 else ("▷" if a < -0.3 else "=")
+		ws = "나 %.1f %s 감방 %.1f   " % [m, arrow, bm]
+		if a > 0.3:
+			ws += "매초 +%.0f 빨라짐" % a
+		elif a < -0.3:
+			ws += "내가 더 무겁다 (내려감 %.0f)" % -a
+		else:
+			ws += "같은 무게 = 꼼짝 안 함"
+	c.draw_string(_font, Vector2(64, y0 + 82), ws, HORIZONTAL_ALIGNMENT_LEFT, 600, 24, INK)
+	c.draw_string(_font, Vector2(64, y0 + 110), "%d-%d %s" % [zone + 1, ROOMS[lv].n, ROOMS[lv].name], HORIZONTAL_ALIGNMENT_LEFT, 600, 22, INK.lerp(WHITE, 0.3))
+	if not picking:
+		return
+	c.draw_rect(Rect2(16, 240, 688, 570), Color(1, 1, 1, 0.96))
+	c.draw_rect(Rect2(16, 240, 688, 570), INK, false, 4.0)
+	c.draw_string(_font, Vector2(40, 282), "방 고르기  (깬 방 %d/%d)" % [cleared.size(), ROOMS.size()], HORIZONTAL_ALIGNMENT_LEFT, 640, 32, INK)
+	for z in ZONES.size():
+		var pal: Array = PAL[z]
+		c.draw_rect(Rect2(30, 300 + z * 104, 136, 72), pal[1])
+		c.draw_rect(Rect2(30, 300 + z * 104, 136, 72), pal[0], false, 3.0)
+		c.draw_string(_font, Vector2(30, 300 + z * 104 + 30), str(z + 1), HORIZONTAL_ALIGNMENT_CENTER, 136, 26, INK)
+		c.draw_string(_font, Vector2(30, 300 + z * 104 + 58), ZONES[z], HORIZONTAL_ALIGNMENT_CENTER, 136, 20, INK)
+	for i in ROOMS.size():
+		var rr := _tile(i)
+		var pal: Array = PAL[ROOMS[i].zone]
+		var col: Color = pal[0] if cleared.has(i) else (pal[1] if _open(i) else Color("dddddd"))
+		c.draw_rect(rr, col)
+		c.draw_rect(rr, ME if i == lv else INK, false, 5.0 if i == lv else 3.0)
+		var s := "%d-%d" % [ROOMS[i].zone + 1, ROOMS[i].n]
+		if cleared.has(i):
+			s += " ✓"
+		elif not _open(i):
+			s = "잠김"
+		c.draw_string(_font, rr.position + Vector2(0, 30), s, HORIZONTAL_ALIGNMENT_CENTER, rr.size.x, 24, INK)
+		if _open(i):
+			c.draw_string(_font, rr.position + Vector2(0, 58), ROOMS[i].name, HORIZONTAL_ALIGNMENT_CENTER, rr.size.x, 16, INK)
+	c.draw_string(_font, Vector2(40, 790), "바깥을 탭하면 닫힘", HORIZONTAL_ALIGNMENT_LEFT, 640, 20, INK.lerp(WHITE, 0.4))

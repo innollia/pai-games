@@ -165,3 +165,24 @@
 | wheel_down | ★1 | – | 2차 폐기 |
 | tooslow_rpg | ★2 | "추가 규칙이 사소해 메리트 없음" | 2차 폐기 |
 | boulder_fp, coming_fp, fallcards, tooslow | ★2 | – | 2차 폐기 |
+
+## 7세대 = 대멸종 (10/31, 평가 68건, 사용자: "새로운 거 만들지 말고 지금 것 안에서 자연선택 대멸종")
+
+새 게임·자식 0개. 살아남은 것만 한마디대로 강화한다.
+
+선택 기준(최근 판 기준):
+- 생존: 최근 판 별 4 이상 → 한마디대로 강화.
+- 멸종(2차 폐기로): 최근 판 별 3 이하, 또는 평가 기회가 여러 번 있었는데 별이 한 번도 없음.
+- 보류: 아직 평가 기회가 한 번뿐이었던 새 게임(5·6세대 자식).
+- 별 없이 강한 칭찬 한마디가 있는 것(늘어나는 돌: "엄청 재밌는데 스테이지 못 깨서")은 생존, 한 번 더 기회.
+- ● 제출준비작(boulder, screenrace)은 전담 세션 담당이라 선택 대상이 아니다.
+
+| 결과 | 게임 |
+|---|---|
+| 생존 + 강화 | quicksilver_fp v3★5 → v4(쉽게, 세이브포인트, 강화 설명), scale_prison v2★4 → v3(스테이지 추가, 선택, 속도 보이기), compress v2★4 → v3(스테이지 선택 + 추가), tinyplanet v3★4 → v4(행성 사이 실제 중력 비행) |
+| 생존(그대로) | overpower v5(새 판 평가 대기) + overpower_edit, screenrace_over(★5), stretch_roll v3(칭찬 한마디) |
+| 멸종 | rain_slow(v3★2), molten(v2★2), coming_boulder(v2★2), snapshot(★2), bombcrawl(v2★2), phase_runner(v2★2), echo_bat(★2), deepsword(v1★3·v2 무평가), boulder_race·counterweight(여러 번 무평가) |
+| 보류 | speed_snake v1, climb_race v1 |
+
+GA 메모: 퍼즐 재설계를 한 phase_runner v2가 v1(★4)보다 낮게(★2) 나왔다. 퍼즐 전담 재설계가 항상 오르는 건 아니다. 한마디가 "활용법 연구"였는데 방 8개 전면 교체로 답한 것이 과했다. 한마디가 작으면 작게 고친다.
+
