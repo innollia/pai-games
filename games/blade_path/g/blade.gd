@@ -171,6 +171,8 @@ var win := 0.5
 var rdir := 0
 var sdir := 0
 var odir := 0
+## 연속기마다 방향을 섞는다(10/31): 패턴(박자·몇 번·속임수·같은 쪽 두 번)은 그대로, 쪽만 무작위로 바꿔 끼운다
+var dmap := [0, 1, 2, 3]
 var feint_at := -1.0
 var show_at := 0.0  # 거합: 이때부터 빨간 상자가 보인다
 var tell_at := -1.0  # 거합: 이때 눈이 번쩍 (이보다 먼저 휘두르면 헛공격)
@@ -954,7 +956,7 @@ func _link_show(on: bool) -> void:
 	if not on:
 		return
 	var nx: Array = _pat()[2][ci][mi + 1]
-	var d: int = nx[0]
+	var d: int = dmap[nx[0]]
 	var keep := sty
 	mi += 1
 	sty = _style(nx)
@@ -1187,8 +1189,10 @@ func _attack(linked := false) -> void:
 			tut_l.text = "이번엔 칼이 거의 닿을 때까지\n기다려요…"
 	else:
 		mv = _pat()[2][ci][mi]
-	sdir = mv[0]
-	rdir = mv[1]
+		if mi == 0 and not linked:
+			dmap.shuffle()
+	sdir = mv[0] if tut >= 0 else dmap[mv[0]]
+	rdir = mv[1] if tut >= 0 else dmap[mv[1]]
 	sty = 0 if tut >= 0 else _style(mv)
 	fs = 1
 	fs_t = 0.0
@@ -1432,7 +1436,7 @@ func _parry(perfect: bool) -> void:
 	fs_t = 0.0
 	gp = perfect
 	win = float(_pat()[1]) * (1.8 if perfect else 1.0) * (1.0 + 0.3 * _lv("gap"))
-	odir = OPP[rdir]
+	odir = OPP[rdir]  # 빈틈은 늘 마지막 칼이 온 쪽의 반대 (간파든 막기든)
 	_path(-1)
 	_show(odir)
 
