@@ -1,5 +1,6 @@
 extends Tofu
-## 일격의 길 (단독판): 화면을 밀어 칼 방향(왼·오·위·아래)을 잡고, 아래 [막기]·[베기] 버튼으로 막고 벤다.
+## 일격의 길 (단독판): [막기]·[베기] 버튼을 누른 채 왼·오·위·아래로 밀면 그쪽으로 바로 막고 벤다.
+## 버튼을 그냥 탭하면 마지막으로 잡은 방향으로. 화면 빈 곳을 밀어 방향만 미리 잡아 둘 수도 있다. 1인칭 내 칼은 없다.
 ## 적 칼은 그쪽으로 들어 올려지고 흐린 잔상이 지나갈 길을 보여 준다(색 없이 칼 모양만 봐도 안다). 초록 상자 = 빈틈.
 ## 끝까지 기다렸다 막으면 '간파'(세상이 느려짐).
 ## 켜면 튜토리얼부터: 맞는 쪽으로 밀 때까지 멈추고 알려 준다. 그다음 찌르기 → 속임수 → 베기 → 거합 검객이 두 바퀴 나오고
@@ -8,6 +9,8 @@ extends Tofu
 ## 막을 때마다 돈(간파는 3배). 쓰러지면 상점에서 업그레이드하고 "플레이"로 첫 검객부터 다시. 돈·업그레이드는 저장된다.
 
 const SWIPE := 60.0
+const BTN_SWIPE := 38.0  # 버튼 위에서 이만큼 밀면 그 방향으로 바로 발동
+const BTN_WAIT := 0.14  # 버튼을 밀지 않고 이만큼 누르고 있으면 잡아 둔 방향으로 발동
 const OFF := [Vector3(-1.5, 0, 0.7), Vector3(1.5, 0, 0.7), Vector3(0, 1.75, 0.7), Vector3(0, -1.75, 0.7)]
 const LEAN := [Vector3(-1, 0, 0), Vector3(1, 0, 0), Vector3(0, 1, 0), Vector3(0, -1, 0)]
 const OPP := [1, 0, 3, 2]
@@ -72,10 +75,10 @@ const PAT := [
 ## 튜토리얼 공격: 왼쪽(막기 연습), 위(간파 연습)
 const TUT_MV := [[0, 0, 1.2], [2, 2, 1.4]]
 const TUT_SAY := [
-	"칼이 왼쪽에서 와요 (흐린 칼 = 지나갈 길)\n화면을 왼쪽으로 밀어 칼을 대고 [막기]!",
-	"막았어요! (실전에선 막을 때마다 돈 +1냥)\n초록 상자 = 빈틈. 오른쪽으로 밀고 [베기]!",
-	"끝까지 기다렸다 막으면 '간파'!\n위로 밀고 [막기]!",
-	"간파: 돈 3배, 세상이 느려지고 빈틈이 길어요.\n아래로 밀고 [베기]!",
+	"칼이 왼쪽에서 와요 (흐린 칼 = 지나갈 길)\n[막기]를 누른 채 왼쪽으로 밀어요!",
+	"막았어요! (실전에선 막을 때마다 돈 +1냥)\n초록 상자 = 빈틈. [베기]를 누른 채 오른쪽으로!",
+	"끝까지 기다렸다 막으면 '간파'!\n[막기]를 누른 채 위로!",
+	"간파: 돈 3배, 세상이 느려지고 빈틈이 길어요.\n[베기]를 누른 채 아래로!",
 ]
 const ACT := ["막기", "베기"]
 ## 업그레이드: 키, 이름, 첫 값, 최대 단계. 값은 단계마다 첫 값만큼 오른다.
@@ -153,6 +156,7 @@ var shake_t := 0.0
 var blink := 0.0
 var start := Vector2.ZERO
 var armed := false
+var pend := {}  # 눌렀지만 아직 발동 안 한 버튼 -> 누른 시간
 # 화면 글자
 var info_l: Label
 var tut_box: ColorRect
@@ -357,6 +361,7 @@ func _reset() -> void:
 	world.add_child(rig)
 	sword = box(REST_P, Vector3(0.12, 1.7, 0.12), WHITE, rig)
 	sword.rotation.z = REST_R
+	sword.visible = false  # 1인칭 칼 없음 (눈앞 칼이 막은 것처럼 보여 헷갈렸다)
 	cam_base = CAM_O
 	cam.position = cam_base
 	cam.look_at(Vector3.ZERO)
@@ -540,7 +545,8 @@ func _start_run() -> void:
 	stun = 0.0
 	my_col = WHITE
 	sword.material_override = mat(my_col)
-	sword.visible = true
+	sword.visible = false
+	pend.clear()
 	slow = 0.0
 	floor_m.material_override = mat(SOFT)
 	_spawn(0)
@@ -614,10 +620,12 @@ func _step(dt: float) -> void:
 		if whiff_t <= 0.0:
 			floor_m.material_override = mat(B if slow > 0.0 else SOFT)
 	mode_t -= dt
-	if kit_just("guard"):
-		_act(0)
-	if kit_just("cut"):
-		_act(1)
+	# 버튼: 누르고 밀면 _btn_drag 에서 바로, 안 밀고 떼거나 잠깐 누르고 있으면 잡아 둔 방향으로
+	for k in ["guard", "cut"]:
+		if pend.has(k):
+			pend[k] += dt
+			if pend[k] >= BTN_WAIT:
+				_btn_fire(k)
 	match mode:
 		"intro", "shift":
 			_relax(dt)
@@ -660,7 +668,7 @@ func _step(dt: float) -> void:
 		sword.position = sword.position.lerp(REST_P if stance < 0 else POSE[stance], minf(1.0, dt * 16.0))
 		sword.rotation.z = lerpf(sword.rotation.z, REST_R if stance < 0 else TURN[stance], minf(1.0, dt * 16.0))
 	stance_l.visible = mode != "shop"
-	stance_l.text = "화면을 밀어 칼 방향 정하기" if stance < 0 else "칼 방향  %s" % ARROW[stance]
+	stance_l.text = "버튼을 누른 채 칼이 오는 쪽으로 밀기" if stance < 0 else "버튼을 밀어 방향 · 지금 %s" % ARROW[stance]
 	if flash_t > 0.0:
 		flash_t -= dt
 		if flash_t <= 0.0:
@@ -886,7 +894,7 @@ func _act(a: int) -> void:
 		var want: int = rdir if fs == 1 else odir
 		var want_a := 0 if fs == 1 else 1
 		if d != want:
-			msg("먼저 %s 쪽으로 밀어요!" % ARROW[want], 0.8)
+			msg("버튼을 누른 채 %s 쪽으로 밀어요!" % ARROW[want], 0.8)
 			beep(300.0, 0.05, 150.0, 0.1)
 			return
 		if a != want_a:
@@ -1085,6 +1093,35 @@ func _aim(d: int) -> void:
 
 func _lift(_p: Vector2) -> void:
 	armed = false
+
+
+func _btn_down(k: String, _p: Vector2) -> void:
+	if k == "guard" or k == "cut":
+		pend[k] = 0.0
+
+
+## 버튼을 누른 채 밀면: 민 쪽으로 방향을 잡고 그 자리에서 막기/베기
+func _btn_drag(k: String, p: Vector2) -> void:
+	if not pend.has(k):
+		return
+	var v: Vector2 = p - _btns[k].at
+	if v.length() < BTN_SWIPE:
+		return
+	if absf(v.x) > absf(v.y):
+		_aim(0 if v.x < 0.0 else 1)
+	else:
+		_aim(2 if v.y < 0.0 else 3)
+	_btn_fire(k)
+
+
+func _btn_up(k: String, _p: Vector2) -> void:
+	if pend.has(k):
+		_btn_fire(k)
+
+
+func _btn_fire(k: String) -> void:
+	pend.erase(k)
+	_act(0 if k == "guard" else 1)
 
 
 ## PC: 방향키/WASD = 칼 방향, J = 막기, K = 베기

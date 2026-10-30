@@ -532,6 +532,19 @@ func _drag(_p: Vector2) -> void:
 	pass
 
 
+## 버튼을 누름 / 누른 채 끄는 중 / 손을 뗌 (필요한 게임만 쓴다)
+func _btn_down(_n: String, _p: Vector2) -> void:
+	pass
+
+
+func _btn_drag(_n: String, _p: Vector2) -> void:
+	pass
+
+
+func _btn_up(_n: String, _p: Vector2) -> void:
+	pass
+
+
 func _lift(_p: Vector2) -> void:
 	pass
 
@@ -652,7 +665,9 @@ func _finger(id: int, p: Vector2, kind: int) -> void:
 		elif what.begins_with("b:"):
 			var n := what.substr(2)
 			_btns[n].down = true
+			_btns[n].at = p
 			_justs[n] = true
+			_btn_down(n, p)
 		return
 	if not _own.has(id):
 		return
@@ -665,6 +680,8 @@ func _finger(id: int, p: Vector2, kind: int) -> void:
 			kit_move = (p - _st_o).limit_length(_STICK_R) / _STICK_R
 		elif who == "look":
 			kit_look += p - _last[id]
+		elif who.begins_with("b:"):
+			_btn_drag(who.substr(2), p)
 		_last[id] = p
 		return
 	_own.erase(id)
@@ -678,6 +695,7 @@ func _finger(id: int, p: Vector2, kind: int) -> void:
 		kit_move = Vector2.ZERO
 	elif who.begins_with("b:"):
 		_btns[who.substr(2)].down = false
+		_btn_up(who.substr(2), p)
 
 
 func _kit_hit(p: Vector2) -> String:

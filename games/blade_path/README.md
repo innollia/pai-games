@@ -12,3 +12,4 @@ speed_tofu 의 합격작 "★ 일격의 길"(blade)을 떼어 낸 독립 Godot 4
 - 막으면 돈(기본 1냥, 간파 3배), 검객을 쓰러뜨리면 5+3n냥. 쓰러지면 상점: 최대 체력, 베기 힘, 간파 넓게, 막기 돈. "플레이"로 첫 검객부터 다시.
 - 돈·업그레이드·최고 기록은 `user://blade_path.json` 에 저장.
 - `g/blade.gd`: 게임 전부. `tofu.gd`: 공용 틀(shrine_stone 과 같은 파일). 웹 빌드: `powershell -ExecutionPolicy Bypass -File tools\build.ps1` → `web\`
+- 조작(10/30 네 번째 요청): [막기]·[베기] 버튼을 누른 채 밀면 민 쪽으로 방향을 잡고 그 자리에서 발동(38px). 안 밀고 떼거나 0.14초 누르고 있으면 잡아 둔 방향으로 발동. 화면 빈 곳 밀기로 방향만 잡는 것도 남김. 1인칭 내 칼은 숨김(눈앞 칼이 닿기 전에 막은 것처럼 보여 막기를 안 누르게 됐다). `tofu.gd` 에 `_btn_down/_btn_drag/_btn_up` 훅 추가.
