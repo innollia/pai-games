@@ -91,7 +91,7 @@ func _title_open() -> void:
 	shade.size = Vector2(720, 1280)
 	shade.mouse_filter = Control.MOUSE_FILTER_STOP
 	title.add_child(shade)
-	var sub := "Roll, Temple Stone!" if tr("굴러라 신전석") == "굴러라 신전석" else "굴러라 신전석"
+	var sub := "Roll, Temple Stone!" if TranslationServer.get_locale() != "en" else "A speed game about weight"  # 영어면 제목 아래 한 줄 소개
 	if ui:
 		# 제목 = 신전 문 위 돌 상인방: 위에서 떨어져 쿵 박히고 천천히 흔들린다
 		lintel = Control.new()
