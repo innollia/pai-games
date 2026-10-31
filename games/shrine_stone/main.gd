@@ -145,10 +145,10 @@ func _title_open() -> void:
 			_text(best, 30, Vector2(190, 630), Vector2(340, 58), Color("2b7a3d"), 0)
 		else:
 			_text(best, 34, Vector2(0, 520), Vector2(720, 50), Color("2b7a3d"), 10)
-	var play_b := _button(tr("▶  시작"), Vector2(110, 760), Vector2(500, 130), GOLD, 56, _title_start)
+	var play_b := _button(tr("▶  시작"), Vector2(110, 960), Vector2(500, 130), GOLD, 56, _title_start)
 	var bs: Array = [play_b]
 	if OS.has_feature("web"):
-		bs.append(_button("English" if TranslationServer.get_locale() != "en" else "한국어", Vector2(250, 1090), Vector2(220, 70), Color(1, 1, 1, 0.8), 30, _title_lang))
+		bs.append(_button("English" if TranslationServer.get_locale() != "en" else "한국어", Vector2(250, 1130), Vector2(220, 70), Color(1, 1, 1, 0.8), 30, _title_lang))
 	if ui:
 		# 버튼이 차례로 아래에서 솟아오르고, 시작 버튼은 그 뒤 숨 쉬듯 커졌다 작아진다
 		for i in bs.size():
