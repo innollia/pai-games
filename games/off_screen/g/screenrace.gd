@@ -836,9 +836,6 @@ func _set_lang(l: String) -> void:
 	records.save(RECORDS)
 	for signpost in signs:
 		(signpost.node as Label3D).text = L(signpost.ko, signpost.en)
-	for mb in mailboxes:
-		if mb.get("sub") != null:
-			(mb.sub as Label3D).text = L("1등 빼고", "not 1st")
 	_restore_labels()
 	if menus:
 		menus.refresh()
@@ -2031,7 +2028,7 @@ func _place_mailboxes() -> void:
 		return
 	var x0 := 24.0
 	var x1 := goal_x - 8.0
-	# v13: 결승 조금 앞 금색 우체통 하나 = 배달 GOLD_VAL개 (뒤처진 사람의 마지막 기회). 먼저 자리를 잡는다
+	# v13: 결승 조금 앞 금색 우체통 하나 = 배달 GOLD_VAL개 (v19: 누구나 넣는다). 먼저 자리를 잡는다
 	for k in 50:
 		var gxx := goal_x - 7.0 - float(k)
 		var gy := _mb_spot(gxx)
@@ -2105,7 +2102,6 @@ func _add_mailbox(x: float, y: float, gold := false) -> void:
 	box(Vector3(0, 0.5, 0), Vector3(0.16, 1.0, 0.16), P_NAVY, n)
 	var body := box(Vector3(0, 1.42, 0), Vector3(1.1, 0.86, 0.7), col, n)
 	var top := box(Vector3(0, 1.9, 0), Vector3(1.18, 0.16, 0.76), col.lightened(0.3), n)
-	var sub_l: Label3D = null  # v14: 금색의 '1등 빼고' (말을 바꾸면 다시 쓴다)
 	if gold:
 		# 작은 "x3" 표: 지붕 위 막대에 꽂힌 크림 종이 (배달되면 짐이 그 아래 지붕에 꽂힌다)
 		box(Vector3(-0.45, 2.35, 0), Vector3(0.06, 0.9, 0.06), P_NAVY, n)
@@ -2119,16 +2115,6 @@ func _add_mailbox(x: float, y: float, gold := false) -> void:
 		tag.modulate = P_NAVY
 		tag.position = Vector3(-0.45, 2.66, 0.06)
 		n.add_child(tag)
-		var sub := Label3D.new()  # v14: 금색은 먼저 닿은 사람(1등)은 못 넣는다 = 뒤따르는 사람의 마지막 기회
-		sub.font = _font
-		sub.text = L("1등 빼고", "not 1st")
-		sub.font_size = 40
-		sub.pixel_size = 0.0045
-		sub.outline_size = 0
-		sub.modulate = P_RED
-		sub.position = Vector3(-0.45, 2.34, 0.06)
-		n.add_child(sub)
-		sub_l = sub
 	box(Vector3(0, 1.6, 0.36), Vector3(0.62, 0.1, 0.02), P_NAVY, n)
 	box(Vector3(0, 1.28, 0.36), Vector3(0.5, 0.26, 0.02), P_CREAM, n)  # 흰 주소 딱지
 	var flag := Node3D.new()
@@ -2142,7 +2128,7 @@ func _add_mailbox(x: float, y: float, gold := false) -> void:
 		pc.mesh = null
 	pc.visible = false
 	mailboxes.append({"x": x, "y": y, "full": false, "owner": null, "node": n, "body": body, "top": top,
-		"flag": flag, "cloth": cloth, "parcel": pc, "t": 0.0, "val": GOLD_VAL if gold else 1, "col": col, "first": null, "sub": sub_l})
+		"flag": flag, "cloth": cloth, "parcel": pc, "t": 0.0, "val": GOLD_VAL if gold else 1, "col": col})
 
 
 ## 연습: 배달 단계에서 연습 우체통을 지나쳤으면 배달부 앞(연습 마당 끝 벽 x 80 안)으로 옮긴다.
@@ -2169,7 +2155,6 @@ func _mb_reset() -> void:
 	for mb in mailboxes:
 		mb.full = false
 		mb.owner = null
-		mb.first = null
 		mb.t = 0.0
 		var col: Color = mb.col
 		(mb.body as MeshInstance3D).material_override = mat(col)
@@ -2194,35 +2179,9 @@ func _mb_at(r: Courier) -> int:
 	return -1
 
 
-## v14: r 이 이 우체통에 넣을 수 있나. 금색은 먼저 닿은 사람(그 판의 1등)이 지나가야 열리고, 그 사람은 못 넣는다
-## (뒤따르는 사람의 마지막 기회. 시작부터 대시로 앞서 나가 금색 하나로 이기던 것을 막는다)
-func _mb_ok(mb: Dictionary, r: Courier) -> bool:
-	if mb.full:
-		return false
-	if int(mb.val) <= 1:
-		return true
-	return mb.first != null and mb.first != r
-
-
-## v14: 금색 우체통에 처음 닿은 사람을 적는다 (그 사람은 못 넣고, 이제 다른 사람에게 열린다)
-func _gold_tick() -> void:
-	for mb in mailboxes:
-		if int(mb.val) <= 1 or mb.full or mb.first != null:
-			continue
-		for r in runners:
-			if r.alive and r.p.x > float(mb.x) - 0.3 and absf(r.p.y - float(mb.y)) < 3.0:
-				mb.first = r
-				mb.t = 0.0
-				(mb.flag as Node3D).rotation.z = 0.0  # 깃발이 선다 = 열림
-				(mb.cloth as MeshInstance3D).material_override = mat(P_GOLD)
-				if absf(float(mb.x) - camx) < hwv + 2.0:
-					_burst(Vector3(float(mb.x), float(mb.y) + 2.4, 0.4), 5, P_GOLD)
-				if r == pl:
-					_stamp("금색은 뒤 사람 몫", "GOLD IS FOR CHASERS", ST_INK, pl, 0.9)
-				elif pl.alive and pl.fin < 0:
-					_stamp("금색 열림 x%d" % GOLD_VAL, "GOLD OPEN x%d" % GOLD_VAL, ST_GOOD, null, 0.9)
-					_sfx("pickup", null, -6.0)
-				break
+## r 이 이 우체통에 넣을 수 있나. v19: 금색도 누구나 넣는다 (v14~v18 의 '1등 빼고' 는 사용자 결정으로 뺐다)
+func _mb_ok(mb: Dictionary, _r: Courier) -> bool:
+	return not mb.full
 
 
 ## v14: 내 앞 POST_AHEAD 안의 빈 우체통 (같은 높이쯤). 있으면 짐 버튼 = 배달 (초록), 없으면 -1.
@@ -2588,7 +2547,6 @@ func _race(dt: float) -> void:
 		if r.alive:
 			_runner(r, dt)
 	_pickups()
-	_gold_tick()
 	if not trains.is_empty():
 		_trains(dt)
 	if not boards.is_empty():
