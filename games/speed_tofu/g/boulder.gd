@@ -5377,7 +5377,7 @@ const EN := {
 	"와르르!": "CRUMBLE!", "번쩍!": "GLEAM!", "쿠웅!": "THOOM!", "쩌억!": "CRRACK!", "푸화악!": "WHOOSH!", "휘오오!": "Whooo!", "바다다!": "The sea!",
 	"지하 90m": "90 m underground", "%s에서 이어서": "Continue from %s",
 	# 타이틀·튜토리얼
-	"굴러라 신전석": "ROCK AND\nSTONE", "신전에서 풀려난 돌,\n바다까지 멈추지 말고 굴러라": "A stone freed from the temple,\nroll to the sea without stopping",
+	"굴러라 신전석": "SHRINE\nSTONE", "신전에서 풀려난 돌,\n바다까지 멈추지 말고 굴러라": "A stone freed from the temple,\nroll to the sea without stopping",
 	"최고 완주 %s": "Best finish %s", "▶  시작": "▶  Start", "튜토리얼": "Tutorial",
 	"튜토리얼 끝!\n이제 진짜 길로": "Tutorial over!\nNow the real road",
 	"연습 1 · 끌어서 조향": "Practice 1 · Drag to steer", "연습 2 · 뛰기": "Practice 2 · JUMP", "연습 3 · 쪼개기": "Practice 3 · SPLIT",

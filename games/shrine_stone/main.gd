@@ -3,7 +3,7 @@ extends Node
 ## 새 게임의 기반으로 쓸 때: g/boulder.gd 를 고치거나, g/ 에 Tofu 를 extends 한 새 파일을 만들고 GAME 을 바꾼다.
 
 const GAME := "boulder"
-const GVER := 30  # speed_tofu main.gd GAME_VER["boulder"] (tools/sync.ps1 이 맞춘다). 평가 ver = "v<GVER> <빌드>"
+const GVER := 31  # speed_tofu main.gd GAME_VER["boulder"] (tools/sync.ps1 이 맞춘다). 평가 ver = "v<GVER> <빌드>"
 
 var game: Tofu
 var from_tofu := false  # SPEED 두부 목록(?from=tofu)에서 왔으면 "<" 가 목록으로 돌아간다
@@ -93,7 +93,7 @@ func _title_open() -> void:
 	shade.size = Vector2(720, 1280)
 	shade.mouse_filter = Control.MOUSE_FILTER_STOP
 	title.add_child(shade)
-	var sub := "Rock and Stone" if TranslationServer.get_locale() != "en" else "A speed game about weight"  # 영어면 제목 아래 한 줄 소개
+	var sub := "Shrinestone" if TranslationServer.get_locale() != "en" else "A speed game about weight"  # 영어면 제목 아래 한 줄 소개
 	if ui:
 		# 제목 = 신전 문 위 돌 상인방: 위에서 떨어져 쿵 박히고 천천히 흔들린다
 		lintel = Control.new()
@@ -104,7 +104,7 @@ func _title_open() -> void:
 		title.add_child(lintel)
 		game.call("ui_slab", lintel, Vector2.ZERO, Vector2(700, 360), 0, STONE, "title")  # GPT 가 그린 신전 상인방
 		# 글은 양 끝 기둥머리 사이 돌면 안에만 (가로 420)
-		# 제목은 크게, 두 줄(ROCK AND / STONE). 가장 긴 줄이 기둥머리 사이 돌면(가로 450) 안에
+		# 제목은 크게, 두 줄(SHRINE / STONE). 가장 긴 줄이 기둥머리 사이 돌면(가로 450) 안에
 		var lines := tr("굴러라 신전석").split("\n")
 		var longest := ""
 		for ln: String in lines:
