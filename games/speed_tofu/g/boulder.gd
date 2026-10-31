@@ -1068,6 +1068,8 @@ func _hole_wall(d_prev: float) -> void:
 func _edge_tick(dt: float) -> void:
 	if underground or fallen or dist >= _len():
 		return
+	if not roofs.is_empty() and not is_nan(_roof_or(dist, bx, NAN)):
+		return
 	var i := _oi(pd, dist)
 	if pd.sol[i] == 0:
 		return
@@ -1091,8 +1093,30 @@ func _ground(d: float, x: float) -> float:
 		return NAN
 	for hl: Array in holes:
 		if d > hl[0] and d < hl[1] and x > hl[2] and x < hl[3]:
-			return NAN
-	return _h(d)
+			return _roof_or(d, x, NAN)
+	return _roof_or(d, x, _h(d))
+
+
+## 파란 지붕 탑 윗면: 그 위에(윗면 1.5m 아래까지) 있으면 길보다 높은 바닥이 된다. 길 밖 바다 위로 나온 지붕도 바닥
+var roofs: Array = []
+var roof_pass := false  # 떨어지며 버티는 중: 지붕을 바닥으로 받지 않고 뚫어 깬다
+func _roof_top(d: float, x: float) -> float:
+	for th: Thing in roofs:
+		if th.flat:
+			continue
+		var sz: Vector3 = th.kd.size
+		if absf(d - th.d) < sz.z * 0.5 and absf(x - th.x) < sz.x * 0.5:
+			return th.base + sz.y
+	return NAN
+
+
+func _roof_or(d: float, x: float, g: float) -> float:
+	if roofs.is_empty() or roof_pass:
+		return g
+	var rt := _roof_top(d, x)
+	if is_nan(rt) or by < rt - 1.5:
+		return g
+	return rt if is_nan(g) else maxf(g, rt)
 
 
 # ---- 구역 짓기 ----
@@ -1332,11 +1356,34 @@ func _lane_tick(dt: float) -> void:
 				(n as MeshInstance3D).material_override = blink
 
 
+## 지붕 위를 구른다(깨지 않았다): 기와에 긁혀 걷는 빠르기까지 느려진다. 처음 한 번 도장과 안내
+func _roof_scrape(dt: float) -> void:
+	if roofs.is_empty() or not on_ground or fallen:
+		return
+	var rt := _roof_top(dist, bx)
+	if is_nan(rt) or absf(by - rt) > 0.6:
+		return
+	v = move_toward(v, VSTOP + 3.0, 14.0 * dt)
+	if fmod(clock, 0.12) < dt:
+		_burst(_pos(dist - s * 0.3, bx, by + 0.2), B.lightened(0.5), 1, 4.0, 0.4)
+	for th: Thing in roofs:
+		if not th.flat and absf(dist - th.d) < float(th.kd.size.z) * 0.5 and not th.has_meta("rode"):
+			th.set_meta("rode", true)
+			shake = 0.3
+			sfx("crush_s", -2.0, 0.7)
+			_stamp(tr("드르륵"), 2, _pos(dist + s, bx, by + s), GLYPH, 1.0)
+			msg("기와에 긁혀 느려졌다\n떨어질 때 버티기 = 깨고 가속", 1.4)
+
+
 func _relist() -> void:
 	things.clear()
 	for z: Dictionary in zones:
 		if not z.freed:
 			things.append_array(z.things)
+	roofs.clear()
+	for th: Thing in things:
+		if th.kd == KIND.roof:
+			roofs.append(th)
 
 
 ## 고르지 않은 갈래 조각: 돌이 그 조각 30m 앞에 오면(또는 지나치면) 흔들리다 가라앉는다
@@ -2401,12 +2448,14 @@ func _step(dt: float) -> void:
 	vy -= FALL * dt
 	by += vy * dt
 	_hole_wall(d_prev)
+	_roof_scrape(dt)
 	_edge_tick(dt)
 	_geyser_tick()
 	if cur_k == 1 and not tutorial and not underground and by < _h(dist) - 4.0:
 		_fall("퐁당!")
 	if not floor_cracks.is_empty() and hold and not on_ground and not underground and not fallen and vy < -10.0:
 		_try_crack()
+	roof_pass = hold and not on_ground and vy < -12.0
 	var g := _ground(dist, bx)
 	if is_nan(g):
 		var i := _oi(pd, dist)
@@ -2494,26 +2543,24 @@ func _step(dt: float) -> void:
 			if s_goal >= need or dive_ok or dash_ok or ram_ok:
 				_crush(th, mm, not diving and not dash_ok and not ram_ok)
 			elif th.kd == KIND.roof:
-				# 버티기 없이 지붕에 닿았다: 죽이지 않고 지붕 위로 굴러 넘는다. 기와에 긁혀 크게 느려질 뿐
+				# 버티기 없이 지붕 옆에 닿았다: 죽이지 않고 지붕 위로 올려 태운다 (긁힘은 _roof_scrape)
 				by = maxf(by, th.base + sz.y + 0.02)
 				vy = maxf(vy, 0.0)
 				on_ground = true
-				if not th.has_meta("rode"):
-					th.set_meta("rode", true)
-					v = clampf(v * 0.45, VSTOP + 3.0, maxf(v, VSTOP + 3.0))
-					shake = 0.3
-					sfx("crush_s", -2.0, 0.7)
-					_stamp(tr("드르륵"), 2, _pos(dist + s, bx, by + s), GLYPH, 1.0)
-					msg("기와에 긁혀 느려졌다\n떨어질 때 버티기 = 깨고 가속", 1.4)
 			elif hurt <= 0.0 and bump_t <= 0.0:
 				_bonk(th)
 			elif bool(th.kd.get("soft", false)):
 				# 봉인은 밀려나는 동안만 막는다 (속도는 그대로: 멈춤 탈락으로 이어지지 않게)
 				dist = minf(dist, th.d - (s + sz.z) * 0.5 - 0.2)
-			elif th.kd.get("nodive", false) or slam:
+			elif th.kd.get("nodive", false):
 				# 얼음벽·수정은 진짜 벽: 튕긴 뒤에도 못 지나간다
 				dist = minf(dist, th.d - (s + sz.z) * 0.5 - 0.2)
 				v = minf(v, 3.0)
+			elif slam and th.kd != KIND.roof:
+				# 탑·신상: 튕기는 동안에도 옆으로 밀어낸다 (멈춰 세우지 않는다)
+				var sd := signf(bx - th.x) if absf(bx - th.x) > 0.05 else 1.0
+				bx = th.x + sd * ((s + sz.x) * 0.45 + 0.1)
+				x_goal = th.x + sd * ((s + sz.x) * 0.5 + 1.2)
 	_rocks(dt, mm)
 	if underground:
 		_gems()
@@ -2761,8 +2808,13 @@ func _crush(th: Thing, mm: float, slow := true) -> void:
 	if th.kd.get("nodive", false):
 		th.n.visible = false
 	else:
-		th.n.scale.y = 0.15
-		th.n.position.y = th.base + 0.08
+		if th.kd == KIND.roof:
+			var rtw := create_tween().set_parallel()
+			rtw.tween_property(th.n, "scale:y", 0.15, 0.18).set_ease(Tween.EASE_IN)
+			rtw.tween_property(th.n, "position:y", th.base + 0.08, 0.18).set_ease(Tween.EASE_IN)
+		else:
+			th.n.scale.y = 0.15
+			th.n.position.y = th.base + 0.08
 	if slow:
 		v *= mm / (mm + float(th.kd.mass))
 	if th.kd.has("boost"):
@@ -2776,7 +2828,7 @@ func _crush(th: Thing, mm: float, slow := true) -> void:
 	if th.kd.get("slam", false):
 		# 탑·신상 내려찍기: 멈칫 + 고리 + 새긴 돌판
 		var gold: bool = th.kd == KIND.gold
-		_hitstop(0.13 if gold else 0.09, -10.0)
+		_hitstop(0.13 if gold else (0.0 if th.kd == KIND.roof else 0.09), 0.0 if th.kd == KIND.roof else -10.0)
 		_ring(th.n.global_position + Vector3.UP * 0.3, D if gold else B.lightened(0.5), 7.0 + float(th.kd.size.x))
 		if gold:
 			_stamp("번쩍!", 5, top_p, D.darkened(0.6), 1.15, 0.45, D.lightened(0.55))
@@ -2843,6 +2895,19 @@ func _bonk(th: Thing) -> void:
 			msg("더 커지거나\n직전에 쪼개서 돌진!", 0.9)
 		else:
 			msg("쪼개서 돌진!\n아니면 더 빨리", 0.9)
+		return
+	if th.kd.get("slam", false) and th.kd != KIND.roof:
+		var side := signf(bx - th.x) if absf(bx - th.x) > 0.05 else (1.0 if bx <= 0.0 else -1.0)
+		bx = th.x + side * ((s + sz.x) * 0.45 + 0.1)
+		x_goal = th.x + side * ((s + sz.x) * 0.5 + 1.2)
+		v = maxf(v * 0.7, minf(v, VSTOP + 4.0))
+		vy = maxf(vy, 4.0)  # 살짝 튀어 오른다: 튕긴 게 보이게
+		hurt = 0.5
+		bump_t = 0.3
+		shake = 0.4
+		sfx("bonk", -2.0, 0.9)
+		_burst(_pos(dist + s * 0.5, bx, by + s * 0.5), th.shard_tint, 5, 7.0, 0.5, th.shard)
+		msg("위에서 버티기로 쾅!", 0.9)
 		return
 	v *= 0.3
 	dist = minf(dist, th.d - (s + sz.z) * 0.5 - 0.2)
@@ -3653,6 +3718,11 @@ func _build_tunnel(a: float, b: float, nd: Node3D, opt := {}) -> Array:
 			i = j
 		i += 1
 	# 끝의 물기둥: 바닥에서 수로 위까지 솟는 물. 타면 다음 수로 위로 날아오른다.
+	# 순풍 길이 있는 협곡은 바람이 이미 올려 주므로 물기둥을 또 세우지 않는다 (같은 일을 두 번 보여 줌)
+	if bool(opt.get("updraft", false)):
+		if bool(opt.get("cave", false)):
+			_build_cave(a, b, dp, nd)
+		return route
 	var gd := float(route[3])
 	var water := StandardMaterial3D.new()
 	water.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
