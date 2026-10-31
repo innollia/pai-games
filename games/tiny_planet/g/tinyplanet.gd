@@ -22,7 +22,7 @@ const CAP_R := 1.7  # v7 3.0 → v8 1.7 잡기: 그 별 쪽으로 더 끄는 힘
 const LAND_VMAX := 5.5  # v7 4.0 → v8 5.5 (세게 꽂으면 유리가 깨질 수 있게) 잡기: 다른 별 대기 안에서 내려가는 빠르기 한도 (유리는 3 넘으면 금이 조금)
 const SAIL_ADD := 2.5  # v7 돛: 틀면서 조금 빨라진다
 const SAIL_TURN := 0.62  # v7 돛: 스틱 없이 쓰면 갈 곳 쪽으로 이만큼(라디안)까지 튼다
-const TOW_T := 1.5  # v7 우주 미아: 마지막 별로 끌려 돌아가는 시간
+const TOW_T := 2.4  # v8 1.5 → 2.4 (천천히 끌려 돌아온다) # v7 우주 미아: 마지막 별로 끌려 돌아가는 시간
 const DOT_SC := 0.78  # v7 점선 점 크기 (v6 대비)
 const GHOST_SC := 0.5  # v7 "지금 돛/공중 점프하면" 연한 점선 점 크기
 const SAIL_POS := Vector2(400, 1165)  # v7 돛 버튼 (날 때만)
@@ -2416,7 +2416,8 @@ func _lost_check(dt: float) -> void:
 	tip_t = tip_t + dt if main_lost else 0.0
 	# 하늘 끝(떠내려가 죽는 선) 가까이면 기다리지 않는다
 	var near_edge := main_lost and _dominant(bc[cur] + p) < 0 and (bc[cur] + p - MID).length() > BOUND - 4.0
-	if lost_t >= 0.9 or tip_t >= 2.5 or near_edge:
+	# v8: 판정이 너무 빨라서 늘림 (0.9/2.5 → 2.6/4.5초). 그동안 돛·공중 점프로 고칠 시간이 있다
+	if lost_t >= 2.6 or tip_t >= 4.5 or near_edge:
 		_tow_start()
 
 
@@ -2431,7 +2432,7 @@ func _tow_start() -> void:
 	if cur != home_b:
 		_switch(home_b)
 	_dots_off()
-	_banner(_tx("banner.lost"), 2.4)
+	_banner(_tx("banner.lost"), TOW_T)
 	sfx("drift_warn")
 	sfx("atmo", -3.0, 0.8)
 	_emit("drift_warn")
@@ -3542,7 +3543,7 @@ func _deco(k: int, n: Node3D) -> void:
 var deco_n: Array = []  # 별 번호 -> [MeshInstance3D...]
 var deco_on := PackedByteArray()
 const DECO_FAR := 80.0  # 카메라에서 별 겉면까지 이보다 멀면 장식을 숨긴다 (멀어도 시작 화면에선 다 보인다)
-const VIL_NEAR := 30.0  # 주민은 발밑 별이고 카메라에서 이 안일 때만 보인다
+const VIL_NEAR := 55.0  # v8 30 → 55: 주민은 카메라에서 이 안이면 보인다 (발밑 별이 아니어도, 다가가는 별 주민이 보이게)
 
 
 func _deco_add(k: int, m: Node3D) -> void:
@@ -3571,7 +3572,11 @@ func _lod() -> void:
 	for b: Array in vil_bobs:
 		var vb: Node3D = b[0]
 		var lim2 := VIL_NEAR + (2.0 if vb.visible else -2.0)
-		var on2 := not title and int(b[3]) == cur and cp.distance_to(vb.global_position) < lim2
+		var bk2 := int(b[3])
+		# 지금 부탁이 향하는 별(받을 별·전할 별)의 주민은 거리와 상관없이 늘 보인다
+		var jd: Dictionary = JOB[mi] if mi < JOB.size() else {}
+		var job_k := bk2 == mi or bk2 == int(jd.get("src", -1)) or bk2 == int(jd.get("tgt", -1))
+		var on2 := not title and (job_k or cp.distance_to(vb.global_position) < lim2)
 		if on2 != vb.visible:
 			vb.visible = on2
 

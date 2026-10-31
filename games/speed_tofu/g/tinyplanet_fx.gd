@@ -70,6 +70,8 @@ var _atmo_t := 0.0
 var _atmo_c := SKY
 var _gold_t := 0.0
 var _red_t := 0.0
+var _dusk := 0.0  # 우주 미아: 화면 가장자리가 천천히 어둑해진다 (0~1)
+var _dusk_hold := 0.0
 var _vig := 0.0
 var _q0 := PackedVector2Array([Vector2.ZERO, Vector2.ZERO, Vector2.ZERO, Vector2.ZERO])
 var _q1 := PackedVector2Array([Vector2.ZERO, Vector2.ZERO, Vector2.ZERO, Vector2.ZERO])
@@ -700,7 +702,10 @@ func _overlay_step(rdt: float) -> void:
 	_atmo_t = maxf(0.0, _atmo_t - rdt)
 	_gold_t = maxf(0.0, _gold_t - rdt)
 	_red_t = maxf(0.0, _red_t - rdt)
-	var any: bool = kk > 0.01 or _flash > 0.0 or _atmo_t > 0.0 or _gold_t > 0.0 or _red_t > 0.0 or _vig > 0.01
+	_dusk_hold = maxf(0.0, _dusk_hold - rdt)
+	# 들어갈 때 1.4초, 나올 때 1.2초에 걸쳐 (갑자기 어두워지면 부자연스럽다)
+	_dusk = move_toward(_dusk, 1.0 if _dusk_hold > 0.0 else 0.0, rdt / (1.4 if _dusk_hold > 0.0 else 1.2))
+	var any: bool = kk > 0.01 or _flash > 0.0 or _atmo_t > 0.0 or _gold_t > 0.0 or _red_t > 0.0 or _vig > 0.01 or _dusk > 0.001
 	if any or _drew:
 		_ov.queue_redraw()
 	_drew = any
@@ -716,6 +721,9 @@ func _on_draw() -> void:
 		_edge(sz, YEL, 0.65 * clampf(_gold_t / 0.3, 0.0, 1.0), 160.0)
 	if _red_t > 0.0:
 		_edge(sz, RED, 0.5 * clampf(_red_t / 0.3, 0.0, 1.0), 140.0)
+	if _dusk > 0.001:
+		var dk := _dusk * _dusk * (3.0 - 2.0 * _dusk)
+		_edge(sz, INK2, 0.4 * dk, 320.0)
 	if _vig > 0.01:
 		_edge(sz, INK2, 0.55 * _vig, 300.0)
 		_edge(sz, INK2, 0.35 * _vig, 90.0)
@@ -814,7 +822,7 @@ func event(ev: String, d := {}) -> void:
 		"sail":
 			_burst_k = maxf(_burst_k, 0.7)
 		"drift_warn":
-			_red_t = 0.6
+			_dusk_hold = 2.6  # 빨간 번쩍 대신 천천히 어둑해졌다 돌아온다
 		"die":
 			_end_slowmo()
 			_hit(0.16, 0.0)
