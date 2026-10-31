@@ -19,7 +19,8 @@ extends Node
 ##   make_panel(parent: Control, rect: Rect2, fill: Color) -> Control  DS 규칙(모서리 28·테두리 6·그림자 8) 패널.
 ##   is_korean() -> bool                    지금 글이 한국어인가.
 ##   refresh_text() -> void                 언어가 바뀐 뒤 내 글자를 다시 쓴다(본체 set_lang 이 불러도 된다. 몇 번 불러도 안전).
-## 화면 층: 점수 팝 7, 끝 화면 8(평가 카드 9 아래), 시작 화면 12(맨 위).
+##   todo_open() -> bool                    v9: 할 일 목록 판이 떠 있나(본체는 이 동안 놀이를 멈춘다).
+## 화면 층: 할 일 목록 6, 점수 팝 7, 끝 화면 8(평가 카드 9 아래), 시작 화면 12(맨 위).
 ## 입력: 내 버튼은 _input 에서 먼저 받고 처리했다고 표시한다(조작 키트로 안 샌다). 왼쪽 위 "< 메뉴" 자리는 건드리지 않는다.
 
 const DS := {
@@ -277,10 +278,12 @@ func setup(game: Node) -> void:
 	_init_lang()
 	_build_end()
 	_build_pops()
+	_build_todo()
 	_build_title()
 
 
 func tick(dt: float, s: Dictionary) -> void:
+	_todo_tick(s.get("todo_ok", false) == true, int(s.get("jobs_done", 0)))
 	_paused = s.get("paused", false) == true
 	if _title_on or _paused:
 		return
@@ -330,6 +333,11 @@ func tutorial_active() -> bool:
 # ---- 덧붙인 공개 함수 ----
 func title_visible() -> bool:
 	return _title_on
+
+
+## v9: 할 일 목록이 떠 있나 (본체는 이 동안 _play 를 멈춘다)
+func todo_open() -> bool:
+	return _todo_on
 
 
 func tutorial_step() -> int:
@@ -382,6 +390,8 @@ func refresh_text() -> void:
 	_lang_b.seg = 1 if _ko else 0
 	_lang_b.queue_redraw()
 	_set_title_text()
+	if _todo_on:
+		_todo_fill()
 
 
 # ---- 언어 ----
@@ -446,10 +456,23 @@ func _input(ev: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 		return
 	var p: Vector2 = (ev as InputEventScreenTouch).position if touch else (ev as InputEventMouseButton).position
-	if BACK_RECT.has_point(p):
-		return  # "< 메뉴"는 본체(tofu)가 받는다
 	# 터치가 흉내 낸 마우스는 받기만 하고 또 누르지 않는다
 	var fire := ev.is_pressed() and (touch or ev.device != InputEvent.DEVICE_ID_EMULATION)
+	# v9 할 일 목록: 떠 있으면 어디를 눌러도 닫힌다 (누름만 먹는다 — 뗌·끌기는 조작 키트로 보내 스틱이 붙지 않게)
+	if _todo_on:
+		if fire:
+			_todo_close()
+		if ev.is_pressed():
+			get_viewport().set_input_as_handled()
+		return
+	if _todo_btn.visible and TODO_RECT.grow(10.0).has_point(p):
+		if fire:
+			_todo_show()
+		if ev.is_pressed():
+			get_viewport().set_input_as_handled()
+		return
+	if BACK_RECT.has_point(p):
+		return  # "< 메뉴"는 본체(tofu)가 받는다
 	var b := _hit(p)
 	if b != null:
 		if fire:
@@ -516,6 +539,8 @@ func _process_body(dt: float) -> void:
 		_title_anim(rdt)
 	if _end_root.visible:
 		_end_anim(rdt)
+	if _todo_on:
+		_todo_anim(rdt)
 	_pops_anim(rdt)
 
 
@@ -1073,6 +1098,190 @@ func _end_anim(dt: float) -> void:
 	_again_end.glow = _end_t > 1.4
 
 
+# ---- v9 할 일 목록: 왼쪽 위 작은 버튼(목록 그림 + "2/5") → 누르면 판이 떠서 놀이가 멈춘다. 아무 데나 누르면 닫힘 ----
+## 본체에서 읽는 것: todo_rows() · todo_held() · todo_icon() (has_method 로 확인), 상태 사전의 todo_ok · jobs_done
+const TODO_RECT := Rect2(18, 108, 136, 66)  # "< 메뉴"(y 100 위) 밑, 막대(y 190) 위
+const TODO_PANEL := Rect2(40, 196, 640, 800)
+const TODO_ROW_Y := 70.0
+const TODO_ROW_H := 112.0
+var _todo_root: Control
+var _todo_btn: _Box
+var _todo_btn_l: Label
+var _todo_dim: ColorRect
+var _todo_panel: _Box
+var _todo_head: Label
+var _todo_canvas: _Canvas
+var _todo_who: Array[Label] = []
+var _todo_task: Array[Label] = []
+var _todo_stl: Array[Label] = []
+var _todo_held_l: Label
+var _todo_hint: Label
+var _todo_ok := false
+var _todo_on := false
+var _todo_n := -1
+var _todo_t := 0.0
+var _todo_ic: Array[String] = ["", "", "", "", ""]
+var _todo_st := PackedInt32Array([0, 0, 0, 0, 0])
+var _todo_hk := ""  # 든 물건 그림 이름
+
+
+func _build_todo() -> void:
+	_todo_root = _root(6)  # 본체 HUD(4)·조작 키트(5) 위, 끝 화면(8) 아래
+	var ink: Color = DS.ink
+	# 버튼: 크림 판 + 목록 그림 + 끝낸 수
+	_todo_btn = _box(_todo_root, TODO_RECT, DS.cream)
+	_canvas(_todo_btn, Rect2(12, 9, 48, 48), _todo_btn_draw)
+	_todo_btn_l = _lab(_todo_btn, "0/5", Rect2(60, 0, 68, 66), _ls(30, ink, false), HORIZONTAL_ALIGNMENT_LEFT)
+	_todo_btn_l.autowrap_mode = TextServer.AUTOWRAP_OFF
+	_todo_btn.visible = false
+	# 판
+	_todo_dim = ColorRect.new()
+	_todo_dim.color = Color(ink.r, ink.g, ink.b, 0.35)
+	_todo_dim.size = Vector2(720, 1280)
+	_todo_dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_todo_dim.visible = false
+	_todo_root.add_child(_todo_dim)
+	_todo_panel = _box(_todo_root, TODO_PANEL, DS.cream)
+	_todo_panel.visible = false
+	var rib := _box(_todo_panel, Rect2(150, -42, 340, 90), DS.accent)
+	_todo_head = _lab(rib, "", Rect2(0, -3, 340, 90), _ls(int(DS.fs_body) + 6, DS.cream, true))
+	_todo_head.autowrap_mode = TextServer.AUTOWRAP_OFF
+	_todo_canvas = _canvas(_todo_panel, Rect2(0, 0, TODO_PANEL.size.x, TODO_PANEL.size.y), _todo_draw)
+	for i in 5:
+		var y := TODO_ROW_Y + float(i) * TODO_ROW_H
+		var wl := _lab(_todo_panel, "", Rect2(104, y + 8, 390, 30), _ls(22, Color(ink.r, ink.g, ink.b, 0.6), false), HORIZONTAL_ALIGNMENT_LEFT)
+		wl.autowrap_mode = TextServer.AUTOWRAP_OFF
+		wl.clip_text = true
+		_todo_who.append(wl)
+		var tl := _lab(_todo_panel, "", Rect2(104, y + 38, 390, 70), _ls(int(DS.fs_small), ink, false), HORIZONTAL_ALIGNMENT_LEFT)
+		tl.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+		_todo_task.append(tl)
+		var sl := _lab(_todo_panel, "", Rect2(500, y + 64, 130, 30), _ls(20, ink, false))
+		sl.autowrap_mode = TextServer.AUTOWRAP_OFF
+		_todo_stl.append(sl)
+	var hy := TODO_ROW_Y + 5.0 * TODO_ROW_H
+	_todo_held_l = _lab(_todo_panel, "", Rect2(104, hy + 14, 510, 64), _ls(30, ink, false), HORIZONTAL_ALIGNMENT_LEFT)
+	_todo_hint = _klab(_todo_panel, "탭하면 닫혀요", Rect2(0, hy + 92, 640, 40), _ls(22, Color(ink.r, ink.g, ink.b, 0.55), false))
+
+
+## 버튼 그림: 목록 (점 + 줄 셋)
+func _todo_btn_draw(c: Control) -> void:
+	var ink: Color = DS.ink
+	for i in 3:
+		var y := 12.0 + 12.0 * float(i)
+		c.draw_circle(Vector2(9, y), 4.5, ink)
+		c.draw_line(Vector2(19, y), Vector2(42, y), ink, 5.0)
+
+
+## 판 그림: 줄마다 노란 동그라미 그림 + 상태 표시(끝 = 민트 동그라미에 체크, 하는 중 = 노랑, 안 만남 = 빈 고리), 든 물건 줄
+func _todo_draw(c: Control) -> void:
+	var ink: Color = DS.ink
+	var line := Color(ink.r, ink.g, ink.b, 0.15)
+	for i in 5:
+		var y := TODO_ROW_Y + float(i) * TODO_ROW_H
+		if i > 0:
+			c.draw_line(Vector2(30, y), Vector2(610, y), line, 2.0)
+		_todo_badge(c, Vector2(58, y + 56), _todo_ic[i], _todo_st[i] == 2)
+		var g := Vector2(565, y + 38)
+		match _todo_st[i]:
+			2:
+				c.draw_circle(g, 18.0, DS.mint)
+				c.draw_arc(g, 18.0, 0.0, TAU, 24, ink, 3.0)
+				c.draw_polyline(PackedVector2Array([g + Vector2(-9, 0), g + Vector2(-2, 7), g + Vector2(10, -7)]), ink, 4.0)
+			1:
+				c.draw_circle(g, 18.0, DS.accent)
+				c.draw_arc(g, 18.0, 0.0, TAU, 24, ink, 3.0)
+				c.draw_circle(g, 5.0, ink)
+			_:
+				c.draw_arc(g, 16.0, 0.0, TAU, 24, Color(ink.r, ink.g, ink.b, 0.4), 3.0)
+	var hy := TODO_ROW_Y + 5.0 * TODO_ROW_H
+	c.draw_line(Vector2(30, hy), Vector2(610, hy), Color(ink.r, ink.g, ink.b, 0.3), 3.0)
+	if _todo_hk != "":
+		_todo_badge(c, Vector2(58, hy + 46), _todo_hk, false)
+	else:
+		c.draw_arc(Vector2(58, hy + 46), 28.0, 0.0, TAU, 28, Color(ink.r, ink.g, ink.b, 0.3), 3.0)
+
+
+func _todo_badge(c: Control, o: Vector2, kind: String, dim: bool) -> void:
+	var ink: Color = DS.ink
+	c.draw_circle(o + Vector2(0, 4), 32.0, Color(ink.r, ink.g, ink.b, 0.4))
+	c.draw_circle(o, 32.0, ink)
+	c.draw_circle(o, 28.0, DS.accent)
+	if kind != "" and _game.has_method("todo_icon"):
+		_game.call("todo_icon", c, o, 0.85, kind)
+	if dim:
+		c.draw_circle(o, 28.0, Color(1, 1, 1, 0.45))
+
+
+## 판 글자를 본체의 지금 상태로 다시 쓴다
+func _todo_fill() -> void:
+	var rows: Array = _game.call("todo_rows") if _game.has_method("todo_rows") else []
+	var ink: Color = DS.ink
+	var n := 0
+	for i in 5:
+		if i >= rows.size():
+			continue
+		var r: Dictionary = rows[i]
+		var st := int(r.get("st", 0))
+		_todo_st[i] = st
+		_todo_ic[i] = str(r.get("icon", ""))
+		if st == 2:
+			n += 1
+		_todo_who[i].text = "%s · %s" % [str(r.get("who", "")), str(r.get("planet", ""))]
+		_todo_task[i].text = str(r.get("task", ""))
+		_todo_task[i].label_settings.font_color = Color(ink.r, ink.g, ink.b, 0.5 if st == 2 else 1.0)
+		_todo_stl[i].text = tr("끝" if st == 2 else ("하는 중" if st == 1 else "아직 안 만남"))
+	_todo_head.text = "%s  %d/5" % [tr("할 일"), n]
+	var held: Array = _game.call("todo_held") if _game.has_method("todo_held") else ["", ""]
+	_todo_hk = str(held[0]) if held.size() > 0 else ""
+	var hn := str(held[1]) if held.size() > 1 else ""
+	_todo_held_l.text = "%s: %s" % [tr("들고 있는 것"), hn if hn != "" else tr("빈손")]
+	_todo_canvas.queue_redraw()
+
+
+func _todo_show() -> void:
+	if _todo_on:
+		return
+	_todo_on = true
+	_todo_fill()
+	_todo_t = 0.0
+	_todo_dim.visible = true
+	_todo_panel.visible = true
+	_todo_panel.scale = Vector2(0.01, 0.01)
+	squash(_todo_btn)
+
+
+func _todo_close() -> void:
+	if not _todo_on:
+		return
+	_todo_on = false
+	_todo_dim.visible = false
+	_todo_panel.visible = false
+	_sfx("ui_tap")
+
+
+func _todo_anim(dt: float) -> void:
+	_todo_t += dt
+	var k := maxf(_back_out(clampf(_todo_t / 0.25, 0.0, 1.0)), 0.01)
+	_todo_panel.scale = Vector2(k, k)
+
+
+## 매 프레임 (본체 상태): 버튼 보이기, 끝낸 수 글자
+func _todo_tick(ok: bool, n: int) -> void:
+	if _todo_btn == null:
+		return
+	if ok != _todo_ok:
+		_todo_ok = ok
+		_todo_btn.visible = ok
+		if not ok:
+			_todo_close()
+	if n != _todo_n:
+		_todo_n = n
+		_todo_btn_l.text = "%d/5" % n
+		if n > 0:
+			squash(_todo_btn)
+
+
 # ---- 점수 팝: 숫자가 위로 튀어 올라 0.8초에 사라짐 ----
 func _build_pops() -> void:
 	var r := _root(7)
@@ -1137,4 +1346,12 @@ const EN := {
 	"최고 배달": "Best delivered",
 	"새 기록": "New best",
 	"다시": "AGAIN",
+	# v9 할 일 목록
+	"할 일": "To-do",
+	"아직 안 만남": "Not met",
+	"하는 중": "In progress",
+	"끝": "Done",
+	"들고 있는 것": "Carrying",
+	"빈손": "Nothing",
+	"탭하면 닫혀요": "Tap anywhere to close",
 }

@@ -145,9 +145,15 @@ var home_d := START
 var visited := {}
 var in_atm := false
 # 부탁
-var mi := 0
-var req := 0  # 0 아직 안 만남, 1 하는 중, 2 끝
-var prog := 0.0
+# v9 순서 자유: 부탁 다섯(0 풍차 · 1 소포 · 2 유리꽃 · 3 노을 띠 · 4 장미 덮개)을 아무 순서로. 물건은 한 번에 하나
+var js := PackedInt32Array([0, 0, 0, 0, 0])  # 부탁마다 0 아직 안 만남, 1 하는 중, 2 끝
+var ij := -1  # 지금 하늘에 나와 있는 물건의 부탁 번호 (들고 있음·떨어지는 중·어딘가 놓임), 없으면 -1
+var fj := -1  # 할 일 칩·화살표가 가리키는 부탁 (땅에 있을 때 가장 가까운 것으로 다시 고른다)
+var goal_st := -1  # 그 부탁의 지금 할 일: -1 없음, 0 말 걸기, 1 풍차 바람, 2 물건 받기, 3 배달, 4 노을 띠
+var wprog := 0.0  # 풍차 바람 막대
+var bprog := 0.0  # 노을 띠 막대
+const ITEM_JOBS := [1, 2, 4]  # 물건이 있는 부탁 (물건은 JOB[j].src 별 주민이 준다)
+const TODO_IC := ["wind", "pkg", "flower", "band", "dome"]
 var npcs := {}  # 별 번호 -> 주민 노드
 var marks := {}  # 별 번호 -> "!" 상자
 var beacon: MeshInstance3D
@@ -704,9 +710,12 @@ func _reset() -> void:
 	ig_b = _art("parcel", Callable())
 	ig_b.visible = false
 	# 부탁
-	mi = 0
-	req = 0
-	prog = 0.0
+	js = PackedInt32Array([0, 0, 0, 0, 0])
+	ij = -1
+	fj = -1
+	goal_st = -1
+	wprog = 0.0
+	bprog = 0.0
 	item = ""
 	crack = 0.0
 	fall_on = false
@@ -720,7 +729,6 @@ func _reset() -> void:
 	cur = 0
 	p = START * br[0]
 	_switch(0)
-	_start_job(0)
 	_respawn()
 	heart_t = 0.0  # 첫 시작엔 하트를 안 띄운다
 	cam_up = START
@@ -1438,6 +1446,8 @@ func _step(dt: float) -> void:
 	if ui.title_visible():
 		clock += dt
 		_title_cam(dt)
+	elif ui.todo_open():
+		pass  # v9: 할 일 목록이 떠 있는 동안 놀이는 멈춘다
 	else:
 		_play(dt)
 	_lod()
@@ -1480,8 +1490,35 @@ func _state() -> Dictionary:
 	_st["me"] = me
 	_st["sky"] = P.get("sky", Color("d6ecff"))
 	_st["planet"] = cur
-	_st["paused"] = ui.title_visible() or _rating or over
+	_st["paused"] = ui.title_visible() or _rating or over or ui.todo_open()
+	# v9 할 일 목록 버튼: 놀이 중에만, 끝낸 부탁 수
+	_st["jobs_done"] = _ndone()
+	_st["todo_ok"] = not over and not _rating and fin_t <= 0.0 and hud2 != null and hud2.visible and not ui.title_visible()
 	return _st
+
+
+# ---- v9 할 일 목록 (ui 가 열 때 부른다) ----
+## 부탁 다섯 줄: 주민 이름·별 이름·할 일(번역된 글)·상태(0 안 만남, 1 하는 중, 2 끝)·그림 이름
+func todo_rows() -> Array:
+	var out: Array = []
+	for k in 5:
+		var task := _tx("todo.p%d" % (k + 1))
+		if k == 4 and js[3] < 2:
+			task = _tx("todo.p5_wait")
+		out.append({"who": tr(BD[k].who), "planet": tr(BD[k].name), "task": task, "st": js[k], "icon": TODO_IC[k]})
+	return out
+
+
+## 들고 있는 물건: [그림 이름, 번역된 이름] (빈손이면 ["", ""])
+func todo_held() -> Array:
+	if item != "":
+		return [item, _tx("item." + item)]
+	return ["", ""]
+
+
+## 할 일 그림을 ui 가 빌려 그린다 (노란 동그라미 위에)
+func todo_icon(c: CanvasItem, o: Vector2, s: float, kind: String) -> void:
+	_icon(c, o, s, kind)
 
 
 ## 두 도우미에게 같은 일을 알린다
@@ -1690,7 +1727,7 @@ func _jump_v(up: Vector3, v: Vector3) -> Vector3:
 
 ## 탈출선의 몇 %면 떠날 수 있게 도와주나: 첫 부탁 둘(풍차·우편)은 70%, 그 뒤 80% (v6 82/92 → v7 더 너그럽게)
 func _esc_need() -> float:
-	return 0.70 if mi <= 1 else 0.80
+	return 0.70 if _ndone() <= 1 else 0.80  # v9: 끝낸 부탁 수로 (순서 자유)
 
 
 ## 날기: 모든 별이 끈다. 대기에서 내려가면 빙 돌다 내려앉는다. 죽으면 true.
@@ -1765,10 +1802,10 @@ func _fly(dt: float) -> bool:
 				warn_t = 0.35
 				sfx("drift_warn")
 				_emit("drift_warn")
-				msg(_tx("msg.drift_warn"), 0.5)
+				msg(_tx("msg.drift_warn" if has_sail else "msg.drift_warn_ns"), 0.5)  # v9: 돛을 받기 전엔 돛 말 없이
 				if not drift_said:
 					drift_said = true
-					_react("drift_warning")
+					_react("drift_warning" if has_sail else "drift_warning_ns")
 			if far > BOUND + 10.0:
 				_die("drift")
 				return true
@@ -1785,7 +1822,7 @@ func _land(up: Vector3) -> void:
 	in_atm = false
 	sfx("land_hard" if hit > 4.0 else "land", -2.0 + clampf(hit, 0.0, 6.0))
 	_emit("land", {"hard": hit > 4.0, "speed": hit})
-	if item != "" and bool((JOB[mi] as Dictionary).get("frag", false)):
+	if item != "" and ij >= 0 and bool((JOB[ij] as Dictionary).get("frag", false)):
 		var c := clampf((hit - 3.0) / 4.0, 0.0, 1.0)
 		if c > 0.0:
 			crack += c
@@ -1904,32 +1941,104 @@ func gauge(frac: float, color: Color) -> void:
 		gauge_sb.bg_color = color
 
 
-## 부탁 k 시작: 물건이 있으면 받는 별에 놓는다
-func _start_job(k: int) -> void:
-	var J: Dictionary = JOB[k]
+## v9: 부탁 j 의 물건을 그 물건 주인(JOB[j].src 별 주민) 곁 자리에 내놓는다. 다른 물건이 주인 곁에 놓여 있기만 했으면 그건 주인에게 돌아간다
+func _give(j: int) -> void:
+	var J: Dictionary = JOB[j]
+	ij = j
 	crack = 0.0
 	fall_on = false
-	if J.has("item"):
-		ig_on = true
-		ig_pl = J.src
-		ig_dir = HOME_D.normalized()
-		ig_b.visible = true
-		_set_item(ig_b, str(J.item), 0.0)
-		_set_item(item_b, str(J.item), 0.0)
-		_item_key = str(J.item)
-		_item_q = 0.0
-	else:
-		ig_on = false
-		ig_b.visible = false
+	ig_on = true
+	ig_pl = int(J.src)
+	ig_dir = HOME_D.normalized()
+	ig_b.visible = true
+	_set_item(ig_b, str(J.item), 0.0)
+	_set_item(item_b, str(J.item), 0.0)
+	_item_key = str(J.item)
+	_item_q = 0.0
+
+
+## 끝낸 부탁 수
+func _ndone() -> int:
+	var n := 0
+	for s in js:
+		if s == 2:
+			n += 1
+	return n
+
+
+## 손이 비었나: 하늘에 나온 물건이 없거나, 있어도 주인 곁 제자리에 놓여 있기만 하면 (그건 주인에게 돌려주고 새 물건을 받는다)
+func _hands_free() -> bool:
+	if ij < 0:
+		return true
+	return item == "" and not fall_on and ig_on and ig_pl == int(JOB[ij].src) and ig_dir.distance_to(HOME_D.normalized()) < 0.01
+
+
+## 별 k 주민이 지금 줄 물건이 있나 (부탁은 하는 중, 물건은 아직 하늘에 안 나옴, 덮개는 노을 띠를 끝낸 뒤에만)
+func _gives(k: int) -> int:
+	for j: int in ITEM_JOBS:
+		if int(JOB[j].src) == k and js[j] == 1 and ij != j and (j != 4 or js[3] == 2):
+			return j
+	return -1
+
+
+## "!" 표시: 아직 안 만났거나 줄 물건이 있는 주민. 장미는 아직 안 만났거나 덮개가 생긴 뒤
+func _mark_on(k: int) -> bool:
+	if fin_t > 0.0 or won:
+		return false
+	if k == 4:
+		return js[4] != 2 and (js[4] == 0 or js[3] == 2)
+	return js[k] == 0 or _gives(k) >= 0
+
+
+## v9 주민 만나기 (주민 5m 안에 서 있으면 매 프레임): 처음이면 부탁 말, 줄 물건이 있으면 내놓고, 손이 차 있으면 "그것부터 배달해 줘"
+func _meet(k: int) -> void:
+	var first := false
+	if js[k] == 0:
+		first = true
+		js[k] = 1
+		_emit("job_start", {"job": k})
+		bub_q.clear()
+		if k == 4 and js[3] < 2:
+			_say(P.who, _tx("rose.early"), 6.0)  # 덮개는 아직 없다: 노을 아이에게 가 보라고
+			nag[250] = clock + 30.0
+		else:
+			_say(P.who, _line(k, "ask"), 6.0)
+			if k == 4:
+				rose_said = true
+		if _first_hint:
+			_first_hint = false
+			_sayq("", _tx("hint.first"), 4.2)
+		if k == 0 or k == 3:
+			nag[300 + k] = clock + 40.0
+			_sayq(P.who, _line(k, "hint"), 4.0)
+	elif k == 4 and js[3] == 2 and not rose_said:
+		rose_said = true
+		_say(P.who, _line(4, "ask"), 6.0)
+	elif k == 4 and js[4] == 1 and js[3] < 2 and _can(250):
+		_nag(250, 30.0, P.who, _tx("rose.early"))
+	var j := _gives(k)
+	if j < 0:
+		return
+	if _hands_free():
+		_give(j)
+		if j == 4 and not first and _can(260):
+			_nag(260, 30.0, P.who, _line(3, "thanks"))  # 맡아 둔 덮개를 이제 내준다 (지뢰 울타리 안내)
+	elif _can(700 + k):
+		var busy := _tx("talk.busy", {"item": _tx("item." + str(JOB[ij].item))})
+		nag[700 + k] = clock + 30.0
+		if first:
+			_sayq(P.who, busy, 4.0)
+		else:
+			_say(P.who, busy, 4.0)
 
 
 ## 물건: 줍기, 금, 놓기, 떨어지기, 전하기
 func _items(dt: float, up: Vector3) -> void:
 	pick_cd -= dt
-	var J: Dictionary = JOB[mi]
-	if not J.has("item") or req == 2:
+	if ij < 0:
 		mark_b.visible = false
 		return
+	var J: Dictionary = JOB[ij]
 	if fall_on:
 		fall_v += bg[fall_pl] * dt
 		fall_h -= fall_v * dt
@@ -1945,9 +2054,6 @@ func _items(dt: float, up: Vector3) -> void:
 			ig_on = false
 			ig_b.visible = false
 			item_b.visible = true
-			if req == 0:
-				req = 1
-				_emit("job_start", {"job": mi})
 			sfx("pickup")
 			_emit("pickup", {"item": item})
 			# v7: 받는 순간을 또렷하게 (글만): "소포! 굴뚝 달에 전해 주자". 위 할 일 칩도 바로 바뀌며 톡 튄다
@@ -1998,7 +2104,7 @@ func _drop(up: Vector3) -> void:
 
 func _item_landed() -> void:
 	sfx("land", -6.0, 1.4)
-	var J: Dictionary = JOB[mi]
+	var J: Dictionary = JOB[ij]
 	var tg: Vector3 = (J.tdir as Vector3).normalized()
 	if J.frag and fall_h0 > 5.5:
 		_break()
@@ -2015,7 +2121,7 @@ func _item_landed() -> void:
 func _break() -> void:
 	# 깨진 자리: 떨어뜨린 물건이면 그 물건, 들고 있던 것이면 내 머리 위
 	var bp: Vector3 = ig_b.global_position if ig_b.visible else bc[cur] + p + p.normalized() * 1.5
-	var J: Dictionary = JOB[mi]
+	var J: Dictionary = JOB[ij]  # v9: 깨지면 그 물건 주인(src) 곁 제자리로
 	item = ""
 	item_b.visible = false
 	crack = 0.0
@@ -2034,7 +2140,8 @@ func _break() -> void:
 
 ## 물건이 닿을 곳에 닿았다
 func _deliver() -> void:
-	var J: Dictionary = JOB[mi]
+	var k := ij
+	var J: Dictionary = JOB[k]
 	var tgt_k := int(J.tgt)
 	var tg: Vector3 = (J.tdir as Vector3).normalized()
 	item = ""
@@ -2044,18 +2151,22 @@ func _deliver() -> void:
 	ig_b.visible = false
 	# 닿은 물건: 소포는 굴뚝 집 지붕, 유리꽃은 친구 머리 위, 덮개는 장미를 덮는다.
 	# ig_b 는 다음 부탁이 다시 쓰므로, 놓인 물건은 따로 세워 둔다 (world 가 다시 지어질 때 함께 지워진다)
-	var hh := 2.35 if mi == 1 else (2.1 if mi == 2 else -0.05)
+	var hh := 2.35 if k == 1 else (2.1 if k == 2 else -0.05)
 	var put := _art(str(ITEM_ART.get(str(J.item), "parcel")), Callable())
-	_orient(put, bc[tgt_k] + tg * (_sr(tgt_k, tg) + hh), tg, Vector3.ONE * (2.2 if mi == 4 else 1.3))
+	_orient(put, bc[tgt_k] + tg * (_sr(tgt_k, tg) + hh), tg, Vector3.ONE * (2.2 if k == 4 else 1.3))
 	_drop_btn(false)
-	_emit("deliver", {"job": mi, "pos": put.global_position})
-	_done()
+	ij = -1
+	_emit("deliver", {"job": k, "pos": put.global_position})
+	_done(k)
 
 
-func _done() -> void:
-	var k := mi
-	req = 2
-	prog = 1.0
+func _done(k: int) -> void:
+	js[k] = 2
+	if k == 0:
+		wprog = 1.0
+	elif k == 3:
+		bprog = 1.0
+	var last := _ndone() >= 5
 	score += 10
 	play("win")
 	shake = 0.2
@@ -2069,10 +2180,20 @@ func _done() -> void:
 	elif k == 2:
 		_say(BD[6].who, _tx("moon.friend.got"), 3.5)
 		_sayq(gv.who, _line(k, "thanks"), 6.0)
+	elif k == 4 and not last:
+		_say(gv.who, _tx("p5.thanks_more"), 6.0)  # v9: 장미가 먼저 끝났으면 "다섯 별이 다 웃는다" 대신
+	elif k == 3 and not _hands_free():
+		_say(gv.who, _tx("p4.keep"), 6.0)  # v9: 손에 다른 물건 — 덮개는 노을 아이가 맡아 둔다
 	else:
 		_say(gv.who, _line(k, "thanks"), 6.0)
-	if DL.has(str(gv.id) + ".thanks2"):
+	if DL.has(str(gv.id) + ".thanks2") and (k != 3 or _hands_free()):
 		_sayq(gv.who, _line(k, "thanks2"), 7.0)
+	if k == 3:
+		# 덮개가 생겼다: 장미 부탁이 열린다 (손이 비면 바로 내놓고, 아니면 노을 아이가 맡아 둔다)
+		if js[4] == 0:
+			js[4] = 1
+		if _hands_free():
+			_give(4)
 	if k == 0:
 		sfx("windmill_wake")
 		_emit("windmill_wake")
@@ -2083,64 +2204,52 @@ func _done() -> void:
 		_lane()
 	elif k == 1:
 		bag_b.visible = true
-	if k >= 4:
-		# 끝: 장미의 고마움 → 나의 혼잣말 넷, 카메라가 천천히 물러나 별들이 다 보인다
+	if last:
+		# 끝 (v9: 다섯 부탁을 다 끝냈을 때, 마지막이 어느 것이든): 고마움 → 나의 혼잣말 넷, 카메라가 천천히 물러나 별들이 다 보인다
 		won = true
 		fin_t = 18.0
-		msg(_tx("msg.rose_smiles"), 3.0)
+		msg(_tx("msg.rose_smiles" if k == 4 else "msg.all_done"), 3.0)
 		sfx("win")
 		_emit("finish")
 		for i in 4:
 			_sayq(_tx("who.me"), _tx("ending.%d" % (i + 1)), 2.8)
 		return
-	mi = k + 1
-	req = 1 if mi == 4 else 0
-	_start_job(mi)
-	if req == 1:
-		_emit("job_start", {"job": mi})
-	msg(_tx("msg.next", {"planet": tr(BD[mi].name)}), 1.8)
+	if k == 4:
+		msg(_tx("msg.rose_smiles"), 1.8)
+	# 다음 갈 곳: 가장 가까운 남은 부탁 (칩·화살표와 같은 것)
+	fj = -1
+	_obj()
+	if ob_k >= 0 and k != 4:
+		msg(_tx("msg.next", {"planet": tr(BD[ob_k].name)}), 1.8)
 
 
 ## 별마다 다른 움직임과 부탁 진행
 func _tick(dt: float, up: Vector3, lf: float) -> void:
 	for k in marks:
 		var m: MeshInstance3D = marks[k]
-		m.visible = k == mi and (req == 0 or k == 4) and fin_t <= 0.0
+		m.visible = _mark_on(int(k))
 		if m.visible and k != 4:
 			m.position.y = 2.9 + sin(clock * 4.0) * 0.2
-	# 주민 만나기
-	if grounded and cur == mi and npcs.has(cur):
+	# 주민 만나기 (v9: 어느 별 주민이든 언제든)
+	if grounded and cur <= 4 and npcs.has(cur) and fin_t <= 0.0:
 		if p.distance_to((npcs[cur] as Node3D).position) < 5.0:
-			if req == 0:
-				req = 1
-				_emit("job_start", {"job": mi})
-				bub_q.clear()
-				_say(P.who, _line(cur, "ask"), 6.0)
-				if _first_hint and mi == 0:
-					_first_hint = false
-					_sayq("", _tx("hint.first"), 4.2)
-				if mi == 0 or mi == 3:
-					nag[300 + mi] = clock + 40.0
-					_sayq(P.who, _line(cur, "hint"), 4.0)
-			elif mi == 4 and not rose_said:
-				rose_said = true
-				_say(P.who, _line(cur, "ask"), 6.0)
+			_meet(cur)
 	# 풍차 바람: 이륙선 80% 이상으로 땅에 붙어 달린 시간
-	if mi == 0 and req == 1 and cur == 0:
+	if js[0] == 1 and cur == 0:
 		var on_ := grounded and lf >= 0.8
-		prog = clampf(prog + (dt / 12.0 if on_ else -0.03 * dt), 0.0, 1.0)
+		wprog = clampf(wprog + (dt / 12.0 if on_ else -0.03 * dt), 0.0, 1.0)
 		if on_:
 			wind_t -= dt
 			if wind_t <= 0.0:
 				wind_t = 0.35
-		if prog >= 1.0:
-			_done()
+		if wprog >= 1.0:
+			_done(0)
 	if blades:
-		blades.rotation.z += ((lf * 9.0 * (1.0 if grounded else 0.2) if cur == 0 else 0.0) + (6.0 if mi > 0 else 0.3)) * dt
-	# 노을 띠: 적도를 이륙선의 80%(후반 90%) 빠르기로 돈다
+		blades.rotation.z += ((lf * 9.0 * (1.0 if grounded else 0.2) if cur == 0 else 0.0) + (6.0 if js[0] == 2 else 0.3)) * dt
+	# 노을 띠: 적도를 이륙선의 80%(후반 90%) 빠르기로 돈다 (v9: 노을의 별 위에 있을 때만 움직인다)
 	var r3 := br[3]
-	if mi == 3 and req == 1:
-		band_a += (0.8 if prog < 0.5 else 0.9) * sqrt((bg[3] - 0.8) * r3) / r3 * dt
+	if js[3] == 1 and cur == 3:
+		band_a += (0.8 if bprog < 0.5 else 0.9) * sqrt((bg[3] - 0.8) * r3) / r3 * dt
 	var inb := false
 	if cur == 3 and grounded:
 		var lon := atan2(-up.z, up.x)
@@ -2157,15 +2266,15 @@ func _tick(dt: float, up: Vector3, lf: float) -> void:
 		_band_on = inb
 		for bb in band_bs:
 			bb.material_override = _pm(D if inb else A)
-	if mi == 3 and req == 1 and cur == 3:
-		prog = clampf(prog + (dt / 14.0 if inb else -0.04 * dt), 0.0, 1.0)
+	if js[3] == 1 and cur == 3:
+		bprog = clampf(bprog + (dt / 14.0 if inb else -0.04 * dt), 0.0, 1.0)
 		if inb:
 			wind_t -= dt
 			if wind_t <= 0.0:
 				wind_t = 0.4
-				sfx("ui_tap", -9.0, 1.0 + prog)
-		if prog >= 1.0:
-			_done()
+				sfx("ui_tap", -9.0, 1.0 + bprog)
+		if bprog >= 1.0:
+			_done(3)
 	# 장미 별의 도는 담
 	gap_a += 0.8 * dt
 	if deco_on.size() <= 4 or deco_on[4] == 1:
@@ -2178,22 +2287,78 @@ func _tick(dt: float, up: Vector3, lf: float) -> void:
 
 
 ## 갈 곳: ob_k(별 번호, 없으면 -1)·ob_d(방향). v6: 매 프레임 새 배열을 만들지 않게 멤버에 쓴다
+## v9 순서 자유: 든 물건(떨어지는 중·빗나가 놓인 것 포함)이 있으면 그 물건 일이 먼저, 없으면 남은 부탁 중 가장 가까운 별의 것.
+## 고르기는 땅에 있을 때만 다시 한다 (날다가 칩·화살표·돛이 가리키는 곳이 바뀌지 않게). fj·goal_st·ob_k·ob_d 를 쓴다
 func _obj() -> void:
 	ob_k = -1
-	var J: Dictionary = JOB[mi]
-	if req == 0 and mi <= 3:
-		ob_k = mi
-		ob_d = NPC_D.normalized()
-	elif J.has("item"):
-		if item != "":
+	goal_st = -1
+	if won or fin_t > 0.0:
+		fj = -1
+		return
+	if ij >= 0 and (item != "" or fall_on or (ig_on and not _hands_free())):
+		fj = ij
+		var J: Dictionary = JOB[ij]
+		if item != "" or fall_on:
+			goal_st = 3
 			ob_k = int(J.tgt)
 			ob_d = (J.tdir as Vector3).normalized()
-		elif ig_on:
+		else:
+			goal_st = 2
 			ob_k = ig_pl
 			ob_d = ig_dir
-	elif mi == 3:
-		ob_k = 3
-		ob_d = Vector3(cos(band_a), 0, -sin(band_a))
+		return
+	if grounded or fj < 0 or not _job_open(fj):
+		fj = -1
+		var w := bc[cur] + p
+		var best := INF
+		for j in 5:
+			if not _job_open(j):
+				continue
+			var dd := w.distance_to(bc[_job_planet(j)])
+			if dd < best - 0.5:
+				best = dd
+				fj = j
+	if fj < 0:
+		return
+	var j := fj
+	ob_k = _job_planet(j)
+	ob_d = NPC_D.normalized()
+	if js[j] == 0:
+		goal_st = 0
+		if j == 4:
+			ob_d = (JOB[4].tdir as Vector3).normalized()
+	elif j == 0:
+		goal_st = 1
+		if cur == 0:
+			ob_k = -1  # 풍차의 별 위: 갈 곳 없이 달리기만
+	elif j == 3:
+		goal_st = 4
+		if cur == 3:
+			ob_d = Vector3(cos(band_a), 0, -sin(band_a))
+	elif ij == j and ig_on:
+		goal_st = 2
+		ob_k = ig_pl
+		ob_d = ig_dir
+	else:
+		goal_st = 2  # 물건을 받으러 주인에게
+
+
+## 칩이 고를 수 있는 부탁: 안 끝났고, 장미는 덮개가 생긴 뒤에만 (그 전엔 노을 띠가 먼저라 장미로 보내지 않는다)
+func _job_open(j: int) -> bool:
+	if js[j] == 2:
+		return false
+	if j == 4:
+		return js[3] == 2
+	return true
+
+
+## 부탁 j 를 하러 갈 별: 물건 부탁(하는 중)은 물건 주인 별, 그 밖엔 부탁한 주민 별
+func _job_planet(j: int) -> int:
+	if js[j] == 1 and (j == 1 or j == 2 or j == 4):
+		if ij == j and ig_on:
+			return ig_pl
+		return int(JOB[j].src)
+	return j
 
 
 ## 말풍선과 부탁 막대. v6: 늘 떠 있는 말 없음 — 상황 말은 한 번씩, 같은 말은 한참 쉬었다가 (_nag)
@@ -2209,10 +2374,13 @@ func _hud(dt: float) -> void:
 	_chip_update(dt)
 	_arrow_update()
 	var show := false
-	if req == 1 and (mi == 0 or mi == 3):
+	if js[0] == 1 and cur == 0:
 		show = true
-		_pbar_set(Color("ffd166"), prog)
-	elif item != "" and bool((JOB[mi] as Dictionary).get("frag", false)):
+		_pbar_set(Color("ffd166"), wprog)
+	elif js[3] == 1 and cur == 3:
+		show = true
+		_pbar_set(Color("ffd166"), bprog)
+	elif item != "" and ij >= 0 and bool((JOB[ij] as Dictionary).get("frag", false)):
 		show = true
 		_pbar_set(DANGER, clampf(crack, 0.0, 1.0))
 	pbar_bg.visible = show
@@ -2228,28 +2396,30 @@ func _pbar_set(col: Color, f: float) -> void:
 ## 지금 할 만한 말 하나 (번호 = 종류*100 + 별·부탁). 끝낸 주민의 혼잣말은 드물게(60초), 안내는 40초에 한 번까지
 func _situation() -> void:
 	var near := grounded and cur <= 4 and npcs.has(cur) and p.distance_to((npcs[cur] as Node3D).position) < 6.0
-	if near:
-		if cur < mi:
-			if cur != mi - 1 and _can(100 + cur):
-				_nag(100 + cur, 60.0, P.who, _line(cur, "idle1" if randf() < 0.5 else "idle2"))
-			return
-		if cur > mi:
-			if _can(200 + cur):
-				_nag(200 + cur, 40.0, P.who, _line(cur, "ask"))
-			return
+	# v9: 부탁을 끝낸 주민은 가끔 혼잣말 (줄 물건이 남았으면 안 함 — _meet 이 말한다)
+	if near and js[cur] == 2 and _gives(cur) < 0:
+		if _can(100 + cur):
+			_nag(100 + cur, 60.0, P.who, _line(cur, "idle1" if randf() < 0.5 else "idle2"))
+		return
 	# 글자는 쉬는 시간이 끝났을 때만 만든다 (매 프레임 글자·사전을 만들지 않게)
-	if req == 1 and (mi == 0 or mi == 3) and cur == mi and prog < 0.15:
-		if _can(300 + mi):
-			_nag(300 + mi, 40.0, BD[mi].who, _line(mi, "hint"))
-	elif item != "" and mi == 4:
-		if _can(400):
+	if js[0] == 1 and cur == 0 and wprog < 0.15 and item == "":
+		if _can(300):
+			_nag(300, 40.0, BD[0].who, _line(0, "hint"))
+	elif js[3] == 1 and cur == 3 and bprog < 0.15 and item == "":
+		if _can(303):
+			_nag(303, 40.0, BD[3].who, _line(3, "hint"))
+	elif item != "" and ij == 4:
+		if cur == 4:
+			if _can(450):
+				_nag(450, 45.0, BD[4].who, _line(4, "hint"))  # 장미 별: 담 틈·탑 안내
+		elif _can(400):
 			_nag(400, 45.0, BD[3].who, _line(3, "thanks2"))  # 불 별 새총 안내
-	elif item != "":
-		if _can(500 + mi):
-			_nag(500 + mi, 45.0, BD[mi].who, _line(mi, "hint"))
+	elif item != "" and ij >= 0:
+		if _can(500 + ij):
+			_nag(500 + ij, 45.0, BD[ij].who, _line(ij, "hint"))
 	elif grounded and ob_k >= 0 and ob_k != cur:
-		if _can(600 + mi * 10 + cur):
-			_nag(600 + mi * 10 + cur, 50.0, "", _tx("hud.next_hint", {"planet": tr(BD[ob_k].name)}))
+		if _can(600 + ob_k * 10 + cur):
+			_nag(600 + ob_k * 10 + cur, 50.0, "", _tx("hud.next_hint", {"planet": tr(BD[ob_k].name)}))
 
 
 func _can(id: int) -> bool:
@@ -2267,9 +2437,9 @@ func _die(why: String) -> void:
 	_emit("die", {"why": why})
 	msg(_tx("die." + why), 1.2)
 	_react("die_" + why, false, true)
-	# 마지막으로 내려앉은 자리에서 다시: 든 물건은 처음 받은 별로
-	var J: Dictionary = JOB[mi]
-	if item != "" or fall_on:
+	# 마지막으로 내려앉은 자리에서 다시: 든 물건은 그 물건 주인 별 제자리로 (v9: 순서와 상관없이 JOB[ij].src)
+	if ij >= 0 and (item != "" or fall_on):
+		var J: Dictionary = JOB[ij]
 		item = ""
 		item_b.visible = false
 		fall_on = false
@@ -2279,8 +2449,11 @@ func _die(why: String) -> void:
 		ig_b.visible = true
 		_drop_btn(false)
 	crack = 0.0
-	if req == 1 and (mi == 0 or mi == 3):
-		prog = 0.0
+	# 바람·띠 막대는 0부터 (하는 중인 것만)
+	if js[0] == 1:
+		wprog = 0.0
+	if js[3] == 1:
+		bprog = 0.0
 		band_a = 0.6
 	_dots_off()
 
@@ -2578,18 +2751,9 @@ func _ban_anim(dt: float) -> void:
 
 ## 지금 할 일: -1 없음, 0 주민에게 말 걸기, 1 풍차 바람, 2 물건 받기, 3 물건 배달, 4 노을 띠
 func _goal_state() -> int:
-	if won or fin_t > 0.0 or req == 2:
+	if won or fin_t > 0.0 or fj < 0:
 		return -1
-	var J: Dictionary = JOB[mi]
-	if req == 0 and mi <= 3:
-		return 0
-	if J.has("item"):
-		return 3 if (item != "" or fall_on) else 2
-	if mi == 0:
-		return 1
-	if mi == 3:
-		return 4
-	return -1
+	return goal_st  # v9: _obj 가 고른 부탁(fj)의 할 일
 
 
 ## 할 일 칩: 바뀔 때만 글을 다시 쓰고 톡 튄다 (매 프레임 글자를 만들지 않는다)
@@ -2597,12 +2761,12 @@ func _chip_update(dt: float) -> void:
 	if chip == null:
 		return
 	var st := _goal_state()
-	var code := -1 if st < 0 else mi * 1000 + st * 100 + (ig_pl if st == 2 else 0)
+	var code := -1 if st < 0 else fj * 1000 + st * 100 + (ob_k + 1)
 	if code != _chip_code:
 		_chip_code = code
 		chip.visible = code >= 0
 		if code >= 0:
-			_chip_set(st, JOB[mi])
+			_chip_set(st, JOB[fj])
 			chip_age = 0.0
 	if chip.visible and chip_age < 0.5:
 		chip_age += dt
@@ -2614,13 +2778,14 @@ func _chip_set(st: int, J: Dictionary) -> void:
 	var tx := ""
 	match st:
 		0:
-			tx = _tx("goal.talk", {"who": tr(BD[mi].who)})
+			tx = _tx("goal.talk", {"who": tr(BD[fj].who)})
 			_chip_icon = "talk"
 		1:
 			tx = _tx("goal.wind")
 			_chip_icon = "wind"
 		2:
-			tx = _tx("goal.pick", {"item": _tx("item." + str(J.item)), "planet": tr(BD[ig_pl if ig_on else int(J.src)].name)})
+			var pk := ig_pl if (ij == fj and ig_on) else int(J.src)
+			tx = _tx("goal.pick", {"item": _tx("item." + str(J.item)), "planet": tr(BD[pk].name)})
 			_chip_icon = str(J.item)
 		3:
 			tx = _tx("goal.deliver", {"item": _tx("item." + str(J.item)), "target": tr(BD[int(J.tgt)].name)})
@@ -2782,7 +2947,7 @@ func _vis(dt: float) -> void:
 	# 바람: 풍차 부탁 중 힘껏 달리면 크게, 날 때는 빠르기만큼
 	var want := -60.0
 	if die_t <= 0.0 and fin_t <= 0.0:
-		if mi == 0 and req == 1 and cur == 0 and grounded:
+		if js[0] == 1 and cur == 0 and grounded:
 			want = lerpf(-30.0, -4.0, clampf((k - 0.4) / 0.6, 0.0, 1.0))
 		elif not grounded:
 			want = lerpf(-30.0, -10.0, clampf(spd / 16.0, 0.0, 1.0))
@@ -3600,9 +3765,9 @@ func _lod() -> void:
 		var vb: Node3D = b[0]
 		var lim2 := VIL_NEAR + (2.0 if vb.visible else -2.0)
 		var bk2 := int(b[3])
-		# 지금 부탁이 향하는 별(받을 별·전할 별)의 주민은 거리와 상관없이 늘 보인다
-		var jd: Dictionary = JOB[mi] if mi < JOB.size() else {}
-		var job_k := bk2 == mi or bk2 == int(jd.get("src", -1)) or bk2 == int(jd.get("tgt", -1))
+		# 지금 갈 곳(칩이 가리키는 별)과 나와 있는 물건의 주인 별·전할 별 주민은 거리와 상관없이 늘 보인다
+		var jd: Dictionary = JOB[ij] if ij >= 0 else {}
+		var job_k := bk2 == ob_k or bk2 == int(jd.get("src", -1)) or bk2 == int(jd.get("tgt", -1))
 		var on2 := not title and (job_k or cp.distance_to(vb.global_position) < lim2)
 		if on2 != vb.visible:
 			vb.visible = on2
@@ -4078,7 +4243,7 @@ func _process(dt: float) -> void:
 			hud2.visible = true
 	_title_was = tv
 	# 평가 카드·끝 화면에선 _step 이 멈춰 바람이 안 줄어든다: 바로 끈다
-	if (_rating or over) and wind_pl and wind_pl.playing:
+	if (_rating or over or (ui != null and ui.todo_open())) and wind_pl and wind_pl.playing:
 		wind_pl.stop()
 	if _en and over:
 		_over_l.text = "%d\nBest %d%s" % [score, best, "\nTap to play again" if wait <= 0.0 else ""]
@@ -4540,10 +4705,10 @@ const DL := {
 	"p1.thanks2": ["초록 칸에서 점프하게. 날다 스틱 밀며 뛰면 돛으로 방향을 한 번 튼다네.", "Jump at the green cell! In flight, jump and push stick to turn once."],
 	"p2.ask": ["이 소포, 저 하얀 굴뚝 달 집에 전해 줘! 담이 높아 걸어선 못 들어가.", "Take this parcel to Chimney Moon! The walls are too high to walk in."],
 	"p2.hint": ["달은 작아 금방 떠! 굴뚝 위 지날 때 '놓기'. 발밑 노란 점에 떨어져!", "The moon lifts fast! Press 'Drop' over chimney onto the yellow dot."],
-	"p2.thanks": ["잘 도착했대, 고마워! 다음은 초록 유리꽃의 별로 힘차게 날아가 봐.", "Delivered safely! Next, fly out to the green Glass Flower Planet."],
+	"p2.thanks": ["잘 도착했대, 고마워! 남은 부탁은 왼쪽 위 할 일 목록에 있어.", "Delivered safely, thank you! The rest is in your to-do list, top left."],
 	"p3.ask": ["유리꽃을 저 민트 친구 달에 전해 줘요… 세게 내려앉으면 깨져 버려요.", "Carry the glass flower to Friend Moon... A hard landing will break it."],
 	"p3.hint": ["곧장 말고 빙 돌아 살살 앉아요. 빨간 그림자는 운석 자리니 미리 피해요!", "Don't dive straight; circle to land softly. Red shadows are meteors!"],
-	"p3.thanks": ["꽃이 무사하대요… 정말 다행이에요. 이제 하늘색 노을의 별로 가 보세요.", "The flower is safe... thank you! Now visit the sky-blue Sunset Planet."],
+	"p3.thanks": ["꽃이 무사하대요… 정말 다행이에요. 다른 별에도 기다리는 이가 있을 거예요.", "The flower is safe... thank you! Others out there are waiting for you too."],
 	"p4.ask": ["내 별은 너무 작아서 노을이 자꾸 달아나. 저 주황 띠랑 같이 달려 줘!", "My planet is small and the sunset runs away. Run with the orange band!"],
 	"p4.hint": ["얼음이라 미끄러워! 빠르면 뜨고 느리면 놓쳐. 띠랑 같은 빠르기로 뛰어!", "Slick ice! Too fast you float, too slow you lose it. Match its speed!"],
 	"p4.thanks": ["고마워! 분홍 장미 별에 유리 덮개를 줘. 곧장 가면 빨간 지뢰 울타리야.", "Bring this dome to Rose Planet! A red mine fence blocks the direct way."],
@@ -4622,5 +4787,19 @@ const DL := {
 	"got.pkg": ["소포! {target}에 전해 주자", "Parcel! Deliver it to {target}"],
 	"got.flower": ["유리꽃! 살살 {target}에 전해 주자", "Glass flower! Carry it gently to {target}"],
 	"got.dome": ["유리 덮개! {target}에 씌워 주자", "Glass dome! Bring it to {target}"],
+	# v9 순서 자유 · 할 일 목록
+	"talk.busy": ["들고 있는 {item}부터 배달하고 다시 와 줘!", "Deliver the {item} you're carrying first, then come back!"],
+	"rose.early": ["바람이 차가워… 노을 아이가 유리 덮개를 갖고 있대. 노을의 별에 가 봐.", "It's cold... The Sunset Child has a glass dome. Try Sunset Planet."],
+	"p4.keep": ["고마워! 유리 덮개는 내가 맡아 둘게. 손이 비면 받으러 와!", "Thank you! I'll keep the glass dome here. Come back when your hands are free!"],
+	"p5.thanks_more": ["…따뜻해. 고마워. 다른 별들도 네 빠른 발을 기다리고 있어.", "...Warm now. Thank you. The other planets are waiting for your fast feet too."],
+	"msg.all_done": ["모든 부탁을 마쳤다!", "Every request is done!"],
+	"msg.drift_warn_ns": ["우주로 떠내려간다!", "Drifting away!"],
+	"react.drift_warning_ns": ["멀어진다… 초록 점선에서 뛰자", "Drifting... jump on green dots!"],
+	"todo.p1": ["풍차 깨우기: 땅에 붙어 힘껏 달리기", "Wake the windmill: sprint on the ground"],
+	"todo.p2": ["소포를 굴뚝 달 집에 공중에서 놓기", "Drop the parcel onto the Chimney Moon house"],
+	"todo.p3": ["유리꽃을 친구 달에 살살 전하기", "Carry the glass flower gently to Friend Moon"],
+	"todo.p4": ["주황 노을 띠와 같은 빠르기로 달리기", "Run at the orange sunset band's speed"],
+	"todo.p5": ["유리 덮개를 장미에게 씌우기", "Put the glass dome over the rose"],
+	"todo.p5_wait": ["유리 덮개가 필요해 (노을 아이가 줌)", "Needs a glass dome (from the Sunset Child)"],
 	"howto": ["별 여러 개가 한 하늘에 떠 있다. 왼쪽 스틱으로 달린다(밀수록 빠름). 빨리 달리면 발이 뜬다.\n아주 빨리 달려 점프하면 중력을 벗어난다. 다른 별에 끌려 돌다 내리고, 빗나가면 떠내려간다.\n발 앞 점선: 지금 뛰면 갈 길(초록 도달, 빨강 위험). 위 막대 초록이면 점프 가능. 노란 빛기둥이 갈 곳.\n날다 점프: 돛으로 스틱 쪽 방향 전환. '놓기'는 발밑 노란 점에. 유리는 세게 내리면 깨짐. 목숨 3(새 별서 회복).", "Tiny planets share one sky. Run with left stick (push more for speed); fast running lifts feet.\nSprint and jump to escape gravity and fly. Nearby planets pull you into orbit; miss and you drift off.\nDotted line shows path (green reaches, red is danger). Green top bar = escape ready. Yellow pillar is goal.\nJump mid-flight to turn toward stick with sail. 'Drop' lands on yellow dot. Glass breaks if slammed. 3 lives (refill on new planet)."],
 }

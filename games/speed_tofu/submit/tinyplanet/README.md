@@ -151,7 +151,7 @@ powershell -ExecutionPolicy Bypass -File C:\projects\pai-games\games\tiny_planet
 - [ ] sync → build → 커밋·push → 폰에서 플레이 링크로 한 판.
 - [ ] itch용 zip 만들기 (`web/` 안의 파일만, `index.html`이 zip 맨 위):
   ```powershell
-  Compress-Archive -Path C:\projects\pai-games\games\tiny_planet\web\* -DestinationPath C:\projects\pai-games\games\tiny_planet\tiny_planet_itch.zip -Force
+  Compress-Archive -Path C:\projects\pai-games\games\tiny_planet\web\* -DestinationPath C:\projects\pai-games\games\tiny_planet\little_courier_itch.zip -Force
   ```
 
 사용자가 할 일 (계정·개인 정보가 필요해서):
