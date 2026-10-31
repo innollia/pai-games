@@ -1,5 +1,5 @@
 extends Node
-## 작은 행성 v5 — 속도감·연출 (submit/tinyplanet/MODULES.md 약속).
+## 어린 배달부 v8 연출 (처음 v5에 만듦) — 속도감·연출 (submit/tinyplanet/MODULES.md 약속).
 ## 본체는 setup(game) 한 번, set_bodies(...) 한 번, 매 프레임 tick(dt, s), 일이 생기면 event(name, d)만 부른다.
 ## 화면 겹 그림(속도선·번쩍·테두리 빛·비네트)은 CanvasLayer 0(HUD 아래), 3D 효과는 이 노드 밑 FxRoot(본체 world 밖 = restart 에도 안 지워짐).
 ## 카메라는 fov 와 h_offset/v_offset 만 쓴다(본체 위치 계산과 안 싸움). time_scale 은 escape 때만 바꾸고 반드시 1로 되돌린다.

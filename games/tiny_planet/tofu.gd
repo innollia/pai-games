@@ -445,7 +445,7 @@ func end() -> void:
 	_rate_status.text = ""
 	for l in _stars:
 		l.label_settings.font_color = SOFT
-	_rate_box.visible = true
+	_rate_box.visible = false
 	_kit_clear()
 	if score > best:
 		best = score
@@ -465,7 +465,7 @@ func _process(dt: float) -> void:
 		_rate_btn_l.visible = false
 		_kit_frame()
 		return
-	_rate_btn_l.visible = not over and not _rating
+	_rate_btn_l.visible = false
 	if _rating:  # 언제든 평가 카드: 시간·_step 멈춤
 		_msg_l.visible = false
 		_rate_poll()
@@ -510,7 +510,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			if _rating:
 				_rate_hit(p)
 				return
-			if not over and _RATE_BTN.has_point(p):
+			if false and _RATE_BTN.has_point(p):
 				_rate_open()
 				return
 			if over:
@@ -644,7 +644,7 @@ func _finger(id: int, p: Vector2, kind: int) -> void:
 		if _rating:
 			_rate_hit(p)
 			return
-		if not over and _RATE_BTN.has_point(p):
+		if false and _RATE_BTN.has_point(p):
 			_rate_open()
 			return
 		if over:

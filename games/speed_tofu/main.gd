@@ -25,7 +25,7 @@ const GAMES := [
 	["screenrace_t_speed_x05", "  ⚖ 실험: 달리기 속도 ×½"],
 	["screenrace_t_catchup_x2", "  ⚖ 실험: 따라잡기 ×2"],
 	["screenrace_t_catchup_x05", "  ⚖ 실험: 따라잡기 ×½"],
-	["tinyplanet", "● 작은 행성 (우주)"],
+	["tinyplanet", "● 어린 배달부 (작은 행성)"],
 	# 합격 (10/30 판정)
 	["overpower", "★ 과속 플랫포머 (옆모습)"],
 	["overpower_v4", "★ 과속 플랫포머 v4 (이전판)"],
