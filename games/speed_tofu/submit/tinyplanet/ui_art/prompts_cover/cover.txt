@@ -1,0 +1,33 @@
+﻿[IMAGE] Single illustration, flat 2D, full-bleed: a red living mailbox creature carrying a brown parcel leaps between round planets across a bright sky-blue sky; 5:4 horizontal game page cover.
+[SCENE] Eye-level medium view. The red living mailbox creature fills the middle-right, from y=18% to y=76%, centered at x=64%. Exactly two big googly eyes are stacked vertically on its front, a mail slot mouth sits below them, and a small yellow flag projects from its side. Two long yellow noodle legs stretch apart in a joyful rightward leap, one trailing left and one reaching right. A brown parcel is tucked against its side, carried without added arms. The small round green planet is below the trailing leg at x=47%, y=88%, with a small windmill on its upper-left edge. The lavender planet is below the reaching leg at x=88%, y=80%. Light comes from the top left.
+[RENDERING] Every surface is perfectly smooth and clean with zero texture.
+Each shape has one flat color and at most one flat shadow tone with a crisp edge.
+Completely matte surfaces.
+Thick ink-navy #2b2d42 outlines of even weight around every object.
+Simple rounded chunky shapes with clear silhouettes readable at thumbnail size.
+Top-left light appears only as the flat shadow tone.
+Depth comes only from overlap and size.
+Detail is confined to the main character; the background is a large clean color field with a few simple shapes.
+[EMPTY] The left third is uninterrupted empty flat sky blue for a title. All gaps between the creature and the planets are flat sky blue. The planet surfaces are single flat color fields.
+[PALETTE] Sky blue #9fd3ff, grassy mint green #8fe3c2, red coral #ff8a80, butter yellow #ffd166, lavender #b9a7f2, warm cream #fff6e6, parcel brown #b98050, ink navy #2b2d42.
+[NEGATIVE] No over-rendering: no painted texture on every surface, no object-by-object drawing of foliage, rocks, water, sky or background.
+No hyper-detailed fur, bark, stone, or leaf rendering; a few confident marks stand for each.
+No sky gradients, no cloud detail, no glow around the sun, moon, or lights.
+No glossy digital painting, no airbrushed smooth gradients, no plastic or waxy skin.
+No bloom, lens flare, god rays, or haze unless the subject asks for them.
+No shallow depth of field, bokeh, or photographic blur.
+No 3D render look, no subsurface skin sheen, no CGI lighting.
+No evenly spread detail; detail sits in one or two places only.
+No perfectly symmetrical faces, poses, or compositions.
+No generic fantasy decoration: floating particles, sparkles, magic circles, random runes or glyphs.
+No extra eyes, mouths, faces, limbs, or tentacles; no melted or fused anatomy; hands have the correct number of fingers.
+No characters, animals, or props that the subject did not ask for.
+No text, letters, captions, title, signature, monogram, watermark, logo, frame, or border.
+No oversaturated or neon color unless the style card asks for it.
+No muddy, smeared, or noisy surface texture.
+No texture, grain, noise, brush strokes, paper or canvas feel.
+No highlights, gloss, shine, glare or reflections.
+No gradients, airbrush, soft blur shadows or glow.
+No 3D render look.
+No letters, numbers or symbols that look like writing.
+No painted texture on the planets and clouds (v001 cover had gouache texture).

@@ -111,6 +111,23 @@ var bmu := PackedFloat32Array()
 var bsoi := PackedFloat32Array()  # 끄는 둘레
 var batm := PackedFloat32Array()  # 대기 (여기서 내려가면 옆 속도가 깎여 내려앉는다)
 var env_node: WorldEnvironment
+# v13 처음 줌: 시작 화면(모든 별이 한눈에)에서 풍차지기 말을 읽는 동안 천천히 다가간다. intro_k < 0 = 끝남
+const INTRO_DUR := 9.0
+const NIGHT := Color("0b1030")  # 멀리 떠 있으면 깊은 밤하늘
+var intro_k := -1.0
+var intro_boost := 0.0  # 말을 넘길 때마다 조금 더 다가갈 몫 (한꺼번에 튀지 않게 나눠서)
+var intro_p := Vector3.ZERO
+var intro_l := Vector3.ZERO
+var _fit_c := Vector3.ZERO  # 모든 별을 감싸는 공
+var _fit_r := 0.0
+var _cg_want := Vector3.ZERO  # 놀이 카메라가 가고 싶은 자리·볼 곳·위
+var _cg_look := Vector3.ZERO
+var _cg_up := Vector3.UP
+var _title_look := Vector3.ZERO
+var _sky_c := NIGHT
+var _dark := 1.0
+var _space_stars: MultiMeshInstance3D
+var _space_mat: StandardMaterial3D
 # 나
 var me: Node3D
 var hearts: Array[MeshInstance3D] = []
@@ -281,6 +298,8 @@ var tag_bg: Array[Panel] = []
 var tag_sh: Array[Panel] = []
 var tag_ic: Array[Control] = []
 var tag_w := PackedFloat32Array()
+var _tag_ord: Array[Vector2] = []  # v13 (카메라 거리, 별 번호) 가까운 순
+var _tag_rc: Array[Rect2] = []  # v13 이번 프레임에 놓인 이름표 칸
 var arrow: Control
 var _arrow_on := false
 var _arrow_p := Vector2.ZERO
@@ -631,6 +650,9 @@ func _reset() -> void:
 	fin_t = 0.0
 	bub_t = 0.0
 	bub_talk = false
+	intro_k = -1.0
+	intro_boost = 0.0
+	_fit_r = 0.0
 	clock = 0.0
 	hud2.visible = true
 	_btns.erase("drop")
@@ -959,9 +981,7 @@ func _switch(k: int) -> void:
 	gp = bg[k]
 	mu = bmu[k]
 	pl = nodes[k]
-	here.position = bc[k]
-	if env_node:
-		env_node.environment.background_color = P.sky
+	here.position = bc[k]  # v13: 하늘색은 _sky_tint 가 카메라 거리로 부드럽게 바꾼다
 	for i in NM:
 		mph[i] = 0
 		mb[i].visible = false
@@ -1157,6 +1177,8 @@ func _talk_next() -> void:
 		return
 	play("tap")
 	bub_talk = false
+	if intro_k >= 0.0:
+		intro_boost += 0.1  # v13: 넘길 때마다 조금 더 다가간다
 	if not bub_q.is_empty():
 		var q: Array = bub_q[0]
 		if q.size() > 3 and int(q[3]) == 1:
@@ -1173,6 +1195,8 @@ func _talk_wait(dt: float) -> void:
 	if DisplayServer.get_name() == "headless" and bub_talk_age > 8.0:
 		_talk_next()
 	_bub_anim(dt)
+	if intro_k >= 0.0:
+		_camera(dt)  # v13: 처음 대화를 읽는 동안 카메라가 천천히 다가간다
 
 
 ## v12: 대화 중 누름 — 조이스틱 자리·메뉴·평가 버튼이 아니면 (말풍선 위는 늘) 넘기고 그 누름은 먹는다 (점프로 안 간다)
@@ -1682,6 +1706,7 @@ func _step(dt: float) -> void:
 func _post(dt: float) -> void:
 	var s := _state()
 	var t0 := Time.get_ticks_usec() if _dbg else 0
+	_sky_tint(dt)
 	ui.tick(dt, s)
 	t0 = _dbg_add("ui.tick", t0)
 	fx.tick(dt, s)
@@ -1689,10 +1714,77 @@ func _post(dt: float) -> void:
 
 
 ## 시작 화면 카메라: 하늘 가운데(MID)를 높이 떠서 천천히 돈다 (별들이 한눈에)
+## v13: 모든 별·달을 감싸는 공에 화면 폭을 맞춘 거리에서. 아래 40%(말풍선·조작)는 비우고 별들은 위쪽 60%에
 func _title_cam(_dt: float) -> void:
+	_fit()
+	if _fit_r <= 0.0:
+		return
 	var a := clock * 0.07 + 0.6
-	cam.position = MID + Vector3(cos(a) * 96.0, 40.0 + sin(clock * 0.21) * 6.0, sin(a) * 96.0)  # v12: 별이 위아래로 흩어져 조금 더 멀리·높이
-	cam.look_at(MID + Vector3(0, -4.0, 0), Vector3.UP)
+	var el := 0.39 + sin(clock * 0.21) * 0.05
+	var dir := Vector3(cos(a) * cos(el), sin(el), sin(a) * cos(el))
+	var vp := get_viewport().get_visible_rect().size
+	var asp := vp.x / maxf(vp.y, 1.0)
+	var th := tan(deg_to_rad(cam.fov * 0.5))
+	var tv := th / maxf(asp, 0.01)
+	if cam.keep_aspect == Camera3D.KEEP_HEIGHT:
+		tv = th
+		th = tv * asp
+	var lim := minf(th, tv * 0.6)
+	var d := _fit_r * 1.1 / sin(atan(lim))
+	cam.position = _fit_c + dir * d
+	var u := (Vector3.UP - dir * dir.dot(Vector3.UP)).normalized()
+	_title_look = _fit_c - u * d * tv * 0.4
+	cam.look_at(_title_look, Vector3.UP)
+
+
+## 모든 별을 감싸는 공 (가운데·반지름)
+func _fit() -> void:
+	if _fit_r > 0.0 or bc.is_empty():
+		return
+	var lo := bc[0] - Vector3.ONE * br[0]
+	var hi := bc[0] + Vector3.ONE * br[0]
+	for k in bc.size():
+		lo = lo.min(bc[k] - Vector3.ONE * br[k])
+		hi = hi.max(bc[k] + Vector3.ONE * br[k])
+	_fit_c = (lo + hi) * 0.5
+	var r := 1.0
+	for k in bc.size():
+		r = maxf(r, _fit_c.distance_to(bc[k]) + br[k])
+	_fit_r = r
+
+
+## v13: 하늘색 = 가장 가까운 별의 파스텔 하늘 ↔ 깊은 밤 (카메라가 별 겉에서 멀수록 어둡게, 작은 별이 보인다)
+func _sky_tint(dt: float) -> void:
+	if cam == null or bc.is_empty():
+		return
+	var cp := cam.global_position
+	var dk := 1.0
+	var col: Color = P.get("sky", Color("d6ecff"))
+	var best := 1e9
+	for k in bc.size():
+		var r := br[k]
+		var s := cp.distance_to(bc[k]) - r
+		var a := 4.0 + 0.25 * r
+		var b := 20.0 + 1.2 * r
+		var t := clampf((s - a) / (b - a), 0.0, 1.0)
+		t = 1.0 - (1.0 - t) * (1.0 - t)
+		if t < dk:
+			dk = t
+		if s < best:
+			best = s
+			col = BD[k].get("sky", col) as Color
+	var want := col.lerp(NIGHT, dk)
+	var f := minf(1.0, dt * 3.0)
+	_sky_c = _sky_c.lerp(want, f)
+	_dark = lerpf(_dark, dk, f)
+	if env_node:
+		env_node.environment.background_color = _sky_c
+	if _space_stars and _space_mat:
+		var on := _dark > 0.02
+		if _space_stars.visible != on:
+			_space_stars.visible = on
+		if on and absf(_space_mat.albedo_color.a - _dark) > 0.01:
+			_space_mat.albedo_color = Color(1, 1, 1, _dark)
 
 
 ## ui·fx 에 넘기는 상태 (MODULES.md 의 키 전부)
@@ -1758,6 +1850,15 @@ func _emit(nm: String, d := {}) -> void:
 func _on_title_start() -> void:
 	if not over:
 		hud2.visible = true
+	# v13: 시작 화면의 먼 자리에서 천천히 다가가기 시작 (대화를 읽는 동안)
+	if cam and not bc.is_empty():
+		_fit()
+		if _title_look == Vector3.ZERO or cam.position.distance_to(_fit_c) < _fit_r:
+			_title_cam(0.0)
+		intro_p = cam.position
+		intro_l = _title_look
+		intro_k = 0.0
+		intro_boost = 0.0
 	# v8: 별 이름·"나는 배달부" 알림판은 뺐다 (글 뭉치가 셋이 겹쳐 혼란). 풍차지기 부탁은 첫 프레임에 바로(_tick), 조작 안내는 그 뒤에
 	var cf := ConfigFile.new()
 	cf.load(CFG_BODY)
@@ -2922,11 +3023,47 @@ func _camera(dt: float) -> void:
 		dist += (18.0 - fin_t) * 1.4  # 끝: 천천히 물러나 별들이 보인다
 	var want := pw + upp * (3.2 + alt * 0.2) - lookd * dist
 	shake = maxf(shake - dt, 0.0)  # v7: 덜컹이는 흔들림 없음 — 흔들림은 fx 가 작고 부드럽게
-	cam.position = cam.position.lerp(want, minf(1.0, dt * 5.0))
 	var look := pw + upp * 1.0 + lookd * 3.0
+	if intro_k >= 0.0:
+		_cg_want = want
+		_cg_look = look
+		_cg_up = upp
+		_intro_cam(dt)
+		return
+	cam.position = cam.position.lerp(want, minf(1.0, dt * 5.0))
 	if cam.position.distance_to(look) > 0.1:
 		cam.look_at(look, upp)
 	# cam.fov·h_offset·v_offset 는 fx 몫 (속도·탈출 장면에 따라 넓힌다)
+
+
+## v13 처음 줌: 먼 자리(intro_p, intro_l)에서 놀이 카메라 자리로. 천천히 시작해 천천히 멈춘다(ease-in-out).
+## 거리는 비율로 줄여(멀 때도 가까울 때도 같은 느낌), 볼 곳은 먼저 별 쪽으로 가서 별이 화면 밖으로 안 나간다.
+## 대화를 넘길 때마다 조금 더, 대화가 끝났는데 아직이면 1.5초 안에 마저 다가간다
+func _intro_cam(dt: float) -> void:
+	var rate := 1.0 / INTRO_DUR
+	if not bub_talk:
+		rate += 1.0 / 1.5
+	var mv := minf(intro_boost, dt * 0.5)
+	intro_boost -= mv
+	intro_k = minf(1.0, intro_k + dt * rate + mv)
+	var e := intro_k * intro_k * (3.0 - 2.0 * intro_k)
+	var ec := 1.0 - pow(1.0 - e, 3.0)
+	var d0v := intro_p - intro_l
+	var d1v := _cg_want - _cg_look
+	var d0 := maxf(d0v.length(), 0.1)
+	var d1 := maxf(d1v.length(), 0.1)
+	var dir := _turn(d0v / d0, d1v / d1, e)
+	var dist := d0 * pow(d1 / d0, e)
+	var ctr := intro_l.lerp(_cg_look, ec)
+	var upv := _turn(Vector3.UP, _cg_up, e)
+	cam.position = ctr + dir * dist
+	if absf(dir.dot(upv)) > 0.98:
+		upv = _flat(upv, dir)
+	if cam.position.distance_to(ctr) > 0.1:
+		cam.look_at(ctr, upv)
+	if intro_k >= 1.0:
+		intro_k = -1.0
+		intro_boost = 0.0
 
 
 # ---- v7: 공중 한 번 · 우주 미아 구조 · 돛 버튼 ----
@@ -3262,11 +3399,19 @@ func _tag_icon_draw(k: int) -> void:
 func _tags_update() -> void:
 	if tag_n.is_empty() or cam == null:
 		return
-	var off := ui.title_visible() or die_t > 0.0 or fin_t > 0.0 or tow_t > 0.0 or not hud2.visible
+	var off := ui.title_visible() or die_t > 0.0 or fin_t > 0.0 or tow_t > 0.0 or not hud2.visible or intro_k >= 0.0
 	var cp := cam.global_position
 	var cu := cam.global_basis.y
 	var ctr := Vector2(360.0, 620.0)
+	# v13: 가까운 별 이름표부터 놓고, 먼저 놓인 이름표·말풍선과 겹치면 숨긴다 (아래 40% 칸에는 안 놓는다)
+	_tag_ord.clear()
 	for k in tag_n.size():
+		_tag_ord.append(Vector2(cp.distance_to(bc[k]) if k < bc.size() else 1e9, k))
+	_tag_ord.sort()
+	_tag_rc.clear()
+	var bub_rc := Rect2(bub.position, bub.size).grow(10.0) if bub and bub.visible else Rect2()
+	for o: Vector2 in _tag_ord:
+		var k := int(o.y)
 		var t := tag_n[k]
 		var al := 0.0
 		if not off and k != cur:
@@ -3277,7 +3422,7 @@ func _tags_update() -> void:
 				al = 1.0 - smoothstep(110.0, 150.0, dd)
 				al *= smoothstep(br[k] + 9.0, br[k] + 18.0, dd)
 				al *= smoothstep(110.0, 190.0, sp.distance_to(ctr))
-				al *= smoothstep(300.0, 330.0, sp.y) * (1.0 - smoothstep(930.0, 960.0, sp.y))
+				al *= smoothstep(300.0, 330.0, sp.y) * (1.0 - smoothstep(730.0, 768.0, sp.y))
 				if al > 0.03:
 					var dv := tp - cp
 					var ln := dv.length()
@@ -3286,6 +3431,15 @@ func _tags_update() -> void:
 				if al > 0.03:
 					var w := tag_w[k]
 					t.position = Vector2(clampf(sp.x - w * 0.5, 8.0, 712.0 - w), sp.y - 44.0)
+					var rc := Rect2(t.position, Vector2(w, 44.0))
+					if bub_rc.has_area() and rc.intersects(bub_rc):
+						al = 0.0
+					for q: Rect2 in _tag_rc:
+						if rc.intersects(q.grow(4.0)):
+							al = 0.0
+							break
+					if al > 0.03:
+						_tag_rc.append(rc)
 		if al > 0.03:
 			t.visible = true
 			t.modulate.a = al
@@ -4491,6 +4645,31 @@ func _sky() -> void:
 	cm.material_override = _vc(true)
 	cm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	world.add_child(cm)
+	# v13: 우주의 작은 별 260개 — 멀리 떠서 하늘이 어두워질수록 또렷해진다 (_sky_tint 가 투명도를 바꾼다)
+	var sm := SphereMesh.new()
+	sm.radius = 0.5
+	sm.height = 1.0
+	sm.radial_segments = 4
+	sm.rings = 2
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.mesh = sm
+	mm.instance_count = 260
+	for i in 260:
+		var d := Vector3(r2.randf_range(-1, 1), r2.randf_range(-1, 1), r2.randf_range(-1, 1))
+		if d.length() < 0.05:
+			d = Vector3.UP
+		var sc := r2.randf_range(1.3, 2.8)
+		mm.set_instance_transform(i, Transform3D(Basis.from_scale(Vector3.ONE * sc), MID + d.normalized() * r2.randf_range(330.0, 390.0)))
+	_space_mat = StandardMaterial3D.new()
+	_space_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_space_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_space_mat.albedo_color = Color(1, 1, 1, _dark)
+	_space_stars = MultiMeshInstance3D.new()
+	_space_stars.multimesh = mm
+	_space_stars.material_override = _space_mat
+	_space_stars.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	world.add_child(_space_stars)
 
 
 # ---- 로우폴리 대신 모델 (그림 파일이 없을 때). 원점 = 바닥 가운데, +Y 위, 앞 = -Z (ART_DIRECTION.md 크기) ----

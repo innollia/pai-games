@@ -64,18 +64,18 @@ const TEXT := {
 	"todo.held": ["들고 있는 것", "Carrying"],  # 목록 아래 "들고 있는 것: ○○" | -
 	"todo.empty": ["빈손", "Nothing"],  # 위 줄에서 아무것도 안 들었을 때 | -
 	"todo.close": ["닫기", "Close"],  # 목록 판 맨 아래 (판 아무 데나 누르면 닫힘) | -
-	"talk.busy": ["어라, 이미 {item} 들고 있네. 그것부터 갖다주고 와!", "Oh, you're already carrying the {item}. Deliver that first!"],  # 물건을 든 채 주민에게 갔는데 그 주민 줄(pN.busy)이 없을 때 (예비) | 그 주민
+	"talk.busy": ["어라, 이미 {item} 들고 있네.|그것부터 갖다주고 와!", "Oh, you're already carrying the {item}.|Deliver that first!"],  # 물건을 든 채 주민에게 갔는데 그 주민 줄(pN.busy)이 없을 때 (예비) | 그 주민
 
 	# ---- 별 1 풍차의 별 ----
-	"p1.ask": ["오, 마침 잘 됐군. 자네 다리가 튼실해 보이는데 나 좀 도와주게나.|바람이 멎어 풍차가 잠들었네. 이 별을 뛰어다녀 바람을 만들어주게나.", "Oh, just in time. Those legs of yours look sturdy. Lend an old man a hand.|The wind has stopped and the windmill fell asleep. Run around this planet and make me some wind."],  # 풍차지기 5m 안에 처음 갔을 때 (말풍선 둘) | 풍차지기
-	"p1.hint": ["조이스틱 끝까지 말고 조금만 덜 밀게나. 끝까지 밀면 붕 뜬다네.|점프 버튼 둘레 초록 칸에 맞춰 달리면 바람이 인다네.", "Don't push the joystick all the way, just a touch less. Full tilt sends you floating.|Keep the ring around Jump in the green, and the wind will rise."],  # 부탁 바로 뒤, 또 바람 막대 15% 미만이면 40초마다 | 풍차지기
+	"p1.ask": ["허허, 어서 오게나, 젊은이.|오, 마침 잘 됐군.|자네 다리가 튼실해 보이는데 나 좀 도와주게나.|바람이 멎어 풍차가 잠들었네.|이 별을 뛰어다녀 바람을 만들어주게나.", "Ho ho, welcome, young one.|Oh, just in time.|Those legs of yours look sturdy. Lend an old man a hand.|The wind has stopped, and the windmill fell asleep.|Run around this planet and make me some wind."],  # 풍차지기 5m 안에 처음 갔을 때 (말풍선 둘) | 풍차지기
+	"p1.hint": ["조이스틱은 조금 덜 밀게나.|끝까지 밀면 붕 뜬다네.|점프 버튼 둘레 고리를 보게.|초록 칸에 맞춰 달리게나.|그러면 바람이 인다네.", "Push the joystick a little less.|Full tilt sends you floating.|Watch the ring around Jump.|Run with it in the green.|Then the wind will rise."],  # 부탁 바로 뒤, 또 바람 막대 15% 미만이면 40초마다 | 풍차지기
 	"p1.thanks": ["고마우이, 구식 날다리를 받게나.|배달 일이라면 우편의 별, 보라색 별로 가면 되겠군 그래.", "Much obliged. Take this Old Glidewing.|If it's delivery work you're after, the Post Planet is the purple one."],  # 바람 막대 100% (말풍선 둘) | 풍차지기
 	"p1.thanks2": ["날다가 한번 더 뛰면 조이스틱 방향으로 방향을 튼다네.", "Jump once more in flight, and you'll turn toward your joystick."],  # thanks 바로 뒤 | 풍차지기
 	"banner.sail": ["구식 날다리! 날 때 '날다리' 버튼을 한 번 누르면 조이스틱 쪽으로 방향을 튼다.", "Old Glidewing! In flight, tap 'Glide' once to turn toward your joystick."],  # 바람 막대 100% (위쪽 띠 5초) | -
-	"hint.sail": ["'날다리' 버튼 등장 · 연한 점선 = 날다리로 갈 길", "'Glide' ready · faint dots = where it takes you"],  # 날다리 버튼이 처음 나올 때 한 번 | -
+	"hint.sail": ["'날다리' 버튼이 생겼어.|연한 점선은 날다리로 갈 길이야.", "'Glide' is ready.|Faint dots show where it takes you."],  # 날다리 버튼이 처음 나올 때 한 번 | -
 	"msg.sail": ["날다리로 방향 전환", "Glidewing turn"],  # 날다가 날다리를 쓸 때 알림 | -
-	"p1.idle1": ["요즘 젊은이들은 바람도 앱으로 부른다지? 나는 아직 발로 부른다네.", "Young folks summon wind with an app these days, I hear. I still do it with my feet."],  # 부탁을 끝낸 뒤 곁에 서면 60초에 한 번 (둘 중 하나) | 풍차지기
-	"p1.idle2": ["서두르지 않아도 되네. 별은 언제나 제자리에서 릴스를 보고 있으니.", "No need to hurry. The planets are always right where they are, watching Reels."],  # 위와 같음 | 풍차지기
+	"p1.idle1": ["요즘 젊은이들은 바람도 앱으로 부른다지?|나는 아직 발로 부른다네.", "Young folks summon wind with an app these days, I hear.|I still do it with my feet."],  # 부탁을 끝낸 뒤 곁에 서면 60초에 한 번 (둘 중 하나) | 풍차지기
+	"p1.idle2": ["서두르지 않아도 되네.|별은 언제나 제자리에서 릴스를 보고 있으니.", "No need to hurry.|The planets are always right where they are, watching Reels."],  # 위와 같음 | 풍차지기
 
 	# ---- 날기·내려앉기 ----
 	"react.first_liftoff": ["어… 나 지금 나는 거야?", "Wait... am I flying?"],  # 처음으로 중력을 벗어나는 점프 (한 번) | 너?
@@ -84,57 +84,57 @@ const TEXT := {
 	"react.slingshot": ["별 옆을 스치니 슝 빨라졌다!", "Skimmed a planet. Whoosh, faster!"],  # 다른 별 곁을 지나 휘어 내려앉음 | 너?
 	"react.orbit_landing": ["빙글빙글 돌다 사뿐히 착지!", "Round and round, then a soft landing!"],  # 대기에서 오래 돌다 살살 앉음 | 너?
 	"msg.next": ["다음: {planet}", "Next: {planet}"],  # 부탁 하나 끝난 뒤 알림 | -
-	"hud.next_hint": ["다음: {planet} (노란 빛기둥). 달려 점프! 초록 점선이면 닿아.", "Next: {planet} (yellow pillar). Run and jump! Green dots mean you'll reach it."],  # 땅에 있고 갈 곳이 다른 별일 때 (50초에 한 번) | -
+	"hud.next_hint": ["다음은 {planet}.|노란 빛기둥이 선 별이야.|달려서 점프! 초록 점선이면 닿아.", "Next: {planet}.|It's the one with the yellow pillar.|Run and jump! Green dots mean you'll reach it."],  # 땅에 있고 갈 곳이 다른 별일 때 (50초에 한 번) | -
 	"msg.use_sail": ["지금 날다리!", "Glide now!"],  # 이대로면 못 닿는데 날다리 한 번이면 닿을 때 | -
 	"msg.use_air": ["한 번 더 점프!", "Jump once more!"],  # 같은 상황, 날다리가 없을 때 | -
 
 	# ---- 별 2 우편의 별 · 굴뚝 달 ----
-	"p2.ask": ["어서 오세요, 우편의 별입니다! 마침 특급 배송 건이 하나 있어요.|이 소포, 하얀 굴뚝 달 집으로요. 담이 높아서 공중에서 쏙 넣어야 해요!", "Welcome to the Post Planet! Perfect timing, I've got an express job.|This parcel goes to the house on the white Chimney Moon. The wall's high, so drop it in from the air!"],  # 우체부 5m 안 (손이 비었을 때, 말풍선 둘) | 우체부
-	"p2.busy": ["아, 손에 {item} 있으시네요! 한 건씩만요. 그거 먼저 배송하고 오세요.", "Oh, you've got the {item}! One job at a time. Deliver that first."],  # 다른 물건을 든 채 우체부에게 갔을 때 | 우체부
+	"p2.ask": ["어서 오세요, 우편의 별입니다!|마침 특급 배송 건이 하나 있어요.|이 소포, 하얀 굴뚝 달 집으로요.|담이 높아요.|공중에서 쏙 넣어 주세요!", "Welcome to the Post Planet!|Perfect timing. I've got an express job.|This parcel goes to the house on the white Chimney Moon.|The wall's high.|Drop it in from the air!"],  # 우체부 5m 안 (손이 비었을 때, 말풍선 둘) | 우체부
+	"p2.busy": ["아, 손에 {item} 있으시네요!|한 건씩만요.|그거 먼저 배송하고 오세요.", "Oh, you've got the {item}!|One job at a time.|Deliver that first."],  # 다른 물건을 든 채 우체부에게 갔을 때 | 우체부
 	"got.pkg": ["소포 → {target}", "Parcel → {target}"],  # 소포를 주웠을 때 위쪽 띠 3초 | -
-	"p2.hint": ["달은 작아서 금방 떠요! 굴뚝 위를 지날 때 '놓기'.|발밑 노란 점에 떨어져요.", "The moon's tiny, so you float off fast! Tap 'Drop' over the chimney.|It lands on the yellow dot below you."],  # 소포를 들고 있으면 45초마다 | 우체부
+	"p2.hint": ["달은 작아서 금방 떠요!|굴뚝 위를 지날 때 '놓기'.|발밑 노란 점에 떨어져요.", "The moon's tiny, so you float off fast!|Tap 'Drop' over the chimney.|It lands on the yellow dot below you."],  # 소포를 들고 있으면 45초마다 | 우체부
 	"msg.wall_high": ["높은 담 · 공중에서 놓기", "High wall · drop from the air"],  # 굴뚝 달 담에 부딪힘 | -
 	"msg.missed_drop": ["빗나감 · 다시 줍기", "Missed · pick it up again"],  # 놓은 물건이 과녁 밖에 떨어짐 | -
-	"moon.chimney.got": ["캬, 굴뚝으로 소포가 쏙! 방바닥 뜨끈하다, 이 맛에 집 하지.", "Ahh, right down the chimney! Floor's toasty. This is why I'm a house."],  # 소포 배달 순간 | 굴뚝 집
-	"p2.thanks": ["배송 완료! 덕분에 오늘 칼퇴각이에요.|남은 부탁은 왼쪽 위 할 일 목록에 있어요.", "Delivered! Thanks to you, I might clock out on time.|The other requests are in the to-do list, top left."],  # 위 말 바로 뒤 | 우체부
-	"p2.idle1": ["형님이 밥 산다는 말, 3년째 배송 중이래요. 도착 예정일 미정.", "Big Bro's 'I'll buy you dinner' has been in transit for three years. ETA unknown."],  # 부탁을 끝낸 뒤 곁에 서면 60초에 한 번 | 우체부
-	"p2.idle2": ["오늘 물량 실화예요? 그래도 가방이 빵빵하면 기분은 좋아요.", "Is today's load for real? Still, a full bag feels good."],  # 위와 같음 | 우체부
+	"moon.chimney.got": ["캬, 굴뚝으로 소포가 쏙!|방바닥 뜨끈하다.|이 맛에 집 하지.", "Ahh, right down the chimney!|Floor's toasty.|This is why I'm a house."],  # 소포 배달 순간 | 굴뚝 집
+	"p2.thanks": ["배송 완료!|덕분에 오늘 칼퇴각이에요.|남은 부탁은 왼쪽 위 할 일 목록에 있어요.", "Delivered!|Thanks to you, I might clock out on time.|The other requests are in the to-do list, top left."],  # 위 말 바로 뒤 | 우체부
+	"p2.idle1": ["형님이 밥 산다는 말 있죠?|그거 3년째 배송 중이래요.|도착 예정일 미정.", "You know Big Bro's 'I'll buy you dinner'?|It's been in transit for three years.|ETA unknown."],  # 부탁을 끝낸 뒤 곁에 서면 60초에 한 번 | 우체부
+	"p2.idle2": ["오늘 물량 실화예요?|그래도 가방이 빵빵하면 기분은 좋아요.", "Is today's load for real?|Still, a full bag feels good."],  # 위와 같음 | 우체부
 
 	# ---- 별 3 유리꽃의 별 · 친구 달 ----
-	"p3.ask": ["쉿… 꽃들이 자고 있어서요. 이 유리꽃, 민트색 친구 달에 전해 줄래요?|세게 내려앉으면… 깨져 버려요.", "Shh... the flowers are sleeping. Could you take this glass flower to the mint Friend Moon?|If you land hard... it'll break."],  # 정원사 5m 안 (손이 비었을 때, 말풍선 둘) | 정원사
-	"p3.busy": ["어머… 이미 {item} 들고 있네요. 그것부터 전해 주고… 천천히 오세요.", "Oh... you're already carrying the {item}. Deliver that first... then come back, slowly."],  # 다른 물건을 든 채 정원사에게 갔을 때 | 정원사
+	"p3.ask": ["아, 안녕하세요…|쉿… 꽃들이 자고 있어서요.|이 유리꽃, 민트색 친구 달에 전해 줄래요?|세게 내려앉으면… 깨져 버려요.", "Oh, hello...|Shh... the flowers are sleeping.|Could you take this glass flower to the mint Friend Moon?|If you land hard... it'll break."],  # 정원사 5m 안 (손이 비었을 때, 말풍선 둘) | 정원사
+	"p3.busy": ["어머… 이미 {item} 들고 있네요.|그것부터 전해 주세요…|그다음에 천천히 오세요.", "Oh... you're already carrying the {item}.|Deliver that first...|Then come back, slowly."],  # 다른 물건을 든 채 정원사에게 갔을 때 | 정원사
 	"got.flower": ["유리꽃 → {target} (살살)", "Glass flower → {target} (gently)"],  # 유리꽃을 주웠을 때 위쪽 띠 | -
-	"p3.hint": ["곧장 꽂지 말고 빙 돌다 살살 앉아요.|빨간 그림자는 운석 자리예요… 미리 피해요.", "Don't dive straight in. Circle and land softly.|Red shadows mean meteors... move early."],  # 유리꽃을 들고 있으면 45초마다 | 정원사
+	"p3.hint": ["곧장 꽂지 마세요.|빙 돌다 살살 앉아요.|빨간 그림자는 운석 자리예요…|미리 피해요.", "Don't dive straight in.|Circle and land softly.|Red shadows mean meteors...|Move early."],  # 유리꽃을 들고 있으면 45초마다 | 정원사
 	"react.flower_cracked": ["으앗, 금이 갔다… 더 살살", "Yikes, it cracked... softer"],  # 유리 물건을 들고 세게 착지 | 너?
 	"react.flower_broken": ["와장창… 다시 받으러 가자", "Crash... go get another"],  # 유리 물건이 깨짐 | 너?
 	"msg.glass_broken": ["깨짐 · {src}에서 다시 받기", "Broken · get another on {src}"],  # 금 100% 또는 높이 놓기로 깨짐 | -
-	"moon.friend.got": ["헐, 하나도 안 깨졌어! 바로 릴스 올려야지. 달이 반짝반짝해!", "No way, not a single crack! Posting this to Reels right now. The moon's sparkling!"],  # 유리꽃 배달 순간 | 꽃 친구
-	"p3.thanks": ["꽃이 무사하대요… 휴, 제 손이 다 떨렸어요.|다른 별에도 기다리는 이가 있을 거예요.", "The flower made it... phew, my hands were shaking.|Someone on another planet must be waiting too."],  # 위 말 바로 뒤 (말풍선 둘) | 정원사
-	"p3.idle1": ["유리꽃은 아주 여려요… 귀 기울이면 맑게 울려요. 가끔 랩도 해요.", "Glass flowers are delicate... listen closely and they chime. Sometimes they rap."],  # 부탁을 끝낸 뒤 곁에 서면 60초에 한 번 | 정원사
-	"p3.idle2": ["꽃들이 어젯밤 릴스 보다 늦게 잤대요… 그래서 오늘 다들 시들해요.", "The flowers stayed up late watching Reels... so they're all droopy today."],  # 위와 같음 | 정원사
+	"moon.friend.got": ["헐, 하나도 안 깨졌어!|바로 릴스 올려야지.|달이 반짝반짝해!", "No way, not a single crack!|Posting this to Reels right now.|The moon's sparkling!"],  # 유리꽃 배달 순간 | 꽃 친구
+	"p3.thanks": ["꽃이 무사하대요…|휴, 제 손이 다 떨렸어요.|다른 별에도 기다리는 이가 있을 거예요.", "The flower made it...|Phew, my hands were shaking.|Someone on another planet must be waiting too."],  # 위 말 바로 뒤 (말풍선 둘) | 정원사
+	"p3.idle1": ["유리꽃은 아주 여려요…|귀 기울이면 맑게 울려요.|가끔 랩도 해요.", "Glass flowers are delicate...|Listen closely and they chime.|Sometimes they rap."],  # 부탁을 끝낸 뒤 곁에 서면 60초에 한 번 | 정원사
+	"p3.idle2": ["꽃들이 어젯밤 릴스 보다 늦게 잤대요…|그래서 오늘 다들 시들해요.", "The flowers stayed up late watching Reels...|So they're all droopy today."],  # 위와 같음 | 정원사
 
 	# ---- 별 4 노을의 별 ----
-	"p4.ask": ["어이 동생, 왔냐. 내 별이 쪼끄매서 노을이 자꾸 도망가거든.|저 주황 띠랑 같이 좀 달려 줘. 형이 밥 살게. 아마도.", "Hey kiddo, you made it. My planet's so tiny the sunset keeps running off.|Run alongside that orange band for me. I'll buy you dinner. Probably."],  # 형님 5m 안 (말풍선 둘) | 형님
-	"p4.hint": ["얼음이라 미끄럽다. 조이스틱은 살살.|빠르면 뜨고 느리면 놓쳐. 띠랑 같은 빠르기로.", "It's icy. Easy on the joystick.|Too fast and you float, too slow and you lose it. Match the band."],  # 부탁 바로 뒤, 띠 막대 15% 미만이면 40초마다 | 형님
-	"p4.thanks": ["오, 잘했다. 이 유리 덮개, 분홍 장미 별에 좀 갖다줘.|곧장 가면 빨간 지뢰 울타리야. 거긴 형도 못 지나가.", "Nice work. Take this glass dome to the pink Rose Planet.|The straight route has a red mine fence. Even I can't get through that."],  # 띠 막대 100%, 손이 비었을 때 (맡겨 둔 덮개를 받을 때도, 말풍선 둘) | 형님
-	"p4.keep": ["오, 잘했다. 근데 손이 꽉 찼네? 덮개는 형이 맡아 둘게. 손 비면 와.", "Nice work. Hands full, huh? I'll hang on to the dome. Come back when you're free."],  # 띠 막대 100%인데 손에 다른 물건 | 형님
-	"p4.busy": ["야, 동생. 손에 {item} 있잖아. 그거부터 갖다주고 와, 난 안 급해.", "Hey kiddo, you've got the {item}. Drop that off first. I'm in no rush."],  # 맡긴 덮개가 있는데 다른 물건을 든 채 형님에게 갔을 때 | 형님
-	"p4.thanks2": ["빨간 불 별 옆을 스치면 휘어서 돌아가. 닿으면 끝이다, 진짜로.", "Skim past the red Fire Star and you'll curve around. Touch it and it's over. For real."],  # thanks 바로 뒤, 또 덮개를 들고 장미 별 밖이면 45초마다 | 형님
+	"p4.ask": ["어이 동생, 왔냐.|내 별이 쪼끄매.|그래서 노을이 자꾸 도망가거든.|저 주황 띠랑 같이 좀 달려 줘.|형이 밥 살게. 아마도.", "Hey kiddo, you made it.|My planet's tiny.|So the sunset keeps running off.|Run alongside that orange band for me.|I'll buy you dinner. Probably."],  # 형님 5m 안 (말풍선 둘) | 형님
+	"p4.hint": ["얼음이라 미끄럽다.|조이스틱은 살살.|빠르면 뜬다.|느리면 놓쳐.|띠랑 같은 빠르기로.", "It's icy.|Easy on the joystick.|Too fast and you float.|Too slow and you lose it.|Match the band's speed."],  # 부탁 바로 뒤, 띠 막대 15% 미만이면 40초마다 | 형님
+	"p4.thanks": ["오, 잘했다.|이 유리 덮개, 분홍 장미 별에 좀 갖다줘.|곧장 가면 빨간 지뢰 울타리야.|거긴 형도 못 지나가.", "Nice work.|Take this glass dome to the pink Rose Planet.|The straight route has a red mine fence.|Even I can't get through that."],  # 띠 막대 100%, 손이 비었을 때 (맡겨 둔 덮개를 받을 때도, 말풍선 둘) | 형님
+	"p4.keep": ["오, 잘했다.|근데 손이 꽉 찼네?|덮개는 형이 맡아 둘게.|손 비면 와.", "Nice work.|Hands full, huh?|I'll hang on to the dome.|Come back when you're free."],  # 띠 막대 100%인데 손에 다른 물건 | 형님
+	"p4.busy": ["야, 동생.|손에 {item} 있잖아.|그거부터 갖다주고 와.|난 안 급해.", "Hey kiddo.|You've got the {item}.|Drop that off first.|I'm in no rush."],  # 맡긴 덮개가 있는데 다른 물건을 든 채 형님에게 갔을 때 | 형님
+	"p4.thanks2": ["빨간 불 별 옆을 스쳐 가.|그럼 휘어서 돌아간다.|닿으면 끝이다, 진짜로.", "Skim past the red Fire Star.|You'll curve around it.|Touch it and it's over. For real."],  # thanks 바로 뒤, 또 덮개를 들고 장미 별 밖이면 45초마다 | 형님
 	"got.dome": ["유리 덮개 → {target}", "Glass dome → {target}"],  # 덮개를 다시 주웠을 때 위쪽 띠 | -
-	"p4.idle1": ["노을 보면서 달리면 마음이 몽글몽글해진다. 형 감성 좀 있지?", "Running under the sunset makes me all mushy inside. Got some soul, huh?"],  # 부탁을 끝낸 뒤 곁에 서면 60초에 한 번 | 형님
-	"p4.idle2": ["혼자 뛸 땐 좀 외로웠는데, 둘이 뛰니 노을도 안 무섭네.|밥은 다음에 살게. 아마도.", "Running alone got lonely. With two of us, the sunset's not so scary.|Dinner's on me next time. Probably."],  # 위와 같음 | 형님
+	"p4.idle1": ["노을 보면서 달리면 마음이 몽글몽글해진다.|형 감성 좀 있지?", "Running under the sunset makes me all mushy inside.|Got some soul, huh?"],  # 부탁을 끝낸 뒤 곁에 서면 60초에 한 번 | 형님
+	"p4.idle2": ["혼자 뛸 땐 좀 외로웠어.|둘이 뛰니 노을도 안 무섭네.|밥은 다음에 살게. 아마도.", "Running alone got lonely.|With two of us, the sunset's not so scary.|Dinner's on me next time. Probably."],  # 위와 같음 | 형님
 
 	# ---- 별 5 장미의 별 ----
-	"rose.early": ["…추워. 형님이 유리 덮개를 갖고 있대. 노을의 별에 가 봐.|딱히 네가 가져오길 기다리는 건 아니니까. 착각하지 마.", "...It's cold. I hear Big Bro has a glass dome. Try the Sunset Planet.|It's not like I'm waiting for you to bring it. Don't get the wrong idea."],  # 노을 부탁 전에 장미에게 갔을 때 (말풍선 둘) | 장미
-	"p5.ask": ["…왔어? 바람이 차가워. 유리 덮개 좀 씌워 줘.|담이 천천히 돌고, 틈은 딱 하나야.", "...You're here? The wind is cold. Put the dome over me.|The wall turns slowly, and there's just one gap."],  # 덮개가 생긴 뒤 장미 5m 안에 처음 갔을 때 (말풍선 둘) | 장미
-	"p5.hint": ["담 틈으로 걸어 들어오거나, 탑에서 뛰어 위에서 '놓기'를 눌러.|세게 떨어뜨리면 깨져. …살살 해.", "Walk in through the gap, or jump from the tower and tap 'Drop' above me.|Drop it hard and it breaks. ...Be gentle."],  # 덮개를 들고 장미 별에 있으면 45초마다 | 장미
+	"rose.early": ["…안녕.|…추워.|형님이 유리 덮개를 갖고 있대.|노을의 별에 가 봐.|딱히 네가 가져오길 기다리는 건 아니니까.|착각하지 마.", "...Hi.|...It's cold.|I hear Big Bro has a glass dome.|Try the Sunset Planet.|It's not like I'm waiting for you to bring it.|Don't get the wrong idea."],  # 노을 부탁 전에 장미에게 갔을 때 (말풍선 둘) | 장미
+	"p5.ask": ["…왔어?|바람이 차가워.|유리 덮개 좀 씌워 줘.|담이 천천히 돌아.|틈은 딱 하나야.", "...You're here?|The wind is cold.|Put the dome over me.|The wall turns slowly.|There's just one gap."],  # 덮개가 생긴 뒤 장미 5m 안에 처음 갔을 때 (말풍선 둘) | 장미
+	"p5.hint": ["담 틈으로 걸어 들어와도 돼.|아니면 탑에서 뛰어.|내 위에서 '놓기'를 눌러.|세게 떨어뜨리면 깨져.|…살살 해.", "You can walk in through the gap.|Or jump from the tower.|Tap 'Drop' above me.|Drop it hard and it breaks.|...Be gentle."],  # 덮개를 들고 장미 별에 있으면 45초마다 | 장미
 	"msg.wall_gap": ["담 · 틈으로", "Wall · use the gap"],  # 장미 별 담에 부딪힘 | -
 	"msg.tower_jump": ["탑에서 점프", "Tower leap"],  # 탑 꼭대기에서 뛰어내릴 때 | -
 	"msg.rose_smiles": ["장미가 환하게 웃는다", "Rose smiles brightly"],  # 덮개 배달 (마지막 부탁이었을 때) | -
-	"p5.thanks": ["…따뜻해. 고, 고마워. 네 빠른 발 덕분에 다섯 별이 다 웃고 있어.", "...It's warm. Th-thanks. Thanks to your fast feet, all five planets are smiling."],  # 덮개 배달, 마지막 부탁이었을 때 | 장미
-	"p5.thanks_more": ["…따뜻해. 고, 고마워. 다른 별들도 네 발을 기다려. 가 봐, 얼른.", "...It's warm. Th-thanks. The others are waiting for your feet too. Go on, hurry."],  # 덮개 배달, 남은 부탁이 있을 때 | 장미
-	"p5.idle1": ["…뭘 봐? 덮개가 마음에 들어서 가만있는 거야. 사진은 찍지 마.", "...What are you looking at? I'm only sitting still because I like the dome. No photos."],  # 부탁을 끝낸 뒤 곁에 서면 60초에 한 번 | 장미
-	"p5.idle2": ["별빛이 덮개에 반짝이는 건… 조금 예쁘네. 형님 밥 약속보단 확실하고.", "Starlight on the dome is... a little pretty. More reliable than Big Bro's dinner promises."],  # 위와 같음 | 장미
+	"p5.thanks": ["…따뜻해.|고, 고마워.|네 빠른 발 덕분이야.|다섯 별이 다 웃고 있어.", "...It's warm.|Th-thanks.|It's all thanks to your fast feet.|All five planets are smiling."],  # 덮개 배달, 마지막 부탁이었을 때 | 장미
+	"p5.thanks_more": ["…따뜻해.|고, 고마워.|다른 별들도 네 발을 기다려.|가 봐, 얼른.", "...It's warm.|Th-thanks.|The others are waiting for your feet too.|Go on, hurry."],  # 덮개 배달, 남은 부탁이 있을 때 | 장미
+	"p5.idle1": ["…뭘 봐?|덮개가 마음에 들어서 가만있는 거야.|사진은 찍지 마.", "...What are you looking at?|I'm only sitting still because I like the dome.|No photos."],  # 부탁을 끝낸 뒤 곁에 서면 60초에 한 번 | 장미
+	"p5.idle2": ["별빛이 덮개에 반짝이는 건… 조금 예쁘네.|형님 밥 약속보단 확실하고.", "Starlight on the dome is... a little pretty.|More reliable than Big Bro's dinner promises."],  # 위와 같음 | 장미
 
 	# ---- 우주 미아·죽음 ----
 	"msg.drift_warn": ["떠내려가는 중 · 날다리로 방향 틀기", "Drifting away · turn with Glide"],  # 어느 별에도 안 끌리고 멀어질 때 (날다리 있음) | -
@@ -147,29 +147,29 @@ const TEXT := {
 	"die.rocks": ["빨간 지뢰 울타리에 부딪힘", "Hit the red mine fence"],  # 빨간 지뢰 울타리에 닿음 | -
 	"react.die_rocks": ["울타리는 무리. 불 별 쪽으로 돌아가자", "Can't go through. Curve around the Fire Star"],  # 위 바로 뒤 | 너?
 	"die.drift": ["깊은 우주로 떠내려감", "Drifted into deep space"],  # 너무 멀리 떠내려감 | -
-	"react.die_drift": ["우주 너무 넓다… 다음엔 초록 점선 보고 뛰자", "Space is huge... next time, jump on green dots"],  # 위 바로 뒤 | 너?
+	"react.die_drift": ["우주 너무 넓다…|다음엔 초록 점선 보고 뛰자", "Space is huge...|Next time, jump on green dots"],  # 위 바로 뒤 | 너?
 	"die.meteor": ["떨어지는 운석에 맞음", "Hit by a falling meteor"],  # 운석에 맞음 | -
 	"react.die_meteor": ["빨간 그림자는 미리 피하자", "Get off red shadows early"],  # 위 바로 뒤 | 너?
 
 	# ---- 도움 힌트 (v10, 아래 말풍선. 못 할 때만 나온다. 1 = 처음, 2 = 계속 못 할 때 더 자세히 + 그림·도와주기) ----
 	"help.idle1": ["조이스틱을 밀어 달려 봐", "Push the joystick to run"],  # 거의 안 달려 본 채 8초 가만히 | -
-	"help.idle2": ["왼쪽 아래 조이스틱을 손가락으로 밀어 봐", "Drag the joystick at the bottom left with your finger"],  # 또 그럴 때 (조이스틱 자리에 손가락 그림 깜빡) | -
-	"help.lift1": ["조이스틱을 끝까지 밀어 더 빨리 달려", "Push the joystick all the way to run faster"],  # 달리는데 이륙선 60%를 못 넘은 채 20초 | -
-	"help.lift2": ["끝까지 밀고 계속 달려. 점프 버튼 둘레 고리가 다 차오르게", "Keep it pushed and keep running. Fill the ring around Jump"],  # 또 그럴 때 (점프 버튼 고리 둘레 깜빡) | -
-	"help.jump1": ["점프 버튼 둘레 고리가 초록일 때 뛰면 별을 떠나", "Jump when the ring around Jump turns green to leave the planet"],  # 갈 곳이 다른 별인데 뛰어도 4번(또는 30초) 못 떠남 | -
-	"help.jump2": ["지금은 고리가 금방 초록이 돼. 힘껏 달리다 점프!", "The ring turns green sooner for now. Sprint, then jump!"],  # 또 그럴 때 (25초 동안 떠나기 도와주기 더 너그럽게) | -
-	"help.lost1": ["점선이 초록일 때 뛰면 다른 별에 닿아", "Jump when the dots are green to reach another planet"],  # 우주 미아(끌려 돌아옴·떠내려감) 2번 | -
-	"help.lost2": ["잠깐 별들이 더 세게 끌어 줘. 초록 점선을 보고 뛰어!", "Planets pull harder for a while. Jump on green dots!"],  # 또 그럴 때 (25초 동안 끌어주기 세게) | -
-	"help.goal1": ["어디로 갈지 모르겠으면 왼쪽 위 할 일 목록을 눌러 봐 · 노란 화살표를 따라가", "Lost? Tap the to-do list at the top left · follow the yellow arrow"],  # 갈 곳 별에 90초 못 감 (할 일 버튼 숨쉼·화살표 크게) | -
+	"help.idle2": ["조이스틱은 왼쪽 아래에 있어.|손가락으로 밀어 봐.", "The joystick is at the bottom left.|Drag it with your finger."],  # 또 그럴 때 (조이스틱 자리에 손가락 그림 깜빡) | -
+	"help.lift1": ["조이스틱을 끝까지 밀어 봐.|그럼 더 빨리 달려.", "Push the joystick all the way.|You'll run faster."],  # 달리는데 이륙선 60%를 못 넘은 채 20초 | -
+	"help.lift2": ["끝까지 밀고 계속 달려.|점프 버튼 둘레 고리를 채워.", "Keep it pushed and keep running.|Fill the ring around Jump."],  # 또 그럴 때 (점프 버튼 고리 둘레 깜빡) | -
+	"help.jump1": ["점프 버튼 둘레 고리를 봐.|초록일 때 뛰면 별을 떠나.", "Watch the ring around Jump.|Jump when it's green to leave the planet."],  # 갈 곳이 다른 별인데 뛰어도 4번(또는 30초) 못 떠남 | -
+	"help.jump2": ["지금은 고리가 금방 초록이 돼.|힘껏 달리다 점프!", "The ring turns green sooner for now.|Sprint, then jump!"],  # 또 그럴 때 (25초 동안 떠나기 도와주기 더 너그럽게) | -
+	"help.lost1": ["점선이 초록일 때 뛰어 봐.|그럼 다른 별에 닿아.", "Jump when the dots are green.|You'll reach another planet."],  # 우주 미아(끌려 돌아옴·떠내려감) 2번 | -
+	"help.lost2": ["잠깐 별들이 더 세게 끌어 줘.|초록 점선을 보고 뛰어!", "Planets pull harder for a while.|Jump on green dots!"],  # 또 그럴 때 (25초 동안 끌어주기 세게) | -
+	"help.goal1": ["어디로 갈지 모르겠어?|왼쪽 위 할 일 목록을 눌러 봐.|노란 화살표를 따라가.", "Lost?|Tap the to-do list at the top left.|Follow the yellow arrow."],  # 갈 곳 별에 90초 못 감 (할 일 버튼 숨쉼·화살표 크게) | -
 	"help.goal2": ["노란 빛기둥이 서 있는 별로 가면 돼", "Head for the planet with the yellow light pillar"],  # 또 그럴 때 (빛기둥 더 크고 밝게) | -
-	"help.glass1": ["곧장 꽂지 말고 빙 돌다 살살 내려앉아", "Don't dive in. Circle around and land softly"],  # 유리 금·깨짐 2번 | -
-	"help.glass2": ["잠깐 내려앉기가 더 부드러워져. 빙 돌며 천천히", "Landings are gentler for a while. Circle and go slow"],  # 또 그럴 때 (25초 동안 내려가는 빠르기 한도 낮춤) | -
-	"help.band1": ["띠와 같은 빠르기로! 얼음이라 조이스틱은 살살", "Match the band's speed! It's icy, so ease the joystick"],  # 노을 띠를 3번 놓침 | -
-	"help.band2": ["잠깐 띠가 느려졌어. 띠 위에 머물러 봐", "The band is slower for a while. Stay on it"],  # 또 그럴 때 (25초 동안 띠 느리게) | -
-	"help.fire1": ["불 별 옆을 스치면 휘어서 장미의 별로 돌아가", "Skim past the Fire Star to curve around to Rose Planet"],  # 불 별·지뢰 울타리에 2번 죽음 | -
-	"help.fire2": ["노을의 별에 초록 점선 길을 보여 줄게. 그 길 쪽으로 힘껏 달려 점프", "Green dots on Sunset Planet show a curving path. Sprint that way and jump"],  # 또 그럴 때 (40초 동안 새총 길 점선) | -
-	"help.fire2b": ["잠깐 땅에서도 점선이 보여. 초록이 될 때 점프", "For a while you can see the dots on the ground. Jump when they turn green"],  # 위와 같은데 길을 못 찾았을 때 (땅 점선을 늘 보임) | -
-	"help.sail1": ["빗나갈 것 같으면 날 때 '날다리' 버튼!", "About to miss? Tap 'Glide' in flight!"],  # 날다리를 받고도 안 쓰고 빗나간 비행 3번 | -
+	"help.glass1": ["곧장 꽂지 마.|빙 돌다 살살 내려앉아.", "Don't dive in.|Circle around and land softly."],  # 유리 금·깨짐 2번 | -
+	"help.glass2": ["잠깐 내려앉기가 더 부드러워져.|빙 돌며 천천히.", "Landings are gentler for a while.|Circle and go slow."],  # 또 그럴 때 (25초 동안 내려가는 빠르기 한도 낮춤) | -
+	"help.band1": ["띠와 같은 빠르기로!|얼음이라 조이스틱은 살살.", "Match the band's speed!|It's icy, so ease the joystick."],  # 노을 띠를 3번 놓침 | -
+	"help.band2": ["잠깐 띠가 느려졌어.|띠 위에 머물러 봐.", "The band is slower for a while.|Stay on it."],  # 또 그럴 때 (25초 동안 띠 느리게) | -
+	"help.fire1": ["불 별 옆을 스쳐 가.|휘어서 장미의 별로 돌아가.", "Skim past the Fire Star.|You'll curve around to Rose Planet."],  # 불 별·지뢰 울타리에 2번 죽음 | -
+	"help.fire2": ["노을의 별에 초록 점선 길을 보여 줄게.|그 길 쪽으로 힘껏 달려.|그리고 점프!", "Green dots on Sunset Planet show a curving path.|Sprint that way.|Then jump!"],  # 또 그럴 때 (40초 동안 새총 길 점선) | -
+	"help.fire2b": ["잠깐 땅에서도 점선이 보여.|초록이 될 때 점프.", "For a while, you can see the dots on the ground.|Jump when they turn green."],  # 위와 같은데 길을 못 찾았을 때 (땅 점선을 늘 보임) | -
+	"help.sail1": ["빗나갈 것 같아?|날 때 '날다리' 버튼!", "About to miss?|Tap 'Glide' in flight!"],  # 날다리를 받고도 안 쓰고 빗나간 비행 3번 | -
 	"help.sail2": ["연한 점선이 초록이면 지금 '날다리'를 눌러", "When the faint dots turn green, tap 'Glide' now"],  # 또 그럴 때 (날다리 버튼 크게 깜빡) | -
 	"help.drop1": ["굴뚝 위를 지날 때 '놓기'", "Tap 'Drop' as you pass over the chimney"],  # 소포를 들고 굴뚝 달 근처 40초 | -
 	"help.drop2": ["발밑 노란 점이 굴뚝에 겹칠 때 '놓기'", "Tap 'Drop' when the yellow dot below you is on the chimney"],  # 또 그럴 때 (떨어질 자리 노란 점 크게) | -
