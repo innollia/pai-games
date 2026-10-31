@@ -44,10 +44,20 @@ BACK = {
 "A word about this game (optional)": "이 게임에 한마디 (선택)", "Thanks!": "고마워요!", "Sending": "보내는 중", "Your comment was sent": "한마디를 보냈어요", "Not saved · tap a star again": "저장 안 됨 · 별을 다시 탭",
 "%d / Best %d%s": "%d / 최고 %d%s", "Deliver to mailboxes": "우체통에 배달하기", "Find mailboxes in the light": "빛 안의 우체통 찾기", "4 boxes or less: ceiling boost": "짐 4개 이하: 천장 부스트", " / Tap to retry": " / 탭해서 다시",
 }
+
+BACK.update({
+"PLAY": "[게임 관용어] 플레이(시작)", "PLAY AGAIN": "[게임 관용어] 다시 플레이", "YOU WIN!": "[게임 관용어] 네가 이겼다!", "HURRY UP!": "[게임 관용어] 서둘러!",
+"GREAT START!": "[게임 관용어] 좋은 출발!", "TAP AGAIN TO QUIT": "[게임 관용어] 한 번 더 탭하면 나감", "1ST! +%d": "[게임 관용어] 1등! +%d", "RIVAL 1ST! +%d": "[게임 관용어] 상대 1등! +%d",
+"READY": "[게임 관용어] 준비", "SET": "[게임 관용어] 차렷", "GO!": "[게임 관용어] 출발!", "SKIP": "[게임 관용어] 건너뛰기", "NICE!": "[게임 관용어] 좋아!", "NEW RECORD!": "[게임 관용어] 새 기록!",
+"Only %d boxes get through": "짐 %d개만 지나간다", "Low door: only %d boxes get through / Any more catch on the door and fall off one by one": "낮은 문: 짐 %d개만 지나간다 / 더 많으면 문에 걸려 하나씩 떨어진다",
+"%s round %d · boxes %d": "%s %d판 · 짐 %d", "BOXES %d → %d": "짐 %d → %d",
+})
+DROP = {'모드 카드', '모드 이름', '모드 설명', '하는 법(?) 카드'}
 M = {'맨 위 표': '모드 카드', '_finish': '마지막 결과 영수증', '_best_line': '마지막 결과 영수증', '_draw_receipt': '마지막 결과 영수증', '_update_content_hud': '경주 중 위 안내줄', '_step': '경주 중 안내', '_setup': '경주 중 안내', '_draw_all': '경주 중 안내', '_process': '경주 중 안내',
      'restyle_rating': '별점 카드·공용 글', 'restyle_howto': '하는 법(?) 카드', '_apply_word_mode': '제목·연습 버튼', '_fill_modes': '모드 카드', '_draw_mode_over': '모드 카드', '_fill_choice': '특전 카드', '_on_choice': '특전 카드'}
 rows = [[M.get(w, w), k.replace(BS + 'n', ' / '), e.replace(BS + 'n', ' / ')] for w, k, e in rows]
 order = ['제목·연습 버튼', '연습 말풍선', '하는 법(?) 카드', '모드 카드', '모드 이름', '모드 설명', '출발 카운트다운', '출발 때 큰 안내', '다음 길 안내', '길 이름', '길 설명', '길 카드 설명', '동네 이름', '동네 설명', '배달부 이름', '경주 중 위 안내줄', '경주 중 안내', '낮은 문 안내', '도장(화면에 찍히는 글)', '판 끝 결과판', '특전 카드', '특전 이름', '특전 설명', '마지막 결과 영수증', '메달·기록', '별점 카드·공용 글']
+rows = [r for r in rows if r[0] not in DROP]
 rows.sort(key=lambda r: (order.index(r[0]) if r[0] in order else len(order), r[0]))
 miss = [e for _, _, e in rows if e not in BACK]
 out = ['# 화면 밖 경주 — 게임 글자 검수표', '',

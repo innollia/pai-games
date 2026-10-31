@@ -159,7 +159,7 @@ func start_tutorial(first_run: bool) -> void:
 func refresh_text() -> void:
 	if game == null:
 		return
-	_play.set("text", game.L("배달 시작!", "Start delivery!"))
+	_play.set("text", game.L("배달 시작!", "PLAY"))
 	_howto.set("text", "?")
 	_ko_tag.text = ""  # 부제 없음: 한국어 시작 버튼 '배달 시작!'이 이미 화면을 한국어로 만든다
 	_ko_tag.visible = false

@@ -883,11 +883,6 @@ func _set_lang(l: String) -> void:
 		front.refresh_text()
 
 
-func _howto_text() -> String:
-	return L("왼쪽 스틱으로 달리고 [점프]로 넘는다.\n우체통 앞에서 [짐] = 배달. 다른 곳에서 [짐] = 던지고 대시.\n왼쪽 끝에 밀리면 짐 하나를 잃는다. 배달 많이 한 사람이 이긴다!",
-		"Run with the left stick, hop over with [Jump].\n[Box] at a mailbox = deliver. [Box] anywhere else = throw and dash.\nPushed off the left edge, you lose a box. Whoever delivers the most wins!")
-
-
 ## The stick and the two buttons only answer touches in KIT_PHASES; on the title and the
 ## paper menus every tap goes to _tap (the modules) instead, so the two never fight.
 func _kit_live(on: bool) -> void:
@@ -901,14 +896,14 @@ func _kit_live(on: bool) -> void:
 		_btns["drop"].r = SR_HUD.BOX_R if on else 0.0
 
 
+## v42: 기본 모드만 (사용자 "기본 모드만 남기고"). 모드 카드 없이 바로 기본 경주
 func _open_mode_select() -> void:
 	_attract_end()
 	tut_crate_x = -1.0
 	if front and front.state == "title":
 		front.hide_title()
 	menus.hide_countdown()
-	phase = "mode"
-	menus.show_modes()
+	_pick_mode(MODE_KIT["base"])
 
 
 func _open_title() -> void:
@@ -987,7 +982,7 @@ func _finger(id: int, p: Vector2, kind: int) -> void:
 		if p.x < 180.0 and p.y < 100.0 and BACK_ARM_PHASES.has(phase) and back_arm_t <= 0.0:
 			back_arm_t = 1.5
 			beep(660.0, 0.06)
-			_stamp("한 번 더 누르면 나감", "PRESS ONCE MORE TO LEAVE", ST_INK, null, 1.2)
+			_stamp("한 번 더 누르면 나감", "TAP AGAIN TO QUIT", ST_INK, null, 1.2)
 			return
 	super._finger(id, p, kind)
 
@@ -1070,10 +1065,6 @@ func _update_content_hud() -> void:
 	if not KIT_PHASES.has(phase) or phase == "tutorial":
 		route_l.text = ""
 		return
-	if phase == "mode":
-		var best_l := L("최다 배달: 기본 %d / 등불 %d / 과속 %d", "Most delivered: Basic %d / Lantern %d / Speeding %d")
-		route_l.text = "%s: %s\n%s: %s\n%s: %s\n%s" % [_mode_name("base"), _mode_rule("base"), L("밤 등불", "Night Lantern"), _mode_rule("lantern"), L("과속", "Speeding"), _mode_rule("over"), best_l % [int(records.get_value("base", "delivered", 0)), int(records.get_value("lantern", "delivered", 0)), int(records.get_value("over", "delivered", 0))]]
-		return
 	if phase == "perk":
 		route_l.text = "%s\n%s: %s\n%s: %s" % [L("특전 고르기", "Pick a perk"), _perk(perk_offer[0]), _perk_say(perk_offer[0]), _perk(perk_offer[1]), _perk_say(perk_offer[1])]
 		return
@@ -1152,10 +1143,6 @@ func _finish(won: bool) -> void:
 			strongest = _cname(row.ci)
 	var best_time := float(records.get_value(mode, "time", 0.0))
 	var hint := L("다음엔 짐 6개로 저울 위 지름길!", "Next time: the shortcut over the scale with 6 boxes!")
-	if mode == "base":
-		hint = L("다음엔 과속 배달: 짐 4개로 천장 가속!", "Next time: Speeding Delivery, ceiling boost with 4 boxes!")
-	elif mode == "over":
-		hint = L("다음엔 밤 등불: 선두의 빛에 붙어라!", "Next time: Night Lantern, stay close to the leader's light!")
 	var medals := [0, 0, 0, 0, 0, 0]
 	for row in course_results:
 		medals[row.ci] = maxi(medals[row.ci], int(row.medal))  # 3 gold, 2 silver, 1 bronze, 0 not reached
@@ -1511,10 +1498,9 @@ func _setup() -> void:
 	menus.lang_pressed.connect(func() -> void: _set_lang("en" if lang == "ko" else "ko"))
 	menus.back_pressed.connect(func() -> void: _open_title())
 	menus.again_pressed.connect(func() -> void:
-		var m := mode
 		skip_title = true
 		restart()
-		_pick_mode(MODE_KIT[m]))
+		_pick_mode(MODE_KIT["base"]))
 	menus.title_pressed.connect(func() -> void: restart())
 	front = SrFront.new()
 	add_child(front)
@@ -2830,7 +2816,7 @@ func _step(dt: float) -> void:
 	_camera(dt)
 	_draw_all()
 	if mode_l:
-		mode_l.text = "" if phase == "mode" else L("%s · %s %d판 · 짐 %d", "%s · %s round %d · boxes %d") % [_mode_name(mode), L("마지막 배달", "Last Delivery") if finale else _cname(ci), rnd, pl.cargo]
+		mode_l.text = "" if phase == "mode" else L("%s %d판 · 짐 %d", "%s round %d · boxes %d") % [L("마지막 배달", "Last Delivery") if finale else _cname(ci), rnd, pl.cargo]
 	_update_content_hud()
 	if phase != "perk" and phase != "route" and phase != "mode" and _btns.has("drop"):
 		_btns["drop"].label = L("짐 %d", "Box %d") % pl.cargo
@@ -2908,7 +2894,7 @@ func _race(dt: float) -> void:
 		elif pl.mx > 0.5 and pl.alive:
 			quick_ok = false
 			pl.v.x = maxf(pl.v.x, RUN_MAX * 0.9)
-			_stamp("빠른 출발!", "QUICK START!", ST_GOOD, pl, 0.7)
+			_stamp("빠른 출발!", "GREAT START!", ST_GOOD, pl, 0.7)
 			_sfx("go", pl, -6.0)
 	if cdef.rule == "dark" and mode != "lantern":
 		_dark(dt)
@@ -2975,9 +2961,9 @@ func _race(dt: float) -> void:
 				if r == pl:
 					delivered += FIRST_BONUS
 					course_got += FIRST_BONUS
-					_stamp("1등 도착 +%d" % FIRST_BONUS, "1ST TO FINISH +%d" % FIRST_BONUS, ST_GOOD, pl)
+					_stamp("1등 도착 +%d" % FIRST_BONUS, "1ST! +%d" % FIRST_BONUS, ST_GOOD, pl)
 				else:
-					_stamp("1등 도착은 상대 +%d" % FIRST_BONUS, "RIVAL 1ST TO FINISH +%d" % FIRST_BONUS, ST_INK, null, 0.9)
+					_stamp("1등 도착은 상대 +%d" % FIRST_BONUS, "RIVAL 1ST! +%d" % FIRST_BONUS, ST_INK, null, 0.9)
 		if r.fin >= 0 and r.p.x > goal_x + 26.0:
 			r.p.x = goal_x + 26.0  # 결승 뒤 마당 끝에서 멈춘다
 			r.v.x = minf(r.v.x, 0.0)
@@ -2999,7 +2985,7 @@ func _race(dt: float) -> void:
 		last_call = DECIDE_T
 	if last_call < 0.0 and (fin_n > 0 or rt > _round_cap()):
 		last_call = LAST_CALL * tn("last")
-		_stamp("마감 임박", "CLOSING SOON", ST_BAD, null, 1.2)
+		_stamp("마감 임박", "HURRY UP!", ST_BAD, null, 1.2)
 		_sfx("bell")
 	elif last_call >= 0.0:
 		var before := last_call
@@ -3503,7 +3489,7 @@ func _round_over(w: Courier) -> void:
 func _show_board(w: Courier) -> void:
 	if board_l == null:
 		return
-	var head := L("내가 이겼다!", "I WON!") if w == pl else L("%s 승리", "%s WINS") % [w.nick if lang == "ko" else w.nick_en]
+	var head := L("내가 이겼다!", "YOU WIN!") if w == pl else L("%s 승리", "%s WINS") % [w.nick if lang == "ko" else w.nick_en]
 	var rows := []
 	for r in _deliv_order():
 		var nm: String = r.nick if lang == "ko" else r.nick_en
@@ -3731,7 +3717,7 @@ func _gate_tick(dt: float) -> void:
 					at = true
 				if r == pl and gd > 0.0 and gd < 9.0 and not gate_told.has(gp):
 					gate_told[gp] = true
-					goal_l.text = L("낮은 문: 짐 %d개까지만 지나간다\n밀고 가면 짐이 걸려 떨어진다", "Low door: only up to %d boxes get through\nPush on and boxes catch and fall off") % GATE_MAX
+					goal_l.text = L("낮은 문: 짐 %d개만 지나간다\n더 많으면 문에 걸려 하나씩 떨어진다", "Low door: only %d boxes get through\nAny more catch on the door and fall off one by one") % GATE_MAX
 					goal_t = 3.0
 		if not at:
 			r.gate_t = 0.0
@@ -4424,6 +4410,15 @@ func _draw_all() -> void:
 		me_l.visible = marker.visible
 		if me_l.visible:
 			me_l.text = L("나 · 짐 %d", "ME · BOXES %d") % pl.cargo
+			me_l.modulate = P_BLUE
+			# v42: 낮은 문 앞에서 짐이 많으면 문이 남길 수를 보여 준다 (짐 8 → 4, 빨강). 테스터가 낮은 문을 끝내 이해 못 했다
+			if pl.cargo > GATE_MAX:
+				for gp in gates:
+					var gd: float = float(gp) - pl.p.x
+					if gd > -1.0 and gd < 10.0:
+						me_l.text = L("짐 %d → %d", "BOXES %d → %d") % [pl.cargo, GATE_MAX]
+						me_l.modulate = P_RED
+						break
 			var mk2 := maxf(0.36 * (hwv / _narrow()) * 1.1, 0.8)
 			me_l.pixel_size = mk2 * 1.0 / 64.0
 			me_l.position = marker.position + Vector3(0, mk2 * 1.05, 0.2)

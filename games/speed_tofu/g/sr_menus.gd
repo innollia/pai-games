@@ -440,7 +440,7 @@ func show_results(data: Dictionary) -> void:
 	_fold = 1.0
 	_wash_to(WASH_A)
 	_open_root(_res_root)
-	_again_btn.text = _L("다시 배달", "DELIVER AGAIN")
+	_again_btn.text = _L("다시 배달", "PLAY AGAIN")
 	_title_btn.text = ""  # 집 그림 (처음으로)
 	_again_btn.disabled = true
 	_title_btn.disabled = true
@@ -748,7 +748,7 @@ func _route_advice(id: String) -> Array:
 	match id:
 		"gate":
 			var gm: int = game.GATE_MAX
-			var say := _L("짐 %d개 이하만 통과 · 지금 %d개", "Only %d boxes or fewer pass · now %d") % [gm, n]
+			var say := _L("짐 %d개만 지나간다", "Only %d boxes get through") % gm
 			return [say, T.GREEN if n <= gm else T.RED]
 		"slide":
 			return [_L("얼음: 무거울수록 빠르다", "Ice: heavier = faster"), T.BLUE]
