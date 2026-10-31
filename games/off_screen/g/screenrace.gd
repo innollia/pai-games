@@ -34,6 +34,7 @@ const WIDE := 12.5  # 짐이 다 있을 때 화면 반폭
 const NARROW := 5.5  # 짐이 다 없어지면 이만큼
 const START_T := 6.0  # v22: 출발 속도 차이가 남는 시간 (그 뒤는 모두 원래 속도)
 const QUICK_T := 0.35  # v22: GO 뒤 이 안에 처음 앞으로 밀면 빠른 출발 (GO 전부터 밀고 있으면 아님)
+const ATTRACT_LEN := 2500.0  # v24: 제목 경주 길 길이 (약 5분). 끝까지 가면 아무도 모르게 새 길로
 const ATTRACT_W := 6.5  # v21: 제목 화면 뒤 경주의 화면 반폭
 const LOAD0 := 8  # 판마다 출발 짐 (v13: 실험판 짐 x2를 사용자가 골랐다, 4 -> 8)
 const LOAD_MAX := 10
@@ -523,6 +524,7 @@ var tut_step_max := -1  # furthest practice step seen (sr_front.step)
 var quick_ok := false  # v22: 이번 판 빠른 출발을 아직 노릴 수 있다
 var attract_on := false  # v21: 제목 화면 뒤에서 넷이 알아서 경주한다 (나도 경쟁자처럼 AI). 이동안 경기 소리·도장은 끈다
 var attract_t := 0.0
+var long_course := false  # v24: 제목 경주용 긴 길 (ATTRACT_LEN) 을 만든다
 var ui_sfx := false  # play() 로 부른 화면 버튼 소리는 제목 경주 중에도 난다
 var skip_title := false  # PLAY AGAIN: restart without flashing the title
 var stamps: Array = []  # pooled paper stamps {panel, label, age, life, base}
@@ -1643,7 +1645,7 @@ func _build_course() -> void:
 	else:
 		for part in LESSONS[ci]:
 			_seg(part)
-	var goal := 380.0 + mini(ci, 3) * 45.0
+	var goal := ATTRACT_LEN if long_course else 380.0 + mini(ci, 3) * 45.0
 	var segs: Array = cdef.segs
 	var last := ""
 	var n_river := 0
@@ -2585,7 +2587,8 @@ func _step(dt: float) -> void:
 			if pt <= 0.0:
 				_after_round()
 		"title":
-			_attract(dt)
+			if _title_idle():
+				_attract(dt)
 		"tutorial":
 			pl.mx = kit_move.x
 			pl.i_jump = kit_just("jump")
@@ -2599,7 +2602,7 @@ func _step(dt: float) -> void:
 				pl.v = Vector2.ZERO
 		"perk", "mode", "route":
 			pass  # the paper cards (sr_menus) emit the choice
-	if attract_on and phase != "title":
+	if attract_on and not _title_idle():
 		_attract_end()
 	_update_parcels(dt)
 	_mb_tick(dt)
@@ -2623,6 +2626,7 @@ func _attract(dt: float) -> void:
 		attract_on = true
 		attract_t = 0.0
 		pl.ai = true
+		_attract_course()
 	attract_t += dt
 	_catchup(dt)
 	for r in runners:
@@ -2643,10 +2647,26 @@ func _attract(dt: float) -> void:
 			r.p = Vector2(x, _floor_top(x, 60.0) + 0.05)
 			r.v = Vector2.ZERO
 	var ld := _leader()
-	if attract_t > 50.0 or (ld != null and ld.p.x > goal_x - 4.0):
-		attract_t = 0.0
-		_start_round()
-		_cam_snap()
+	if ld != null and ld.p.x > goal_x - 30.0:
+		_attract_course()  # 거의 안 온다 (5분 넘게 달려야)
+
+
+## v24: 제목 경주는 끝나는 지점이 없다: 결승이 화면에 안 들어오는 아주 긴 길을 만든다.
+func _attract_course() -> void:
+	attract_t = 0.0
+	long_course = true
+	_build_course()
+	long_course = false
+	_start_round()
+	phase = "title"  # _start_round 는 카운트다운을 연다: 제목 화면 그대로 둔다 (v21 의 50초 다시 시작은 여기서 진짜 경주로 넘어갔다)
+	if menus:
+		menus.hide_countdown()
+	_cam_snap()
+
+
+## v24: 제목 화면이 떠 있고 아무 버튼도 안 눌렀을 때만 뒤 경주가 돈다 (PLAY 뒤 한 프레임에 긴 길을 다시 만들지 않게)
+func _title_idle() -> bool:
+	return phase == "title" and front != null and front.state == "title" and not front._busy
 
 
 func _attract_end() -> void:
