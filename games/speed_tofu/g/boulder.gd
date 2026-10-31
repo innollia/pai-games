@@ -517,6 +517,13 @@ func _zones_list() -> Array:
 					"hidden": true, "pick_x": -4.5, "seal": ["icedoor", 12, -6.0], "name": "얼음 골짜기"},
 				{"legs": [[90, -16, 9], [20, -1, 9], [40, -6, 8], [20, -2, 8]],
 					"snow": [[0, 87, -9, 9]], "sun": [[109, 147, -9, 9]], "row": [[99, "ice"]], "put": [["pot", 27, 0]], "say": [[105, "녹는 길"]]},
+				# 갈래 눈길: 눈 줄이 좌우로 번갈아 놓여 지그재그로 따라가야 다 먹는다(놓치면 얼음벽 4.5 에 모자람).
+				# 얼음벽을 깬 바로 뒤가 녹는 길이고 그다음이 오르막: 키우기 → 깨기 → 녹이기 → 오르기를 한 호흡에.
+				{"legs": [[20, -3, 9], [120, -20, 10], [20, -1, 9], [40, 8, 8], [20, -2, 8]],
+					"snow": [[10, 42, -10, -1], [42, 74, 1, 10], [74, 106, -10, -1], [106, 132, 1, 10]],
+					"row": [[138, "ice"]], "sun": [[146, 162, -9, 9]],
+					"put": [["pot", 26, 6], ["pot", 58, -6], ["pot", 90, 6], ["pot", 118, -6]],
+					"say": [[2, "눈 줄을 따라 지그재그"], [140, "깨고 녹이고 올라"]]},
 				# 섞기: 눈으로 키워 얼음벽 깨기 → 커진(무거운) 몸으로 틈 뛰기 → 오르막 앞 쪼개기
 				{"legs": [[20, -4, 9], [90, -16, 9], [14, -1, 9], [12, -1, 8, 0, "gap"], [30, -4, 8], [30, 6, 8], [20, -3, 8]],
 					"snow": [[2, 108, -9, 9]], "row": [[114, "ice"]], "put": [["pot", 40, 5], ["pot", 60, -5], ["pot", 80, 3]],
@@ -534,6 +541,14 @@ func _zones_list() -> Array:
 					{"legs": [[14, -1.4, 7, 32], [12, -4, 5], [44, -15, 4.5, -32], [12, -2, 5]], "put": [["pot", 26, 0], ["pot", 44, 0]]},
 					{"legs": [[20, -2, 7], [55, -4, 7], [15, -1, 7]], "row": [[12, "crystal"]]}],
 					"hidden": true, "pick_x": -3.5, "seal": ["vein", 14, -5.0], "name": "수정 맥 길"},
+				# 던지고 채우기: 왼쪽 반 눈길에서 몸을 채우고 → 수정 벽을 던져 깨고 → 다시 채우고 → 또 깬다.
+				# 마지막은 무거운 몸이 밀려나는 큰 회전: 마지막 한 덩이를 던져 가볍게 돌지, 채운 채 버틸지.
+				{"legs": [[20, -4, 8], [160, -22, 8], [50, -6, 7, 60], [20, -2, 7]],
+					"snow": [[4, 56, -8, -0.5], [80, 132, -8, -0.5]],
+					"row": [[70, "crystal"], [146, "crystal"]],
+					"put": [["pot", 20, 4], ["pot", 30, 4], ["pot", 96, 4], ["pot", 106, 4], ["statue", 120, 4]],
+					"say": [[2, "던지고, 눈으로 다시 채우고"], [178, "무거우면 회전에서 밀린다
+던져서 가볍게"]]},
 				{"legs": [[40, -7, 7], [20, -1, 7]], "put": [["pot", 10, 0]]},
 				# 섞기: 깔아서 커지고 → 수정에 던지면 작아져 → 바로 뒤 좁은 흔들다리를 건넌다 → 경사대 틈 뛰기
 				{"legs": [[20, -4, 7], [40, -8, 7], [16, -1, 7], [45, -3, 7], [12, -1, 7], [10, 4, 6, 0, "ramp"], [14, -4, 6, 0, "gap"], [30, -5, 7]],
@@ -546,6 +561,11 @@ func _zones_list() -> Array:
 				{"legs": [[20, -4, 7], [140, -25, 7], [60, -11, 3.5], [60, -10, 7], [20, 0, 8]],
 					"put": [["pot", 60, -3], ["pot", 62, 3], ["pot", 130, 0], ["pot", 230, -3], ["pot", 232, 3]],
 					"rocks": [30, 282], "say": [[22, "노랑은 받고\n빨강은 피해"], [150, "좁다! 빨강은\n쪼개서 막아"]]},
+				# 좁아지는 방파제: 뒤에서 돌이 쫓아오는 채로 길 폭이 8 → 6 → 4 → 3 으로 줄어 피할 자리가 사라진다.
+				# 좁은 끝에서는 쪼개 막거나 앞으로 달아날 수밖에 없고, 끝의 경사대로 만(灣)을 건너뛰면 추격이 끝난다.
+				{"legs": [[20, -3, 8], [80, -12, 6], [60, -10, 4], [40, -6, 3], [10, 4, 6, 0, "ramp"], [18, -6, 6, 0, "gap"], [40, -6, 8]],
+					"rocks": [10, 196], "put": [["pot", 40, -3], ["pot", 40, 3], ["pot", 120, 0]],
+					"say": [[2, "방파제가 좁아진다"], [196, "뛰어 건너!"]]},
 				# 마지막 다 섞기: 등뒤 카메라로 돌아와 지금까지 배운 것을 전부
 				{"cam": [[0, "back"]],
 					"legs": [[20, -3, 8], [60, -12, 8], [14, -1, 8], [45, -4, 7], [15, -1, 8], [50, -9, 8, 50],
@@ -4653,7 +4673,9 @@ func gauge(frac: float, color: Color) -> void:
 	_bar_bg.scale = GAUGE_S * Vector2(1.0 + gauge_kick * 0.04, 1.0 + gauge_kick * 0.45)
 
 
-## 키트 버튼 = 둥근 돌 단추: 곧은 아래 그림자, 누르면 가라앉음, 먹 테, 먹 글자. 새로 열리면 톡 튀어나온다
+## 키트 버튼 = GPT 가 그린 팔각 새김 돌 메달(ui_gpt/seal.png)에 기술 색을 물들인 것: 아래 먹 그림자, 누르면 가라앉아 어두워짐,
+## 먹 글자. 새로 열리면 톡 튀어나온다 (기본 원·테 도형은 쓰지 않는다)
+var seal_tex: Texture2D
 func _kit_draw(c: Control) -> void:
 	if _stick_zone.has_area():
 		super(c)
@@ -4669,10 +4691,12 @@ func _kit_draw(c: Control) -> void:
 		var pop := clampf((now - float(_btn_born.get(n, -9.0))) / 0.4, 0.0, 1.0)
 		var r := br * (1.0 + 0.3 * sin(pop * PI) * (1.0 - pop)) * (0.93 if down else 1.0)
 		var p := bp + (Vector2(0, 5) if down else Vector2.ZERO)
-		c.draw_circle(bp + Vector2(0, 7), br, Color(INK, 0.32))
-		c.draw_circle(p, r, col.darkened(0.12) if down else col)
-		c.draw_circle(p + Vector2(-r * 0.28, -r * 0.32), r * 0.22, Color(1, 1, 1, 0.35))
-		c.draw_arc(p, r, 0.0, TAU, 48, INK, 5.0, true)
+		if seal_tex == null:
+			seal_tex = load(ART_ROOT + "ui_gpt/seal.png") as Texture2D
+		var rr := r * 1.12  # 팔각 메달 모서리까지
+		c.draw_texture_rect(seal_tex, Rect2(bp + Vector2(-rr, -rr + 8.0), Vector2(rr, rr) * 2.0), false, Color(INK, 0.4))
+		var tint := col.lerp(WHITE, 0.35)
+		c.draw_texture_rect(seal_tex, Rect2(p - Vector2(rr, rr), Vector2(rr, rr) * 2.0), false, tint.darkened(0.2) if down else tint)
 		var fs := int(clampf(br * 0.38, 22.0, 40.0))
 		var tp := p + Vector2(-r, fs * 0.35)
 		c.draw_string_outline(_font, tp, lab, HORIZONTAL_ALIGNMENT_CENTER, r * 2.0, fs, 7, WHITE)
@@ -5231,6 +5255,11 @@ const EN := {
 	"숨은 수정 동굴": "Hidden crystal cave", "잠든 지하 신전": "The Sleeping Under-Temple", "다음 틈을 봐": "Watch the next gap",
 	"안 닿았다!\n더 빨리, 더 가까이": "Fell short!\nFaster, or get closer",
 	# 숨은 길(지름길) 지명판
+	"눈 줄을 따라 지그재그": "Weave along the snow lanes", "깨고 녹이고 올라": "Smash, melt, climb",
+	"던지고, 눈으로 다시 채우고": "Throw, then refill in the snow", "무거우면 회전에서 밀린다
+던져서 가볍게": "Heavy = pushed out on turns
+THROW to lighten",
+	"방파제가 좁아진다": "The breakwater narrows", "뛰어 건너!": "Jump across!",
 	"지름길!": "Shortcut!", "옛 배수로": "Old Drain", "깊은 물길": "Deep Current", "순풍 길": "Tailwind Draft", "뒷골목": "Back Alley",
 	"숨은 저수조": "Hidden Cistern", "얼음 골짜기": "Ice Gully", "수정 맥 길": "Crystal Vein Cut", "하늘 수로": "Sky Aqueduct",
 	"쪼개서 돌진!\n아니면 더 빨리": "SPLIT-dash it!\nOr come in faster",
