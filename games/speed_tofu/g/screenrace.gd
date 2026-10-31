@@ -43,7 +43,8 @@ const HEAVY_N := 6  # 무거운 쪽 규칙 (저울 위로): 짐 이만큼 이상
 const LIGHT_N := 4  # 가벼운 쪽 규칙 (상승풍·과속 가속): 짐 이만큼 이하 (v12 2 -> v13 4)
 const PACK_K := 0.78  # 등 짐 더미 크기 (v14: 한 줄 기둥으로 높게, 그래서 조금 작게)
 const PACK_Y0 := 0.3  # 등 짐 기둥 첫 상자 가운데 (몸 노드 기준, 등 가운데쯤)
-const PACK_STEP := 0.4  # 기둥 한 칸 높이 (상자 높이 0.38 x VIS_K x PACK_K 보다 아주 조금 작다: 기울어도 틈이 안 보이게)
+const PACK_H_K := 1.45  # v38: 등 짐 한 개 높이 배수 ("작아도 직관적으로 보이게", 확정)
+const PACK_STEP := 0.4 * PACK_H_K  # 기둥 한 칸 높이 (상자 높이 0.38 x VIS_K x PACK_K 보다 아주 조금 작다: 기울어도 틈이 안 보이게)
 const MEDAL_GOT := 6  # 금메달: 2판 안에 이기고 이 코스에서 이만큼 배달 (v12 4 -> v13 6)
 const LOAD_SLOW := 0.03  # 짐 하나당 최고 속도 감소 (v14: 0.06 -> 0.03, 폰 평가 "상자가 무거워 너무 느리다")
 const LOAD_JUMP := 0.0175  # 짐 하나당 점프 감소 (v14: 0.035 -> 0.0175)
@@ -245,7 +246,10 @@ const POST_BUF := 0.9  # 미리 누른 배달이 기다리는 시간 (누르고 
 const AI_SKILL0 := 1.0  # v14: 경쟁자 기본 속도 (0.93 -> 1.0, 나와 같다: 나는 달리며 넣고 경쟁자는 서서 넣으니, 가끔은 경쟁자가 앞서 우체통을 먼저 차지하게)
 const SHOVE_T := 0.6  # v14: 선두 대시로 화면이 확 밀리면 이 시간 동안 왼쪽 끝은 부드러운 벽 (한 번 대시로 모두 반송되지 않게)
 const LAST_CALL := 3.0  # 첫 도착 뒤 마감까지
-const WALL_W := 56.0  # 화면 양옆 짐 벽 두께 (px). 벽 안쪽 면 = 진짜 떨어지는 끝 (v13: 34 -> 56, 폰에서 잘 안 보였다)
+const SKY_BRICKS := true  # v38 실험: 짐 벽을 양옆 대신 빈 하늘(위 진행 줄 아래)에 주자마다 한 줄로. 경주 폭이 넓어진다
+const SKY_BW := 22.0  # 하늘 벽돌 하나 폭·높이 (px)
+const SKY_BH := 18.0
+const WALL_W := 14.0 if SKY_BRICKS else 56.0  # 화면 양옆 짐 벽 두께 (px). 벽 안쪽 면 = 진짜 떨어지는 끝 (v13: 34 -> 56, 폰에서 잘 안 보였다)
 const BRICK_H := 60.0
 const BRICK_GAP := 5.0
 const WALL_POPS := 10
@@ -413,7 +417,9 @@ var phase := "count"
 var pt := 0.0
 var rt := 0.0  # 라운드 시간
 var cdef: Dictionary
-var tile_of := {}  # v26: 코스 색(html) -> 이어 붙는 그림 무늬 이름 (ground·paving·plaster·planks)
+const TILE_OWN_COLOR := ["spring", "redpath", "water"]
+var tile_of := {}
+var spring_tex: Texture2D = load("res://art/screenrace/ui/icon_spring.png") if ResourceLoader.exists("res://art/screenrace/ui/icon_spring.png") else null  # v26: 코스 색(html) -> 이어 붙는 그림 무늬 이름 (ground·paving·plaster·planks)
 var stage: Node3D
 var rects: Array[Rect2] = []
 var kinds := PackedInt32Array()  # 0 바닥 1 점프대 3 흐름 4 판 5 얼음 6 짐 문 7 차단문 8 경사로
@@ -1403,6 +1409,11 @@ func _tile_map() -> void:
 		tile_of[(c as Color).to_html()] = "plaster"
 	for c in [BOARD, BOARD.darkened(0.3), BOARD.darkened(0.06)]:
 		tile_of[c.to_html()] = "planks"
+	# v38: 색이 뜻인 판도 그림으로 (색은 그림이 가진다): 노란 발판 = 용수철, 빨간 판 = 길, 파랑 = 물(물고기)
+	tile_of[D.to_html()] = "spring"
+	tile_of[BAD.to_html()] = "redpath"
+	for c in [B, B.lightened(0.3)]:
+		tile_of[c.to_html()] = "water"
 
 
 ## v26: 코스 상자 재질. 그림 무늬가 있는 색이면 그 무늬를 월드 좌표로 이어 붙이고(늘어나도 무늬 크기는 그대로) 색을 곱한다.
@@ -1420,7 +1431,9 @@ func _vmat(color: Color) -> Material:
 		sm.albedo_texture = load(path)
 		sm.uv1_triplanar = true
 		sm.uv1_world_triplanar = true
-		sm.uv1_scale = Vector3.ONE * 0.45  # 무늬 한 장 = 약 2.2m
+		sm.uv1_scale = Vector3.ONE * {"water": 0.3, "spring": 0.9, "redpath": 0.4}.get(tn_, 0.45)  # 무늬 한 장 = 약 2.2m (물은 3.3m: 물고기가 크게)
+		if TILE_OWN_COLOR.has(tn_):
+			sm.albedo_color = Color.WHITE  # 그림이 제 색을 가진다 (노랑·빨강·파랑)
 		sm.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 		_mats[mk] = sm
 	return _mats[mk]
@@ -1722,6 +1735,7 @@ func _make_body(r: Courier) -> void:
 		if _art_model("parcel", q, Vector3(0, -0.5, 0), 1.0):
 			q.mesh = null
 		q.scale *= PACK_K  # v14: 한 줄 기둥 (최대 10개) 이라 조금 작게
+		q.scale.y *= PACK_H_K
 		q.visible = false
 		r.packs.append(q)
 	r.fire = box(Vector3(-0.9, 0, 0), Vector3(0.9, 0.35, 0.35), C, r.node)
@@ -2009,7 +2023,7 @@ func _seg(s: String) -> void:
 				if k < 2:
 					var g := gen.randf_range(2.5, 3.5)
 					_danger_edge(gx - 0.3, fy)
-					_vbox(Vector3(gx + g * 0.5, fy - 2.5, 0), Vector3(g, 0.3, 2.5), B)
+					_vbox(Vector3(gx + g * 0.5, fy - 2.4 - 13.0, 0), Vector3(g, 26.0, 2.5), B)  # v38: 물은 바닥까지 채운다 (납작한 판 아래가 비어 물인 줄 몰랐다)
 					gx += g
 			_floor(gx, 3.0)
 			gx += 3.0
@@ -2077,7 +2091,7 @@ func _seg(s: String) -> void:
 				_vbox(Vector3(gx + bw * 0.5, fy + 1.0, z), Vector3(bw, 0.09, 0.09), INK.lightened(0.3))
 				_vbox(Vector3(gx - 0.1, fy + 0.6, z), Vector3(0.22, 1.4, 0.22), cdef.wall)
 				_vbox(Vector3(gx + bw + 0.1, fy + 0.6, z), Vector3(0.22, 1.4, 0.22), cdef.wall)
-			_vbox(Vector3(gx + bw * 0.5, fy - 11.0, -1.0), Vector3(bw + 2.0, 0.4, 5.0), B.lightened(0.3))  # 아래 계곡물
+			_vbox(Vector3(gx + bw * 0.5, fy - 11.0 - 10.0, -1.0), Vector3(bw + 2.0, 20.0, 5.0), B.lightened(0.3))  # 아래 계곡물 (v38: 아래까지 채움)
 			gx += bw
 			_floor(gx, 3.0)
 			gx += 3.0
@@ -2214,6 +2228,14 @@ func _decor(asset: String, pos: Vector3, height: float) -> void:
 func _solid(rc: Rect2, c: Color, kind: int, depth := 2.4) -> void:
 	rects.append(rc)
 	kinds.append(kind)
+	if kind == 1 and spring_tex:
+		# v38: 용수철 그림 표지 (노란 발판 = 밟으면 튀어 오른다)
+		var sp := Sprite3D.new()
+		sp.texture = spring_tex
+		sp.pixel_size = 1.2 / float(spring_tex.get_width())
+		sp.shaded = false
+		sp.position = Vector3(rc.get_center().x, rc.end.y + 0.75, 1.3)
+		stage.add_child(sp)
 	var m := rc.get_center()
 	_vbox(Vector3(m.x, m.y, 0), Vector3(rc.size.x, rc.size.y, depth), c)
 
@@ -3816,7 +3838,9 @@ func _on_ramp(r: Courier, was_g: bool) -> void:
 		if r.p.x < q.position.x or r.p.x > q.end.x:
 			continue
 		var sy := _ramp_y(i, r.p.x)
-		if r.p.y <= sy + (0.35 if was_g else 0.02) and r.p.y >= sy - 0.9 and sy > best:
+		# v38: 발이 경사로 안(밑변 위, 윗면 아래)이면 어디든 윗면으로 올린다. 예전엔 윗면 0.9 아래까지만이라
+		# 대시(한 프레임 0.5m)로 가파른 경사로에 들어가면 윗면이 그보다 높아져 경사로를 뚫고 지나갔다
+		if r.p.y <= sy + (0.35 if was_g else 0.02) and r.p.y >= minf(sy - 0.9, q.position.y - 0.1) and sy > best:
 			best = sy
 			bi = i
 	if bi < 0 or (r.grounded and best < r.p.y - 0.02):
@@ -5054,11 +5078,15 @@ func right_screen_x() -> float:
 
 
 func _wall_side(i: int) -> int:
+	if SKY_BRICKS:
+		return i  # 하늘 줄: 주자마다 한 줄
 	return -1 if i < 2 else 1  # -1 왼쪽 벽, 1 오른쪽 벽
 
 
 ## 벽돌 칸의 화면 사각형 (side 벽에서 아래부터 slot 번째)
 func _brick_rect(side: int, slot: float, n_side: int) -> Rect2:
+	if SKY_BRICKS:
+		return Rect2(64.0 + slot * (SKY_BW + 4.0), 112.0 + side * (SKY_BH + 9.0), SKY_BW, SKY_BH)
 	var y0 := PF_BOT - 6.0
 	var st := minf(BRICK_H + BRICK_GAP, (y0 - PF_TOP - 20.0) / float(maxi(n_side, 1)))
 	var bh := st - BRICK_GAP
@@ -5175,7 +5203,7 @@ func _fx_draw_walls(c: Control) -> void:
 			c.draw_rect(Rect2(fx_r, -10.0, 3.0, 1300.0), Color(P_KRAFT, 0.55))
 	c.draw_rect(Rect2(ex - 4.0, -10.0, 4.0, 1300.0), P_NAVY)
 	c.draw_rect(Rect2(rx, -10.0, 4.0, 1300.0), P_NAVY)
-	for side in [-1, 1]:
+	for side in ([0, 1, 2, 3] if SKY_BRICKS else [-1, 1]):
 		var n_side := 0
 		for k in 4:
 			if _wall_side(k) == side:
@@ -5199,8 +5227,8 @@ func _fx_draw_walls(c: Control) -> void:
 	for e in wall_pops:
 		if not e.on:
 			continue
-		var bw := WALL_W - 10.0
-		var bh := BRICK_H * 0.8
+		var bw := SKY_BW if SKY_BRICKS else WALL_W - 10.0
+		var bh := SKY_BH if SKY_BRICKS else BRICK_H * 0.8
 		if int(e.kind) == 0:  # 빠지는 벽돌: 안쪽으로 톡 튀며 돌고 흐려진다
 			var a := 1.0 - clampf((float(e.age) - 0.35) / 0.35, 0.0, 1.0)
 			c.draw_set_transform(e.p, float(e.rot), Vector2.ONE)

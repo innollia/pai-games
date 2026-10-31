@@ -1493,3 +1493,84 @@ No perspective, no shading that implies a 3D view inside a face.
 No text or labels.
 ```
 
+## v38 노란 발판·빨간 길·물 (2026-10-31, hwapongstuy texture3d)
+모델: `work/street/build_v38.py`. 같은 순서(make_guides → build_message → run_codex_texture, 클린룸 한 장).
+
+### screenrace_tiles2
+Result: KEPT (빨간 길, 물+물고기). 칸마다 테두리 18px 안쪽을 잘라 256, 물은 반 칸 밀어 이음새 없앰. (image call 1회). Codex가 쓴 프롬프트 원문:
+
+```text
+[IMAGE] Square game texture atlas for a low-poly model made of two flat square tiling panels for a paper-craft race course, painted onto the attached UV layout. The attached line image is the exact layout.
+[LAYOUT] Keep the square canvas and every face at exactly the same position, size, and orientation as in the attached line image; do not move, rotate, stretch, or add faces.
+[LAYOUT] The face interiors fill their outlined rectangles to every edge; all canvas outside the outlined faces is one flat middle gray (#808080).
+[LAYOUT] Each face is a flat surface viewed straight on, with its top pointing toward the top of the image; no perspective, depth, or small scene inside a face.
+[LAYOUT] Adjacent faces sharing a line continue their colors and patterns across that line. Each square material is a seamless tile: its left edge continues into its right edge, and its top edge continues into its bottom edge.
+[SURFACES] redpath — the lower-left square, at left 2%–48% and top 52%–98%: a shop-awning road surface with wide coral-red and cream horizontal stripes and two large cream right-pointing chevron arrows painted on the red stripes. Keep the stripe and tile pattern seamless across opposite edges.
+[SURFACES] water — the lower-right square, at left 50%–96% and top 52%–98%: river water seen from the side, clear medium blue with a few soft, wavy lighter-blue lines and three small orange and teal fish swimming right, spaced apart with plenty of plain water between them. Keep the water and tile pattern seamless across opposite edges.
+[LIGHT] Use soft painted light from above: keep the surfaces flat, with a thin light painted edge along each face boundary; no cast shadows. Within any vertical side surface, let the color grow slightly darker toward its bottom edge.
+[PALETTE] Coral red, warm cream, clear medium blue, lighter blue, orange, teal, and middle gray (#808080).
+[NEGATIVE] No hyper-detailed fur, bark, stone, or leaf rendering; a few confident marks stand for each.
+No sky gradients, no cloud detail, no glow around the sun, moon, or lights.
+No glossy digital painting, no airbrushed smooth gradients, no plastic or waxy skin.
+No bloom, lens flare, god rays, or haze unless the subject asks for them.
+No shallow depth of field, bokeh, or photographic blur.
+No 3D render look, no subsurface skin sheen, no CGI lighting.
+No evenly spread detail; detail sits in one or two places only.
+No perfectly symmetrical faces, poses, or compositions.
+No generic fantasy decoration: floating particles, sparkles, magic circles, random runes or glyphs.
+No extra eyes, mouths, faces, limbs, or tentacles; no melted or fused anatomy; hands have the correct number of fingers.
+No characters, animals, or props that the subject did not ask for.
+No text, letters, captions, title, signature, monogram, watermark, logo, frame, or border.
+No oversaturated or neon color unless the style card asks for it.
+No muddy, smeared, or noisy surface texture.
+No perspective, no shading that implies a 3D view inside a face.
+No text or labels.
+```
+
+### screenrace_spring
+Result: PARTIAL: 위판(노랑+위 화살표)만 무늬(tile_spring)로 씀. 용수철 지그재그가 옆에서 안 보이는 면에 그려져 모델은 안 붙였다. 대신 ui/icon_spring 표지. (image call 1회). Codex가 쓴 프롬프트 원문:
+
+```text
+[IMAGE] square game texture atlas for a low-poly 3D model, painted onto the attached UV layout
+[LAYOUT] the attached line image is the exact layout: keep the square image and every outlined face at its exact position, size, and orientation; do not move, rotate, stretch, or resize any face.
+[LAYOUT] Fill every face to its edges with a flat, front-facing surface; keep all areas outside the outlined faces one flat mid-gray (#808080).
+[LAYOUT] The top of each side face is the model's world-up direction; do not draw perspective, three-dimensional objects, cast shadows, or miniature scenes inside any face.
+[LAYOUT] Keep the design readable at mobile game size with a few large painted shapes and sparse marks; continue colors and patterns seamlessly across faces that share an edge.
+[SURFACES] Base TOP face, x 17%–26%, y 68%–83%: dark navy painted base plate with a cream edge highlight.
+[SURFACES] Base FRONT face, x 17%–26%, y 83%: dark navy painted base plate, continuing the cream edge highlight from the adjacent top face.
+[SURFACES] Base RIGHT face, x 26%–41%, y 83%: dark navy painted base plate with a cream edge highlight.
+[SURFACES] Base BACK face, x 41%–51%, y 83%: dark navy painted base plate with a cream edge highlight.
+[SURFACES] Base LEFT face, x 2%–17%, y 83%: dark navy painted base plate with a cream edge highlight.
+[SURFACES] Base BOTTOM face, x 17%–26%, y 83%–98%: dark navy painted base plate with a cream edge highlight.
+[SURFACES] Coils TOP face, x 16%–25%, y 5%–19%: pale butter background with the upper ends of three large dark navy zigzag coil springs.
+[SURFACES] Coils FRONT face, x 16%–25%, y 19%–21%: pale butter background with three large dark navy zigzag coil springs standing between the plates.
+[SURFACES] Coils RIGHT face, x 25%–39%, y 19%–21%: pale butter background with one large dark navy zigzag coil spring.
+[SURFACES] Coils BACK face, x 39%–48%, y 19%–21%: pale butter background with three large dark navy zigzag coil springs standing between the plates.
+[SURFACES] Coils LEFT face, x 2%–16%, y 19%–21%: pale butter background with one large dark navy zigzag coil spring.
+[SURFACES] Coils BOTTOM face, x 16%–25%, y 21%–35%: pale butter background with the lower ends of three large dark navy zigzag coil springs.
+[SURFACES] Plate TOP face, x 17%–26%, y 36%–51%: bright butter yellow springboard top plate with three big white up-pointing chevron arrows in a row.
+[SURFACES] Plate FRONT face, x 17%–26%, y 51%–52%: bright butter yellow edge with a thin orange stripe.
+[SURFACES] Plate RIGHT face, x 26%–41%, y 51%–52%: bright butter yellow side edge with a thin orange stripe continuing from the front edge.
+[SURFACES] Plate BACK face, x 41%–51%, y 51%–52%: bright butter yellow side edge with a thin orange stripe.
+[SURFACES] Plate LEFT face, x 2%–17%, y 51%–52%: bright butter yellow side edge with a thin orange stripe.
+[SURFACES] Plate BOTTOM face, x 17%–26%, y 52%–66%: bright butter yellow underside with a thin orange stripe along its adjoining front edge.
+[LIGHT] Painted light comes from above: top faces are brightest; side faces grow slightly darker toward their lower edges, with the bottom edge darkest; paint a thin bright highlight along the face borders.
+[PALETTE] Named colors: dark navy, cream, pale butter, bright butter yellow, orange, white, and mid-gray (#808080).
+[NEGATIVE] No hyper-detailed fur, bark, stone, or leaf rendering; a few confident marks stand for each.
+No sky gradients, no cloud detail, no glow around the sun, moon, or lights.
+No glossy digital painting, no airbrushed smooth gradients, no plastic or waxy skin.
+No bloom, lens flare, god rays, or haze unless the subject asks for them.
+No shallow depth of field, bokeh, or photographic blur.
+No 3D render look, no subsurface skin sheen, no CGI lighting.
+No evenly spread detail; detail sits in one or two places only.
+No perfectly symmetrical faces, poses, or compositions.
+No generic fantasy decoration: floating particles, sparkles, magic circles, random runes or glyphs.
+No extra eyes, mouths, faces, limbs, or tentacles; no melted or fused anatomy; hands have the correct number of fingers.
+No characters, animals, or props that the subject did not ask for.
+No text, letters, captions, title, signature, monogram, watermark, logo, frame, or border.
+No oversaturated or neon color unless the style card asks for it.
+No muddy, smeared, or noisy surface texture.
+No perspective, no shading that implies a 3D view inside a face.
+No text or labels.
+```
+
