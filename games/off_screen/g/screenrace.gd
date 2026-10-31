@@ -32,6 +32,8 @@ const BX0 := -60.0
 const BK := 6.0
 const WIDE := 12.5  # 짐이 다 있을 때 화면 반폭
 const NARROW := 5.5  # 짐이 다 없어지면 이만큼
+const START_T := 6.0  # v22: 출발 속도 차이가 남는 시간 (그 뒤는 모두 원래 속도)
+const QUICK_T := 0.35  # v22: GO 뒤 이 안에 처음 앞으로 밀면 빠른 출발 (GO 전부터 밀고 있으면 아님)
 const ATTRACT_W := 6.5  # v21: 제목 화면 뒤 경주의 화면 반폭
 const LOAD0 := 8  # 판마다 출발 짐 (v13: 실험판 짐 x2를 사용자가 골랐다, 4 -> 8)
 const LOAD_MAX := 10
@@ -334,6 +336,8 @@ class Courier:
 	var jbuf := 0.0
 	var cut := true
 	var skill := 1.0
+	var start_d := 0.0  # v22: 출발 반응 (GO 뒤 이만큼 늦게 달리기 시작, 경쟁자만)
+	var start_k := 1.0  # v22: 출발 뒤 START_T 동안 속도 배수 (경쟁자만, 판마다 다르게)
 	var err := 0.2
 	var think := 0.0
 	var poof_t := 0.0
@@ -516,6 +520,7 @@ var tell_s := ""  # calm rule line shown on route_l for tell_t seconds
 var tell_t := 0.0
 var tut_skipped := false  # left the practice with SKIP: the opening gets the one edge-rule line
 var tut_step_max := -1  # furthest practice step seen (sr_front.step)
+var quick_ok := false  # v22: 이번 판 빠른 출발을 아직 노릴 수 있다
 var attract_on := false  # v21: 제목 화면 뒤에서 넷이 알아서 경주한다 (나도 경쟁자처럼 AI). 이동안 경기 소리·도장은 끈다
 var attract_t := 0.0
 var ui_sfx := false  # play() 로 부른 화면 버튼 소리는 제목 경주 중에도 난다
@@ -954,6 +959,10 @@ func _overpowered(r: Courier) -> bool:
 
 
 func _sign(x: float, y: float, ko: String, en: String, rule := "") -> void:
+	# v22: 같은 규칙 표지판은 코스에 하나만 ("맵에 계속 텍스트가 나타나")
+	for sp in signs:
+		if sp.ko == ko:
+			return
 	var label := Label3D.new()
 	label.font = _font
 	label.text = L(ko, en)
@@ -1027,7 +1036,8 @@ func _update_content_hud() -> void:
 		return
 	# World signs speak for themselves (no duplicate HUD line); a new rule still gets a chime.
 	for signpost in signs:
-		(signpost.node as Node3D).visible = absf(signpost.x - camx) < hwv + 8.0
+		# v22: 표지판은 코스의 첫 판에만 (그 뒤 판은 이미 본 길)
+		(signpost.node as Node3D).visible = rnd == 1 and absf(signpost.x - camx) < hwv + 8.0
 		if pl.p.x > signpost.x - 7.0 and pl.p.x < signpost.x + 6.0:
 			if signpost.rule != "" and not seen_rules.has(signpost.rule):
 				seen_rules[signpost.rule] = true
@@ -2433,6 +2443,9 @@ func _start_round() -> void:
 		r.parked = false
 		r.surge = false
 		r.stun = 0.0
+		# v22: 출발 변수. 넷이 완전히 겹쳐 달리지 않게 경쟁자마다 반응과 초반 속도가 다르다
+		r.start_d = randf_range(0.0, 0.6) if r.ai else 0.0
+		r.start_k = randf_range(0.86, 1.06) if r.ai else 1.0
 		r.dash = 0.0
 		r.drop_cd = 0.0
 		r.dash_cd = 0.0
@@ -2561,6 +2574,7 @@ func _step(dt: float) -> void:
 				menus.countdown_tick(1)  # SET: the stamp thud only
 			if pt <= 0.0:
 				phase = "race"
+				quick_ok = kit_move.x < 0.5  # v22: GO 전부터 밀고 있었으면 빠른 출발 없음
 				menus.countdown_tick(2)
 				_sfx("go")  # the whistle on the real start
 		"race":
@@ -2649,6 +2663,15 @@ func _race(dt: float) -> void:
 	pl.i_drop = kit_just("drop")
 	pl.i_dheld = kit_held("drop")
 	_idle_tick(dt)
+	# v22: 빠른 출발 = GO 뒤 QUICK_T 안에 처음 앞으로 밀면 바로 거의 최고 속도
+	if quick_ok:
+		if rt > QUICK_T:
+			quick_ok = false
+		elif pl.mx > 0.5 and pl.alive:
+			quick_ok = false
+			pl.v.x = maxf(pl.v.x, RUN_MAX * 0.9)
+			_stamp("빠른 출발!", "QUICK START!", ST_GOOD, pl, 0.7)
+			_sfx("go", pl, -6.0)
 	if cdef.rule == "dark" and mode != "lantern":
 		_dark(dt)
 	_catchup(dt)
@@ -3302,7 +3325,7 @@ func _weight(r: Courier) -> float:
 
 
 func _top(r: Courier) -> float:
-	var top := RUN_MAX * tn("speed") * (r.skill if r.ai else spd_mul) * (1.0 - LOAD_SLOW * tn("weight") * _weight(r))
+	var top := RUN_MAX * tn("speed") * (r.skill if r.ai else spd_mul) * (r.start_k if phase == "race" and rt < START_T else 1.0) * (1.0 - LOAD_SLOW * tn("weight") * _weight(r))
 	top *= 1.0 + r.catch  # v13 따라잡기: 뒤처질수록 빠르다
 	if r.slip:
 		top *= 1.0 + 0.12 * (1.0 if r.ai else slip_mul)
@@ -3744,6 +3767,8 @@ func _track_at(x: float) -> Dictionary:
 
 func _ai(r: Courier, dt: float) -> void:
 	r.mx = 1.0
+	if phase == "race" and rt < r.start_d:
+		r.mx = 0.0  # v22: 출발 반응
 	if _opening() and r.p.x > pl.p.x + 2.0:
 		r.mx = 0.0
 	if mode == "lantern" and r == bearer and goal_x - r.p.x > 40.0:
