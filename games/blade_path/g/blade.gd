@@ -895,13 +895,17 @@ func _spawn(k: int) -> void:
 	_spawn_rest(k, hp_y)
 
 
+## 검객 종류(찌르기·속임수·베기·거합·끝판왕) -> models.gd 외형 번호. 10/31 파이 요청: 찌르기↔끝판왕, 속임수↔베기 외형 맞바꿈
+const LOOK := [4, 2, 1, 3, 0]
+
+
 ## 상자 검객 몸
 func _dress_box(_col: Color) -> void:
 	body = box(Vector3.ZERO, Vector3.ONE, WHITE, piv)
 	body.visible = false
 	var model := preload("res://g/models.gd").new()
 	piv.add_child(model)
-	model.build(ftype)
+	model.build(LOOK[ftype])
 	for m in model.find_children("*", "MeshInstance3D", true, false):
 		rig_m.append(m)
 		if m.has_meta("signal_eye"):

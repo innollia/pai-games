@@ -320,3 +320,11 @@ func gauge(frac: float, color: Color) -> void:
 func msg(s: String, dur := 0.6) -> void:
 	_msg_l.text = s
 	_msg_t = dur
+	# 긴 글(영어판 등)이 화면 밖으로 잘리지 않게: 가장 긴 줄이 680px 안에 들도록 글씨를 줄이고, 그래도 넘치면 줄을 바꾼다
+	var ls := _msg_l.label_settings
+	var w := 0.0
+	for line in s.split("
+"):
+		w = maxf(w, _font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, 72).x)
+	ls.font_size = 72 if w <= 680.0 else maxi(44, floori(72.0 * 680.0 / w))
+	_msg_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART if w * ls.font_size / 72.0 > 680.0 else TextServer.AUTOWRAP_OFF

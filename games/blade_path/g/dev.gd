@@ -170,7 +170,7 @@ func _buttons() -> Array:
 			out.append([Rect2(500, 1110, 200, 100), "다음 >", "next"])
 			out.append([Rect2(240, 1110, 240, 100), "완료", "menu"])
 			# 한영 바꾸기: 같은 줄이 다른 언어로 뭐였는지 바로 본다 (게임 언어도 같이 바뀜)
-			out.append([Rect2(420, 30, 280, 90), "English 보기" if g.lang != "en" else "한국어 보기", "lang"])
+			out.append([Rect2(20, 10, 560, 100), "⇄ English 보기" if g.lang != "en" else "⇄ 한국어 보기", "lang"])
 			return out
 		"jump":
 			var out: Array = []
@@ -213,7 +213,7 @@ func _paint(c: Control) -> void:
 			var pv: String = g._s(k).replace("\n", " | ")
 			c.draw_string(f, r.position + Vector2(16, 82), pv, HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 32, 28, Color.WHITE)
 			continue
-		c.draw_rect(r, g.D if act != "close" and act != "menu" else Color("5a4632"))
+		c.draw_rect(r, Color("ffd43b") if act == "lang" else g.D if act != "close" and act != "menu" else Color("5a4632"))
 		c.draw_rect(r, g.INK, false, 4.0)
 		var lines: PackedStringArray = (b[1] as String).split("\n")
 		var fs := 34
