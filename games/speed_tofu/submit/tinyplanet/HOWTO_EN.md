@@ -1,7 +1,9 @@
-Many tiny planets float in one sky. Use the left stick to run; push further to run faster. Run fast enough and your feet leave the ground.
+You are Posty, the Little Courier. Use the left stick to run; push further to run faster. Your task is always shown at the top; a yellow arrow points to it when it is off screen.
 
-Run very fast and jump to escape a planet's gravity and fly off. When you reach another planet's pull you bend toward it: dip into its air and you circle down and land; pass outside the air and it slings you onward. Miss every planet and you drift into space and lose a life.
+Run fast and jump: the speed and the moment of your jump become your flight. The bar at the top turns green when a jump will escape. A dotted line shows where a jump goes now: green reaches another planet, red is danger, white falls back home.
 
-When you run fast, a dotted line in front of your feet shows where a jump would take you now. Green reaches another planet, red is danger, white falls back home. The bar at the top turns green when a jump will escape.
+Near another planet you curve toward it: dip into its air and you circle down and land; pass outside and it slings you onward.
 
-In the air, jump once more: with the sail you turn toward the stick. "Drop" releases what you carry onto the yellow spot below. Glass cracks if you land hard. The yellow light beam marks where to go. Red is always danger: the burning star, the rock belt and meteors. Three lives, refilled on each new planet.
+In the air, tap SAIL once (after the Windmill Keeper gives it) to steer toward your stick, or toward your goal with no stick. The pale dots show where the sail takes you. Lost in space? You are towed back to your last planet, no life lost.
+
+"Drop" releases what you carry onto the yellow spot. Glass cracks if you land hard. Red is always danger. Three lives, refilled on each new planet.
