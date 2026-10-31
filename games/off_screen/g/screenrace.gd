@@ -244,6 +244,7 @@ const POST_BACK := 1.8  # v14: 내 배달 범위: 우체통이 이만큼 뒤 ..
 const POST_FWD := 2.4  # .. 이만큼 앞까지면 달리면서 짐 버튼 = 배달
 const POST_AHEAD := 5.0  # 이 앞 안에 빈 우체통이 있으면 짐 버튼은 초록 '배달'이 되고 눌러도 안 던진다 (닿으면 넣는다)
 const POST_BUF := 0.9  # 미리 누른 배달이 기다리는 시간 (누르고 있으면 계속)
+const POST_GRACE := 0.4  # v47: 남이 내 범위 우체통을 채운 뒤 내 짐 버튼이 던지지 않는 시간
 const AI_SKILL0 := 1.0  # v14: 경쟁자 기본 속도 (0.93 -> 1.0, 나와 같다: 나는 달리며 넣고 경쟁자는 서서 넣으니, 가끔은 경쟁자가 앞서 우체통을 먼저 차지하게)
 const SHOVE_T := 0.6  # v14: 선두 대시로 화면이 확 밀리면 이 시간 동안 왼쪽 끝은 부드러운 벽 (한 번 대시로 모두 반송되지 않게)
 const LAST_CALL := 3.0  # 첫 도착 뒤 마감까지
@@ -539,6 +540,7 @@ var quick_ok := false  # v22: 이번 판 빠른 출발을 아직 노릴 수 있�
 var key_l := false  # v32: 컴퓨터 조작 (플레이테스트용) 눌린 방향키
 var key_r := false
 var key_hint: Label  # 제목 화면 아래 키 안내 (터치 화면이 아닐 때만)
+var post_grace := 0.0  # v47: 내 배달 범위의 우체통을 남이 막 채웠으면 이 시간 동안 내 짐 버튼은 던지지 않는다 (넣으려던 누름이 대시로 새던 것)
 var board_l: SrBoard  # v37/v44: 판 끝 결과판 (누가 이겼는지, 모두의 배달 수, 동네 승수)
 var goal_l: Label  # v31: 출발 때 이기는 법 한 줄 (초보가 승리 조건을 몰랐다)
 var goal_t := 0.0
@@ -2519,6 +2521,8 @@ func _deliver(r: Courier) -> bool:
 	r.drop_cd = 0.35
 	if r.ai:
 		r.v.x = minf(r.v.x, 2.0)  # v14: 경쟁자는 우체통 앞에 멈춰 서서 넣는다 (시간이 든다). 나는 달리면서 넣는다
+	if r != pl and pl != null and absf(float(mb.x) - pl.p.x) < hwv:
+		post_grace = POST_GRACE  # v47 "택배 보내려다 상대가 넣어서 원치 않는 대쉬": 0.4초 자비
 	mb.full = true
 	mb.owner = r
 	mb.t = 0.45  # 깃발이 서는 시간
@@ -2587,12 +2591,13 @@ func _deliv_order() -> Array:
 	o.sort_custom(func(a, b):
 		if a.got != b.got:
 			return a.got > b.got
-		if a.posts != b.posts:
-			return a.posts > b.posts  # v14: 같으면 우체통에 많이 넣은 쪽 (빨리 달려 금색 하나만 넣은 쪽이 지게)
+		# v46 "동점 + 내가 1등이었는데 2등했어": 같은 점수면 결승에 먼저 닿은 쪽, 그다음 우체통에 많이 넣은 쪽 (예전엔 넣은 개수가 먼저였다)
 		var fa: int = a.fin if a.fin >= 0 else 99
 		var fb: int = b.fin if b.fin >= 0 else 99
 		if fa != fb:
 			return fa < fb
+		if a.posts != b.posts:
+			return a.posts > b.posts
 		return a.p.x > b.p.x)
 	return o
 
@@ -3608,6 +3613,8 @@ func _runner(r: Courier, dt: float) -> void:
 	r.dash_cd = maxf(r.dash_cd - dt, 0.0)
 	r.ai_cd = maxf(r.ai_cd - dt, 0.0)
 	r.post_buf = maxf(r.post_buf - dt, 0.0)
+	if r == pl:
+		post_grace = maxf(post_grace - dt, 0.0)
 	var top := _top(r)
 	var up := r.slope * signf(r.v.x)  # + 오르막, - 내리막
 	if r.grounded and up > 0.0:
@@ -3627,6 +3634,8 @@ func _runner(r: Courier, dt: float) -> void:
 			pass  # v14: 경쟁자가 배달하려다 못 닿았다: 던지지 않는다 (예전엔 여기서 대시가 새어 나갔다)
 		elif not r.ai and _post_ahead(r) >= 0 and _gap_len(r) <= 0.0:
 			r.post_buf = POST_BUF  # v14: 바로 앞에 빈 우체통: 던지지 않고, 닿으면 넣는다 (버튼이 초록 '배달')
+		elif not r.ai and post_grace > 0.0:
+			pass  # v47: 넣으려던 우체통을 남이 막 채웠다: 이 누름은 던지지 않는다
 		elif r.dash_cd <= 0.0:
 			_drop(r)  # 아니면 던지고 대시 (DASH_CD 에 한 번)
 	elif not r.ai and r.cargo > 0 and r.drop_cd <= 0.0 and (r.post_buf > 0.0 or r.i_dheld) and _mb_at(r) >= 0:

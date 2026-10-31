@@ -52,7 +52,7 @@ func _run() -> void:
 						seen[r.nick] = int(seen.get(r.nick, 0)) + 1
 						gos[r.nick] = int(gos.get(r.nick, 0)) + (1 if r.mb_go else 0)
 		print("  본 우체통 ", seen, " 넣기로 ", gos, " mb ", g.mailboxes.size())
-		print("%s #%d ci %d  " % [how, k, g.ci], g.runners.map(func(r): return "%s %d(짐%d)" % [r.nick, r.got, r.cargo]))
+		print("%s #%d ci %d 1등 %s  " % [how, k, g.ci, g._deliv_order()[0].nick], g.runners.map(func(r): return "%s %d(짐%d,넣%d,도착%d)" % [r.nick, r.got, r.cargo, r.posts, r.fin]))
 		g.queue_free()
 		await process_frame
 	quit()
