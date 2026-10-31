@@ -357,9 +357,12 @@ func _setup() -> void:
 		fv.base_font = fred
 		fv.variation_opentype = {TextServerManager.get_primary_interface().name_to_tag("wght"): 600}
 		_font = fv
-	_dpr_cap()
+	# v22 단독판은 720×1280 픽셀 퍼펙트 (project.godot stretch = viewport): 모든 것을 720×1280 에 그려 늘린다 — 해상도 줄이기 둘은 끈다
+	var px_perfect := get_window().content_scale_mode == Window.CONTENT_SCALE_MODE_VIEWPORT
+	if not px_perfect:
+		_dpr_cap()
 	# v21 (돌굴리기 v29 비결): 웹은 3D만 세로 약 1000px로 그린다 (폰 랙 = 픽셀 수). 글·UI 는 그대로 선명. ?hires=1 이면 끈다
-	if OS.has_feature("web") and str(JavaScriptBridge.eval("location.search.indexOf('hires=1')>=0?'y':'n'", true)) != "y":
+	if not px_perfect and OS.has_feature("web") and str(JavaScriptBridge.eval("location.search.indexOf('hires=1')>=0?'y':'n'", true)) != "y":
 		var vp := get_viewport()
 		vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_BILINEAR
 		vp.scaling_3d_scale = clampf(1000.0 / maxf(1.0, float(DisplayServer.window_get_size().y)), 0.45, 1.0)
