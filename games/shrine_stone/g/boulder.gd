@@ -205,6 +205,8 @@ var bonk_why := ""
 var arrow_mesh: ArrayMesh
 # v7: 쪼개기 돌진, 수로 밑 수정 동굴(떨어지면 딴 세상)
 var dash_t := 0.0
+var crumble: Array = []  # [거리, 조각] 고르지 않은 갈래 조각: 돌이 다가가면 무너진다
+var look_soft := 0.0  # 갈래를 고른 직후 카메라를 천천히 돌린다
 var zone_queue: Array = []  # 나눠 짓는 중인 구역 (한 프레임에 한 조각)
 var bridge_signs: Array = []  # [원, 재질, 버티는 크기, 판]
 var bridge_parts: Array = []  # 흔들다리 판·발판 (무거우면 이 자리가 부서진다)
@@ -216,6 +218,8 @@ var under_route: Array = []  # 지금 떨어진 협곡 구간 [시작, 끝]
 var geysers: Array = []     # [거리, 노드] 끝의 물기둥: 타면 수로 위로 솟는다
 var rising := false         # 물기둥에 실려 올라가는 중
 var updraft: Array = []     # 지하 순풍 길 [시작, 나올 틈 시작, 틈 끝, 바닥 높이, 나올 높이]
+var cave_span: Array = []  # 동굴 맵 [시작, 끝]: 이 안 지하에서는 좌우 벽에 막힌다
+const CAVE_HW := 8.0
 var wind_on := false        # 순풍을 타고 지상으로 오르는 중
 # 튜토리얼: 짧은 연습 코스 5개. 동작이 필요한 자리(gate)에 오면 느려지고 그 버튼이 깜빡인다
 var tutorial := false
@@ -632,6 +636,7 @@ func _reset() -> void:
 	underground = false
 	tunnels.clear()
 	updraft = []
+	cave_span = []
 	wind_on = false
 	lanes.clear()
 	floor_cracks.clear()
@@ -654,6 +659,7 @@ func _reset() -> void:
 	bridge_parts.clear()
 	bridge_signs.clear()
 	zone_queue.clear()
+	crumble.clear()
 	branch_nodes.clear()
 	fork_rail_end = -1.0
 	hs_t = 0.0
@@ -1020,13 +1026,30 @@ func _hole_wall(d_prev: float) -> void:
 		_stamp("쿵!", 4, _pos(dist, bx, by + s))
 
 
+## 길 가장자리: 몸이 반쯤 걸치면 바깥으로 기울어 굴러 떨어지고, 떨어지는 중에는 길 판 옆으로 비켜 떨어진다 (판을 뚫고 수직으로 빠지지 않게)
+func _edge_tick(dt: float) -> void:
+	if underground or fallen or dist >= _len():
+		return
+	var i := _oi(pd, dist)
+	if pd.sol[i] == 0:
+		return
+	var hw := float(pd.hw[i])
+	var over := absf(bx) - hw
+	if on_ground and over > 0.0:
+		x_goal += signf(bx) * 10.0 * dt * clampf(over / maxf(s * 0.35, 0.3), 0.0, 1.0)
+	elif not on_ground and over > -s * 0.5 and by < _h(dist) - 0.2 and by > _h(dist) - 6.0:
+		bx = signf(bx) * (hw + s * 0.5 + 0.05)
+		x_goal = bx
+
+
 func _ground(d: float, x: float) -> float:
 	if underground:
 		return _h(d) - _tunnel_depth(d)
 	if d >= _len():
 		return NAN
 	var i := _oi(pd, d)
-	if pd.sol[i] == 0 or absf(x) > float(pd.hw[i]) + 0.3:
+	# 공 중심이 아니라 몸의 1/3 이상이 길 밖으로 나가야 떨어진다
+	if pd.sol[i] == 0 or absf(x) > float(pd.hw[i]) + maxf(0.3, s * 0.35):
 		return NAN
 	for hl: Array in holes:
 		if d > hl[0] and d < hl[1] and x > hl[2] and x < hl[3]:
@@ -1110,7 +1133,7 @@ func _zone_items(z: Dictionary, step := 0) -> void:
 		_draw_road(pd, int(d1), _len(), z)
 		if int(z.k) == 1 and not tutorial and int(z.item) + 1 == items.size():
 			# 수로 구역이 다 지어지면 구역 처음부터 끝까지 하나로 잇는다: 떨어지면 구역 끝 물기둥까지 아래 세상을 달린다
-			_build_tunnel(float(z.start), float(_len()), z.node, {"ext": 80.0, "updraft": true})
+			_build_tunnel(float(z.start), float(_len()), z.node, {"ext": 80.0, "updraft": true, "cave": true})
 			z.things.append_array(_under_things(float(z.start), float(_len()), z))
 		var acc := d1
 		for lg: Array in it.legs:
@@ -1150,12 +1173,16 @@ func _choose(z: Dictionary) -> void:
 	# 고르지 않은 갈래 길은 지운다: 화면에 남아 있으면 그 위로 굴러가 바닥을 뚫고 떨어진다
 	var bns: Array = fk.get("nodes", [])
 	if bns.size() == 2 and is_instance_valid(bns[1 - side]):
-		# 툭 사라지지 않게 아래로 가라앉으며 지운다
+		# 한꺼번에 지우지 않는다: 16m 조각마다 돌이 다가갈 때 차례로 무너져 내린다 (조각 아닌 것은 바로 가라앉힌다)
 		var gone: Node3D = bns[1 - side]
-		var tw := create_tween()
-		tw.tween_property(gone, "position:y", gone.position.y - 45.0, 1.1).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-		tw.tween_callback(gone.queue_free)
+		for c in gone.get_children():
+			if c is Node3D and (c as Node3D).has_meta("ci"):
+				crumble.append([float(fk.at) + float((c as Node3D).get_meta("ci")) * CHUNK, c])
+			elif c is Node3D:
+				_sink(c as Node3D, 0.0)
+		crumble.append([float(fk.at) + 9999.0, gone])  # 빈 껍데기는 맨 끝에
 	fork_rail_end = float(fk.at) + 35.0
+	look_soft = 1.2
 	var ars: Array = fk.get("arrows", [])
 	if ars.size() == 2 and is_instance_valid(ars[1 - side]):
 		(ars[1 - side] as Node3D).queue_free()
@@ -1283,14 +1310,50 @@ func _relist() -> void:
 			things.append_array(z.things)
 
 
+## 고르지 않은 갈래 조각: 돌이 그 조각 30m 앞에 오면(또는 지나치면) 흔들리다 가라앉는다
+func _crumble_tick() -> void:
+	var i := crumble.size() - 1
+	while i >= 0:
+		var cr: Array = crumble[i]
+		if not is_instance_valid(cr[1]):
+			crumble.remove_at(i)
+		elif dist >= float(cr[0]) - 30.0 or float(cr[0]) > 9000.0 and crumble.size() == 1:
+			_sink(cr[1] as Node3D, randf_range(0.0, 0.15))
+			crumble.remove_at(i)
+		i -= 1
+
+
+func _sink(n: Node3D, delay: float) -> void:
+	var tw := create_tween()
+	tw.tween_interval(delay)
+	tw.tween_property(n, "position:y", n.position.y - 1.2, 0.18)
+	tw.tween_property(n, "position:y", n.position.y - 60.0, 1.2).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tw.tween_callback(n.queue_free)
+
+
+## 길 조각(16m)마다 노드 하나: 고르지 않은 갈래를 조각 단위로 차례차례 무너뜨린다
+const CHUNK := 16
+func _road_chunk(root: Node3D, i: int) -> Node3D:
+	var nm := "ch%d" % (i / CHUNK)
+	var c := root.get_node_or_null(nm) as Node3D
+	if c == null:
+		c = Node3D.new()
+		c.name = nm
+		c.set_meta("ci", i / CHUNK)
+		root.add_child(c)
+	return c
+
+
 func _draw_road(o: Dictionary, a: int, b: int, z: Dictionary) -> void:
 	var def: Dictionary = Z[z.k]
-	var nd: Node3D = z.node
+	var root: Node3D = z.node
+	var nd: Node3D = root
 	var i := a
 	while i < b:
 		if o.sol[i] == 0:
 			i += 1
 			continue
+		nd = _road_chunk(root, i)
 		var j := i + 1
 		var sl0: float = o.hh[i + 1] - o.hh[i]
 		while j < b and j - i < 8 and o.sol[j] == 1 and o.hw[j] == o.hw[i] and o.tg[j] == o.tg[i] \
@@ -1359,6 +1422,7 @@ func _draw_road(o: Dictionary, a: int, b: int, z: Dictionary) -> void:
 	# 틈 앞뒤에 같은 붉은 경계선을 쓴다.
 	for q in range(a + 1, b):
 		if o.sol[q] != o.sol[q - 1]:
+			nd = _road_chunk(root, q)
 			var edge := q - 1 if o.sol[q - 1] == 1 else q
 			_plate(o, float(edge), float(edge) + 0.65, -float(o.hw[edge]), float(o.hw[edge]), BAD, nd, 0.18)
 	# 기둥(속도 눈금)과 옆 풍경
@@ -1369,6 +1433,7 @@ func _draw_road(o: Dictionary, a: int, b: int, z: Dictionary) -> void:
 	for q in range(a, b):
 		if o.sol[q] == 0:
 			continue
+		nd = _road_chunk(root, q)
 		var hw: float = o.hw[q]
 		var h: float = o.hh[q]
 		var tg: String = o.tg[q]
@@ -2172,9 +2237,10 @@ func _air_make() -> void:
 	air_pt.emission_box_extents = Vector3(24, 10, 24)
 	air_pt.position = Vector3(0, -2, -24)
 	var qm := QuadMesh.new()
-	qm.size = Vector2(0.3, 0.3)
+	qm.size = Vector2(0.9, 0.3)
 	air_pt.mesh = qm
 	var am := StandardMaterial3D.new()
+	am.albedo_texture = load(ART_ROOT + "fx_gpt/wind_1.png") as Texture2D  # 네모 점 대신 바람결 그림
 	am.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	am.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
 	am.vertex_color_use_as_albedo = true
@@ -2382,6 +2448,7 @@ func _step(dt: float) -> void:
 	vy -= FALL * dt
 	by += vy * dt
 	_hole_wall(d_prev)
+	_edge_tick(dt)
 	_geyser_tick()
 	if cur_k == 1 and not tutorial and not underground and by < _h(dist) - 4.0:
 		_fall("퐁당!")
@@ -2938,6 +3005,8 @@ func _place(dt: float) -> void:
 		_blob_tick(yw)
 	# 90m 낙하: 처음엔 카메라가 늦게 따라가 돌이 멀어지고, 바닥이 가까울수록 빨리 따라붙는다
 	var plunge := underground and not on_ground and not rising and vy < -2.0 and not fallen
+	if plunge and cave_span.size() >= 2 and by < _h(dist) - _tunnel_depth(dist) + 22.0:
+		plunge = false  # 동굴 천장 아래로 들어오면 옆 카메라는 벽에 가린다: 등뒤로
 	if not fallen:
 		var rate := 6.0
 		if plunge:
@@ -3011,6 +3080,9 @@ func _place(dt: float) -> void:
 		look = Vector3.UP * (by - cam_y) * 0.75 + fw * 4.0
 		fov = 44.0
 	var kk :=minf(1.0, dt * (5.0 if mode == "back" else 3.5)) if dt > 0.0 else 1.0
+	if look_soft > 0.0:
+		look_soft -= dt
+		kk *= lerpf(1.0, 0.3, clampf(look_soft / 1.2, 0.0, 1.0))  # 갈래를 고른 직후: 새 길 쪽으로 천천히 돈다
 	cam_off = cam_off.lerp(off, kk)
 	look_off = look_off.lerp(look, minf(1.0, kk * 1.4))
 	cam_up = cam_up.lerp(up, minf(1.0, dt * 3.0)).normalized()
@@ -3236,6 +3308,7 @@ func _gems() -> void:
 func _geyser_tick() -> void:
 	if not underground:
 		return
+	_cave_clamp()
 	if _updraft_tick():
 		return
 	if rising:
@@ -3405,21 +3478,32 @@ func _try_crack() -> void:
 ## 지하 신전 바닥에 놓는 것: 위 수로와 다른 놀이. 항아리 무리로 크게 커지고(위에서는 못 먹는 양),
 ## 석상은 깔거나 뛰어넘고, 무너진 담은 뛰어넘는다. 커진 몸은 물기둥이 위로 솟을 때 그대로 간다.
 func _under_things(a: float, b: float, z: Dictionary) -> Array:
+	# 동굴 맵 한 바퀴: 항아리 무리로 커지기 → 붉은 종유 기둥 사이 지그재그 → 무너진 담 뛰기 → 석상 깔기/넘기 → 항아리 줄
 	var out := []
 	var d := a + 40.0
 	var n := 0
-	while d < b - 60.0:
-		var kinds: Array = ["pot", "pot", "pot"]
-		if n % 4 == 3:
-			kinds = ["statue"]
-		elif n % 6 == 5:
-			kinds = ["wall"]
-		for q in kinds.size():
-			var th := _thing(pd, d + q * 3.0, d + q * 3.0, 0.0, kinds[q], z)
+	var lim := b - 60.0
+	if updraft.size() >= 5:
+		lim = minf(lim, float(updraft[0]) - 20.0)
+	while d < lim:
+		var put: Array = []
+		match n % 5:
+			0:
+				put = [[0.0, -3.0, "pot"], [2.0, 0.0, "pot"], [4.0, 3.0, "pot"], [7.0, -1.5, "pot"], [9.0, 1.5, "pot"]]
+			1:
+				put = [[0.0, -4.2, "pillar"], [9.0, 4.2, "pillar"], [18.0, -4.2, "pillar"], [4.5, 3.0, "pot"], [13.5, -3.0, "pot"]]
+			2:
+				put = [[0.0, -2.2, "wall"], [0.0, 2.2, "wall"], [10.0, 0.0, "pot"]]
+			3:
+				put = [[0.0, 0.0, "statue"], [0.0, -4.5, "pot"], [0.0, 4.5, "pot"], [8.0, 0.0, "pot"]]
+			4:
+				put = [[0.0, 0.0, "pot"], [3.0, 0.0, "pot"], [6.0, 0.0, "pot"], [9.0, -5.0, "pillar"], [9.0, 5.0, "pillar"]]
+		for pt: Array in put:
+			var th := _thing(pd, d + float(pt[0]), d + float(pt[0]), float(pt[1]), str(pt[2]), z)
 			th.base -= DEEP
 			th.n.position.y -= DEEP
 			out.append(th)
-		d += 26.0
+		d += 34.0
 		n += 1
 	return out
 
@@ -3454,19 +3538,19 @@ func _build_tunnel(a: float, b: float, nd: Node3D, opt := {}) -> Array:
 		var yw := _yaw(d)
 		# 뒤 절벽: 위는 밝은 사암, 아래로 갈수록 진한 흙빛 (떨어지며 지층을 지나친다)
 		# 판 하나에 지층 그림(위 밝은 사암 -> 아래 진한 흙) : 예전엔 띠마다 상자라 그리기가 6배였다
-		if int(d - a) % 24 == 0:
+		if not bool(opt.get("cave", false)) and int(d - a) % 24 == 0:
 			var w := box(_pos(d + 12.0, -36.0, h - 4.0 - (dp - 4.0) * 0.5), Vector3(2.0, dp - 4.0, 26.0), WHITE, nd)
 			_skin(w, "strata", Color("e4ebee"))
 			w.rotation.y = yw
 		# 옛 기둥 폐허 (뒤쪽, 높이 제각각 = 부서진 기둥)
-		if int(d - a) % 24 == 8:
+		if not bool(opt.get("cave", false)) and int(d - a) % 24 == 8:
 			var x := -rng.randf_range(9.0, 18.0)
 			var ph := rng.randf_range(6.0, 22.0)
 			var col := box(_pos(d, x, fl + ph * 0.5), Vector3(2.4, ph, 2.4), STONE, nd)
 			_apply_art(col, "pillar", Color("e9dcc2"))
 			col.rotation.y = yw
 		# 신전 정면 (멀리, 반쯤 묻힘)
-		if int(d - a) % 96 == 40:
+		if not bool(opt.get("cave", false)) and int(d - a) % 96 == 40:
 			var tp := box(_pos(d, -34.0, fl + 7.0), Vector3(30, 18, 12), STONE, nd)
 			_apply_art(tp, "temple", Color("d8c6a4"))
 			tp.rotation.y = yw
@@ -3533,41 +3617,58 @@ func _build_tunnel(a: float, b: float, nd: Node3D, opt := {}) -> Array:
 	geysers.append([gd, gy])
 	if bool(opt.get("updraft", false)):
 		_build_updraft(a, b, dp, nd)
-	_build_cave(a, b, dp, nd)
+	if bool(opt.get("cave", false)):
+		cave_span = [a, b]
+		_build_cave(a, b, dp, nd)
 	return route
 
 
-## 동굴: 길 위로 바위 아치(양쪽 기둥 + 천장)와 매달린 종유석. 수로 틈 밑은 비워 떨어지는 길과 햇빛을 막지 않는다.
-## 오른쪽 기둥은 낮게 두어 옆에서 보는 낙하 카메라를 가리지 않는다.
+## 동굴 맵: 양쪽 바위 벽과 천장으로 닫힌 굴. 천장은 수로 틈 밑(떨어져 들어오는 구멍)과 순풍 길 위만 뚫려 있다.
+## 벽 사이(폭 16m)는 몸이 못 벗어난다. 종유석이 매달리고, 벽에 박힌 수정이 길을 비춘다.
 func _build_cave(a: float, b: float, dp: float, nd: Node3D) -> void:
-	var d := a + 20.0
+	var seg := 24.0
+	var d := a - 6.0
 	var k := 0
-	while d < b:
-		var near_gap := false
-		for q in range(-10, 11, 2):
-			var ii := clampi(int(d) + q, 0, pd.tg.size() - 1)
-			if pd.tg[ii] == "gap":
-				near_gap = true
+	var ch := 17.0  # 천장 높이
+	while d < b + 70.0:
+		var mid := d + seg * 0.5
+		var dd := minf(mid, b - 1.0)
+		var fl := _h(dd) - dp
+		var yw := _yaw(dd)
+		var open := false
+		for q in range(int(d) - 4, int(d + seg) + 5, 2):
+			var ii := clampi(q, 0, pd.tg.size() - 1)
+			if q < int(b) and pd.tg[ii] == "gap":
+				open = true
 				break
-		if not near_gap:
-			var fl := _h(d) - dp
-			var yw := _yaw(d)
-			var top := 24.0 + float(k % 3) * 5.0
-			var lp := box(_pos(d, -15.0, fl + top * 0.5), Vector3(4.0, top, 4.0), ROCK, nd)
-			_apply_art(lp, "valley", Color("8a7660"))
-			lp.rotation.y = yw
-			var rp := box(_pos(d, 13.0, fl + 5.0), Vector3(3.0, 10.0, 3.0), ROCK, nd)
-			_apply_art(rp, "valley", Color("8a7660"))
-			rp.rotation.y = yw
-			var roof := box(_pos(d, -3.0, fl + top), Vector3(30.0, 3.0, 6.0), ROCK, nd)
-			_apply_art(roof, "valley", Color("6f5e4c"))
+		if updraft.size() >= 5 and d + seg > float(updraft[0]) - 8.0 and d < float(updraft[2]) + 4.0:
+			open = true
+		for sd: float in [-1.0, 1.0]:
+			var w := box(_pos(dd, sd * (CAVE_HW + 2.0), fl + ch * 0.5), Vector3(4.0, ch + 2.0, seg + 0.6), ROCK, nd)
+			_apply_art(w, "valley", Color("7d6a56") if sd < 0.0 else Color("6c5a48"))
+			w.rotation.y = yw
+		if not open:
+			var roof := box(_pos(dd, 0.0, fl + ch + 1.5), Vector3(CAVE_HW * 2.0 + 8.0, 3.0, seg + 0.6), ROCK, nd)
+			_apply_art(roof, "valley", Color("5e4f40"))
 			roof.rotation.y = yw
-			for j in 2:
-				var tip := box(_pos(d + (j * 2.0 - 1.0) * 1.5, -8.0 + j * 9.0, fl + top - 3.5), Vector3(1.2, 5.0, 1.2), ROCK, nd)
-				_apply_art(tip, "crystal", Color("b49a7a"))
+			for j in 3:
+				var tl := 2.5 + float((k * 3 + j) % 4) * 1.2
+				var tip := box(_pos(dd - 8.0 + j * 8.0, -5.0 + float((k + j) % 3) * 5.0, fl + ch - tl * 0.5), Vector3(1.1, tl, 1.1), ROCK, nd)
+				_apply_art(tip, "crystal", Color("a88f70"))
 				tip.rotation.y = yw
-		d += 30.0
+		d += seg
 		k += 1
+
+
+## 동굴 안 거리 d 에서 몸이 벽에 걸리지 않게 좌우를 막는다
+func _cave_clamp() -> void:
+	if cave_span.size() < 2 or not underground or dist < float(cave_span[0]) or dist > float(cave_span[1]) + 70.0:
+		return
+	var lim := CAVE_HW - s * 0.5
+	if absf(bx) > lim:
+		bx = clampf(bx, -lim, lim)
+		v *= 0.985  # 벽에 쓸리면 조금 느려진다
+	x_goal = clampf(x_goal, -lim, lim)
 
 
 ## 순풍 길: 동굴 뒤쪽 바닥에서 바람결이 비스듬히 위로 감아 올라가 수로 틈으로 빠져나간다.
@@ -3854,6 +3955,7 @@ func _red(node: MeshInstance3D) -> MeshInstance3D:
 
 ## 박공 지붕: 바닥이 평평하고 용마루가 위로 선 삼각 기둥(직접 만든 메시)에 테라코타
 var roof_mesh: ArrayMesh
+var roof_mat2: StandardMaterial3D
 
 
 func _roof(parent: MeshInstance3D) -> void:
@@ -3882,6 +3984,11 @@ func _roof(parent: MeshInstance3D) -> void:
 	r.position = Vector3(0, 0.5, 0)
 	r.scale = Vector3(1.2, 0.45, 1.12)
 	_skin(r, "roof")
+	# 삼각 면 감는 방향이 섞여 있어 한쪽 면이 빠져 세모 구멍처럼 보였다 → 양면으로
+	if roof_mat2 == null:
+		roof_mat2 = (r.material_override as StandardMaterial3D).duplicate()
+		roof_mat2.cull_mode = BaseMaterial3D.CULL_DISABLED
+	r.material_override = roof_mat2
 
 
 func _ground_art(k: int) -> String:
@@ -4618,6 +4725,7 @@ func _kit_draw(c: Control) -> void:
 
 func _process(dt: float) -> void:
 	super(dt)
+	_crumble_tick()
 	if zone_queue.size() > 0:
 		var zq: Dictionary = zone_queue.pop_front()
 		if not zq.freed:
