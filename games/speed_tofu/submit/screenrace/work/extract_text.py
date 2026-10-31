@@ -7,6 +7,7 @@ pats = [
     ('stamp', re.compile(r'_stamp\(\s*' + S + r'\s*,\s*' + S, re.S)),
     ('stamp', re.compile(r'_stamp\(\s*' + S + r'\s*%[^,]+,\s*' + S, re.S)),
     ('ifko', re.compile(S + r'\s+if\s+ko\s+else\s+' + S, re.S)),
+    ('pair', re.compile(r'\[\s*' + S + r'\s*,\s*' + S + r'\s*\]', re.S)),
 ]
 WHERE = {'_stamp': '도장(화면에 찍히는 글)', '_fill_bubble': '연습 말풍선', '_howto_text': '하는 법(?) 카드', '_show_board': '판 끝 결과판',
          'show_results': '마지막 결과 영수증', '_res': '마지막 결과 영수증', 'countdown_tick': '출발 카운트다운', '_route_advice': '길 카드 설명',
@@ -18,6 +19,8 @@ def add(ko, en, where):
     ko = ko.replace('\n', ' / ').replace('\\"', '"'); en = en.replace('\n', ' / ').replace('\\"', '"')
     if not re.search('[가-힣]', ko):
         return
+    if re.search('[가-힣]', en):
+        return  # 한글끼리 묶인 표 (이름, 설명)
     k = (ko, en)
     if k in seen:
         return

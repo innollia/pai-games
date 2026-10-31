@@ -55,8 +55,8 @@ const NIGHT := Color("1B1F38")
 const PERKS := ["신발", "끈", "용수철", "바람", "가벼운 상자", "단단한 몸"]
 const PERK_SAY := {"신발": "더 빨리", "끈": "짐 하나 더", "용수철": "높이 뛰기", "바람": "바람 두 배", "가벼운 상자": "짐 무게 40% 덜", "단단한 몸": "치여도 덜 밀림"}
 # English: same keys -> [button name, effect]
-const PERK_EN := {"신발": ["Shoes", "run faster"], "끈": ["Strap", "carry 1 more"], "용수철": ["Spring", "jump higher"],
-	"바람": ["Draft", "double slipstream"], "가벼운 상자": ["Light Box", "boxes 40% lighter"], "단단한 몸": ["Tough", "less knockback"]}
+const PERK_EN := {"신발": ["Shoes", "faster"], "끈": ["Strap", "1 more box"], "용수철": ["Spring", "jump high"],
+	"바람": ["Wind", "double wind"], "가벼운 상자": ["Light Box", "boxes weigh 40% less"], "단단한 몸": ["Tough Body", "pushed less when hit"]}
 const TRAIN_V := 21.0  # 기차 속도 (왼쪽으로)
 const TRAIN_L := 7.0
 const TRAIN_H := 2.0
@@ -73,8 +73,8 @@ const WIND_K := 0.45  # 맞바람에 깎이는 최고 속도 (가벼울 때)
 # 판 변주: 구간 이름 -> [버튼 이름, 설명]
 const TWISTS := {"gate": ["낮은 문", "짐 4개까지만 지나간다"], "slide": ["얼음 내리막", "못 멈춘다, 무거울수록 빠르다"],
 	"wind": ["맞바람", "뒤에 붙으면 바람이 없다"]}
-const TWISTS_EN := {"gate": ["Low Gate", "only 4 boxes or fewer fit"], "slide": ["Ice Slope", "no stopping, heavier is faster"],
-	"wind": ["Headwind", "tuck in behind and it's calm"]}
+const TWISTS_EN := {"gate": ["Low Door", "only up to 4 boxes get through"], "slide": ["Ice Downhill", "can't stop, heavier is faster"],
+	"wind": ["Headwind", "stay behind someone and there's no wind"]}
 # 밤 등불 모드
 const NIGHT_SKY := Color("3D4156")  # NIGHT lightened 0.15
 const FOG := Color("e4e8f7")
@@ -87,8 +87,8 @@ const FOG_N := 6
 const EDGE_N := 8
 const MODES := {"base": "기본", "lantern": "밤 등불", "over": "과속 배달"}
 const MODE_RULES := {"base": "우체통에 짐을 넣어라 · 1등은 앞이 안 보인다", "lantern": "빛 안의 우체통만 보인다 · 빛에 붙어라", "over": "짐 4개 이하: 천장 가속 / 벽 반동"}
-const MODES_EN := {"base": "Classic", "lantern": "Lantern", "over": "Rush"}
-const MODE_RULES_EN := {"base": "post boxes in mailboxes · the leader can't see ahead", "lantern": "mailboxes show only in the light", "over": "≤4 boxes: ceiling boost / wall bounce"}
+const MODES_EN := {"base": "Basic", "lantern": "Night Lantern", "over": "Speeding Delivery"}
+const MODE_RULES_EN := {"base": "put boxes in mailboxes · the leader can't see ahead", "lantern": "only mailboxes inside the light show · stay close to the light", "over": "4 boxes or fewer: ceiling boost / wall bounce"}
 const RECORDS := "user://screenrace_v12.cfg"  # v12: 배달 규칙이 바뀌어 기록·연습 완료를 새로 센다
 const SrFront = preload("res://g/sr_front.gd")
 const SrMenus = preload("res://g/sr_menus.gd")
@@ -186,13 +186,13 @@ const COURSES := [
 ]
 # English course [name, say], same order as COURSES
 const COURSES_EN := [
-	["Market", "Hop over the walls"],
-	["Riverside", "The floor flows: heavy loads drift less"],
-	["Crossing", "Tracks below are fast. Trains come from ahead"],
-	["Night Market", "Blackouts: when it's dark, nobody sees ahead"],
-	["Rope Bridge", "6+ boxes and the planks you step on fall"],
-	["Rooftops", "No walls: drop a box to clear long gaps"]]
-const NICKS_EN := ["Me", "Red", "Mint", "Gold"]
+	["Market", "Get over the walls"],
+	["Riverside", "The floor flows: heavy loads get pushed less"],
+	["Crossing", "The tracks below are fast. Trains come from the front"],
+	["Night Market", "Blackout: when the lights go out, nobody sees ahead"],
+	["Swaying Bridge", "6+ boxes and the boards you step on collapse"],
+	["Rooftops", "No walls: to cross far gaps you must drop a box"]]
+const NICKS_EN := ["Me", "Red", "Mint", "Yellow"]
 # Delivery stamps
 const ST_INK := 0
 const ST_GOOD := 1
@@ -885,7 +885,7 @@ func _set_lang(l: String) -> void:
 
 func _howto_text() -> String:
 	return L("왼쪽 스틱으로 달리고 [점프]로 넘는다.\n우체통 앞에서 [짐] = 배달. 다른 곳에서 [짐] = 던지고 대시.\n왼쪽 끝에 밀리면 짐 하나를 잃는다. 배달 많이 한 사람이 이긴다!",
-		"Left stick to run, [Jump] to hop.\n[Box] at a mailbox delivers. [Box] elsewhere throws one for a dash.\nFall off the left edge: lose a box. Most deliveries wins!")
+		"Run with the left stick, hop over with [Jump].\n[Box] at a mailbox = deliver. [Box] anywhere else = throw and dash.\nPushed off the left edge, you lose a box. Whoever delivers the most wins!")
 
 
 ## The stick and the two buttons only answer touches in KIT_PHASES; on the title and the
@@ -987,7 +987,7 @@ func _finger(id: int, p: Vector2, kind: int) -> void:
 		if p.x < 180.0 and p.y < 100.0 and BACK_ARM_PHASES.has(phase) and back_arm_t <= 0.0:
 			back_arm_t = 1.5
 			beep(660.0, 0.06)
-			_stamp("한 번 더 누르면 나감", "TAP AGAIN TO QUIT", ST_INK, null, 1.2)
+			_stamp("한 번 더 누르면 나감", "PRESS ONCE MORE TO LEAVE", ST_INK, null, 1.2)
 			return
 	super._finger(id, p, kind)
 
@@ -1071,14 +1071,14 @@ func _update_content_hud() -> void:
 		route_l.text = ""
 		return
 	if phase == "mode":
-		var best_l := L("최다 배달: 기본 %d / 등불 %d / 과속 %d", "Best: Classic %d · Lantern %d · Rush %d")
-		route_l.text = "%s: %s\n%s: %s\n%s: %s\n%s" % [_mode_name("base"), _mode_rule("base"), L("밤 등불", "Lantern"), _mode_rule("lantern"), L("과속", "Rush"), _mode_rule("over"), best_l % [int(records.get_value("base", "delivered", 0)), int(records.get_value("lantern", "delivered", 0)), int(records.get_value("over", "delivered", 0))]]
+		var best_l := L("최다 배달: 기본 %d / 등불 %d / 과속 %d", "Most delivered: Basic %d / Lantern %d / Speeding %d")
+		route_l.text = "%s: %s\n%s: %s\n%s: %s\n%s" % [_mode_name("base"), _mode_rule("base"), L("밤 등불", "Night Lantern"), _mode_rule("lantern"), L("과속", "Speeding"), _mode_rule("over"), best_l % [int(records.get_value("base", "delivered", 0)), int(records.get_value("lantern", "delivered", 0)), int(records.get_value("over", "delivered", 0))]]
 		return
 	if phase == "perk":
 		route_l.text = "%s\n%s: %s\n%s: %s" % [L("특전 고르기", "Pick a perk"), _perk(perk_offer[0]), _perk_say(perk_offer[0]), _perk(perk_offer[1]), _perk_say(perk_offer[1])]
 		return
 	if phase == "route":
-		route_l.text = "%s\n%s: %s\n%s: %s" % [L("다음 길? 내 짐 %d", "Next road? You carry %d") % (_load0() + load_bonus), _tw(route_offer[0], 0), _tw(route_offer[0], 1), _tw(route_offer[1], 0), _tw(route_offer[1], 1)]
+		route_l.text = "%s\n%s: %s\n%s: %s" % [L("다음 길? 내 짐 %d", "Next road? My boxes %d") % (_load0() + load_bonus), _tw(route_offer[0], 0), _tw(route_offer[0], 1), _tw(route_offer[1], 0), _tw(route_offer[1], 1)]
 		return
 	if _opening():
 		# no text in the race: a skipper is taught by the torn edge itself (forced warning pulse, _fx_tick)
@@ -1151,11 +1151,11 @@ func _finish(won: bool) -> void:
 			best_cargo = row.cargo
 			strongest = _cname(row.ci)
 	var best_time := float(records.get_value(mode, "time", 0.0))
-	var hint := L("다음엔 짐 6개로 저울 위 지름길!", "Next: take the scale shortcut with 6 boxes!")
+	var hint := L("다음엔 짐 6개로 저울 위 지름길!", "Next time: the shortcut over the scale with 6 boxes!")
 	if mode == "base":
-		hint = L("다음엔 과속 배달: 짐 4개로 천장 가속!", "Next: try Rush, ceiling boost with 4 boxes!")
+		hint = L("다음엔 과속 배달: 짐 4개로 천장 가속!", "Next time: Speeding Delivery, ceiling boost with 4 boxes!")
 	elif mode == "over":
-		hint = L("다음엔 밤 등불: 선두의 빛에 붙어라!", "Next: try Lantern, stick to the leader's light!")
+		hint = L("다음엔 밤 등불: 선두의 빛에 붙어라!", "Next time: Night Lantern, stay close to the leader's light!")
 	var medals := [0, 0, 0, 0, 0, 0]
 	for row in course_results:
 		medals[row.ci] = maxi(medals[row.ci], int(row.medal))  # 3 gold, 2 silver, 1 bronze, 0 not reached
@@ -1163,9 +1163,9 @@ func _finish(won: bool) -> void:
 	for i in COURSES.size():
 		names.append(_cname(i))
 	var res_f := L("%s · %d위\n배달한 짐 %d개 · 달린 시간 %.1f초\n최고 코스: %s\n%s\n로컬 최다 배달 %d개%s\n완주 최고 %s\n%s\n금: 2판 안에 승리 + 배달 %d개\n은: 3판 안 / 동: 코스 완주\n별점 아래 빈 곳을 탭하면 다시 배달",
-		"%s · #%d\nDelivered %d · Time %.1fs\nBest course: %s\n%s\nMost delivered here: %d%s\nBest finish: %s\n%s\nGold: win in 2 rounds + %d delivered\nSilver: in 3 rounds / Bronze: finish\nTap the empty space below the stars to go again")
-	var best_s := (L("%.1f초", "%.1fs") % best_time) if best_time > 0.0 else L("도전 중", "not yet")
-	result_l.text = res_f % [L("여섯 동네 배달 완료!", "All six towns delivered!") if won else L("오늘 배달은 여기까지", "That's it for today"), placement, delivered, journey_time, strongest, rows, best_delivery, L(" · 새 기록!", " · New record!") if delivered > previous else "", best_s, hint, MEDAL_GOT]  # v14: hint 와 MEDAL_GOT 순서가 글 틀과 어긋나 진 뒤 결과가 안 뜨던 것
+		"%s · #%d\nBoxes delivered %d · Run time %.1fs\nBest course: %s\n%s\nMost delivered on this device %d%s\nBest finish %s\n%s\nGold: win within 2 rounds + %d delivered\nSilver: within 3 rounds / Bronze: finish the course\nTap the empty space below the stars to deliver again")
+	var best_s := (L("%.1f초", "%.1fs") % best_time) if best_time > 0.0 else L("도전 중", "in progress")
+	result_l.text = res_f % [L("여섯 동네 배달 완료!", "All six towns delivered!") if won else L("오늘 배달은 여기까지", "That's all the deliveries for today"), placement, delivered, journey_time, strongest, rows, best_delivery, L(" · 새 기록!", " · New record!") if delivered > previous else "", best_s, hint, MEDAL_GOT]  # v14: hint 와 MEDAL_GOT 순서가 글 틀과 어긋나 진 뒤 결과가 안 뜨던 것
 	if not saved:
 		result_l.text += L("\n기록 저장 안 됨", "\nRecord not saved")
 	result_l.visible = false
@@ -1185,7 +1185,7 @@ func _finish(won: bool) -> void:
 		"hint": hint,
 		"saved": saved,
 		"mode": _mode_name(mode),
-		"headline": L("여섯 동네 배달 완료!", "All six towns delivered!") if won else L("오늘 배달은 여기까지", "That's it for today"),
+		"headline": L("여섯 동네 배달 완료!", "All six towns delivered!") if won else L("오늘 배달은 여기까지", "That's all the deliveries for today"),
 	})
 	end() # Tofu owns stars, feedback, score save and tap-to-restart.
 	if won:
@@ -2744,9 +2744,7 @@ func _start_round() -> void:
 		if ci == 0:
 			pt = 2.6
 	if goal_l:
-		goal_l.text = L("우체통에 짐을 넣어라!
-가장 많이 넣은 사람이 이긴다", "Post boxes into mailboxes!
-Most deliveries wins")
+		goal_l.text = L("우체통에 짐을 넣어라!\n가장 많이 넣은 사람이 이긴다", "Put boxes in mailboxes!\nWhoever puts in the most wins")
 	if menus:
 		menus.countdown_tick(0)
 	danger = false
@@ -2816,7 +2814,7 @@ func _step(dt: float) -> void:
 		_attract_end()
 	if key_hint:
 		key_hint.visible = phase == "title" and not DisplayServer.is_touchscreen_available()
-		key_hint.text = L("키보드: ←→ 달리기 · ↑/Space 점프 · ↓/Shift [짐] · Enter 시작", "Keys: ←→ run · ↑/Space jump · ↓/Shift BOX · Enter start")
+		key_hint.text = L("키보드: ←→ 달리기 · ↑/Space 점프 · ↓/Shift [짐] · Enter 시작", "Keyboard: ←→ run · ↑/Space jump · ↓/Shift [BOX] · Enter start")
 	if board_l and board_l.visible and phase != "roundend":
 		board_l.visible = false
 	if goal_l:
@@ -2832,7 +2830,7 @@ func _step(dt: float) -> void:
 	_camera(dt)
 	_draw_all()
 	if mode_l:
-		mode_l.text = "" if phase == "mode" else L("%s · %s %d판 · 짐 %d", "%s · %s · R%d · Box %d") % [_mode_name(mode), L("마지막 배달", "Final Delivery") if finale else _cname(ci), rnd, pl.cargo]
+		mode_l.text = "" if phase == "mode" else L("%s · %s %d판 · 짐 %d", "%s · %s round %d · boxes %d") % [_mode_name(mode), L("마지막 배달", "Last Delivery") if finale else _cname(ci), rnd, pl.cargo]
 	_update_content_hud()
 	if phase != "perk" and phase != "route" and phase != "mode" and _btns.has("drop"):
 		_btns["drop"].label = L("짐 %d", "Box %d") % pl.cargo
@@ -2950,7 +2948,7 @@ func _race(dt: float) -> void:
 			_park(r, left)  # v14: 가만히 있는 나는 다시 들어온 자리에 서 있는다 (반송 되풀이 없음)
 			continue
 		if r.p.y < kill_y or r.p.y < fall_y:
-			_send_back(r, "분실", "MISSING", false)
+			_send_back(r, "분실", "LOST", false)
 		elif r.p.x + HW < left + 0.15 and (_opening() or r.immune > 0.0 or shove_t > 0.0):
 			r.p.x = left + 0.16 - HW  # soft wall: no teleport (opening, and the blink right after re-entry)
 			r.v.x = maxf(r.v.x, 0.0)
@@ -2977,9 +2975,9 @@ func _race(dt: float) -> void:
 				if r == pl:
 					delivered += FIRST_BONUS
 					course_got += FIRST_BONUS
-					_stamp("1등 도착 +%d" % FIRST_BONUS, "FIRST IN +%d" % FIRST_BONUS, ST_GOOD, pl)
+					_stamp("1등 도착 +%d" % FIRST_BONUS, "1ST TO FINISH +%d" % FIRST_BONUS, ST_GOOD, pl)
 				else:
-					_stamp("1등 도착은 상대 +%d" % FIRST_BONUS, "RIVAL FIRST IN +%d" % FIRST_BONUS, ST_INK, null, 0.9)
+					_stamp("1등 도착은 상대 +%d" % FIRST_BONUS, "RIVAL 1ST TO FINISH +%d" % FIRST_BONUS, ST_INK, null, 0.9)
 		if r.fin >= 0 and r.p.x > goal_x + 26.0:
 			r.p.x = goal_x + 26.0  # 결승 뒤 마당 끝에서 멈춘다
 			r.v.x = minf(r.v.x, 0.0)
@@ -2993,15 +2991,15 @@ func _race(dt: float) -> void:
 		if why > 0:
 			decided_note = true
 			if why == 1:
-				_stamp("모두 배달 · 결승으로!", "ALL DELIVERED · TO THE FINISH!", ST_INK, null, 1.0)
+				_stamp("모두 배달 · 결승으로!", "ALL DELIVERED · ON TO THE FINISH!", ST_INK, null, 1.0)
 			else:
-				_stamp("승부 결정 · 결승으로!", "DECIDED · TO THE FINISH!", ST_INK, null, 1.0)
+				_stamp("승부 결정 · 결승으로!", "WINNER DECIDED · ON TO THE FINISH!", ST_INK, null, 1.0)
 			_sfx("bell", null, -4.0)
 	if decided_note and last_call > DECIDE_T:
 		last_call = DECIDE_T
 	if last_call < 0.0 and (fin_n > 0 or rt > _round_cap()):
 		last_call = LAST_CALL * tn("last")
-		_stamp("마감 임박", "LAST CALL", ST_BAD, null, 1.2)
+		_stamp("마감 임박", "CLOSING SOON", ST_BAD, null, 1.2)
 		_sfx("bell")
 	elif last_call >= 0.0:
 		var before := last_call
@@ -3062,7 +3060,7 @@ func _race(dt: float) -> void:
 	was_ice = on_ice
 	if pl.slip and not was_slip:
 		beep(700.0, 0.12, 1000.0, 0.12)
-		_stamp("바람막이", "SLIPSTREAM", ST_GOOD)
+		_stamp("바람막이", "WINDBREAK", ST_GOOD)
 	was_slip = pl.slip
 
 
@@ -3142,7 +3140,7 @@ func _train_hit(r: Courier) -> void:
 		_toss_box(r, Vector3(-6.0, 9.0, 2.0))
 		r.cargo -= 1
 		if r == pl:
-			_stamp("운송 사고", "LOST IN TRANSIT", ST_BAD)
+			_stamp("운송 사고", "TRANSIT ACCIDENT", ST_BAD)
 	# v12: 빈손이면 튕겨 나가기만 한다 (탈락 없음)
 
 
@@ -3505,7 +3503,7 @@ func _round_over(w: Courier) -> void:
 func _show_board(w: Courier) -> void:
 	if board_l == null:
 		return
-	var head := L("내가 이겼다!", "YOU WIN!") if w == pl else L("%s 승리", "%s WINS") % [w.nick if lang == "ko" else w.nick_en]
+	var head := L("내가 이겼다!", "I WON!") if w == pl else L("%s 승리", "%s WINS") % [w.nick if lang == "ko" else w.nick_en]
 	var rows := []
 	for r in _deliv_order():
 		var nm: String = r.nick if lang == "ko" else r.nick_en
@@ -3733,9 +3731,7 @@ func _gate_tick(dt: float) -> void:
 					at = true
 				if r == pl and gd > 0.0 and gd < 9.0 and not gate_told.has(gp):
 					gate_told[gp] = true
-					goal_l.text = L("낮은 문: 짐 %d개까지만 지나간다
-밀고 가면 짐이 걸려 떨어진다", "Low door: %d boxes max
-Push on and extra boxes fall off") % GATE_MAX
+					goal_l.text = L("낮은 문: 짐 %d개까지만 지나간다\n밀고 가면 짐이 걸려 떨어진다", "Low door: only up to %d boxes get through\nPush on and boxes catch and fall off") % GATE_MAX
 					goal_t = 3.0
 		if not at:
 			r.gate_t = 0.0
@@ -3981,7 +3977,7 @@ func _snd(r: Courier, f: float, d: float, to := 0.0, vol := 0.18) -> void:
 func _close(r: Courier) -> void:
 	r.v.x += 3.0
 	beep(1000.0, 0.1, 1600.0, 0.22)
-	_stamp("지연 직전", "LATE?", ST_INK)
+	_stamp("지연 직전", "ALMOST LATE", ST_INK)
 	shk = maxf(shk, 0.15)
 
 
@@ -4427,7 +4423,7 @@ func _draw_all() -> void:
 	if me_l:
 		me_l.visible = marker.visible
 		if me_l.visible:
-			me_l.text = L("나 · 짐 %d", "ME · %d") % pl.cargo
+			me_l.text = L("나 · 짐 %d", "ME · BOXES %d") % pl.cargo
 			var mk2 := maxf(0.36 * (hwv / _narrow()) * 1.1, 0.8)
 			me_l.pixel_size = mk2 * 1.0 / 64.0
 			me_l.position = marker.position + Vector3(0, mk2 * 1.05, 0.2)
@@ -4639,7 +4635,7 @@ func _fog_check(dt: float) -> void:
 			_hit_flash(r, true)
 			if r == pl:
 				shk = maxf(shk, 0.3)
-				_stamp("분실", "MISPLACED", ST_BAD)
+				_stamp("분실", "LOST", ST_BAD)
 		else:
 			_send_back(r, "주소 불명", "ADDRESS UNKNOWN", false)  # v12: 탈락 대신 왼쪽 끝에서 다시
 
@@ -4651,7 +4647,7 @@ func _lantern_hud(dt: float) -> void:
 			hold_acc -= 1.0
 			score += 1
 		if not was_bearer:
-			_stamp("야간 배송", "NIGHT POST", ST_GOOD)
+			_stamp("야간 배송", "NIGHT DELIVERY", ST_GOOD)
 			beep(990.0, 0.1, 1480.0, 0.24)
 	elif was_bearer and pl.alive:
 		_stamp("가로챔", "HIJACKED", ST_BAD)

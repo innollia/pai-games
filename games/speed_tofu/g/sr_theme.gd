@@ -290,6 +290,11 @@ class D:
 
 	## 가운데 정렬 글자 (세로 가운데). outline > 0 이면 외곽선 먼저.
 	static func draw_text_center(ci: CanvasItem, text: String, center: Vector2, size: int, color: Color, width := -1.0, outline := 0, outline_color := NAVY) -> void:
+		if width > 0.0:
+			# 넓이를 넘으면 글자를 줄여 다 보이게 (영어 이름이 카드에서 잘리던 것 "Night La")
+			var tw := FONT.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
+			if tw > width:
+				size = maxi(int(size * width / tw), 12)
 		var asc := FONT.get_ascent(size)
 		var desc := FONT.get_descent(size)
 		var w := width if width > 0.0 else FONT.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x

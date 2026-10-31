@@ -22,7 +22,7 @@ const MODE_IDS := ["base", "lantern", "over"]
 const MODE_ART := {"base": "mode_classic", "lantern": "mode_lantern", "over": "mode_rush"}
 const MODE_ICON := {"base": "icon_parcel", "lantern": "icon_lantern", "over": "icon_flag"}
 ## 카드에는 한 줄 규칙만 (좁은 카드에서 줄이 넘치지 않게)
-const MODE_SHORT := {"base": ["우체통에 배달하기", "Post boxes in mailboxes"],
+const MODE_SHORT := {"base": ["우체통에 배달하기", "Deliver to mailboxes"],
 	"lantern": ["빛 안의 우체통 찾기", "Find mailboxes in the light"],
 	"over": ["짐 4개 이하: 천장 부스트", "4 boxes or less: ceiling boost"]}
 const MODE_GLYPH := {"base": "parcel", "lantern": "lantern", "over": "rush"}
@@ -411,7 +411,7 @@ func countdown_tick(stage: int) -> void:
 	_count_root.show()
 	_count_root.modulate.a = 1.0
 	_count_root.scale = Vector2.ONE
-	var txt: String = [_L("준비", "READY"), _L("차렷", "SET"), _L("출발!", "DELIVER!")][stage]
+	var txt: String = [_L("준비", "READY"), _L("차렷", "SET"), _L("출발!", "GO!")][stage]
 	var ink: Color = [T.RED, T.GOLD, T.GREEN][stage]
 	var fs: int = [60, 68, 92][stage]
 	var rot: float = [-4.0, 3.0, 0.0][stage]
@@ -440,7 +440,7 @@ func show_results(data: Dictionary) -> void:
 	_fold = 1.0
 	_wash_to(WASH_A)
 	_open_root(_res_root)
-	_again_btn.text = _L("다시 배달", "PLAY AGAIN")
+	_again_btn.text = _L("다시 배달", "DELIVER AGAIN")
 	_title_btn.text = ""  # 집 그림 (처음으로)
 	_again_btn.disabled = true
 	_title_btn.disabled = true
@@ -512,7 +512,7 @@ func restyle_rating(g) -> void:
 				pp.name = "SrPaper"
 		var title := extra[2] as Label
 		if title:
-			title.text = _L("이 게임 어때요?", "How was the delivery?")
+			title.text = _L("이 게임 어때요?", "How was this game?")
 			_ink(title, T.NAVY, 0)
 			title.label_settings.font_size = 32
 		var shut := extra[3] as ColorRect
@@ -568,7 +568,7 @@ func _apply_word_mode(m: int) -> void:
 		if l is Label:
 			var lb := l as Label
 			if m == 1:
-				lb.text = _L("한마디 남기기", "Add a comment")
+				lb.text = _L("한마디 남기기", "Leave a comment")
 				_ink(lb, T.BLUE, 0)
 				lb.label_settings.font_size = 26
 			else:
@@ -602,7 +602,7 @@ func restyle_howto(g) -> void:
 
 # ================================================================ 모드
 func _fill_modes() -> void:
-	_mode_title.text = _L("배달 방식", "Pick a delivery")
+	_mode_title.text = _L("배달 방식", "Delivery style")
 	_mode_sub.text = ""
 	for i in 3:
 		var id: String = MODE_IDS[i]
@@ -623,8 +623,8 @@ func _fill_modes() -> void:
 			c.accent = T.BLUE
 		c.queue_redraw()
 		(_mode_over[i] as Control).queue_redraw()
-	_go_btn.text = _L("출발!", "DELIVER!")
-	_back_btn.text = _L("< 처음", "< Title")
+	_go_btn.text = _L("출발!", "GO!")
+	_back_btn.text = _L("< 처음", "< Home")
 	_lang_btn.text = _L("English", "한국어")
 
 
@@ -748,12 +748,12 @@ func _route_advice(id: String) -> Array:
 	match id:
 		"gate":
 			var gm: int = game.GATE_MAX
-			var say := _L("짐 %d개 이하만 통과 · 지금 %d개", "Only %d boxes or fewer fit · you have %d") % [gm, n]
+			var say := _L("짐 %d개 이하만 통과 · 지금 %d개", "Only %d boxes or fewer pass · now %d") % [gm, n]
 			return [say, T.GREEN if n <= gm else T.RED]
 		"slide":
 			return [_L("얼음: 무거울수록 빠르다", "Ice: heavier = faster"), T.BLUE]
 		"wind":
-			return [_L("앞사람 바로 뒤에 붙어라", "Tuck in right behind a rival"), T.BLUE]
+			return [_L("앞사람 바로 뒤에 붙어라", "Stick right behind the runner ahead"), T.BLUE]
 	return ["", T.NAVY]
 
 
@@ -1218,7 +1218,7 @@ func _draw_receipt(ci: Control) -> void:
 	var fs := 34
 	var tw := T.FONT.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 	var nr_w := 0.0
-	var nt := _L("새 기록!", "NEW BEST!")
+	var nt := _L("새 기록!", "NEW RECORD!")
 	var newrec := bool(d.get("new_record", false))
 	if newrec:
 		nr_w = T.FONT.get_string_size(nt, HORIZONTAL_ALIGNMENT_LEFT, -1, 22).x + 24.0
@@ -1288,8 +1288,8 @@ func _draw_rate_grain(ci: Control) -> void:
 func _best_line(d: Dictionary) -> String:
 	var bd := int(d.get("best_delivery", 0))
 	var bt := float(d.get("best_time", 0.0))
-	var ts := (_L("%.1f초", "%.1fs") % bt) if bt > 0.0 else _L("완주 도전 중", "no finish yet")
-	return (_L("%d개 · %s", "%d · %s")) % [bd, ts]
+	var ts := (_L("%.1f초", "%.1fs") % bt) if bt > 0.0 else _L("완주 도전 중", "still going for a finish")
+	return (_L("%d개 · %s", "%d boxes · %s")) % [bd, ts]
 
 
 func _dash(ci: Control, y: float) -> void:

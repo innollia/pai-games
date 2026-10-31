@@ -159,7 +159,7 @@ func start_tutorial(first_run: bool) -> void:
 func refresh_text() -> void:
 	if game == null:
 		return
-	_play.set("text", game.L("배달 시작!", "PLAY"))
+	_play.set("text", game.L("배달 시작!", "Start delivery!"))
 	_howto.set("text", "?")
 	_ko_tag.text = ""  # 부제 없음: 한국어 시작 버튼 '배달 시작!'이 이미 화면을 한국어로 만든다
 	_ko_tag.visible = false
@@ -409,19 +409,19 @@ func _fill_bubble() -> void:
 			_bubble.text = "오른쪽으로 밀어 달려!" if ko else "Push right to run!"
 			_bubble.icon = "icon_shoe"
 		1:
-			_bubble.text = "점프로 상자를 넘어!" if ko else "Jump the crate!"
+			_bubble.text = "점프로 상자를 넘어!" if ko else "Jump over the crate!"
 			_bubble.icon = "icon_jump"
 		2:
-			_bubble.text = "우체통이 화면에 보이면 [짐]이 초록 = 탭해서 배달!" if ko else "Mailbox on screen? BOX turns green: tap to post!"
+			_bubble.text = "우체통이 화면에 보이면 [짐]이 초록 = 탭해서 배달!" if ko else "Mailbox on screen = [BOX] turns green: tap to deliver!"
 			_bubble.icon = "icon_parcel"
 		3:
-			_bubble.text = "다른 곳에서 [짐] = 던지고 대시!" if ko else "Tap BOX elsewhere: throw one and DASH!"
+			_bubble.text = "다른 곳에서 [짐] = 던지고 대시!" if ko else "[BOX] anywhere else = throw and dash!"
 			_bubble.icon = "icon_drop"
 		4:
-			_bubble.text = "왼쪽 끝에 밀리면 짐 하나를 잃어!" if ko else "Fall off the left edge = lose a box!"
+			_bubble.text = "왼쪽 끝에 밀리면 짐 하나를 잃어!" if ko else "Pushed off the left edge = you lose a box!"
 			_bubble.icon = "icon_parcel"
 		_:
-			_bubble.text = "배달 많이 한 사람이 이긴다!" if ko else "Most deliveries wins!"
+			_bubble.text = "배달 많이 한 사람이 이긴다!" if ko else "Whoever delivers the most wins!"
 			_bubble.icon = "icon_flag"
 	_bubble.queue_redraw()
 

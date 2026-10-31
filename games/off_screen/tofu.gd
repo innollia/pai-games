@@ -127,7 +127,7 @@ func _ready() -> void:
 	_msg_l = _label(hud, 72, 520, 120)
 	_over_l = _label(hud, 72, 420, 400)
 	var back_l := _label(hud, 34, 20, 60)
-	back_l.text = "< Restart"
+	back_l.text = "< Menu"
 	back_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	back_l.position.x = 24
 	_rate_btn_l = _label(hud, 34, 20, 60)
@@ -221,7 +221,7 @@ func _rate_card() -> Control:
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	card.add_child(panel)
 	var title := _label(card, 52, 750, 80)
-	title.text = "How was it?"
+	title.text = "How was this game?"
 	var shut := ColorRect.new()
 	shut.color = SOFT
 	shut.position = _CLOSE_RECT.position
@@ -335,7 +335,7 @@ func _rate_send() -> void:
 ## 별 없이 한마디만 보낸다. 별을 나중에 탭하면 그 글이 별과 함께 한 번 더 간다
 func _note_send() -> void:
 	if not OS.has_feature("web"):
-		_rate_say("Comment sent")
+		_rate_say("Your comment was sent")
 		return
 	var js := "window.tofuNote && window.tofuNote(%s, %s, %s)" % [
 		JSON.stringify(id), JSON.stringify(("v%d %s" % [gver, VER]).left(40)), JSON.stringify(_rate_text)]
@@ -390,7 +390,7 @@ func _rate_poll() -> void:
 		_rate_say("Thanks!")
 	elif r == "fail" or Time.get_ticks_msec() - _rate_sent_ms > 12000:
 		_rate_wait = false
-		_rate_say("Not saved - tap a star again")
+		_rate_say("Not saved · tap a star again")
 
 
 ## 웹이면 window.prompt, 아니면 ""

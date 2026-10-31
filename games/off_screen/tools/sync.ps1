@@ -10,10 +10,10 @@ Get-ChildItem (Join-Path $src 'g') -Filter 'sr_*.gd' | ForEach-Object { Copy-Ite
 Copy-Item (Join-Path $src 'tools\tofu_fb.js') (Join-Path $kit 'tools\tofu_fb.js') -Force
 $t = [IO.File]::ReadAllText((Join-Path $src 'tofu.gd'), $utf8)
 $en = [ordered]@{
-	'"< 메뉴"' = '"< Restart"'; '"평가"' = '"Rate"'; '"탭해서 시작"' = '"Tap to start"'; '"이 게임 어때요?"' = '"How was it?"'
+	'"< 메뉴"' = '"< Menu"'; '"평가"' = '"Rate"'; '"탭해서 시작"' = '"Tap to start"'; '"이 게임 어때요?"' = '"How was this game?"'
 	'"닫기"' = '"Close"'; '"한마디"' = '"Comment"'; '"이 게임에 한마디 (선택)"' = '"A word about this game (optional)"'
-	'"고마워요!"' = '"Thanks!"'; '"보내는 중"' = '"Sending"'; '"한마디 보냈어요"' = '"Comment sent"'
-	'"저장 안 됨 · 별을 다시 탭"' = '"Not saved - tap a star again"'; '"%d\n최고 %d%s"' = '"%d\nBest %d%s"'; '"\n탭해서 다시"' = '"\nTap to retry"'
+	'"고마워요!"' = '"Thanks!"'; '"보내는 중"' = '"Sending"'; '"한마디 보냈어요"' = '"Your comment was sent"'
+	'"저장 안 됨 · 별을 다시 탭"' = '"Not saved · tap a star again"'; '"%d\n최고 %d%s"' = '"%d\nBest %d%s"'; '"\n탭해서 다시"' = '"\nTap to retry"'
 }
 foreach ($k in $en.Keys) { $t = $t.Replace($k, $en[$k]) }
 [IO.File]::WriteAllText((Join-Path $kit 'tofu.gd'), $t, $utf8)
