@@ -3,7 +3,7 @@ extends Tofu
 ## 나는 [작은 별들 사이를 맨몸으로 건너는 여행자]로서 [달린 속도와 점프 순간이 곧 비행 궤도가 되는 몸] 속에서 [별 주민들의 부탁을 별과 별 사이로 날라 주]지만 [느리면 못 떠나고, 각도가 틀리면 우주로 떠내려가고, 쿵 내려앉으면 유리가 깨지는 것]을 감수한다.
 ## 별: 1 풍차(바람 달리기 → 돛, 노란 줄로 첫 비행) → 2 우편(소포를 굴뚝 달의 담 친 집에 공중에서 놓기) → 3 유리꽃(꽃을 들고 친구 달로, 빙 돌다 살살 착지) → 4 노을(얼음 위 속도 맞추기 → 유리 덮개) → 5 장미(빨간 바위 띠를 불 별 중력 새총으로 돌아 덮개를 살살).
 ## v5 겉모습: 상자 대신 로우폴리. 별은 각진 공(icosphere), 사람·소품은 art/tinyplanet/<이름>.glb+png(없으면 코드가 만든 로우폴리).
-## 대사는 DL(Gemini가 쓴 dialogue.json을 박아 넣음), 소리는 art/tinyplanet_sfx/*.wav(nkido).
+## 글은 g/tinyplanet_text.gd 한 곳(한국어·영어, 처음 대사는 Gemini가 쓴 dialogue.json), 소리는 art/tinyplanet_sfx/*.wav(nkido).
 ## v6 "어린 배달부 / The Little Courier": 영어가 기본(?lang=ko 또는 시작 화면 전환 → set_lang). 캡슐 막대, 작은 말풍선(아래쪽, 3~4초),
 ## 튜토리얼 없음(첫 판 안내 한 줄), 첫 별 바위 없음, 값싼 동그란 그림자, 하트는 잃을 때만, 다른 별 가기 쉽게(끌어당김·탈출 도움), 높이 날면 순항 속도.
 
@@ -52,21 +52,21 @@ const SKIN := Color("ffe3c7")
 const ITEM_ART := {"pkg": "parcel", "flower": "glass_flower", "dome": "glass_dome"}
 # 별: 0~4 부탁 별, 5 굴뚝 달, 6 친구 달, 7 불 별. 모두 y=0 평면 위.
 const BD := [
-	{"name": "풍차의 별", "r": 12.0, "g": 8.0, "grip": 1.19, "acc": 1.0, "at": Vector3(0, 0, 0), "kind": "planet",
-		"c0": Color("bfe3a0"), "c1": Color("e6f5d4"), "sky": Color("d6ecff"), "who": "풍차지기", "body": Color("8fbf5a"), "hat": A, "id": "p1"},
-	{"name": "우편의 별", "r": 8.0, "g": 8.0, "grip": 1.19, "acc": 1.0, "at": Vector3(26, 0, -26), "kind": "planet",
-		"c0": Color("d9ccf5"), "c1": Color("f3edff"), "sky": Color("e6dcff"), "who": "우체부", "body": B, "hat": BAD, "id": "p2"},
-	{"name": "유리꽃의 별", "r": 10.0, "g": 9.0, "grip": 1.19, "acc": 1.0, "at": Vector3(70, 0, -16), "kind": "planet",
-		"c0": Color("bdebd8"), "c1": Color("e6f8f0"), "sky": Color("d6f5ea"), "who": "정원사", "body": GOOD, "hat": D, "id": "p3"},
-	{"name": "노을의 별", "r": 7.0, "g": 8.0, "grip": -0.8, "acc": 0.6, "at": Vector3(100, 0, 36), "kind": "planet",
-		"c0": Color("c9e3fa"), "c1": Color("eef6ff"), "sky": Color("ffe0c2"), "who": "노을 아이", "body": C, "hat": A, "id": "p4"},
-	{"name": "장미의 별", "r": 6.0, "g": 7.0, "grip": 1.19, "acc": 1.0, "at": Vector3(50, 0, 48), "kind": "planet",
-		"c0": Color("f7d3dc"), "c1": Color("fff4f6"), "sky": Color("ffe3ec"), "who": "장미", "body": BAD, "hat": GOOD, "id": "p5"},
-	{"name": "굴뚝 달", "r": 3.5, "g": 6.0, "grip": 1.19, "acc": 1.0, "at": Vector3(52, 0, -40), "kind": "moon",
-		"c0": Color("e9e4d4"), "c1": Color("fffaf0"), "sky": Color("efe8ff"), "who": "굴뚝 집", "body": WHITE, "hat": WHITE, "id": ""},
-	{"name": "친구 달", "r": 3.5, "g": 6.0, "grip": 1.19, "acc": 1.0, "at": Vector3(90, 0, 8), "kind": "moon",
-		"c0": Color("a8ecd2"), "c1": Color("e8fff6"), "sky": Color("e0fff4"), "who": "꽃 친구", "body": WHITE, "hat": WHITE, "id": ""},
-	{"name": "불 별", "r": 3.0, "g": 40.0, "grip": 1.19, "acc": 1.0, "at": Vector3(78, 0, 60), "kind": "fire",
+	{"name": "name.windmill", "r": 12.0, "g": 8.0, "grip": 1.19, "acc": 1.0, "at": Vector3(0, 0, 0), "kind": "planet",
+		"c0": Color("bfe3a0"), "c1": Color("e6f5d4"), "sky": Color("d6ecff"), "who": "who.windmill", "body": Color("8fbf5a"), "hat": A, "id": "p1"},
+	{"name": "name.post", "r": 8.0, "g": 8.0, "grip": 1.19, "acc": 1.0, "at": Vector3(26, 0, -26), "kind": "planet",
+		"c0": Color("d9ccf5"), "c1": Color("f3edff"), "sky": Color("e6dcff"), "who": "who.post", "body": B, "hat": BAD, "id": "p2"},
+	{"name": "name.glass", "r": 10.0, "g": 9.0, "grip": 1.19, "acc": 1.0, "at": Vector3(70, 0, -16), "kind": "planet",
+		"c0": Color("bdebd8"), "c1": Color("e6f8f0"), "sky": Color("d6f5ea"), "who": "who.glass", "body": GOOD, "hat": D, "id": "p3"},
+	{"name": "name.sunset", "r": 7.0, "g": 8.0, "grip": -0.8, "acc": 0.6, "at": Vector3(100, 0, 36), "kind": "planet",
+		"c0": Color("c9e3fa"), "c1": Color("eef6ff"), "sky": Color("ffe0c2"), "who": "who.sunset", "body": C, "hat": A, "id": "p4"},
+	{"name": "name.rose", "r": 6.0, "g": 7.0, "grip": 1.19, "acc": 1.0, "at": Vector3(50, 0, 48), "kind": "planet",
+		"c0": Color("f7d3dc"), "c1": Color("fff4f6"), "sky": Color("ffe3ec"), "who": "who.rose", "body": BAD, "hat": GOOD, "id": "p5"},
+	{"name": "name.chimney_moon", "r": 3.5, "g": 6.0, "grip": 1.19, "acc": 1.0, "at": Vector3(52, 0, -40), "kind": "moon",
+		"c0": Color("e9e4d4"), "c1": Color("fffaf0"), "sky": Color("efe8ff"), "who": "who.chimney", "body": WHITE, "hat": WHITE, "id": ""},
+	{"name": "name.friend_moon", "r": 3.5, "g": 6.0, "grip": 1.19, "acc": 1.0, "at": Vector3(90, 0, 8), "kind": "moon",
+		"c0": Color("a8ecd2"), "c1": Color("e8fff6"), "sky": Color("e0fff4"), "who": "who.friend", "body": WHITE, "hat": WHITE, "id": ""},
+	{"name": "name.fire", "r": 3.0, "g": 40.0, "grip": 1.19, "acc": 1.0, "at": Vector3(78, 0, 60), "kind": "fire",
 		"c0": BAD, "c1": A, "sky": Color("ffe8d6"), "who": "", "body": WHITE, "hat": WHITE, "id": ""},
 ]
 # 부탁 (별 번호 = 부탁 번호). 물건은 src 별 HOME_D 에서 받아 tgt 별 tdir 로.
@@ -235,6 +235,7 @@ static var _lang_pick := ""  # set_lang 으로 고른 언어 ("ko"/"en"), 이 �
 # v5 도우미: 시작 화면·튜토리얼·끝 화면(ui), 속도감·연출(fx). submit/tinyplanet/MODULES.md 약속
 const UI_GD := preload("res://g/tinyplanet_ui.gd")
 const FX_GD := preload("res://g/tinyplanet_fx.gd")
+const TX := preload("res://g/tinyplanet_text.gd")  # 화면에 나오는 모든 글 (한국어·영어 한 표)
 var ui: UI_GD
 var fx: FX_GD
 var _bodies_on := false  # fx.set_bodies 는 한 번
@@ -675,6 +676,7 @@ func _reset() -> void:
 	sim_cd = 0
 	sim_show = false
 	_dot_tmp.resize(ND)
+	_help_reset()
 	sail_open = 0.0
 	sail_used = false
 	sail_hinted = false
@@ -1066,7 +1068,7 @@ func _sayq(who: String, s: String, dur: float) -> void:
 func _react(key: String, once := false, force := false) -> void:
 	if once and said.has(key):
 		return
-	if not DL.has("react." + key):
+	if not TX.TEXT.has("react." + key):
 		return
 	if not force and (react_cd > 0.0 or bub_t > 0.5 or not bub_q.is_empty()):
 		return
@@ -1142,7 +1144,7 @@ func _assist(w: Vector3, v: Vector3, dm: int, src: int, h: float) -> Vector3:
 			if vr > -2.0:
 				vr -= CAP_R * k * h
 			if r < batm[dm]:
-				vr = maxf(vr, -LAND_VMAX)
+				vr = maxf(vr, -LAND_VMAX * (1.0 - 0.5 * as_vmax))  # v10 as_vmax: 유리 도움 (2.75 밑이면 금이 안 간다)
 			return tanv + up * vr
 	var vh := v / spd
 	var free := _is_free(w, spd, dm)
@@ -1186,7 +1188,7 @@ func _assist(w: Vector3, v: Vector3, dm: int, src: int, h: float) -> Vector3:
 	if best >= 0:
 		var ml := bmv.length()
 		if ml > br[best] * 0.5:
-			v += bmv / ml * (HOME_A * clampf((1.0 - bm) * 2.0, 0.0, 1.0) * h)
+			v += bmv / ml * (HOME_A * (1.0 + 1.2 * as_home) * clampf((1.0 - bm) * 2.0, 0.0, 1.0) * h)  # v10 as_home: 도움 힌트 끌어주기
 			v = v.normalized() * spd
 	return v
 
@@ -1297,7 +1299,7 @@ var fly_adv := 0.0  # 이번 프레임 날기에 쓴 시간 (_play 가 넣는다
 func _dots_update(up: Vector3, lift: float) -> void:
 	var show := false
 	if die_t <= 0.0 and fin_t <= 0.0 and tow_t <= 0.0:
-		show = (grounded and vel.length() > lift * 0.6) or not grounded
+		show = (grounded and (vel.length() > lift * 0.6 or (as_sling > 0.0 and item == "dome"))) or not grounded  # v10: 새총 도움 중엔 땅 점선을 늘
 	if not show:
 		_dots_off()
 		return
@@ -1523,6 +1525,7 @@ func todo_icon(c: CanvasItem, o: Vector2, s: float, kind: String) -> void:
 
 ## 두 도우미에게 같은 일을 알린다
 func _emit(nm: String, d := {}) -> void:
+	_help_ev(nm, d)
 	if ui:
 		ui.event(nm, d)
 	if fx:
@@ -1574,6 +1577,7 @@ func _play(dt: float) -> void:
 	_vis(dt)
 	_dbg_add("vis+posty", t0)
 	_sail_btn(dt)
+	_help_tick(dt)
 	if fin_t > 0.0:
 		fin_t -= dt
 		_tick(dt, p.normalized(), 0.0)
@@ -1727,7 +1731,7 @@ func _jump_v(up: Vector3, v: Vector3) -> Vector3:
 
 ## 탈출선의 몇 %면 떠날 수 있게 도와주나: 첫 부탁 둘(풍차·우편)은 70%, 그 뒤 80% (v6 82/92 → v7 더 너그럽게)
 func _esc_need() -> float:
-	return 0.70 if _ndone() <= 1 else 0.80  # v9: 끝낸 부탁 수로 (순서 자유)
+	return (0.70 if _ndone() <= 1 else 0.80) - 0.12 * as_esc  # v9: 끝낸 부탁 수로 (순서 자유). v10 as_esc: 도움 힌트 떠나기 도와주기
 
 
 ## 날기: 모든 별이 끈다. 대기에서 내려가면 빙 돌다 내려앉는다. 죽으면 true.
@@ -2076,7 +2080,8 @@ func _items(dt: float, up: Vector3) -> void:
 	# 들고 날면 떨어질 자리를 보여 준다
 	mark_b.visible = item != "" and not grounded
 	if mark_b.visible:
-		_orient(mark_b, up * (_sr(cur, up) + 0.2), up, Vector3(1.0, 0.15, 1.0))
+		var km := 1.0 + 1.2 * _cue("mark")  # v10 도움 힌트: 떨어질 자리 크게
+		_orient(mark_b, up * (_sr(cur, up) + 0.2), up, Vector3(km, 0.15, km))
 
 
 func _drop_btn(on: bool) -> void:
@@ -2186,7 +2191,7 @@ func _done(k: int) -> void:
 		_say(gv.who, _tx("p4.keep"), 6.0)  # v9: 손에 다른 물건 — 덮개는 노을 아이가 맡아 둔다
 	else:
 		_say(gv.who, _line(k, "thanks"), 6.0)
-	if DL.has(str(gv.id) + ".thanks2") and (k != 3 or _hands_free()):
+	if TX.TEXT.has(str(gv.id) + ".thanks2") and (k != 3 or _hands_free()):
 		_sayq(gv.who, _line(k, "thanks2"), 7.0)
 	if k == 3:
 		# 덮개가 생겼다: 장미 부탁이 열린다 (손이 비면 바로 내놓고, 아니면 노을 아이가 맡아 둔다)
@@ -2249,7 +2254,7 @@ func _tick(dt: float, up: Vector3, lf: float) -> void:
 	# 노을 띠: 적도를 이륙선의 80%(후반 90%) 빠르기로 돈다 (v9: 노을의 별 위에 있을 때만 움직인다)
 	var r3 := br[3]
 	if js[3] == 1 and cur == 3:
-		band_a += (0.8 if bprog < 0.5 else 0.9) * sqrt((bg[3] - 0.8) * r3) / r3 * dt
+		band_a += (0.8 if bprog < 0.5 else 0.9) * (1.0 - 0.3 * as_band) * sqrt((bg[3] - 0.8) * r3) / r3 * dt
 	var inb := false
 	if cur == 3 and grounded:
 		var lon := atan2(-up.z, up.x)
@@ -2267,6 +2272,7 @@ func _tick(dt: float, up: Vector3, lf: float) -> void:
 		for bb in band_bs:
 			bb.material_override = _pm(D if inb else A)
 	if js[3] == 1 and cur == 3:
+		_help_band(inb, dt)
 		bprog = clampf(bprog + (dt / 14.0 if inb else -0.04 * dt), 0.0, 1.0)
 		if inb:
 			wind_t -= dt
@@ -2282,8 +2288,13 @@ func _tick(dt: float, up: Vector3, lf: float) -> void:
 	# 갈 곳 빛기둥 (다른 별 위에서도 보이게 길게)
 	_obj()
 	beacon.visible = ob_k >= 0 and fin_t <= 0.0
+	var kb := _cue("beacon")  # v10 도움 힌트: 빛기둥 더 크고 밝게
 	if beacon.visible:
-		_orient(beacon, bc[ob_k] + ob_d * (br[ob_k] + 7.0), ob_d, Vector3(0.6, 14.0, 0.6))
+		var bw := 0.6 * (1.0 + kb * (1.3 + 0.3 * sin(clock * 5.0)))
+		_orient(beacon, bc[ob_k] + ob_d * (br[ob_k] + 7.0 + 3.0 * kb), ob_d, Vector3(bw, 14.0 + 6.0 * kb, bw))
+	if (kb > 0.0) != _beacon_lit:
+		_beacon_lit = kb > 0.0
+		beacon.material_override = _pm(Color("fff0a6") if _beacon_lit else D)
 
 
 ## 갈 곳: ob_k(별 번호, 없으면 -1)·ob_d(방향). v6: 매 프레임 새 배열을 만들지 않게 멤버에 쓴다
@@ -2609,6 +2620,7 @@ func _lost_check(dt: float) -> void:
 
 
 func _tow_start() -> void:
+	_help_ev("tow", {})  # v10: 우주 미아 셈 (airjump 가 이번 비행 그대로일 때)
 	tow_t = TOW_T
 	lost_t = 0.0
 	tip_t = 0.0
@@ -2659,6 +2671,8 @@ func _sail_btn(_dt: float) -> void:
 			_btns["sail"].r = 1.0
 	if want and not sail_used and _btns.has("sail"):
 		_btns["sail"].r = 72.0 + 9.0 * (0.5 + 0.5 * sin(clock * 7.0))
+	if want and _btns.has("sail") and hcue.has("sail"):
+		_btns["sail"].r = 72.0 + 26.0 * (0.5 + 0.5 * sin(clock * 9.0)) * _cue("sail")  # v10 도움 힌트: 돛 버튼 크게 깜빡
 
 
 # ---- v7: 할 일 칩 · 알림판 · 갈 곳 화살표 ----
@@ -2874,9 +2888,11 @@ func _arrow_update() -> void:
 			_arrow_p = c + dn * t
 			_arrow_d = dn
 			on = true
-	if on or _arrow_on:
+	var hd := hcue.has("stick") or hcue.has("gauge")  # v10 도움 그림도 같은 판에 그린다
+	if on or _arrow_on or hd or _help_drew:
 		arrow.queue_redraw()
 	_arrow_on = on
+	_help_drew = hd
 
 
 ## 카메라에서 tp 까지가 발밑 별이나 갈 곳 별에 가리나
@@ -2896,10 +2912,14 @@ func _occ1(o: Vector3, d: Vector3, ln: float, k: int) -> bool:
 
 
 func _arrow_draw() -> void:
+	_help_draw()
 	if not _arrow_on:
 		return
 	var o := _arrow_p
 	var d := _arrow_d
+	var ka := 1.0 + 0.45 * _cue("arrow")  # v10 도움 힌트: 화살표 크게
+	if ka > 1.0:
+		arrow.draw_set_transform(o * (1.0 - ka), 0.0, Vector2(ka, ka))
 	var n := Vector2(-d.y, d.x)
 	var pulse := 1.0 + 0.08 * sin(clock * 6.0)
 	_tri3[0] = o + d * 50.0 * pulse
@@ -2914,6 +2934,8 @@ func _arrow_draw() -> void:
 	arrow.draw_circle(o, 30.0, NAVY)
 	arrow.draw_circle(o, 26.0, Color("ffd166"))
 	_icon(arrow, o, 0.85, _chip_icon)
+	if ka > 1.0:
+		arrow.draw_set_transform(Vector2.ZERO)
 
 
 # ---- v5 겉모습: 움직임 ----
@@ -4246,7 +4268,7 @@ func _process(dt: float) -> void:
 	if (_rating or over or (ui != null and ui.todo_open())) and wind_pl and wind_pl.playing:
 		wind_pl.stop()
 	if _en and over:
-		_over_l.text = "%d\nBest %d%s" % [score, best, "\nTap to play again" if wait <= 0.0 else ""]
+		_over_l.text = "%d\n%s %d%s" % [score, TX.en("tofu.over_best"), best, ("\n" + TX.en("tofu.over_again")) if wait <= 0.0 else ""]
 	# v6: 단독판 "< 처음부터"는 숨긴다. 단독판이 목록에서 왔으면 나중에 "< 목록"으로 바뀌니 그때 다시 보인다 (내가 숨긴 것만 되돌린다)
 	if _back_l:
 		if _back_l.text in RESTART_TXT:
@@ -4284,7 +4306,7 @@ func _dbg_build() -> void:
 	var bg := ColorRect.new()
 	bg.color = Color(0, 0, 0, 0.55)
 	bg.position = Vector2(4, 104)
-	bg.size = Vector2(470, 470)
+	bg.size = Vector2(470, 530)  # v10: 도움 힌트 셈 두 줄
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	cl.add_child(bg)
 	_dbg = Label.new()
@@ -4473,6 +4495,7 @@ func _dbg_frame(_dt: float) -> void:
 	for nm: String in ["game._process", "step", "hud", "vis+posty", "tick", "sim", "ui.tick", "fx.tick", "fx.clouds", "fx.overlay", "ui._process"]:
 		t += "%-12s %6d  %6d
 " % [nm, int(_dbg_sum.get(nm, 0)) / n, int(_dbg_max.get(nm, 0))]
+	t += _help_dbg()
 	_dbg_txt = t
 	_dbg.text = t
 	if OS.has_feature("web"):
@@ -4586,11 +4609,355 @@ func _count_in(n: Node, c: Array) -> void:
 					c[3] += dr
 		_count_in(ch, c)
 
-# ---- 말 (dialogue.json 을 박아 넣은 DL) ----
+# ---- v10 도움 힌트 (submit/tinyplanet/HELP_HINTS.md) ----
+## 못 하는 것을 셈하다 문턱을 넘으면 아래 말풍선에 짧은 글 하나 (잘하는 사람은 문턱에 안 닿는다).
+## 같은 힌트: 1번째 뒤 다시 문턱이 차면(최소 HELP_GAP 뒤) 2번째 = 더 자세한 글 + 그림·도와주기, 그 뒤로는 HELP_CD 쉰다 (판마다 새로).
+## 쉬는 중에 문턱이 차면 셈만 0으로 (다시 처음부터 쌓여야 나온다). 서로 다른 힌트 사이도 HELP_ANY 쉰다. 말풍선이 떠 있으면 기다린다.
+## 도와주기·그림은 정해진 시간 뒤 마지막 6초에 걸쳐 원래로 돌아온다. 다시 걸리면 시간만 다시 채운다 (쌓이지 않는다).
+const HELP_GAP := 20.0
+const HELP_CD := 150.0
+const HELP_ANY := 10.0
+const ASSIST_T := 25.0
+var hl_lv := {}  # 힌트 이름 -> 알려 준 단계 (1, 2)
+var hl_next := {}  # 힌트 이름 -> 다시 알려도 되는 clock
+var hl_any := 0.0
+var hcue := {}  # 그림·도와주기 이름 -> 남은 초: stick gauge arrow todo beacon sail mark / esc home vmax band sling
+var h_idle := 0.0  # 1 안 움직인 시간 (이번 판 거의 안 달려 본 사람만)
+var h_run := 0.0  # 이번 판 땅에서 달린 거리
+var h_nolift := 0.0  # 2 미는데 이륙선 60% 밑인 시간 (60% 넘으면 0)
+var h_jumps := 0  # 3 갈 곳이 다른 별인데 뛰어서 제 별로 돌아온 수 (다른 별에 닿거나 탈출하면 0)
+var h_stay := 0.0  # 3 첫 실패 뒤 흐른 시간
+var h_lost := 0  # 4 우주 미아 (끌려 돌아옴·떠내려가 죽음) 수 (다른 별에 닿으면 0)
+var h_goal := 0.0  # 5 갈 곳 별에 못 간 시간 (그 별에 서면 0)
+var h_crack := 0  # 6 유리 금·깨짐 수 (유리 배달하면 0)
+var h_band := 0  # 7 노을 띠 놓친 수 (띠 부탁 끝나면 0)
+var h_band_in := false
+var h_band_out := 0.0
+var h_fire := 0  # 8 불 별·지뢰 울타리 죽음 수 (덮개 배달하면 0)
+var h_sailmiss := 0  # 9 돛이 있는데 안 쓰고 빗나간 비행 수 (돛을 쓰면 0)
+var h_drop := 0.0  # 10 소포를 들고 굴뚝 달 근처에 있은 시간 (배달하면 0)
+var h_sling := PackedVector3Array()  # 새총 길 미리 보기 점 (노을의 별 → 장미의 별)
+var help_mm: MultiMesh
+var as_esc := 0.0  # 도와주기 세기 0..1 (_help_tick 이 매 프레임 한 번 고친다 — 비행 계산이 사전을 안 읽게)
+var as_home := 0.0
+var as_vmax := 0.0
+var as_band := 0.0
+var as_sling := 0.0
+var _beacon_lit := false
+var _help_drew := false
+var _nudged := false
+
+
+func _help_reset() -> void:
+	hl_lv.clear()
+	hl_next.clear()
+	hcue.clear()
+	hl_any = 0.0
+	h_idle = 0.0
+	h_run = 0.0
+	h_nolift = 0.0
+	h_jumps = 0
+	h_stay = 0.0
+	h_lost = 0
+	h_goal = 0.0
+	h_crack = 0
+	h_band = 0
+	h_band_in = false
+	h_band_out = 0.0
+	h_fire = 0
+	h_sailmiss = 0
+	h_drop = 0.0
+	h_sling.clear()
+	as_esc = 0.0
+	as_home = 0.0
+	as_vmax = 0.0
+	as_band = 0.0
+	as_sling = 0.0
+	_beacon_lit = false
+	_help_drew = false
+	_nudged = false
+	if ui:
+		ui.todo_nudge(false)
+	help_mm = MultiMesh.new()
+	help_mm.transform_format = MultiMesh.TRANSFORM_3D
+	help_mm.use_colors = true
+	help_mm.mesh = _dots_mesh()
+	help_mm.instance_count = ND
+	help_mm.visible_instance_count = 0
+	var hmi := MultiMeshInstance3D.new()
+	hmi.multimesh = help_mm
+	hmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	world.add_child(hmi)
+
+
+## 그림·도와주기 세기 0..1 (마지막 6초에 걸쳐 0으로)
+func _cue(nm: String) -> float:
+	return clampf(float(hcue.get(nm, 0.0)) / 6.0, 0.0, 1.0)
+
+
+func _cue_on(nm: String, t: float) -> void:
+	hcue[nm] = maxf(float(hcue.get(nm, 0.0)), t)
+
+
+## 힌트 하나: 쉬는 중이면 0, 아니면 이번 단계(1·2) 글을 아래 말풍선에 내고 단계를 돌려준다. alt2 = 2단계에 쓸 다른 키
+func _help(id: String, alt2 := "") -> int:
+	if clock < float(hl_next.get(id, -1.0)):
+		return 0
+	var lv := mini(int(hl_lv.get(id, 0)) + 1, 2)
+	hl_lv[id] = lv
+	hl_next[id] = clock + (HELP_GAP if lv == 1 else HELP_CD)
+	hl_any = clock + HELP_ANY
+	_say("", _tx(alt2 if lv == 2 and alt2 != "" else "help.%s%d" % [id, lv]), 4.2)
+	return lv
+
+
+## 일이 일어날 때 (_emit 이 먼저 부른다): 실패를 세고, 성공이면 그 셈을 0으로
+func _help_ev(nm: String, d: Dictionary) -> void:
+	match nm:
+		"escape":
+			h_jumps = 0
+			h_stay = 0.0
+		"land":
+			if cur != from_b:
+				h_jumps = 0
+				h_stay = 0.0
+				h_lost = 0
+				h_nolift = 0.0
+			elif ob_k >= 0 and ob_k != cur:
+				if fly_t < 4.0:
+					h_jumps += 1  # 뛰었는데 제 별로 돌아왔다
+				elif has_sail and not airjump:
+					h_sailmiss += 1  # 오래 날다 제 별로 (돛을 안 씀)
+		"tow":
+			h_lost += 1
+			if has_sail and not airjump:
+				h_sailmiss += 1
+		"die":
+			var why := str(d.get("why", ""))
+			if why == "fire" or why == "rocks":
+				h_fire += 1
+			elif why == "drift":
+				h_lost += 1
+				if has_sail and not airjump:
+					h_sailmiss += 1
+		"crack", "shatter":
+			h_crack += 1
+		"sail":
+			h_sailmiss = 0
+		"deliver":
+			var j := int(d.get("job", -1))
+			if j == 1:
+				h_drop = 0.0
+				hcue.erase("mark")
+			elif j == 2 or j == 4:
+				h_crack = 0
+		"job_done":
+			var j2 := int(d.get("job", -1))
+			if j2 == 3:
+				h_band = 0
+				hcue.erase("band")
+			elif j2 == 4:
+				h_fire = 0
+				hcue.erase("sling")
+
+
+## 노을 띠 놓침: 띠 위에 있다가 1.5초 넘게 벗어나면 한 번 (가장자리에서 들락날락은 안 센다)
+func _help_band(inb: bool, dt: float) -> void:
+	if inb:
+		h_band_in = true
+		h_band_out = 0.0
+	elif h_band_in:
+		h_band_out += dt
+		if h_band_out > 1.5:
+			h_band_in = false
+			h_band += 1
+
+
+## 매 프레임 (_play): 그림·도와주기 시간 줄이기, 셈, 문턱 넘은 힌트 하나
+func _help_tick(dt: float) -> void:
+	if not hcue.is_empty():
+		for nm: String in hcue.keys():
+			var left := float(hcue[nm]) - dt
+			if left <= 0.0:
+				hcue.erase(nm)
+			else:
+				hcue[nm] = left
+	as_esc = _cue("esc")
+	as_home = _cue("home")
+	as_vmax = _cue("vmax")
+	as_band = _cue("band")
+	as_sling = _cue("sling")
+	var hn := h_sling.size() if as_sling > 0.0 else 0
+	if help_mm and help_mm.visible_instance_count != hn:
+		if hn > 0:
+			_dots_fill(help_mm, h_sling, GOOD, DOT_SC)
+		else:
+			help_mm.visible_instance_count = 0
+	var tn := hcue.has("todo")
+	if tn != _nudged:
+		_nudged = tn
+		ui.todo_nudge(tn)
+	if die_t > 0.0 or fin_t > 0.0 or tow_t > 0.0 or won:
+		return
+	# ---- 셈 ----
+	var spd := vel.length()
+	if grounded:
+		h_run += spd * dt
+		var lf := sqrt(maxf(gp + float(P.grip), 0.5) * R)
+		var push := kit_move.length() > 0.05
+		if push:
+			h_idle = 0.0
+		elif spd < 0.5 and h_run < 60.0 and bub_t <= 0.0 and bub_q.is_empty():
+			h_idle += dt
+		if spd >= lf * 0.6:
+			h_nolift = 0.0
+		elif push:
+			h_nolift += dt
+		if h_jumps > 0 and ob_k >= 0 and ob_k != cur:
+			h_stay += dt
+	if ob_k >= 0 and ob_k != cur:
+		h_goal += dt
+	elif ob_k == cur:
+		h_goal = 0.0
+	if item == "pkg" and (bc[cur] + p).distance_to(bc[5]) < br[5] + 12.0:
+		h_drop += dt
+	# ---- 힌트 (말풍선이 비고, 다른 힌트 뒤 쉬는 시간이 끝났을 때 하나만) ----
+	if bub_t > 0.3 or not bub_q.is_empty() or clock < hl_any:
+		return
+	var lv := 0
+	if h_idle >= 8.0:
+		h_idle = 0.0
+		lv = _help("idle")
+		if lv == 2:
+			_cue_on("stick", 8.0)
+		if lv > 0:
+			return
+	if h_nolift >= 20.0:
+		h_nolift = 0.0
+		lv = _help("lift")
+		if lv == 2:
+			_cue_on("gauge", 8.0)
+		if lv > 0:
+			return
+	if grounded and (h_jumps >= 4 or (h_jumps >= 1 and h_stay >= 30.0)):
+		h_jumps = 0
+		h_stay = 0.0
+		lv = _help("jump")
+		if lv == 2:
+			_cue_on("esc", ASSIST_T)
+			_cue_on("gauge", 6.0)
+		if lv > 0:
+			return
+	if grounded and has_sail and h_sailmiss >= 3:
+		h_sailmiss = 0
+		lv = _help("sail")
+		if lv == 2:
+			_cue_on("sail", 30.0)
+		if lv > 0:
+			return
+	if grounded and h_lost >= 2:
+		h_lost = 0
+		lv = _help("lost")
+		if lv == 2:
+			_cue_on("home", ASSIST_T)
+		if lv > 0:
+			return
+	if h_crack >= 2:
+		h_crack = 0
+		lv = _help("glass")
+		if lv == 2:
+			_cue_on("vmax", ASSIST_T)
+		if lv > 0:
+			return
+	if h_band >= 3:
+		h_band = 0
+		lv = _help("band")
+		if lv == 2:
+			_cue_on("band", ASSIST_T)
+		if lv > 0:
+			return
+	if grounded and h_fire >= 2:
+		h_fire = 0
+		var alt := ""
+		if int(hl_lv.get("fire", 0)) >= 1 and clock >= float(hl_next.get("fire", -1.0)):
+			_help_sling()
+			if h_sling.is_empty():
+				alt = "help.fire2b"
+		lv = _help("fire", alt)
+		if lv == 2:
+			_cue_on("sling", 40.0)
+		if lv > 0:
+			return
+	if h_drop >= 40.0:
+		h_drop = 0.0
+		lv = _help("drop")
+		if lv == 2:
+			_cue_on("mark", 30.0)
+		if lv > 0:
+			return
+	if h_goal >= 90.0:
+		h_goal = 0.0
+		lv = _help("goal")
+		if lv == 1:
+			_cue_on("arrow", 20.0)
+			_cue_on("todo", 20.0)
+		elif lv == 2:
+			_cue_on("beacon", 30.0)
+			_cue_on("arrow", 20.0)
+
+
+## 새총 길: 노을의 별(3) 적도에서 힘껏 달려 뛰면 장미의 별(4)에 닿는 길 하나를 찾는다 (_lane 과 같은 방법, 없으면 빈 채로)
+func _help_sling() -> void:
+	h_sling.clear()
+	var lift := sqrt(maxf(bg[3] + float(BD[3].grip), 0.5) * br[3])
+	var pts := PackedVector3Array()
+	for sg: float in [1.0, -1.0]:
+		for i in 48:
+			var a := TAU * i / 48.0
+			var d := Vector3(cos(a), 0, -sin(a))
+			var tg := Vector3(-sin(a), 0, -cos(a)) * sg
+			if _sim(bc[3] + d * (br[3] + 0.1), tg * lift * 0.96 + d * JUMP, 3, 0.0, 9.0, 1.0 / 20.0, pts) == 4:
+				h_sling = pts.duplicate()
+				return
+
+
+## 도움 그림 (갈 곳 화살표 판에 같이 그린다): 스틱 자리에서 위로 미는 손가락, 위 막대 둘레 깜빡 + 끝을 가리키는 삼각형
+func _help_draw() -> void:
+	var ks := _cue("stick")
+	if ks > 0.0:
+		var ph := fposmod(clock, 1.2) / 1.2
+		if ph < 0.85:
+			var o: Vector2 = _st_home + Vector2(0.0, -70.0 * smoothstep(0.0, 0.6, ph))
+			var al := clampf(ks * 2.0, 0.0, 1.0)
+			arrow.draw_rect(Rect2(o + Vector2(-26, 0), Vector2(52, 120)), Color(NAVY, al))
+			arrow.draw_circle(o, 26.0, Color(NAVY, al))
+			arrow.draw_rect(Rect2(o + Vector2(-20, 0), Vector2(40, 114)), Color(CREAM, al))
+			arrow.draw_circle(o, 20.0, Color(CREAM, al))
+			arrow.draw_circle(o + Vector2(0, -6), 8.0, Color(Color("ffd166"), al))
+	var kg := _cue("gauge")
+	if kg > 0.0 and fposmod(clock, 0.8) < 0.5:
+		var rc := Rect2(60, 190, 600, 40).grow(10.0)
+		arrow.draw_rect(rc.grow(3.0), NAVY, false, 3.0)
+		arrow.draw_rect(rc, Color("ffd166"), false, 6.0)
+		_tri3[0] = Vector2(676, 210)
+		_tri3[1] = Vector2(708, 188)
+		_tri3[2] = Vector2(708, 232)
+		arrow.draw_colored_polygon(_tri3, NAVY)
+
+
+## ?debug=1 표 아래: 도움 힌트 셈
+func _help_dbg() -> String:
+	var s := "help idle %.0f lift %.0f jump %d/%.0f lost %d goal %.0f\n" % [h_idle, h_nolift, h_jumps, h_stay, h_lost, h_goal]
+	s += "  glass %d band %d fire %d sail %d drop %.0f\n" % [h_crack, h_band, h_fire, h_sailmiss, h_drop]
+	s += "  lv %s cue %s\n" % [str(hl_lv), str(hcue.keys())]
+	return s
+
+
+# ---- 말 (모든 글은 g/tinyplanet_text.gd 의 TX.TEXT) ----
 func _tx(key: String, args := {}) -> String:
-	if not DL.has(key):
+	if not TX.TEXT.has(key):
 		return key
-	var s := tr(str(DL[key][0]))
+	var s := tr(key)  # 번역 열쇠 = 키 (TX.make 가 en·ko 번역을 만든다)
 	if not args.is_empty():
 		s = s.format(args)
 	return s
@@ -4599,7 +4966,7 @@ func _tx(key: String, args := {}) -> String:
 ## 별 k 주민의 말 (ask / hint / thanks / thanks2 / idle1 / idle2)
 func _line(k: int, part: String) -> String:
 	var key := str(BD[k].id) + "." + part
-	return _tx(key) if DL.has(key) else ""
+	return _tx(key) if TX.TEXT.has(key) else ""
 
 
 ## 영어 번역은 이 게임이 떠 있는 동안만 TranslationServer 에 둔다 (나가면 빼서 다른 게임 글이 영어로 바뀌지 않게).
@@ -4621,14 +4988,7 @@ func _lang() -> void:
 	_en = en
 	# 한국어 = 원문 그대로인 ko 번역을 하나 올려 둔다. 없으면 ko 고를 때 대체 언어(en) 번역이 쓰여 영어가 나왔다
 	if _tl_ko == null:
-		var tk := Translation.new()
-		tk.locale = "ko"
-		for k: String in DL:
-			tk.add_message(str(DL[k][0]), str(DL[k][0]))
-		for k: String in EN_UI:
-			tk.add_message(k, k)
-		for k: String in UI_GD.EN:
-			tk.add_message(k, k)
+		var tk: Translation = TX.make(true)  # 키 -> 한국어 (g/tinyplanet_text.gd 한 표에서)
 		for k: String in FX_GD.EN:
 			tk.add_message(k, k)
 		_tl_ko = tk
@@ -4643,15 +5003,7 @@ func _lang() -> void:
 		TranslationServer.set_locale("ko")
 		return
 	if _tl == null:
-		var tl := Translation.new()
-		tl.locale = "en"
-		for k: String in DL:
-			var pr: Array = DL[k]
-			tl.add_message(str(pr[0]), str(pr[1]))
-		for k: String in EN_UI:
-			tl.add_message(k, str(EN_UI[k]))
-		for k: String in UI_GD.EN:  # 시작 화면·튜토리얼·끝 화면 글
-			tl.add_message(k, str(UI_GD.EN[k]))
+		var tl: Translation = TX.make(false)  # 키 -> English (본체·ui·tofu 글 모두 같은 표)
 		for k: String in FX_GD.EN:
 			tl.add_message(k, str(FX_GD.EN[k]))
 		_tl = tl
@@ -4671,135 +5023,3 @@ func _exit_tree() -> void:
 	if _tl_n <= 0:
 		_tl_n = 0
 		TranslationServer.remove_translation(_tl)
-
-
-const EN_UI := {
-	"< 메뉴": "< Menu", "< 처음부터": "< Restart", "< 목록": "< List", "평가": "Rate", "탭해서 시작": "Tap to start",
-	"이 게임 어때요?": "How was it?", "닫기": "Close", "한마디": "Comment", "고마워요!": "Thanks!",
-	"보내는 중": "Sending", "한마디 보냈어요": "Comment sent", "저장 안 됨 · 별을 다시 탭": "Not saved · tap a star again",
-	"이 게임에 한마디 (선택)": "A word about this game (optional)",
-}
-
-
-# ---- 대사: submit/tinyplanet/dialogue.json (Antigravity · Gemini) 을 그대로 박아 넣음. [한국어, 영어] ----
-const DL := {
-	"name.windmill": ["풍차의 별", "Windmill Planet"],
-	"name.post": ["우편의 별", "Post Planet"],
-	"name.glass": ["유리꽃의 별", "Glass Flower Planet"],
-	"name.sunset": ["노을의 별", "Sunset Planet"],
-	"name.rose": ["장미의 별", "Rose Planet"],
-	"name.chimney_moon": ["굴뚝 달", "Chimney Moon"],
-	"name.friend_moon": ["친구 달", "Friend Moon"],
-	"name.fire": ["불 별", "Fire Star"],
-	"who.windmill": ["풍차지기", "Windmill Keeper"],
-	"who.post": ["우체부", "Mail Carrier"],
-	"who.glass": ["정원사", "Gardener"],
-	"who.sunset": ["노을 아이", "Sunset Child"],
-	"who.rose": ["장미", "Rose"],
-	"who.chimney": ["굴뚝 집", "Chimney House"],
-	"who.friend": ["꽃 친구", "Flower Friend"],
-	"who.me": ["나", "Me"],
-	"p1.ask": ["바람이 멎어 풍차가 잠들었네. 별 둘레를 힘껏 달려 바람을 깨워 주겠나?", "The wind died and the mill sleeps. Run hard around to wake my friend?"],
-	"p1.hint": ["뜨기 직전이 제일 센 바람이지. 발이 뜨면 바람이 끊기니 땅에 붙어 달리게나.", "Fastest just before liftoff is best. Keep your feet on the ground!"],
-	"p1.thanks": ["고마우이, 돛을 받게나. 보라 별이 우편의 별이니 노란 줄을 힘껏 달리게.", "Thank you! Take the sail. Purple is Post Planet; run the yellow lane."],
-	"p1.thanks2": ["초록 칸에서 점프하게. 날다 스틱 밀며 뛰면 돛으로 방향을 한 번 튼다네.", "Jump at the green cell! In flight, jump and push stick to turn once."],
-	"p2.ask": ["이 소포, 저 하얀 굴뚝 달 집에 전해 줘! 담이 높아 걸어선 못 들어가.", "Take this parcel to Chimney Moon! The walls are too high to walk in."],
-	"p2.hint": ["달은 작아 금방 떠! 굴뚝 위 지날 때 '놓기'. 발밑 노란 점에 떨어져!", "The moon lifts fast! Press 'Drop' over chimney onto the yellow dot."],
-	"p2.thanks": ["잘 도착했대, 고마워! 남은 부탁은 왼쪽 위 할 일 목록에 있어.", "Delivered safely, thank you! The rest is in your to-do list, top left."],
-	"p3.ask": ["유리꽃을 저 민트 친구 달에 전해 줘요… 세게 내려앉으면 깨져 버려요.", "Carry the glass flower to Friend Moon... A hard landing will break it."],
-	"p3.hint": ["곧장 말고 빙 돌아 살살 앉아요. 빨간 그림자는 운석 자리니 미리 피해요!", "Don't dive straight; circle to land softly. Red shadows are meteors!"],
-	"p3.thanks": ["꽃이 무사하대요… 정말 다행이에요. 다른 별에도 기다리는 이가 있을 거예요.", "The flower is safe... thank you! Others out there are waiting for you too."],
-	"p4.ask": ["내 별은 너무 작아서 노을이 자꾸 달아나. 저 주황 띠랑 같이 달려 줘!", "My planet is small and the sunset runs away. Run with the orange band!"],
-	"p4.hint": ["얼음이라 미끄러워! 빠르면 뜨고 느리면 놓쳐. 띠랑 같은 빠르기로 뛰어!", "Slick ice! Too fast you float, too slow you lose it. Match its speed!"],
-	"p4.thanks": ["고마워! 분홍 장미 별에 유리 덮개를 줘. 곧장 가면 빨간 지뢰 울타리야.", "Bring this dome to Rose Planet! A red mine fence blocks the direct way."],
-	"p4.thanks2": ["빨간 불 별 옆을 스치면 휘어 돌아가. 불 별에 닿으면 끝이니까 닿지 마!", "Skim beside the red fire star to whip around. Touching it is death!"],
-	"p5.ask": ["바람이 차가워… 유리 덮개를 씌워 줘. 담이 천천히 돌고 틈은 하나야.", "It's cold... Put the dome over me. The wall turns; there is one gap."],
-	"p5.hint": ["담 틈 맞춰 들어오거나 탑에서 날아 위에서 놓아 줘. 세게 내리면 깨져.", "Walk in with the wall gap, or drop from tower. Land hard, it breaks."],
-	"p5.thanks": ["…따뜻해. 고마워. 네 빠른 발 덕분에 우리 다섯 별이 다 웃고 있어.", "...Warm now. Thank you. Your fast feet made all five planets smile."],
-	"p1.idle1": ["바람결을 느끼며 달리면 하늘도 그 발소리를 듣는다네.", "When you run with the wind, the sky listens to your steps."],
-	"p1.idle2": ["서두르지 말게. 별은 언제나 제자리에서 자네를 기다리니.", "No need to hurry. The stars always wait patiently in place."],
-	"p2.idle1": ["하늘에 띄운 편지는 길을 잃지 않아. 언제나 닿을 곳으로 가지!", "Letters sent across the sky never get lost. They always arrive!"],
-	"p2.idle2": ["오늘도 우편 가방이 든든하네! 다음 행선지는 어디야?", "My mailbag is nice and full today! Where are you flying next?"],
-	"p3.idle1": ["유리꽃은 아주 여려요… 가만히 숨소리를 들으면 맑게 울리지요.", "Glass flowers are fragile... listen close and they ring softly."],
-	"p3.idle2": ["별들 사이를 날아갈 땐 마음도 깃털처럼 가볍게 가져 보세요.", "When soaring between stars, let your heart be light as a feather."],
-	"p4.idle1": ["노을빛이 주황색으로 번질 때 별을 달리면 마음이 몽글몽글해.", "Running as the sunset spreads orange makes my heart flutter."],
-	"p4.idle2": ["혼자 달릴 땐 외로웠는데, 같이 뛰니까 노을이 안 무서워!", "I was lonely running alone, but with you I do not fear sunset!"],
-	"p5.idle1": ["…뭘 그렇게 봐? 유리 덮개가 마음에 들어서 가만있는 것뿐이야.", "...What are you looking at? I just happen to like this glass dome."],
-	"p5.idle2": ["별빛이 덮개에 닿아 반짝이는 건… 조금 예쁜 것 같네.", "The starlight sparkling against the glass... looks rather nice."],
-	"moon.chimney.got": ["굴뚝 속으로 소포가 쏙 들어왔어! 따뜻한 온기가 번지네.", "The parcel dropped right down the chimney! Cozy warmth spreads inside."],
-	"moon.friend.got": ["정원사의 맑은 꽃이 깨지지 않고 닿았어… 달이 환해졌네!", "The gardener's clear flower arrived unbroken... the moon glows!"],
-	"msg.start": ["1. {planet}", "1. {planet}"],
-	"msg.tower_jump": ["탑에서 뛰어내린다", "Leaping from the tower"],
-	"msg.liftoff": ["중력을 벗어난다!", "Escaping gravity!"],
-	"msg.float": ["발이 떴다", "Floating"],
-	"msg.sail": ["돛으로 방향을 튼다", "Turning with the sail"],
-	"msg.drift_warn": ["우주로 떠내려간다… 돛으로 돌려!", "Drifting away! Turn with sail!"],
-	"msg.flower_crack": ["착지가 세서 금이 갔다", "Landed hard, glass cracked"],
-	"msg.slingshot": ["중력을 타고 휘어 돈다", "Curving past with gravity"],
-	"msg.rock_snag": ["바위에 걸렸다", "Caught on a rock"],
-	"msg.wall_gap": ["담 — 틈으로", "Wall — find the gap"],
-	"msg.wall_high": ["담이 높다 — 공중에서 놓기", "High wall — drop from above"],
-	"msg.picked": ["들었다 → {target}", "Picked up → {target}"],
-	"msg.missed_drop": ["빗나갔다 — 다시 줍기", "Missed — pick it up again"],
-	"msg.glass_broken": ["깨졌다… {src}에서 다시 받기", "Broken... get another at {src}"],
-	"msg.rose_smiles": ["장미가 환하게 웃는다", "The rose smiles brightly"],
-	"msg.next": ["다음: {planet}", "Next: {planet}"],
-	"hud.next_hint": ["다음: {planet} (노란 빛기둥). 달려 점프! 초록 점선이면 닿아.", "Next: {planet} (yellow pillar). Run and jump! Green dots will reach."],
-	"die.fire": ["뜨거운 불 별에 닿았다", "Touched the burning star"],
-	"die.rocks": ["빨간 지뢰 울타리에 부딪혔다", "Hit the red mine fence"],
-	"die.drift": ["깊은 우주로 떠내려갔다", "Drifted into deep space"],
-	"die.meteor": ["떨어지는 운석에 맞았다", "Struck by a falling meteor"],
-	"react.first_liftoff": ["별을 떠나 날아오른다", "Leaving gravity behind..."],
-	"react.first_landing": ["새로운 별에 내려앉았다", "Stepped onto a new world"],
-	"react.slingshot": ["별의 곁을 스쳐 가속한다", "Whipping past the planet"],
-	"react.orbit_landing": ["궤도를 돌아 살포시 앉았다", "A gentle orbit touchdown"],
-	"react.flower_cracked": ["금이 갔다… 더 살살 앉자", "Cracked... land gentler!"],
-	"react.flower_broken": ["깨져 버렸다… 다시 가자", "Shattered... start again"],
-	"react.drift_warning": ["멀어진다… 돛으로 돌리자!", "Drifting! Turn with sail!"],
-	"react.die_fire": ["스치기만 하고 닿지 말자", "Skim beside, do not touch!"],
-	"react.die_rocks": ["불 별 쪽으로 돌아가자", "Go around via the fire star!"],
-	"react.die_drift": ["초록 점선을 보고 뛰자", "Jump only on green dots!"],
-	"react.die_meteor": ["빨간 그림자를 미리 피하자", "Step off red shadows early!"],
-	"react.new_planet": ["새 별에 닿아 힘이 난다", "New planet! Life restored"],
-	"ending.1": ["발끝으로 건넌 별마다 다정한 빛이 켜졌다.", "A gentle light now glows on every star I crossed."],
-	"ending.2": ["작고 외롭던 별들이 하늘 한가운데서 서로 웃는다.", "Small, lonely worlds now smile together across the sky."],
-	"ending.3": ["차가운 유리 너머로 전해진 온기가 마음을 데운다.", "Warmth shared through glass softly warms my heart."],
-	"ending.4": ["언젠가 또 바람이 불면, 다시 달려 날아가야지.", "When the wind rises again, I will run and take flight."],
-	"ui.title": ["어린 배달부", "The Little Courier"],
-	"hint.first": ["스틱으로 달리기 · 막대가 차면 점프!", "Hold the stick to run · Jump when the bar fills"],
-	"ui.jump": ["점프", "Jump"],
-	"ui.drop": ["놓기", "Drop"],
-	"ui.sail": ["돛", "Sail"],
-	"banner.intro": ["나는 어린 배달부! 별마다 부탁을 듣고 물건을 배달하자. 할 일은 늘 위에 있어.", "I'm the Little Courier! Help each planet and deliver its packages. Your task is always at the top."],
-	"banner.sail": ["풍차지기의 고마움: 돛! 날 때 '돛' 버튼을 한 번 누르면 스틱 쪽으로 방향을 튼다 (스틱 안 밀면 갈 곳 쪽).", "The Windmill Keeper's thanks: a SAIL! In the air, tap SAIL once to steer toward your stick (no stick = toward your goal)."],
-	"hint.sail": ["지금 '돛'을 누를 수 있다 · 연한 점선이 돛을 쓰면 갈 길", "Tap SAIL to steer · the light dots show where it takes you"],
-	"banner.lost": ["우주 미아! 마지막 별로 돌아가는 중…", "Lost in space — returning…"],
-	"msg.use_sail": ["지금 돛!", "Sail now!"],
-	"msg.use_air": ["한 번 더 점프!", "Jump again!"],
-	"goal.talk": ["{who}에게 말 걸기", "Talk to the {who}"],
-	"goal.wind": ["풍차 깨우기: 땅에 붙어 힘껏 달리기", "Wake the windmill: sprint on the ground"],
-	"goal.pick": ["{planet}에서 {item} 받기", "Pick up the {item} on {planet}"],
-	"goal.deliver": ["{target}에 {item} 배달", "Deliver the {item} to {target}"],
-	"goal.band": ["노을 띠와 같은 빠르기로 달리기", "Run with the orange sunset band"],
-	"item.pkg": ["소포", "parcel"],
-	"item.flower": ["유리꽃", "glass flower"],
-	"item.dome": ["유리 덮개", "glass dome"],
-	"got.pkg": ["소포! {target}에 전해 주자", "Parcel! Deliver it to {target}"],
-	"got.flower": ["유리꽃! 살살 {target}에 전해 주자", "Glass flower! Carry it gently to {target}"],
-	"got.dome": ["유리 덮개! {target}에 씌워 주자", "Glass dome! Bring it to {target}"],
-	# v9 순서 자유 · 할 일 목록
-	"talk.busy": ["들고 있는 {item}부터 배달하고 다시 와 줘!", "Deliver the {item} you're carrying first, then come back!"],
-	"rose.early": ["바람이 차가워… 노을 아이가 유리 덮개를 갖고 있대. 노을의 별에 가 봐.", "It's cold... The Sunset Child has a glass dome. Try Sunset Planet."],
-	"p4.keep": ["고마워! 유리 덮개는 내가 맡아 둘게. 손이 비면 받으러 와!", "Thank you! I'll keep the glass dome here. Come back when your hands are free!"],
-	"p5.thanks_more": ["…따뜻해. 고마워. 다른 별들도 네 빠른 발을 기다리고 있어.", "...Warm now. Thank you. The other planets are waiting for your fast feet too."],
-	"msg.all_done": ["모든 부탁을 마쳤다!", "Every request is done!"],
-	"msg.drift_warn_ns": ["우주로 떠내려간다!", "Drifting away!"],
-	"react.drift_warning_ns": ["멀어진다… 초록 점선에서 뛰자", "Drifting... jump on green dots!"],
-	"todo.p1": ["풍차 깨우기: 땅에 붙어 힘껏 달리기", "Wake the windmill: sprint on the ground"],
-	"todo.p2": ["소포를 굴뚝 달 집에 공중에서 놓기", "Drop the parcel onto the Chimney Moon house"],
-	"todo.p3": ["유리꽃을 친구 달에 살살 전하기", "Carry the glass flower gently to Friend Moon"],
-	"todo.p4": ["주황 노을 띠와 같은 빠르기로 달리기", "Run at the orange sunset band's speed"],
-	"todo.p5": ["유리 덮개를 장미에게 씌우기", "Put the glass dome over the rose"],
-	"todo.p5_wait": ["유리 덮개가 필요해 (노을 아이가 줌)", "Needs a glass dome (from the Sunset Child)"],
-	"howto": ["별 여러 개가 한 하늘에 떠 있다. 왼쪽 스틱으로 달린다(밀수록 빠름). 빨리 달리면 발이 뜬다.\n아주 빨리 달려 점프하면 중력을 벗어난다. 다른 별에 끌려 돌다 내리고, 빗나가면 떠내려간다.\n발 앞 점선: 지금 뛰면 갈 길(초록 도달, 빨강 위험). 위 막대 초록이면 점프 가능. 노란 빛기둥이 갈 곳.\n날다 점프: 돛으로 스틱 쪽 방향 전환. '놓기'는 발밑 노란 점에. 유리는 세게 내리면 깨짐. 목숨 3(새 별서 회복).", "Tiny planets share one sky. Run with left stick (push more for speed); fast running lifts feet.\nSprint and jump to escape gravity and fly. Nearby planets pull you into orbit; miss and you drift off.\nDotted line shows path (green reaches, red is danger). Green top bar = escape ready. Yellow pillar is goal.\nJump mid-flight to turn toward stick with sail. 'Drop' lands on yellow dot. Glass breaks if slammed. 3 lives (refill on new planet)."],
-}

@@ -143,6 +143,29 @@ const TEXT := {
 	"die.meteor": ["떨어지는 운석에 맞았다", "Hit by a falling meteor"],  # 운석에 맞음 | -
 	"react.die_meteor": ["빨간 그림자를 미리 피하자", "Move off red shadows early"],  # 위 바로 뒤 | 나
 
+	# ---- 도움 힌트 (v10, 아래 말풍선. 못 할 때만 나온다. 1 = 처음, 2 = 계속 못 할 때 더 자세히 + 그림·도와주기) ----
+	"help.idle1": ["스틱을 밀어 달려 봐", "Push the stick to run"],  # 거의 안 달려 본 채 8초 가만히 | -
+	"help.idle2": ["왼쪽 아래 스틱을 손가락으로 밀어 봐", "Drag the stick at the bottom left with your finger"],  # 또 그럴 때 (스틱 자리에 손가락 그림 깜빡) | -
+	"help.lift1": ["스틱을 끝까지 밀어 더 빨리 달려", "Push the stick all the way to run faster"],  # 달리는데 이륙선 60%를 못 넘은 채 20초 | -
+	"help.lift2": ["끝까지 밀고 계속 달려. 위 막대가 끝까지 차오르게", "Keep it pushed and keep running. Fill the bar at the top"],  # 또 그럴 때 (위 막대 둘레 깜빡) | -
+	"help.jump1": ["위 막대가 초록일 때 점프하면 별을 떠나", "Jump when the top bar is green to leave the planet"],  # 갈 곳이 다른 별인데 뛰어도 4번(또는 30초) 못 떠남 | -
+	"help.jump2": ["지금은 막대가 금방 초록이 돼. 힘껏 달리다 점프!", "The bar turns green sooner for now. Sprint, then jump!"],  # 또 그럴 때 (25초 동안 떠나기 도와주기 더 너그럽게) | -
+	"help.lost1": ["점선이 초록일 때 뛰면 다른 별에 닿아", "Jump when the dots are green to reach another planet"],  # 우주 미아(끌려 돌아옴·떠내려감) 2번 | -
+	"help.lost2": ["잠깐 별들이 더 세게 끌어 줘. 초록 점선을 보고 뛰어!", "Planets pull harder for a while. Jump on green dots!"],  # 또 그럴 때 (25초 동안 끌어주기 세게) | -
+	"help.goal1": ["어디로 갈지 모르겠으면 왼쪽 위 할 일 목록을 눌러 봐 · 노란 화살표를 따라가", "Lost? Tap the to-do list at the top left · follow the yellow arrow"],  # 갈 곳 별에 90초 못 감 (할 일 버튼 숨쉼·화살표 크게) | -
+	"help.goal2": ["노란 빛기둥이 서 있는 별로 가면 돼", "Head for the planet with the yellow light pillar"],  # 또 그럴 때 (빛기둥 더 크고 밝게) | -
+	"help.glass1": ["곧장 꽂지 말고 빙 돌다 살살 내려앉아", "Don't dive in. Circle around and land softly"],  # 유리 금·깨짐 2번 | -
+	"help.glass2": ["잠깐 내려앉기가 더 부드러워져. 빙 돌며 천천히", "Landings are gentler for a while. Circle and go slow"],  # 또 그럴 때 (25초 동안 내려가는 빠르기 한도 낮춤) | -
+	"help.band1": ["띠와 같은 빠르기로! 얼음이라 스틱은 살살", "Match the band's speed! It's icy, so ease the stick"],  # 노을 띠를 3번 놓침 | -
+	"help.band2": ["잠깐 띠가 느려졌어. 띠 위에 머물러 봐", "The band is slower for a while. Stay on it"],  # 또 그럴 때 (25초 동안 띠 느리게) | -
+	"help.fire1": ["불 별 옆을 스치면 휘어서 장미의 별로 돌아가", "Skim past the Fire Star to curve around to Rose Planet"],  # 불 별·지뢰 울타리에 2번 죽음 | -
+	"help.fire2": ["노을의 별에 초록 점선 길을 보여 줄게. 그 길 쪽으로 힘껏 달려 점프", "Green dots on Sunset Planet show a curving path. Sprint that way and jump"],  # 또 그럴 때 (40초 동안 새총 길 점선) | -
+	"help.fire2b": ["잠깐 땅에서도 점선이 보여. 초록이 될 때 점프", "For a while you can see the dots on the ground. Jump when they turn green"],  # 위와 같은데 길을 못 찾았을 때 (땅 점선을 늘 보임) | -
+	"help.sail1": ["빗나갈 것 같으면 날 때 '돛' 버튼!", "About to miss? Tap 'Sail' in flight!"],  # 돛을 받고도 안 쓰고 빗나간 비행 3번 | -
+	"help.sail2": ["연한 점선이 초록이면 지금 '돛'을 눌러", "When the faint dots turn green, tap 'Sail' now"],  # 또 그럴 때 (돛 버튼 크게 깜빡) | -
+	"help.drop1": ["굴뚝 위를 지날 때 '놓기'", "Tap 'Drop' as you pass over the chimney"],  # 소포를 들고 굴뚝 달 근처 40초 | -
+	"help.drop2": ["발밑 노란 점이 굴뚝에 겹칠 때 '놓기'", "Tap 'Drop' when the yellow dot below you is on the chimney"],  # 또 그럴 때 (떨어질 자리 노란 점 크게) | -
+
 	# ---- 엔딩·끝 화면 ----
 	"msg.all_done": ["모든 부탁을 마쳤다!", "All requests done!"],  # 마지막 부탁이 장미가 아닐 때 알림 | -
 	"ending.1": ["발끝으로 건넌 별마다 다정한 빛이 켜졌다.", "A gentle light came on at every planet I crossed."],  # 모든 부탁 뒤 혼잣말 1 | 나

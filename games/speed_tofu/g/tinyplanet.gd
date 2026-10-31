@@ -676,6 +676,7 @@ func _reset() -> void:
 	sim_cd = 0
 	sim_show = false
 	_dot_tmp.resize(ND)
+	_help_reset()
 	sail_open = 0.0
 	sail_used = false
 	sail_hinted = false
@@ -1143,7 +1144,7 @@ func _assist(w: Vector3, v: Vector3, dm: int, src: int, h: float) -> Vector3:
 			if vr > -2.0:
 				vr -= CAP_R * k * h
 			if r < batm[dm]:
-				vr = maxf(vr, -LAND_VMAX)
+				vr = maxf(vr, -LAND_VMAX * (1.0 - 0.5 * as_vmax))  # v10 as_vmax: 유리 도움 (2.75 밑이면 금이 안 간다)
 			return tanv + up * vr
 	var vh := v / spd
 	var free := _is_free(w, spd, dm)
@@ -1187,7 +1188,7 @@ func _assist(w: Vector3, v: Vector3, dm: int, src: int, h: float) -> Vector3:
 	if best >= 0:
 		var ml := bmv.length()
 		if ml > br[best] * 0.5:
-			v += bmv / ml * (HOME_A * clampf((1.0 - bm) * 2.0, 0.0, 1.0) * h)
+			v += bmv / ml * (HOME_A * (1.0 + 1.2 * as_home) * clampf((1.0 - bm) * 2.0, 0.0, 1.0) * h)  # v10 as_home: 도움 힌트 끌어주기
 			v = v.normalized() * spd
 	return v
 
@@ -1298,7 +1299,7 @@ var fly_adv := 0.0  # 이번 프레임 날기에 쓴 시간 (_play 가 넣는다
 func _dots_update(up: Vector3, lift: float) -> void:
 	var show := false
 	if die_t <= 0.0 and fin_t <= 0.0 and tow_t <= 0.0:
-		show = (grounded and vel.length() > lift * 0.6) or not grounded
+		show = (grounded and (vel.length() > lift * 0.6 or (as_sling > 0.0 and item == "dome"))) or not grounded  # v10: 새총 도움 중엔 땅 점선을 늘
 	if not show:
 		_dots_off()
 		return
@@ -1524,6 +1525,7 @@ func todo_icon(c: CanvasItem, o: Vector2, s: float, kind: String) -> void:
 
 ## 두 도우미에게 같은 일을 알린다
 func _emit(nm: String, d := {}) -> void:
+	_help_ev(nm, d)
 	if ui:
 		ui.event(nm, d)
 	if fx:
@@ -1575,6 +1577,7 @@ func _play(dt: float) -> void:
 	_vis(dt)
 	_dbg_add("vis+posty", t0)
 	_sail_btn(dt)
+	_help_tick(dt)
 	if fin_t > 0.0:
 		fin_t -= dt
 		_tick(dt, p.normalized(), 0.0)
@@ -1728,7 +1731,7 @@ func _jump_v(up: Vector3, v: Vector3) -> Vector3:
 
 ## 탈출선의 몇 %면 떠날 수 있게 도와주나: 첫 부탁 둘(풍차·우편)은 70%, 그 뒤 80% (v6 82/92 → v7 더 너그럽게)
 func _esc_need() -> float:
-	return 0.70 if _ndone() <= 1 else 0.80  # v9: 끝낸 부탁 수로 (순서 자유)
+	return (0.70 if _ndone() <= 1 else 0.80) - 0.12 * as_esc  # v9: 끝낸 부탁 수로 (순서 자유). v10 as_esc: 도움 힌트 떠나기 도와주기
 
 
 ## 날기: 모든 별이 끈다. 대기에서 내려가면 빙 돌다 내려앉는다. 죽으면 true.
@@ -2077,7 +2080,8 @@ func _items(dt: float, up: Vector3) -> void:
 	# 들고 날면 떨어질 자리를 보여 준다
 	mark_b.visible = item != "" and not grounded
 	if mark_b.visible:
-		_orient(mark_b, up * (_sr(cur, up) + 0.2), up, Vector3(1.0, 0.15, 1.0))
+		var km := 1.0 + 1.2 * _cue("mark")  # v10 도움 힌트: 떨어질 자리 크게
+		_orient(mark_b, up * (_sr(cur, up) + 0.2), up, Vector3(km, 0.15, km))
 
 
 func _drop_btn(on: bool) -> void:
@@ -2250,7 +2254,7 @@ func _tick(dt: float, up: Vector3, lf: float) -> void:
 	# 노을 띠: 적도를 이륙선의 80%(후반 90%) 빠르기로 돈다 (v9: 노을의 별 위에 있을 때만 움직인다)
 	var r3 := br[3]
 	if js[3] == 1 and cur == 3:
-		band_a += (0.8 if bprog < 0.5 else 0.9) * sqrt((bg[3] - 0.8) * r3) / r3 * dt
+		band_a += (0.8 if bprog < 0.5 else 0.9) * (1.0 - 0.3 * as_band) * sqrt((bg[3] - 0.8) * r3) / r3 * dt
 	var inb := false
 	if cur == 3 and grounded:
 		var lon := atan2(-up.z, up.x)
@@ -2268,6 +2272,7 @@ func _tick(dt: float, up: Vector3, lf: float) -> void:
 		for bb in band_bs:
 			bb.material_override = _pm(D if inb else A)
 	if js[3] == 1 and cur == 3:
+		_help_band(inb, dt)
 		bprog = clampf(bprog + (dt / 14.0 if inb else -0.04 * dt), 0.0, 1.0)
 		if inb:
 			wind_t -= dt
@@ -2283,8 +2288,13 @@ func _tick(dt: float, up: Vector3, lf: float) -> void:
 	# 갈 곳 빛기둥 (다른 별 위에서도 보이게 길게)
 	_obj()
 	beacon.visible = ob_k >= 0 and fin_t <= 0.0
+	var kb := _cue("beacon")  # v10 도움 힌트: 빛기둥 더 크고 밝게
 	if beacon.visible:
-		_orient(beacon, bc[ob_k] + ob_d * (br[ob_k] + 7.0), ob_d, Vector3(0.6, 14.0, 0.6))
+		var bw := 0.6 * (1.0 + kb * (1.3 + 0.3 * sin(clock * 5.0)))
+		_orient(beacon, bc[ob_k] + ob_d * (br[ob_k] + 7.0 + 3.0 * kb), ob_d, Vector3(bw, 14.0 + 6.0 * kb, bw))
+	if (kb > 0.0) != _beacon_lit:
+		_beacon_lit = kb > 0.0
+		beacon.material_override = _pm(Color("fff0a6") if _beacon_lit else D)
 
 
 ## 갈 곳: ob_k(별 번호, 없으면 -1)·ob_d(방향). v6: 매 프레임 새 배열을 만들지 않게 멤버에 쓴다
@@ -2610,6 +2620,7 @@ func _lost_check(dt: float) -> void:
 
 
 func _tow_start() -> void:
+	_help_ev("tow", {})  # v10: 우주 미아 셈 (airjump 가 이번 비행 그대로일 때)
 	tow_t = TOW_T
 	lost_t = 0.0
 	tip_t = 0.0
@@ -2660,6 +2671,8 @@ func _sail_btn(_dt: float) -> void:
 			_btns["sail"].r = 1.0
 	if want and not sail_used and _btns.has("sail"):
 		_btns["sail"].r = 72.0 + 9.0 * (0.5 + 0.5 * sin(clock * 7.0))
+	if want and _btns.has("sail") and hcue.has("sail"):
+		_btns["sail"].r = 72.0 + 26.0 * (0.5 + 0.5 * sin(clock * 9.0)) * _cue("sail")  # v10 도움 힌트: 돛 버튼 크게 깜빡
 
 
 # ---- v7: 할 일 칩 · 알림판 · 갈 곳 화살표 ----
@@ -2875,9 +2888,11 @@ func _arrow_update() -> void:
 			_arrow_p = c + dn * t
 			_arrow_d = dn
 			on = true
-	if on or _arrow_on:
+	var hd := hcue.has("stick") or hcue.has("gauge")  # v10 도움 그림도 같은 판에 그린다
+	if on or _arrow_on or hd or _help_drew:
 		arrow.queue_redraw()
 	_arrow_on = on
+	_help_drew = hd
 
 
 ## 카메라에서 tp 까지가 발밑 별이나 갈 곳 별에 가리나
@@ -2897,10 +2912,14 @@ func _occ1(o: Vector3, d: Vector3, ln: float, k: int) -> bool:
 
 
 func _arrow_draw() -> void:
+	_help_draw()
 	if not _arrow_on:
 		return
 	var o := _arrow_p
 	var d := _arrow_d
+	var ka := 1.0 + 0.45 * _cue("arrow")  # v10 도움 힌트: 화살표 크게
+	if ka > 1.0:
+		arrow.draw_set_transform(o * (1.0 - ka), 0.0, Vector2(ka, ka))
 	var n := Vector2(-d.y, d.x)
 	var pulse := 1.0 + 0.08 * sin(clock * 6.0)
 	_tri3[0] = o + d * 50.0 * pulse
@@ -2915,6 +2934,8 @@ func _arrow_draw() -> void:
 	arrow.draw_circle(o, 30.0, NAVY)
 	arrow.draw_circle(o, 26.0, Color("ffd166"))
 	_icon(arrow, o, 0.85, _chip_icon)
+	if ka > 1.0:
+		arrow.draw_set_transform(Vector2.ZERO)
 
 
 # ---- v5 겉모습: 움직임 ----
@@ -4285,7 +4306,7 @@ func _dbg_build() -> void:
 	var bg := ColorRect.new()
 	bg.color = Color(0, 0, 0, 0.55)
 	bg.position = Vector2(4, 104)
-	bg.size = Vector2(470, 470)
+	bg.size = Vector2(470, 530)  # v10: 도움 힌트 셈 두 줄
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	cl.add_child(bg)
 	_dbg = Label.new()
@@ -4474,6 +4495,7 @@ func _dbg_frame(_dt: float) -> void:
 	for nm: String in ["game._process", "step", "hud", "vis+posty", "tick", "sim", "ui.tick", "fx.tick", "fx.clouds", "fx.overlay", "ui._process"]:
 		t += "%-12s %6d  %6d
 " % [nm, int(_dbg_sum.get(nm, 0)) / n, int(_dbg_max.get(nm, 0))]
+	t += _help_dbg()
 	_dbg_txt = t
 	_dbg.text = t
 	if OS.has_feature("web"):
@@ -4586,6 +4608,350 @@ func _count_in(n: Node, c: Array) -> void:
 				if gi.is_visible_in_tree():
 					c[3] += dr
 		_count_in(ch, c)
+
+# ---- v10 도움 힌트 (submit/tinyplanet/HELP_HINTS.md) ----
+## 못 하는 것을 셈하다 문턱을 넘으면 아래 말풍선에 짧은 글 하나 (잘하는 사람은 문턱에 안 닿는다).
+## 같은 힌트: 1번째 뒤 다시 문턱이 차면(최소 HELP_GAP 뒤) 2번째 = 더 자세한 글 + 그림·도와주기, 그 뒤로는 HELP_CD 쉰다 (판마다 새로).
+## 쉬는 중에 문턱이 차면 셈만 0으로 (다시 처음부터 쌓여야 나온다). 서로 다른 힌트 사이도 HELP_ANY 쉰다. 말풍선이 떠 있으면 기다린다.
+## 도와주기·그림은 정해진 시간 뒤 마지막 6초에 걸쳐 원래로 돌아온다. 다시 걸리면 시간만 다시 채운다 (쌓이지 않는다).
+const HELP_GAP := 20.0
+const HELP_CD := 150.0
+const HELP_ANY := 10.0
+const ASSIST_T := 25.0
+var hl_lv := {}  # 힌트 이름 -> 알려 준 단계 (1, 2)
+var hl_next := {}  # 힌트 이름 -> 다시 알려도 되는 clock
+var hl_any := 0.0
+var hcue := {}  # 그림·도와주기 이름 -> 남은 초: stick gauge arrow todo beacon sail mark / esc home vmax band sling
+var h_idle := 0.0  # 1 안 움직인 시간 (이번 판 거의 안 달려 본 사람만)
+var h_run := 0.0  # 이번 판 땅에서 달린 거리
+var h_nolift := 0.0  # 2 미는데 이륙선 60% 밑인 시간 (60% 넘으면 0)
+var h_jumps := 0  # 3 갈 곳이 다른 별인데 뛰어서 제 별로 돌아온 수 (다른 별에 닿거나 탈출하면 0)
+var h_stay := 0.0  # 3 첫 실패 뒤 흐른 시간
+var h_lost := 0  # 4 우주 미아 (끌려 돌아옴·떠내려가 죽음) 수 (다른 별에 닿으면 0)
+var h_goal := 0.0  # 5 갈 곳 별에 못 간 시간 (그 별에 서면 0)
+var h_crack := 0  # 6 유리 금·깨짐 수 (유리 배달하면 0)
+var h_band := 0  # 7 노을 띠 놓친 수 (띠 부탁 끝나면 0)
+var h_band_in := false
+var h_band_out := 0.0
+var h_fire := 0  # 8 불 별·지뢰 울타리 죽음 수 (덮개 배달하면 0)
+var h_sailmiss := 0  # 9 돛이 있는데 안 쓰고 빗나간 비행 수 (돛을 쓰면 0)
+var h_drop := 0.0  # 10 소포를 들고 굴뚝 달 근처에 있은 시간 (배달하면 0)
+var h_sling := PackedVector3Array()  # 새총 길 미리 보기 점 (노을의 별 → 장미의 별)
+var help_mm: MultiMesh
+var as_esc := 0.0  # 도와주기 세기 0..1 (_help_tick 이 매 프레임 한 번 고친다 — 비행 계산이 사전을 안 읽게)
+var as_home := 0.0
+var as_vmax := 0.0
+var as_band := 0.0
+var as_sling := 0.0
+var _beacon_lit := false
+var _help_drew := false
+var _nudged := false
+
+
+func _help_reset() -> void:
+	hl_lv.clear()
+	hl_next.clear()
+	hcue.clear()
+	hl_any = 0.0
+	h_idle = 0.0
+	h_run = 0.0
+	h_nolift = 0.0
+	h_jumps = 0
+	h_stay = 0.0
+	h_lost = 0
+	h_goal = 0.0
+	h_crack = 0
+	h_band = 0
+	h_band_in = false
+	h_band_out = 0.0
+	h_fire = 0
+	h_sailmiss = 0
+	h_drop = 0.0
+	h_sling.clear()
+	as_esc = 0.0
+	as_home = 0.0
+	as_vmax = 0.0
+	as_band = 0.0
+	as_sling = 0.0
+	_beacon_lit = false
+	_help_drew = false
+	_nudged = false
+	if ui:
+		ui.todo_nudge(false)
+	help_mm = MultiMesh.new()
+	help_mm.transform_format = MultiMesh.TRANSFORM_3D
+	help_mm.use_colors = true
+	help_mm.mesh = _dots_mesh()
+	help_mm.instance_count = ND
+	help_mm.visible_instance_count = 0
+	var hmi := MultiMeshInstance3D.new()
+	hmi.multimesh = help_mm
+	hmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	world.add_child(hmi)
+
+
+## 그림·도와주기 세기 0..1 (마지막 6초에 걸쳐 0으로)
+func _cue(nm: String) -> float:
+	return clampf(float(hcue.get(nm, 0.0)) / 6.0, 0.0, 1.0)
+
+
+func _cue_on(nm: String, t: float) -> void:
+	hcue[nm] = maxf(float(hcue.get(nm, 0.0)), t)
+
+
+## 힌트 하나: 쉬는 중이면 0, 아니면 이번 단계(1·2) 글을 아래 말풍선에 내고 단계를 돌려준다. alt2 = 2단계에 쓸 다른 키
+func _help(id: String, alt2 := "") -> int:
+	if clock < float(hl_next.get(id, -1.0)):
+		return 0
+	var lv := mini(int(hl_lv.get(id, 0)) + 1, 2)
+	hl_lv[id] = lv
+	hl_next[id] = clock + (HELP_GAP if lv == 1 else HELP_CD)
+	hl_any = clock + HELP_ANY
+	_say("", _tx(alt2 if lv == 2 and alt2 != "" else "help.%s%d" % [id, lv]), 4.2)
+	return lv
+
+
+## 일이 일어날 때 (_emit 이 먼저 부른다): 실패를 세고, 성공이면 그 셈을 0으로
+func _help_ev(nm: String, d: Dictionary) -> void:
+	match nm:
+		"escape":
+			h_jumps = 0
+			h_stay = 0.0
+		"land":
+			if cur != from_b:
+				h_jumps = 0
+				h_stay = 0.0
+				h_lost = 0
+				h_nolift = 0.0
+			elif ob_k >= 0 and ob_k != cur:
+				if fly_t < 4.0:
+					h_jumps += 1  # 뛰었는데 제 별로 돌아왔다
+				elif has_sail and not airjump:
+					h_sailmiss += 1  # 오래 날다 제 별로 (돛을 안 씀)
+		"tow":
+			h_lost += 1
+			if has_sail and not airjump:
+				h_sailmiss += 1
+		"die":
+			var why := str(d.get("why", ""))
+			if why == "fire" or why == "rocks":
+				h_fire += 1
+			elif why == "drift":
+				h_lost += 1
+				if has_sail and not airjump:
+					h_sailmiss += 1
+		"crack", "shatter":
+			h_crack += 1
+		"sail":
+			h_sailmiss = 0
+		"deliver":
+			var j := int(d.get("job", -1))
+			if j == 1:
+				h_drop = 0.0
+				hcue.erase("mark")
+			elif j == 2 or j == 4:
+				h_crack = 0
+		"job_done":
+			var j2 := int(d.get("job", -1))
+			if j2 == 3:
+				h_band = 0
+				hcue.erase("band")
+			elif j2 == 4:
+				h_fire = 0
+				hcue.erase("sling")
+
+
+## 노을 띠 놓침: 띠 위에 있다가 1.5초 넘게 벗어나면 한 번 (가장자리에서 들락날락은 안 센다)
+func _help_band(inb: bool, dt: float) -> void:
+	if inb:
+		h_band_in = true
+		h_band_out = 0.0
+	elif h_band_in:
+		h_band_out += dt
+		if h_band_out > 1.5:
+			h_band_in = false
+			h_band += 1
+
+
+## 매 프레임 (_play): 그림·도와주기 시간 줄이기, 셈, 문턱 넘은 힌트 하나
+func _help_tick(dt: float) -> void:
+	if not hcue.is_empty():
+		for nm: String in hcue.keys():
+			var left := float(hcue[nm]) - dt
+			if left <= 0.0:
+				hcue.erase(nm)
+			else:
+				hcue[nm] = left
+	as_esc = _cue("esc")
+	as_home = _cue("home")
+	as_vmax = _cue("vmax")
+	as_band = _cue("band")
+	as_sling = _cue("sling")
+	var hn := h_sling.size() if as_sling > 0.0 else 0
+	if help_mm and help_mm.visible_instance_count != hn:
+		if hn > 0:
+			_dots_fill(help_mm, h_sling, GOOD, DOT_SC)
+		else:
+			help_mm.visible_instance_count = 0
+	var tn := hcue.has("todo")
+	if tn != _nudged:
+		_nudged = tn
+		ui.todo_nudge(tn)
+	if die_t > 0.0 or fin_t > 0.0 or tow_t > 0.0 or won:
+		return
+	# ---- 셈 ----
+	var spd := vel.length()
+	if grounded:
+		h_run += spd * dt
+		var lf := sqrt(maxf(gp + float(P.grip), 0.5) * R)
+		var push := kit_move.length() > 0.05
+		if push:
+			h_idle = 0.0
+		elif spd < 0.5 and h_run < 60.0 and bub_t <= 0.0 and bub_q.is_empty():
+			h_idle += dt
+		if spd >= lf * 0.6:
+			h_nolift = 0.0
+		elif push:
+			h_nolift += dt
+		if h_jumps > 0 and ob_k >= 0 and ob_k != cur:
+			h_stay += dt
+	if ob_k >= 0 and ob_k != cur:
+		h_goal += dt
+	elif ob_k == cur:
+		h_goal = 0.0
+	if item == "pkg" and (bc[cur] + p).distance_to(bc[5]) < br[5] + 12.0:
+		h_drop += dt
+	# ---- 힌트 (말풍선이 비고, 다른 힌트 뒤 쉬는 시간이 끝났을 때 하나만) ----
+	if bub_t > 0.3 or not bub_q.is_empty() or clock < hl_any:
+		return
+	var lv := 0
+	if h_idle >= 8.0:
+		h_idle = 0.0
+		lv = _help("idle")
+		if lv == 2:
+			_cue_on("stick", 8.0)
+		if lv > 0:
+			return
+	if h_nolift >= 20.0:
+		h_nolift = 0.0
+		lv = _help("lift")
+		if lv == 2:
+			_cue_on("gauge", 8.0)
+		if lv > 0:
+			return
+	if grounded and (h_jumps >= 4 or (h_jumps >= 1 and h_stay >= 30.0)):
+		h_jumps = 0
+		h_stay = 0.0
+		lv = _help("jump")
+		if lv == 2:
+			_cue_on("esc", ASSIST_T)
+			_cue_on("gauge", 6.0)
+		if lv > 0:
+			return
+	if grounded and has_sail and h_sailmiss >= 3:
+		h_sailmiss = 0
+		lv = _help("sail")
+		if lv == 2:
+			_cue_on("sail", 30.0)
+		if lv > 0:
+			return
+	if grounded and h_lost >= 2:
+		h_lost = 0
+		lv = _help("lost")
+		if lv == 2:
+			_cue_on("home", ASSIST_T)
+		if lv > 0:
+			return
+	if h_crack >= 2:
+		h_crack = 0
+		lv = _help("glass")
+		if lv == 2:
+			_cue_on("vmax", ASSIST_T)
+		if lv > 0:
+			return
+	if h_band >= 3:
+		h_band = 0
+		lv = _help("band")
+		if lv == 2:
+			_cue_on("band", ASSIST_T)
+		if lv > 0:
+			return
+	if grounded and h_fire >= 2:
+		h_fire = 0
+		var alt := ""
+		if int(hl_lv.get("fire", 0)) >= 1 and clock >= float(hl_next.get("fire", -1.0)):
+			_help_sling()
+			if h_sling.is_empty():
+				alt = "help.fire2b"
+		lv = _help("fire", alt)
+		if lv == 2:
+			_cue_on("sling", 40.0)
+		if lv > 0:
+			return
+	if h_drop >= 40.0:
+		h_drop = 0.0
+		lv = _help("drop")
+		if lv == 2:
+			_cue_on("mark", 30.0)
+		if lv > 0:
+			return
+	if h_goal >= 90.0:
+		h_goal = 0.0
+		lv = _help("goal")
+		if lv == 1:
+			_cue_on("arrow", 20.0)
+			_cue_on("todo", 20.0)
+		elif lv == 2:
+			_cue_on("beacon", 30.0)
+			_cue_on("arrow", 20.0)
+
+
+## 새총 길: 노을의 별(3) 적도에서 힘껏 달려 뛰면 장미의 별(4)에 닿는 길 하나를 찾는다 (_lane 과 같은 방법, 없으면 빈 채로)
+func _help_sling() -> void:
+	h_sling.clear()
+	var lift := sqrt(maxf(bg[3] + float(BD[3].grip), 0.5) * br[3])
+	var pts := PackedVector3Array()
+	for sg: float in [1.0, -1.0]:
+		for i in 48:
+			var a := TAU * i / 48.0
+			var d := Vector3(cos(a), 0, -sin(a))
+			var tg := Vector3(-sin(a), 0, -cos(a)) * sg
+			if _sim(bc[3] + d * (br[3] + 0.1), tg * lift * 0.96 + d * JUMP, 3, 0.0, 9.0, 1.0 / 20.0, pts) == 4:
+				h_sling = pts.duplicate()
+				return
+
+
+## 도움 그림 (갈 곳 화살표 판에 같이 그린다): 스틱 자리에서 위로 미는 손가락, 위 막대 둘레 깜빡 + 끝을 가리키는 삼각형
+func _help_draw() -> void:
+	var ks := _cue("stick")
+	if ks > 0.0:
+		var ph := fposmod(clock, 1.2) / 1.2
+		if ph < 0.85:
+			var o: Vector2 = _st_home + Vector2(0.0, -70.0 * smoothstep(0.0, 0.6, ph))
+			var al := clampf(ks * 2.0, 0.0, 1.0)
+			arrow.draw_rect(Rect2(o + Vector2(-26, 0), Vector2(52, 120)), Color(NAVY, al))
+			arrow.draw_circle(o, 26.0, Color(NAVY, al))
+			arrow.draw_rect(Rect2(o + Vector2(-20, 0), Vector2(40, 114)), Color(CREAM, al))
+			arrow.draw_circle(o, 20.0, Color(CREAM, al))
+			arrow.draw_circle(o + Vector2(0, -6), 8.0, Color(Color("ffd166"), al))
+	var kg := _cue("gauge")
+	if kg > 0.0 and fposmod(clock, 0.8) < 0.5:
+		var rc := Rect2(60, 190, 600, 40).grow(10.0)
+		arrow.draw_rect(rc.grow(3.0), NAVY, false, 3.0)
+		arrow.draw_rect(rc, Color("ffd166"), false, 6.0)
+		_tri3[0] = Vector2(676, 210)
+		_tri3[1] = Vector2(708, 188)
+		_tri3[2] = Vector2(708, 232)
+		arrow.draw_colored_polygon(_tri3, NAVY)
+
+
+## ?debug=1 표 아래: 도움 힌트 셈
+func _help_dbg() -> String:
+	var s := "help idle %.0f lift %.0f jump %d/%.0f lost %d goal %.0f\n" % [h_idle, h_nolift, h_jumps, h_stay, h_lost, h_goal]
+	s += "  glass %d band %d fire %d sail %d drop %.0f\n" % [h_crack, h_band, h_fire, h_sailmiss, h_drop]
+	s += "  lv %s cue %s\n" % [str(hl_lv), str(hcue.keys())]
+	return s
+
 
 # ---- 말 (모든 글은 g/tinyplanet_text.gd 의 TX.TEXT) ----
 func _tx(key: String, args := {}) -> String:

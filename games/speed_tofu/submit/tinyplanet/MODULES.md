@@ -22,6 +22,7 @@
 ## tinyplanet_ui.gd (시작 화면·언어 전환·끝 화면)
 - `show_title(on_start: Callable)`: 시작 화면. 제목 로고(한/영), 납작한 노란 시작 버튼, 오른쪽 아래 "EN | 한국어" 전환(`game.set_lang(ko)`를 부름, `user://tinyplanet.cfg`에 저장). `title_visible()`, `is_korean()`, `refresh_text()`도 있다.
 - 튜토리얼: **없음(v6에서 뺌).** `tutorial_active()`는 늘 false, `tutorial_step()`은 -1, `start_tutorial/skip_tutorial`은 빈 함수(옛 호출용).
+- v10 도움 힌트: `todo_nudge(on)`(할 일 버튼이 숨쉼, 목록을 열면 멈춤), `todo_seen`(목록을 연 수). 힌트 글·셈은 본체 `_help_*`.
 - 게임오버(목숨 0)·엔딩(finish) 화면: 같은 패널 규칙. 엔딩은 배달한 수, 걸린 시간, 새총 수, 최고 기록, "다시" 버튼.
 - 점수 팝: `event("score")`에서 숫자가 위로 튀어 올라 0.8초에 사라짐(화면 좌표는 `game.cam.unproject_position(d.pos)`).
 - 모든 한국어 글자는 `tr()`로 감싸고, 파일 아래에 `const EN := {"한국어": "English", ...}`를 둔다(본체가 번역 서버에 합친다).

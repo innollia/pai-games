@@ -20,6 +20,7 @@ extends Node
 ##   is_korean() -> bool                    지금 글이 한국어인가.
 ##   refresh_text() -> void                 언어가 바뀐 뒤 내 글자를 다시 쓴다(본체 set_lang 이 불러도 된다. 몇 번 불러도 안전).
 ##   todo_open() -> bool                    v9: 할 일 목록 판이 떠 있나(본체는 이 동안 놀이를 멈춘다).
+##   todo_nudge(on: bool) / todo_seen      v10: 도움 힌트가 할 일 버튼을 숨쉬게 한다 / 목록을 연 수.
 ## 화면 층: 할 일 목록 6, 점수 팝 7, 끝 화면 8(평가 카드 9 아래), 시작 화면 12(맨 위).
 ## 입력: 내 버튼은 _input 에서 먼저 받고 처리했다고 표시한다(조작 키트로 안 샌다). 왼쪽 위 "< 메뉴" 자리는 건드리지 않는다.
 
@@ -1124,6 +1125,17 @@ var _todo_t := 0.0
 var _todo_ic: Array[String] = ["", "", "", "", ""]
 var _todo_st := PackedInt32Array([0, 0, 0, 0, 0])
 var _todo_hk := ""  # 든 물건 그림 이름
+var todo_seen := 0  # v10: 이번 실행에 할 일 목록을 연 수 (본체 도움 힌트가 읽는다)
+var _nudge := false  # v10: 할 일 버튼이 숨쉬나
+
+
+## v10 도움 힌트: 할 일 버튼이 숨쉬듯 커졌다 작아진다 (false 면 원래 크기). 목록을 열면 저절로 멈춘다
+func todo_nudge(on: bool) -> void:
+	if on == _nudge:
+		return
+	_nudge = on
+	if not on and _todo_btn != null:
+		_todo_btn.scale = Vector2.ONE
 
 
 func _build_todo() -> void:
@@ -1244,6 +1256,8 @@ func _todo_show() -> void:
 	if _todo_on:
 		return
 	_todo_on = true
+	todo_seen += 1
+	todo_nudge(false)
 	_todo_fill()
 	_todo_t = 0.0
 	_todo_dim.visible = true
@@ -1281,6 +1295,10 @@ func _todo_tick(ok: bool, n: int) -> void:
 		_todo_btn_l.text = "%d/5" % n
 		if n > 0:
 			squash(_todo_btn)
+	if _nudge and _todo_btn.visible:
+		_todo_btn.pivot_offset = _todo_btn.size * 0.5
+		var s := 1.0 + 0.12 * absf(sin(_clock * 4.0))
+		_todo_btn.scale = Vector2(s, s)
 
 
 # ---- 점수 팝: 숫자가 위로 튀어 올라 0.8초에 사라짐 ----
