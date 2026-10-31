@@ -190,6 +190,8 @@ var vol := 8  # 설정: 소리 0~10
 var vib := 8  # 설정: 진동 0~10
 var lang := "en"  # 설정: 언어 (en 기본, ko)
 var lang_l: Label  # 설정 창 언어 버튼 글
+var lang_btn: ColorRect  # 위 띠 언어 버튼
+var lang_top_l: Label
 var say_en := {}  # 영어판에서 고친 글 (키 -> 글). 없으면 say 를 번역
 static var _tr: Translation  # 영어 번역표 (한 번만 만든다)
 # 한 판
@@ -318,6 +320,7 @@ const BTN_R := 105.0
 const PLAY_R := Rect2(110, 880, 500, 150)
 const TUT_R := Rect2(200, 1050, 320, 80)
 const SET_R := Rect2(586, 118, 124, 68)
+const LANG_R := Rect2(446, 118, 134, 68)  # 위 띠 [설정] 왼쪽 언어 버튼 (설정 창 안 버튼과 같은 일)
 const DEV := "res://g/dev.gd"  # 개발 도구. 출시 때는 이 파일만 지우면 된다
 ## 찌르기 검객 3D 모델 (파이가 보낸 duelist_animated.glb, 10/31): 대기·찌르기 4방향·맞음·쓰러짐 동작이 들어 있다.
 ## 칼은 게임 칼(blade_m, 빨개지는 신호)을 그대로 쓰고 모델의 레이피어는 숨긴다. 상자 몸으로 되돌리려면 DUELIST_ON 을 false 로
@@ -498,6 +501,7 @@ func _apply_text() -> void:
 	skip_l.text = _s("skip")
 	(play_bg.get_child(0) as Label).text = _s("play")
 	tut_again.text = _s("tut_again")
+	lang_top_l.text = "한국어" if lang == "en" else "English"
 	if lobby.visible:
 		_lobby_refresh()
 
@@ -549,7 +553,7 @@ func _lobby_ui() -> void:
 	var top := _panel(lobby, Rect2(0, 110, 720, 84), Color(0.12, 0.08, 0.05, 0.85))
 	top_l = _white(_label(top, 38, 0, 84))
 	top_l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	top_l.size.x = 580  # 오른쪽은 [설정] 자리
+	top_l.size.x = 440  # 오른쪽은 [언어] [설정] 자리
 	for i in TABS.size():
 		var pg := Control.new()
 		pg.size = Vector2(720, 1280)
@@ -619,6 +623,11 @@ func _lobby_ui() -> void:
 	sl2.size.x = SET_R.size.x
 	sl2.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	sl2.text = "설정"
+	lang_btn = _panel(lobby, LANG_R, Color("5a4632"))
+	lang_top_l = _white(_label(lang_btn, 28, 0, LANG_R.size.y))
+	lang_top_l.size.x = LANG_R.size.x
+	lang_top_l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	lang_top_l.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 	set_box = _panel(lobby, Rect2(0, 194, 720, NAV_Y - 194), Color(0.08, 0.05, 0.03, 0.94))
 	set_box.visible = false
 	var st := _white(_label(set_box, 48, 120, 90))
@@ -682,6 +691,7 @@ func _set_refresh() -> void:
 		set_fill[i].size.x = 360.0 * v / 10.0
 		set_val[i].text = "끔" if v == 0 else "%d%%" % (v * 10)
 	lang_l.text = "한국어로 바꾸기" if lang == "en" else "Switch to English"
+	lang_top_l.text = "한국어" if lang == "en" else "English"
 
 
 ## 소리 크기: 전체 소리 길(버스)에 건다
@@ -1854,6 +1864,14 @@ func _lobby_tap(p: Vector2) -> void:
 			return
 		if SET_CLOSE.has_point(p) or set_btn.get_global_rect().has_point(p) or p.y >= NAV_Y:
 			set_box.visible = false
+		return
+	if lang_btn.get_global_rect().has_point(p):
+		_press(lang_btn)
+		lang = "ko" if lang == "en" else "en"
+		_set_lang()
+		_save()
+		_apply_text()
+		_set_refresh()
 		return
 	if set_btn.get_global_rect().has_point(p):
 		_press(set_btn)
