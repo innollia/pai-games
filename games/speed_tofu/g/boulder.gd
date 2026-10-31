@@ -2470,6 +2470,19 @@ func _step(dt: float) -> void:
 			var ram_ok: bool = v >= float(th.kd.get("ram", 999.0))
 			if s_goal >= need or dive_ok or dash_ok or ram_ok:
 				_crush(th, mm, not diving and not dash_ok and not ram_ok)
+			elif th.kd == KIND.roof:
+				# 버티기 없이 지붕에 닿았다: 죽이지 않고 지붕 위로 굴러 넘는다. 기와에 긁혀 크게 느려질 뿐
+				by = maxf(by, th.base + sz.y + 0.02)
+				vy = maxf(vy, 0.0)
+				on_ground = true
+				if not th.has_meta("rode"):
+					th.set_meta("rode", true)
+					v = clampf(v * 0.45, VSTOP + 3.0, maxf(v, VSTOP + 3.0))
+					shake = 0.3
+					sfx("crush_s", -2.0, 0.7)
+					_stamp(tr("드르륵"), 2, _pos(dist + s, bx, by + s), GLYPH, 1.0)
+					msg("기와에 긁혀 느려졌다
+떨어질 때 버티기 = 깨고 가속", 1.4)
 			elif hurt <= 0.0 and bump_t <= 0.0:
 				_bonk(th)
 			elif bool(th.kd.get("soft", false)):
@@ -5425,7 +5438,9 @@ const EN := {
 	"커진다": "Growing", "녹는다": "Melting", "너무 작다": "Too small", "던졌다!": "Thrown!", "깼다!": "Broken!",
 	"닿는다! 던져": "In range! THROW", "%d개 쾅!": "%d smashed!", "쾅 착지!": "Big landing!",
 	"황금 신상 쾅! 가속": "Idol smashed! Speed up", "탑 쾅! 가속": "Tower smashed! Speed up", "커졌다!": "Bigger!",
-	"수정은 던져서!": "THROW at crystals!", "위에서 버티기로 쾅!": "HOLD-slam it from above!",
+	"수정은 던져서!": "THROW at crystals!", "위에서 버티기로 쾅!": "HOLD-slam it from above!", "드르륵": "SCRAPE", "기와에 긁혀 느려졌다
+떨어질 때 버티기 = 깨고 가속": "Scraped over the roof - slowed
+HOLD while falling = smash + speed",
 	"더 커지거나\n직전에 쪼개서 돌진!": "Grow bigger, or\nSPLIT right before to dash!",
 	"더 커져야!": "Need to be bigger!", "쿵!": "Bonk!", "더 못 쪼갠다": "Can't split more",
 	"쪼개서 돌진!": "Split dash!", "막았다!": "Blocked!", "받았다!": "Caught!",
