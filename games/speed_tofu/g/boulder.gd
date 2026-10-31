@@ -217,6 +217,7 @@ var under_route: Array = []  # 지금 떨어진 협곡 구간 [시작, 끝]
 var geysers: Array = []     # [거리, 노드] 끝의 물기둥: 타면 수로 위로 솟는다
 var rising := false         # 물기둥에 실려 올라가는 중
 var updraft: Array = []     # 지하 순풍 길 [시작, 나올 틈 시작, 틈 끝, 바닥 높이, 나올 높이]
+var lava_mats: Array = []  # 용암 물결을 흘린다
 var cave_span: Array = []  # 동굴 맵 [시작, 끝]: 이 안 지하에서는 좌우 벽에 막힌다
 const CAVE_HW := 8.0
 var wind_on := false        # 순풍을 타고 지상으로 오르는 중
@@ -303,7 +304,8 @@ const HZ := ["fff1d6", "eefbea", "fff3d2", "fbf3e6", "fff0f4", "f4fbff", "ffe9cc
 const AIR := {"dust": [Color("fff3d6"), Vector3(0, 0.3, 0), 0.3, 1.0, 0.7, 1.3], "pollen": [Color("f4ffd0"), Vector3(0.8, 0.1, 0), 0.3, 1.0, 0.6, 1.1],
 	"petal": [Color("ffd6ec"), Vector3(1.0, -0.8, 0), 0.5, 1.2, 0.8, 1.4], "snow": [WHITE, Vector3(0.5, -2.8, 0), 0.5, 1.5, 1.0, 1.9],
 	"sand": [Color("ffc98a"), Vector3(5.0, -0.2, 0), 1.0, 3.0, 0.5, 1.0], "spray": [Color("e6fbff"), Vector3(0, -1.5, 0), 0.8, 2.4, 0.6, 1.5],
-	"cave": [Color("ffe39a"), Vector3(0, 0.7, 0), 0.1, 0.5, 0.5, 1.2]}
+	"cave": [Color("ffe39a"), Vector3(0, 0.7, 0), 0.1, 0.5, 0.5, 1.2],
+	"ember": [Color("ffffff"), Vector3(0, 2.6, 0), 0.6, 2.2, 0.6, 1.6]}
 const AIR_OF := {"rock": "dust", "aq": "pollen", "village": "pollen", "cliff": "dust", "plaza": "petal", "snow": "snow", "canyon": "sand", "coast": "spray"}
 
 
@@ -636,6 +638,7 @@ func _reset() -> void:
 	tunnels.clear()
 	updraft = []
 	cave_span = []
+	lava_mats.clear()
 	wind_on = false
 	lanes.clear()
 	floor_cracks.clear()
@@ -1405,13 +1408,8 @@ func _draw_road(o: Dictionary, a: int, b: int, z: Dictionary) -> void:
 			"aq":
 				if q % 15 == 0 and tg == "aq":
 					if int(z.k) == 1 and not tutorial:
-						# 수로 기둥은 동굴 천장 위 바위 들보에 선다: 굴 안까지 내려오면 등뒤 카메라를 가린다
-						var hall := int(floorf((fq - float(z.start)) / CAVE_SEC)) % 2 == 0
-						var roof_y := h - DEEP + (22.0 if hall else 13.0) + 3.0
-						_column(o, fq, 0.0, h - 1.2, 1.6, WHITE, nd, h - roof_y)
-						var beam := box(_opos(o, fq, 0.0, roof_y - 1.0), Vector3(14.0, 2.0, 3.0), ROCK, nd)
-						_apply_art(beam, "valley", Color("5e4f40"))
-						beam.rotation.y = _oyaw(o, fq)
+						# 수로 기둥은 협곡 중간 어둠 속에서 끝난다: 굴 바닥까지 내려오면 등뒤 카메라를 가린다
+						_column(o, fq, 0.0, h - 1.2, 1.6, WHITE, nd, 45.0)
 					else:
 						_column(o, fq, 0.0, h - 1.2, 1.6, WHITE, nd, 70.0)
 				if q % 25 == 5:
@@ -1598,6 +1596,9 @@ func _ink_outline(n: MeshInstance3D, col: Color) -> void:
 
 
 func _thing(o: Dictionary, l: float, d: float, x: float, kind: String, z: Dictionary) -> Thing:
+	# 규칙: 낮은 담(뛰어넘기)은 옆모습 시점에서만. 등뒤·위 시점에서는 높이가 안 읽혀 석상으로 바꾼다
+	if kind == "wall" and str(Z[z.k].mode) != "side":
+		kind = "statue"
 	var th := Thing.new()
 	th.kd = KIND[kind]
 	th.d = d
@@ -2125,7 +2126,13 @@ func _air_set(kind: String) -> void:
 	air_pt.initial_velocity_max = p[3]
 	air_pt.scale_amount_min = p[4]
 	air_pt.scale_amount_max = p[5]
-	if kind == "cave":
+	if kind == "ember":
+		# 지옥 협곡: 용암에서 솟는 불티
+		var ge := Gradient.new()
+		ge.set_color(0, Color("ffd27a"))
+		ge.set_color(1, Color("ff4a1a"))
+		air_pt.color_initial_ramp = ge
+	elif kind == "cave":
 		# 지하: 수정 빛 네 가지가 섞인 반딧불
 		var gl := Gradient.new()
 		gl.set_color(0, Color("7ff0ff"))
@@ -3128,11 +3135,11 @@ func _stone_mesh(n: MeshInstance3D) -> void:
 ## 협곡 아래로 내려가고 올라온다: 올려다본 하늘·먼 절벽 색이 바뀐다
 func _cave(on: bool) -> void:
 	var deep := on and cave_span.size() >= 2
-	sky_to = (Color("2b2119") if deep else UNDER_SKY) if on else Z[maxi(cur_k, 0)].sky
-	hz_to = (Color("5c4632") if deep else Color("f2dcb8")) if on else (Z[maxi(cur_k, 0)].hz as Color)
+	sky_to = (Z[maxi(cur_k, 0)].sky if deep else UNDER_SKY) if on else Z[maxi(cur_k, 0)].sky  # 깊은 협곡은 _hell_sky 가 깊이 따라 바꾼다
+	hz_to = ((Z[maxi(cur_k, 0)].hz as Color) if deep else Color("f2dcb8")) if on else (Z[maxi(cur_k, 0)].hz as Color)
 	if hero_rim:
 		hero_rim.set_shader_parameter("ink", INK)
-	_air_set("cave" if on else str(AIR_OF.get(Z[maxi(cur_k, 0)].get("scen", "rock"), "dust")))
+	_air_set(("ember" if deep else "cave") if on else str(AIR_OF.get(Z[maxi(cur_k, 0)].get("scen", "rock"), "dust")))
 	# 먼 풍경을 새로 짓지 않는다(떨어지는 순간 렉): 동굴에서는 숨기고, 나오면 다시 보인다
 	if far:
 		far.visible = not deep
@@ -3190,6 +3197,7 @@ func _gems() -> void:
 func _geyser_tick() -> void:
 	if not underground:
 		return
+	_hell_sky()
 	_cave_clamp()
 	if _updraft_tick():
 		return
@@ -3383,9 +3391,9 @@ func _under_things(a: float, b: float, z: Dictionary) -> Array:
 				0:
 					put = [[0.0, -2.6, "statue"], [9.0, 2.6, "statue"], [18.0, -2.6, "statue"], [4.5, 2.4, "pot"], [13.5, -2.4, "pot"]]
 				1:
-					put = [[0.0, -2.2, "wall"], [0.0, 2.2, "wall"], [8.0, 0.0, "pot"]]
+					put = [[0.0, -2.2, "statue"], [0.0, 2.2, "statue"], [8.0, 0.0, "pot"]]
 				2:
-					put = [[0.0, 0.0, "statue"], [6.0, -3.0, "pot"], [6.0, 3.0, "pot"], [12.0, 0.0, "wall"]]
+					put = [[0.0, 0.0, "statue"], [6.0, -3.0, "pot"], [6.0, 3.0, "pot"], [12.0, 0.0, "statue"]]
 		for pt: Array in put:
 			var dd := d + float(pt[0])
 			var th := _thing(pd, dd, dd, clampf(float(pt[1]), -_cave_hw(dd) + 1.0, _cave_hw(dd) - 1.0), str(pt[2]), z)
@@ -3403,9 +3411,11 @@ func _build_tunnel(a: float, b: float, nd: Node3D, opt := {}) -> Array:
 	var ext := float(opt.get("ext", 80.0))
 	var route := [a, b, dp, float(opt.get("gd", b - 40.0)), float(opt.get("lo", -1.0)), float(opt.get("hi", -1.0)), bool(opt.get("open", true)), str(opt.get("name", "잠든 지하 신전")), float(opt.get("vmin", 30.0))]
 	tunnels.append(route)
+	if bool(opt.get("cave", false)):
+		cave_span = [a, b]
 	var rng := RandomNumberGenerator.new()
 	rng.seed = int(a) * 7 + 3
-	var glow := [Color("7ff0ff"), Color("ffd27a"), C.lightened(0.35), Color("9cf2c4")]
+	var glow := [Color("ffb347"), Color("ff7a2a"), Color("ffd27a"), Color("ff5a3a")] if bool(opt.get("cave", false)) else [Color("7ff0ff"), Color("ffd27a"), C.lightened(0.35), Color("9cf2c4")]
 	# 바닥 길: 수로 끝 너머 80m 까지 (늦게 떨어져도 착지할 곳). 끝 너머는 마지막 방향으로 곧게 잇는다.
 	var e := b - 1.0
 	var fwe := Vector3(-sin(_yaw(e)), 0.0, -cos(_yaw(e)))
@@ -3416,9 +3426,10 @@ func _build_tunnel(a: float, b: float, nd: Node3D, opt := {}) -> Array:
 		var p1 := _pos(end_d, 0.0, _h(end_d) - dp) if end_d <= e else _pos(e, 0.0, _h(e) - dp) + fwe * (end_d - e)
 		var bs := Basis.looking_at((p1 - p0).normalized(), Vector3.UP)
 		var slab := box((p0 + p1) * 0.5 - bs.y * 1.0, Vector3.ONE, Color("c9b28c"), nd)
-		_apply_art(slab, "valley", Color("e6d2ad"))
+		_apply_art(slab, "valley", Color("f0dcb4"))
 		slab.basis = bs
-		slab.scale = Vector3(12.0, 2.0, p0.distance_to(p1) + 0.3)
+		# 지옥 협곡: 바닥 폭이 굴방·굴길을 따른다 (밝은 돌길 = 용암 위에서 또렷하게)
+		slab.scale = Vector3(_cave_hw(d + 6.0) * 2.0 if bool(opt.get("cave", false)) else 12.0, 2.0, p0.distance_to(p1) + 0.3)
 		d = end_d
 	d = a
 	while d < b:
@@ -3539,8 +3550,20 @@ func _prewarm(root: Node) -> void:
 	get_tree().create_timer(0.5).timeout.connect(holder.queue_free)
 
 
-## 동굴 맵: 양쪽 바위 벽과 천장으로 닫힌 굴. 넓은 굴방(폭 22m)과 좁은 굴길(폭 11m)이 60m 마다 번갈아 나온다.
-## 천장은 수로 틈 밑(떨어져 들어오는 구멍)과 순풍 길 위만 뚫려 있다. 종유석이 매달리고, 벽에 박힌 수정이 길을 비춘다.
+## 지옥 협곡: 떨어질수록 하늘이 검붉게 가라앉고 지평선이 용암빛으로 달아오른다 (깊이에 따라 실시간)
+const HELL_SKY := Color("160604")
+const HELL_HZ := Color("a8320c")
+func _hell_sky() -> void:
+	if cave_span.size() < 2 or dist < float(cave_span[0]) or dist > float(cave_span[1]) + 80.0:
+		return
+	var t := clampf((_h(dist) - by) / DEEP, 0.0, 1.0)
+	t = sqrt(t)
+	var zd: Dictionary = Z[maxi(cur_k, 0)]
+	sky_to = (zd.sky as Color).lerp(HELL_SKY, t)
+	hz_to = (zd.hz as Color).lerp(HELL_HZ, t)
+
+
+## 지옥 협곡 바닥 길: 넓은 굴방(폭 22m)과 좁은 굴길(폭 11m)이 60m 마다 번갈아 나온다. 양옆은 용암.
 const CAVE_SEC := 60.0
 func _cave_hw(d: float) -> float:
 	if cave_span.size() < 2:
@@ -3549,48 +3572,32 @@ func _cave_hw(d: float) -> float:
 
 
 func _build_cave(a: float, b: float, dp: float, nd: Node3D) -> void:
+	# 벽·천장 없이 열린 지옥 협곡: 밝은 돌길 양옆이 끓는 용암, 길 가장자리는 달아오른 띠
+	var lava := StandardMaterial3D.new()
+	lava.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	lava.albedo_color = Color("ff6a1c")
+	lava.albedo_texture = load(ART_ROOT + "water.png") as Texture2D  # 물결 붓결을 용암빛으로
+	lava.uv1_scale = Vector3(4, 4, 1)
+	var rim := StandardMaterial3D.new()
+	rim.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	rim.albedo_color = Color("ffd27a")
 	var seg := 20.0
 	var d := a
-	var k := 0
 	while d < b + 70.0:
 		var mid := d + seg * 0.5
 		var dd := minf(mid, b - 1.0)
 		var fl := _h(dd) - dp
 		var yw := _yaw(dd)
 		var hw := _cave_hw(mid)
-		var ch := 22.0 if hw > 8.0 else 13.0  # 굴방은 높고, 굴길은 낮다
-		var open := false
-		for q in range(int(d) - 4, int(d + seg) + 5, 2):
-			var ii := clampi(q, 0, pd.tg.size() - 1)
-			if q < int(b) and pd.tg[ii] == "gap":
-				open = true
-				break
-		if updraft.size() >= 5 and d + seg > float(updraft[0]) - 8.0 and d < float(updraft[2]) + 4.0:
-			open = true
 		for sd: float in [-1.0, 1.0]:
-			var w := box(_pos(dd, sd * (hw + 2.0), fl + ch * 0.5), Vector3(4.0, ch + 2.0, seg + 0.6), ROCK, nd)
-			_apply_art(w, "valley", Color("7d6a56") if sd < 0.0 else Color("6c5a48"))
-			w.rotation.y = yw
-		# 천장은 가운데 긴 틈(폭 12m)을 남긴 양쪽 선반: 수로 어디서 떨어져도 천장을 뚫지 않고 틈으로 들어온다
-		var slot := 6.0
-		if not open and hw > slot:
-			for sd: float in [-1.0, 1.0]:
-				var shelf_w := hw + 4.0 - slot
-				var roof := box(_pos(dd, sd * (slot + shelf_w * 0.5), fl + ch + 1.5), Vector3(shelf_w, 3.0, seg + 0.6), ROCK, nd)
-				_apply_art(roof, "valley", Color("5e4f40"))
-				roof.rotation.y = yw
-				var tl := 2.5 + float((k * 3 + int(sd + 1.0)) % 4) * 1.0
-				var tip := box(_pos(dd - 4.0 * sd, sd * (slot + 1.5), fl + ch - tl * 0.5), Vector3(1.1, tl, 1.1), ROCK, nd)
-				_apply_art(tip, "crystal", Color("a88f70"))
-				tip.rotation.y = yw
-		if hw > 8.0 and k % 3 == 1:
-			# 굴방 바닥 둘레 석순 무리
-			for sd: float in [-1.0, 1.0]:
-				var sg := box(_pos(dd, sd * (hw - 1.2), fl + 2.0), Vector3(1.6, 4.0, 1.6), ROCK, nd)
-				_apply_art(sg, "crystal", Color("b49a7a"))
-				sg.rotation.y = yw
+			var lv := box(_pos(dd, sd * (hw + 40.0), fl - 2.5), Vector3(80.0, 0.5, seg + 0.6), WHITE, nd)
+			lv.material_override = lava
+			lv.rotation.y = yw
+			var eg := box(_pos(dd, sd * (hw + 0.15), fl - 0.4), Vector3(0.5, 1.0, seg + 0.6), WHITE, nd)
+			eg.material_override = rim
+			eg.rotation.y = yw
 		d += seg
-		k += 1
+	lava_mats.append(lava)
 
 
 ## 동굴 안 거리 d 에서 몸이 벽에 걸리지 않게 좌우를 막는다 (굴길로 들어서면 벽이 몸을 가운데로 민다)
@@ -4662,6 +4669,9 @@ func _kit_draw(c: Control) -> void:
 func _process(dt: float) -> void:
 	super(dt)
 	_crumble_tick()
+	for lm: StandardMaterial3D in lava_mats:
+		lm.uv1_offset.x = fmod(clock * 0.05, 1.0)
+		lm.albedo_color = Color("ff6a1c").lerp(Color("ff9a2c"), 0.5 + 0.5 * sin(clock * 3.0))
 	if zone_queue.size() > 0:
 		var zq: Dictionary = zone_queue.pop_front()
 		if not zq.freed:
