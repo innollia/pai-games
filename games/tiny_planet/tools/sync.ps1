@@ -1,5 +1,5 @@
 ﻿# speed_tofu 의 tinyplanet(원본, 강화는 거기서 한다)를 이 단독판으로 가져온다: powershell -ExecutionPolicy Bypass -File tools\sync.ps1
-# 가져오는 것: g/tinyplanet.gd, g/tinyplanet_ui.gd·tinyplanet_fx.gd(v5 도우미), tofu.gd(평가 포함), tools/tofu_fb.js, art/tinyplanet/(모델·그림), art/tinyplanet_sfx/(효과음), fonts/, main.gd GAME_VER["tinyplanet"] -> main.gd GVER
+# 가져오는 것: g/tinyplanet.gd, g/tinyplanet_ui.gd·tinyplanet_fx.gd(v5 도우미)·tinyplanet_text.gd(모든 글), tofu.gd(평가 포함), tools/tofu_fb.js, art/tinyplanet/(모델·그림), art/tinyplanet_sfx/(효과음), fonts/, main.gd GAME_VER["tinyplanet"] -> main.gd GVER
 # 단독판에서만 다른 것: 첫 장면 main.gd(메뉴 없음), "< 메뉴" -> "< 처음부터" (영어는 g/tinyplanet.gd 의 번역 사전이 기기 언어로 바꾼다)
 $ErrorActionPreference = 'Stop'
 $kit = Split-Path -Parent $PSScriptRoot
@@ -9,6 +9,7 @@ New-Item -ItemType Directory -Force (Join-Path $kit 'g') | Out-Null
 Copy-Item (Join-Path $src 'g\tinyplanet.gd') (Join-Path $kit 'g\tinyplanet.gd') -Force
 Copy-Item (Join-Path $src 'g\tinyplanet_ui.gd') (Join-Path $kit 'g\tinyplanet_ui.gd') -Force
 Copy-Item (Join-Path $src 'g\tinyplanet_fx.gd') (Join-Path $kit 'g\tinyplanet_fx.gd') -Force
+Copy-Item (Join-Path $src 'g\tinyplanet_text.gd') (Join-Path $kit 'g\tinyplanet_text.gd') -Force  # 화면 글 표 (한국어·영어)
 Copy-Item (Join-Path $src 'tools\tofu_fb.js') (Join-Path $kit 'tools\tofu_fb.js') -Force
 $t = [IO.File]::ReadAllText((Join-Path $src 'tofu.gd'), $utf8).Replace('"< 메뉴"', '"< 처음부터"')
 # 제출판: 평가(오른쪽 위 "평가" 버튼·끝 별점 카드)를 이 복사본에서만 끈다 (speed_tofu 원본은 그대로)

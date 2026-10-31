@@ -27,7 +27,7 @@
 |---|---|---|
 | 게임 코드 전부(물리·비행·부탁·화면·연출) | Claude (Anthropic) | `g/tinyplanet.gd`, `g/tinyplanet_ui.gd`, `g/tinyplanet_fx.gd` |
 | 주인공 포스티·주민 다섯 | Claude가 **코드로 직접 모델링**(도형 부품 + 납작한 색 + 외곽선). 다리·눈·깃발이 움직임 | `g/tinyplanet.gd`의 `_build_posty`, `_posty_anim`, `_shape_vil` |
-| 대사(한국어·영어 86줄 + 뒤에 더한 안내 글) | Gemini 3.8 Flash High (Google), Antigravity로 | `dialogue.json` → 코드의 `DL` 사전에 박아 넣음 |
+| 대사(한국어·영어 86줄 + 뒤에 더한 안내 글) | Gemini 3.8 Flash High (Google), Antigravity로 | `dialogue.json`이 처음 원본. 지금 모든 글은 `g/tinyplanet_text.gd` 한 곳 |
 | 소품 그림(텍스처) | Codex가 GPT 이미지로 그림. hwapongstuy 범용 규칙(ANTI-SLOP) 그대로 따름 | `art/tinyplanet/*.png` |
 | 소품 모양(로우폴리 GLB) | Codex가 Blender 스크립트로 만듦 | `art/tinyplanet/*.glb` |
 | 별(행성) | 코드가 만든 각진 공(icosphere), 그림 없음 | `g/tinyplanet.gd` |
@@ -42,6 +42,7 @@
 **speed_tofu 쪽 (원본. 고치는 건 늘 여기서)** — `C:\projects\pai-games\games\speed_tofu\`
 - `g/tinyplanet.gd` — 게임 본체. 별·비행·부탁·주민·포스티·위 HUD(막대·할 일 칩·화살표·말풍선·알림판)·돛 버튼·우주 미아·성능 표·대사(`DL`).
 - `g/tinyplanet_ui.gd` — 시작 화면(로고·시작 버튼·언어 전환), 게임오버·엔딩 화면, 점수 팝, 디자인 시스템(`DS`).
+- `g/tinyplanet_text.gd` — 화면에 나오는 모든 글(한국어·영어 한 표 `TEXT`, 노는 순서대로). 본체·ui가 키로 `tr()` 한다. 영어·한국어 번역 둘 다 이 표에서 만든다.
 - `g/tinyplanet_fx.gd` — 속도감·연출(속도선, 시야 넓히기, 발 먼지, 꼬리, 별 줄무늬, 구름, 탈출 장면, 화면 가장자리 빛·어둑해짐).
 - `art/tinyplanet/` — 로우폴리 모델 GLB + 512×512 그림 PNG (15쌍).
 - `art/tinyplanet_sfx/` — 효과음 WAV 22개.
@@ -56,6 +57,9 @@
   - `ART_LOG.md` — 그림 작업 기록(Codex).
   - `ITCH_PAGE.md` — itch 페이지 글(제목·설명·조작·도구·태그).
   - `HOWTO_EN.md` — 영어 조작 설명.
+  - `TEXT_KO.tsv` — 글 표를 엑셀·구글 시트로 여는 파일(아래 "한국어 고치는 법"). `TEXT_CHANGED.tsv` — 한국어를 바꿔서 영어를 다시 옮겨야 할 키 목록(가져오기가 만든다).
+  - `tools/text_export.py`·`tools/text_import.py` — 글 표 → TSV 내보내기, 고친 TSV → 글 표 가져오기.
+  - `TEXT_REVIEW.md` — 글 검토(옛 v9 기준 표와 이상한 점 목록).
   - `dialogue.json` — Gemini가 쓴 대사 원본. `SFX_MANIFEST.json` — 소리 목록. `ASSET_MANIFEST.json` — 처음 15개 그림의 크기 기록.
   - 스크립트: `build_sfx.py`(소리 만들기), `build_art.py`·`texture_flow.py`·`prepare_textures.py`·`align_textures.py`·`finalize_art.py`·`pack_art.py`·`verify_art.py`·`import_art.py`·`preview_art.py`·`contact_sheet.py`(그림 파이프라인, Codex가 씀).
   - `work/` — 그림 작업 중간 파일(저장소에 안 올라감).
@@ -67,6 +71,18 @@
 - `tools/build.ps1` — `ver.txt` 쓰고, Godot import + Web export → `web/`, `tofu_fb.js` 복사.
 - `web/` — GitHub Pages가 그대로 보여 주는 웹 빌드.
 - `README.md`, `SUBMIT_CHECKLIST.md` — 단독판 설명과 제출 순서.
+
+## 한국어 고치는 법
+
+1. `submit/tinyplanet/TEXT_KO.tsv`를 엑셀이나 구글 시트로 연다. 한 줄이 글 하나다: 키 · 언제 나오나 · 누가 · 한국어 · English · **한국어(수정)**.
+2. 고치고 싶은 줄만 **한국어(수정)** 칸에 새 한국어를 쓴다. 빈 칸은 그대로 둔다. 다른 칸은 건드리지 않는다.
+   - `{planet}` `{who}` `{item}` `{target}` `{src}`는 게임이 이름을 넣는 자리라 그대로 둔다(빠지면 그 줄은 안 들어간다).
+   - `tofu.`로 시작하는 줄은 공통 글이라 한국어는 바꿔도 안 바뀐다(영어만 고칠 수 있다).
+   - 말풍선은 폰 화면에서 두세 줄이면 꽉 찬다. 한국어 40자 안쪽이 좋다.
+3. **탭으로 구분된 텍스트(.tsv / .txt)**로 저장한다. 엑셀: 다른 이름으로 저장 → "텍스트(탭으로 분리)" 또는 "유니코드 텍스트". 구글 시트: 파일 → 다운로드 → 탭으로 구분된 값(.tsv).
+4. 저장한 파일을 Claude에게 주고 "한국어 고쳤어"라고 말한다.
+
+Claude가 하는 일: `python submit/tinyplanet/tools/text_import.py <파일>` (먼저 `--dry`로 확인) → 한국어가 `g/tinyplanet_text.gd`에 들어가고, 바뀐 키가 `TEXT_CHANGED.tsv`에 쌓인다 → 그 키들의 영어를 새 한국어에 맞게 다시 옮긴다 → `python submit/tinyplanet/tools/text_export.py`로 TSV를 새로 뽑는다 → smoke → 단독판 sync·빌드.
 
 ## 빌드·확인 명령 (그대로 복사)
 

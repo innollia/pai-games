@@ -3,7 +3,7 @@ extends Tofu
 ## 나는 [작은 별들 사이를 맨몸으로 건너는 여행자]로서 [달린 속도와 점프 순간이 곧 비행 궤도가 되는 몸] 속에서 [별 주민들의 부탁을 별과 별 사이로 날라 주]지만 [느리면 못 떠나고, 각도가 틀리면 우주로 떠내려가고, 쿵 내려앉으면 유리가 깨지는 것]을 감수한다.
 ## 별: 1 풍차(바람 달리기 → 돛, 노란 줄로 첫 비행) → 2 우편(소포를 굴뚝 달의 담 친 집에 공중에서 놓기) → 3 유리꽃(꽃을 들고 친구 달로, 빙 돌다 살살 착지) → 4 노을(얼음 위 속도 맞추기 → 유리 덮개) → 5 장미(빨간 바위 띠를 불 별 중력 새총으로 돌아 덮개를 살살).
 ## v5 겉모습: 상자 대신 로우폴리. 별은 각진 공(icosphere), 사람·소품은 art/tinyplanet/<이름>.glb+png(없으면 코드가 만든 로우폴리).
-## 대사는 DL(Gemini가 쓴 dialogue.json을 박아 넣음), 소리는 art/tinyplanet_sfx/*.wav(nkido).
+## 글은 g/tinyplanet_text.gd 한 곳(한국어·영어, 처음 대사는 Gemini가 쓴 dialogue.json), 소리는 art/tinyplanet_sfx/*.wav(nkido).
 ## v6 "어린 배달부 / The Little Courier": 영어가 기본(?lang=ko 또는 시작 화면 전환 → set_lang). 캡슐 막대, 작은 말풍선(아래쪽, 3~4초),
 ## 튜토리얼 없음(첫 판 안내 한 줄), 첫 별 바위 없음, 값싼 동그란 그림자, 하트는 잃을 때만, 다른 별 가기 쉽게(끌어당김·탈출 도움), 높이 날면 순항 속도.
 
@@ -52,21 +52,21 @@ const SKIN := Color("ffe3c7")
 const ITEM_ART := {"pkg": "parcel", "flower": "glass_flower", "dome": "glass_dome"}
 # 별: 0~4 부탁 별, 5 굴뚝 달, 6 친구 달, 7 불 별. 모두 y=0 평면 위.
 const BD := [
-	{"name": "풍차의 별", "r": 12.0, "g": 8.0, "grip": 1.19, "acc": 1.0, "at": Vector3(0, 0, 0), "kind": "planet",
-		"c0": Color("bfe3a0"), "c1": Color("e6f5d4"), "sky": Color("d6ecff"), "who": "풍차지기", "body": Color("8fbf5a"), "hat": A, "id": "p1"},
-	{"name": "우편의 별", "r": 8.0, "g": 8.0, "grip": 1.19, "acc": 1.0, "at": Vector3(26, 0, -26), "kind": "planet",
-		"c0": Color("d9ccf5"), "c1": Color("f3edff"), "sky": Color("e6dcff"), "who": "우체부", "body": B, "hat": BAD, "id": "p2"},
-	{"name": "유리꽃의 별", "r": 10.0, "g": 9.0, "grip": 1.19, "acc": 1.0, "at": Vector3(70, 0, -16), "kind": "planet",
-		"c0": Color("bdebd8"), "c1": Color("e6f8f0"), "sky": Color("d6f5ea"), "who": "정원사", "body": GOOD, "hat": D, "id": "p3"},
-	{"name": "노을의 별", "r": 7.0, "g": 8.0, "grip": -0.8, "acc": 0.6, "at": Vector3(100, 0, 36), "kind": "planet",
-		"c0": Color("c9e3fa"), "c1": Color("eef6ff"), "sky": Color("ffe0c2"), "who": "노을 아이", "body": C, "hat": A, "id": "p4"},
-	{"name": "장미의 별", "r": 6.0, "g": 7.0, "grip": 1.19, "acc": 1.0, "at": Vector3(50, 0, 48), "kind": "planet",
-		"c0": Color("f7d3dc"), "c1": Color("fff4f6"), "sky": Color("ffe3ec"), "who": "장미", "body": BAD, "hat": GOOD, "id": "p5"},
-	{"name": "굴뚝 달", "r": 3.5, "g": 6.0, "grip": 1.19, "acc": 1.0, "at": Vector3(52, 0, -40), "kind": "moon",
-		"c0": Color("e9e4d4"), "c1": Color("fffaf0"), "sky": Color("efe8ff"), "who": "굴뚝 집", "body": WHITE, "hat": WHITE, "id": ""},
-	{"name": "친구 달", "r": 3.5, "g": 6.0, "grip": 1.19, "acc": 1.0, "at": Vector3(90, 0, 8), "kind": "moon",
-		"c0": Color("a8ecd2"), "c1": Color("e8fff6"), "sky": Color("e0fff4"), "who": "꽃 친구", "body": WHITE, "hat": WHITE, "id": ""},
-	{"name": "불 별", "r": 3.0, "g": 40.0, "grip": 1.19, "acc": 1.0, "at": Vector3(78, 0, 60), "kind": "fire",
+	{"name": "name.windmill", "r": 12.0, "g": 8.0, "grip": 1.19, "acc": 1.0, "at": Vector3(0, 0, 0), "kind": "planet",
+		"c0": Color("bfe3a0"), "c1": Color("e6f5d4"), "sky": Color("d6ecff"), "who": "who.windmill", "body": Color("8fbf5a"), "hat": A, "id": "p1"},
+	{"name": "name.post", "r": 8.0, "g": 8.0, "grip": 1.19, "acc": 1.0, "at": Vector3(26, 0, -26), "kind": "planet",
+		"c0": Color("d9ccf5"), "c1": Color("f3edff"), "sky": Color("e6dcff"), "who": "who.post", "body": B, "hat": BAD, "id": "p2"},
+	{"name": "name.glass", "r": 10.0, "g": 9.0, "grip": 1.19, "acc": 1.0, "at": Vector3(70, 0, -16), "kind": "planet",
+		"c0": Color("bdebd8"), "c1": Color("e6f8f0"), "sky": Color("d6f5ea"), "who": "who.glass", "body": GOOD, "hat": D, "id": "p3"},
+	{"name": "name.sunset", "r": 7.0, "g": 8.0, "grip": -0.8, "acc": 0.6, "at": Vector3(100, 0, 36), "kind": "planet",
+		"c0": Color("c9e3fa"), "c1": Color("eef6ff"), "sky": Color("ffe0c2"), "who": "who.sunset", "body": C, "hat": A, "id": "p4"},
+	{"name": "name.rose", "r": 6.0, "g": 7.0, "grip": 1.19, "acc": 1.0, "at": Vector3(50, 0, 48), "kind": "planet",
+		"c0": Color("f7d3dc"), "c1": Color("fff4f6"), "sky": Color("ffe3ec"), "who": "who.rose", "body": BAD, "hat": GOOD, "id": "p5"},
+	{"name": "name.chimney_moon", "r": 3.5, "g": 6.0, "grip": 1.19, "acc": 1.0, "at": Vector3(52, 0, -40), "kind": "moon",
+		"c0": Color("e9e4d4"), "c1": Color("fffaf0"), "sky": Color("efe8ff"), "who": "who.chimney", "body": WHITE, "hat": WHITE, "id": ""},
+	{"name": "name.friend_moon", "r": 3.5, "g": 6.0, "grip": 1.19, "acc": 1.0, "at": Vector3(90, 0, 8), "kind": "moon",
+		"c0": Color("a8ecd2"), "c1": Color("e8fff6"), "sky": Color("e0fff4"), "who": "who.friend", "body": WHITE, "hat": WHITE, "id": ""},
+	{"name": "name.fire", "r": 3.0, "g": 40.0, "grip": 1.19, "acc": 1.0, "at": Vector3(78, 0, 60), "kind": "fire",
 		"c0": BAD, "c1": A, "sky": Color("ffe8d6"), "who": "", "body": WHITE, "hat": WHITE, "id": ""},
 ]
 # 부탁 (별 번호 = 부탁 번호). 물건은 src 별 HOME_D 에서 받아 tgt 별 tdir 로.
@@ -235,6 +235,7 @@ static var _lang_pick := ""  # set_lang 으로 고른 언어 ("ko"/"en"), 이 �
 # v5 도우미: 시작 화면·튜토리얼·끝 화면(ui), 속도감·연출(fx). submit/tinyplanet/MODULES.md 약속
 const UI_GD := preload("res://g/tinyplanet_ui.gd")
 const FX_GD := preload("res://g/tinyplanet_fx.gd")
+const TX := preload("res://g/tinyplanet_text.gd")  # 화면에 나오는 모든 글 (한국어·영어 한 표)
 var ui: UI_GD
 var fx: FX_GD
 var _bodies_on := false  # fx.set_bodies 는 한 번
@@ -1066,7 +1067,7 @@ func _sayq(who: String, s: String, dur: float) -> void:
 func _react(key: String, once := false, force := false) -> void:
 	if once and said.has(key):
 		return
-	if not DL.has("react." + key):
+	if not TX.TEXT.has("react." + key):
 		return
 	if not force and (react_cd > 0.0 or bub_t > 0.5 or not bub_q.is_empty()):
 		return
@@ -2186,7 +2187,7 @@ func _done(k: int) -> void:
 		_say(gv.who, _tx("p4.keep"), 6.0)  # v9: 손에 다른 물건 — 덮개는 노을 아이가 맡아 둔다
 	else:
 		_say(gv.who, _line(k, "thanks"), 6.0)
-	if DL.has(str(gv.id) + ".thanks2") and (k != 3 or _hands_free()):
+	if TX.TEXT.has(str(gv.id) + ".thanks2") and (k != 3 or _hands_free()):
 		_sayq(gv.who, _line(k, "thanks2"), 7.0)
 	if k == 3:
 		# 덮개가 생겼다: 장미 부탁이 열린다 (손이 비면 바로 내놓고, 아니면 노을 아이가 맡아 둔다)
@@ -4246,7 +4247,7 @@ func _process(dt: float) -> void:
 	if (_rating or over or (ui != null and ui.todo_open())) and wind_pl and wind_pl.playing:
 		wind_pl.stop()
 	if _en and over:
-		_over_l.text = "%d\nBest %d%s" % [score, best, "\nTap to play again" if wait <= 0.0 else ""]
+		_over_l.text = "%d\n%s %d%s" % [score, TX.en("tofu.over_best"), best, ("\n" + TX.en("tofu.over_again")) if wait <= 0.0 else ""]
 	# v6: 단독판 "< 처음부터"는 숨긴다. 단독판이 목록에서 왔으면 나중에 "< 목록"으로 바뀌니 그때 다시 보인다 (내가 숨긴 것만 되돌린다)
 	if _back_l:
 		if _back_l.text in RESTART_TXT:
@@ -4586,11 +4587,11 @@ func _count_in(n: Node, c: Array) -> void:
 					c[3] += dr
 		_count_in(ch, c)
 
-# ---- 말 (dialogue.json 을 박아 넣은 DL) ----
+# ---- 말 (모든 글은 g/tinyplanet_text.gd 의 TX.TEXT) ----
 func _tx(key: String, args := {}) -> String:
-	if not DL.has(key):
+	if not TX.TEXT.has(key):
 		return key
-	var s := tr(str(DL[key][0]))
+	var s := tr(key)  # 번역 열쇠 = 키 (TX.make 가 en·ko 번역을 만든다)
 	if not args.is_empty():
 		s = s.format(args)
 	return s
@@ -4599,7 +4600,7 @@ func _tx(key: String, args := {}) -> String:
 ## 별 k 주민의 말 (ask / hint / thanks / thanks2 / idle1 / idle2)
 func _line(k: int, part: String) -> String:
 	var key := str(BD[k].id) + "." + part
-	return _tx(key) if DL.has(key) else ""
+	return _tx(key) if TX.TEXT.has(key) else ""
 
 
 ## 영어 번역은 이 게임이 떠 있는 동안만 TranslationServer 에 둔다 (나가면 빼서 다른 게임 글이 영어로 바뀌지 않게).
@@ -4621,14 +4622,7 @@ func _lang() -> void:
 	_en = en
 	# 한국어 = 원문 그대로인 ko 번역을 하나 올려 둔다. 없으면 ko 고를 때 대체 언어(en) 번역이 쓰여 영어가 나왔다
 	if _tl_ko == null:
-		var tk := Translation.new()
-		tk.locale = "ko"
-		for k: String in DL:
-			tk.add_message(str(DL[k][0]), str(DL[k][0]))
-		for k: String in EN_UI:
-			tk.add_message(k, k)
-		for k: String in UI_GD.EN:
-			tk.add_message(k, k)
+		var tk: Translation = TX.make(true)  # 키 -> 한국어 (g/tinyplanet_text.gd 한 표에서)
 		for k: String in FX_GD.EN:
 			tk.add_message(k, k)
 		_tl_ko = tk
@@ -4643,15 +4637,7 @@ func _lang() -> void:
 		TranslationServer.set_locale("ko")
 		return
 	if _tl == null:
-		var tl := Translation.new()
-		tl.locale = "en"
-		for k: String in DL:
-			var pr: Array = DL[k]
-			tl.add_message(str(pr[0]), str(pr[1]))
-		for k: String in EN_UI:
-			tl.add_message(k, str(EN_UI[k]))
-		for k: String in UI_GD.EN:  # 시작 화면·튜토리얼·끝 화면 글
-			tl.add_message(k, str(UI_GD.EN[k]))
+		var tl: Translation = TX.make(false)  # 키 -> English (본체·ui·tofu 글 모두 같은 표)
 		for k: String in FX_GD.EN:
 			tl.add_message(k, str(FX_GD.EN[k]))
 		_tl = tl
@@ -4671,135 +4657,3 @@ func _exit_tree() -> void:
 	if _tl_n <= 0:
 		_tl_n = 0
 		TranslationServer.remove_translation(_tl)
-
-
-const EN_UI := {
-	"< 메뉴": "< Menu", "< 처음부터": "< Restart", "< 목록": "< List", "평가": "Rate", "탭해서 시작": "Tap to start",
-	"이 게임 어때요?": "How was it?", "닫기": "Close", "한마디": "Comment", "고마워요!": "Thanks!",
-	"보내는 중": "Sending", "한마디 보냈어요": "Comment sent", "저장 안 됨 · 별을 다시 탭": "Not saved · tap a star again",
-	"이 게임에 한마디 (선택)": "A word about this game (optional)",
-}
-
-
-# ---- 대사: submit/tinyplanet/dialogue.json (Antigravity · Gemini) 을 그대로 박아 넣음. [한국어, 영어] ----
-const DL := {
-	"name.windmill": ["풍차의 별", "Windmill Planet"],
-	"name.post": ["우편의 별", "Post Planet"],
-	"name.glass": ["유리꽃의 별", "Glass Flower Planet"],
-	"name.sunset": ["노을의 별", "Sunset Planet"],
-	"name.rose": ["장미의 별", "Rose Planet"],
-	"name.chimney_moon": ["굴뚝 달", "Chimney Moon"],
-	"name.friend_moon": ["친구 달", "Friend Moon"],
-	"name.fire": ["불 별", "Fire Star"],
-	"who.windmill": ["풍차지기", "Windmill Keeper"],
-	"who.post": ["우체부", "Mail Carrier"],
-	"who.glass": ["정원사", "Gardener"],
-	"who.sunset": ["노을 아이", "Sunset Child"],
-	"who.rose": ["장미", "Rose"],
-	"who.chimney": ["굴뚝 집", "Chimney House"],
-	"who.friend": ["꽃 친구", "Flower Friend"],
-	"who.me": ["나", "Me"],
-	"p1.ask": ["바람이 멎어 풍차가 잠들었네. 별 둘레를 힘껏 달려 바람을 깨워 주겠나?", "The wind died and the mill sleeps. Run hard around to wake my friend?"],
-	"p1.hint": ["뜨기 직전이 제일 센 바람이지. 발이 뜨면 바람이 끊기니 땅에 붙어 달리게나.", "Fastest just before liftoff is best. Keep your feet on the ground!"],
-	"p1.thanks": ["고마우이, 돛을 받게나. 보라 별이 우편의 별이니 노란 줄을 힘껏 달리게.", "Thank you! Take the sail. Purple is Post Planet; run the yellow lane."],
-	"p1.thanks2": ["초록 칸에서 점프하게. 날다 스틱 밀며 뛰면 돛으로 방향을 한 번 튼다네.", "Jump at the green cell! In flight, jump and push stick to turn once."],
-	"p2.ask": ["이 소포, 저 하얀 굴뚝 달 집에 전해 줘! 담이 높아 걸어선 못 들어가.", "Take this parcel to Chimney Moon! The walls are too high to walk in."],
-	"p2.hint": ["달은 작아 금방 떠! 굴뚝 위 지날 때 '놓기'. 발밑 노란 점에 떨어져!", "The moon lifts fast! Press 'Drop' over chimney onto the yellow dot."],
-	"p2.thanks": ["잘 도착했대, 고마워! 남은 부탁은 왼쪽 위 할 일 목록에 있어.", "Delivered safely, thank you! The rest is in your to-do list, top left."],
-	"p3.ask": ["유리꽃을 저 민트 친구 달에 전해 줘요… 세게 내려앉으면 깨져 버려요.", "Carry the glass flower to Friend Moon... A hard landing will break it."],
-	"p3.hint": ["곧장 말고 빙 돌아 살살 앉아요. 빨간 그림자는 운석 자리니 미리 피해요!", "Don't dive straight; circle to land softly. Red shadows are meteors!"],
-	"p3.thanks": ["꽃이 무사하대요… 정말 다행이에요. 다른 별에도 기다리는 이가 있을 거예요.", "The flower is safe... thank you! Others out there are waiting for you too."],
-	"p4.ask": ["내 별은 너무 작아서 노을이 자꾸 달아나. 저 주황 띠랑 같이 달려 줘!", "My planet is small and the sunset runs away. Run with the orange band!"],
-	"p4.hint": ["얼음이라 미끄러워! 빠르면 뜨고 느리면 놓쳐. 띠랑 같은 빠르기로 뛰어!", "Slick ice! Too fast you float, too slow you lose it. Match its speed!"],
-	"p4.thanks": ["고마워! 분홍 장미 별에 유리 덮개를 줘. 곧장 가면 빨간 지뢰 울타리야.", "Bring this dome to Rose Planet! A red mine fence blocks the direct way."],
-	"p4.thanks2": ["빨간 불 별 옆을 스치면 휘어 돌아가. 불 별에 닿으면 끝이니까 닿지 마!", "Skim beside the red fire star to whip around. Touching it is death!"],
-	"p5.ask": ["바람이 차가워… 유리 덮개를 씌워 줘. 담이 천천히 돌고 틈은 하나야.", "It's cold... Put the dome over me. The wall turns; there is one gap."],
-	"p5.hint": ["담 틈 맞춰 들어오거나 탑에서 날아 위에서 놓아 줘. 세게 내리면 깨져.", "Walk in with the wall gap, or drop from tower. Land hard, it breaks."],
-	"p5.thanks": ["…따뜻해. 고마워. 네 빠른 발 덕분에 우리 다섯 별이 다 웃고 있어.", "...Warm now. Thank you. Your fast feet made all five planets smile."],
-	"p1.idle1": ["바람결을 느끼며 달리면 하늘도 그 발소리를 듣는다네.", "When you run with the wind, the sky listens to your steps."],
-	"p1.idle2": ["서두르지 말게. 별은 언제나 제자리에서 자네를 기다리니.", "No need to hurry. The stars always wait patiently in place."],
-	"p2.idle1": ["하늘에 띄운 편지는 길을 잃지 않아. 언제나 닿을 곳으로 가지!", "Letters sent across the sky never get lost. They always arrive!"],
-	"p2.idle2": ["오늘도 우편 가방이 든든하네! 다음 행선지는 어디야?", "My mailbag is nice and full today! Where are you flying next?"],
-	"p3.idle1": ["유리꽃은 아주 여려요… 가만히 숨소리를 들으면 맑게 울리지요.", "Glass flowers are fragile... listen close and they ring softly."],
-	"p3.idle2": ["별들 사이를 날아갈 땐 마음도 깃털처럼 가볍게 가져 보세요.", "When soaring between stars, let your heart be light as a feather."],
-	"p4.idle1": ["노을빛이 주황색으로 번질 때 별을 달리면 마음이 몽글몽글해.", "Running as the sunset spreads orange makes my heart flutter."],
-	"p4.idle2": ["혼자 달릴 땐 외로웠는데, 같이 뛰니까 노을이 안 무서워!", "I was lonely running alone, but with you I do not fear sunset!"],
-	"p5.idle1": ["…뭘 그렇게 봐? 유리 덮개가 마음에 들어서 가만있는 것뿐이야.", "...What are you looking at? I just happen to like this glass dome."],
-	"p5.idle2": ["별빛이 덮개에 닿아 반짝이는 건… 조금 예쁜 것 같네.", "The starlight sparkling against the glass... looks rather nice."],
-	"moon.chimney.got": ["굴뚝 속으로 소포가 쏙 들어왔어! 따뜻한 온기가 번지네.", "The parcel dropped right down the chimney! Cozy warmth spreads inside."],
-	"moon.friend.got": ["정원사의 맑은 꽃이 깨지지 않고 닿았어… 달이 환해졌네!", "The gardener's clear flower arrived unbroken... the moon glows!"],
-	"msg.start": ["1. {planet}", "1. {planet}"],
-	"msg.tower_jump": ["탑에서 뛰어내린다", "Leaping from the tower"],
-	"msg.liftoff": ["중력을 벗어난다!", "Escaping gravity!"],
-	"msg.float": ["발이 떴다", "Floating"],
-	"msg.sail": ["돛으로 방향을 튼다", "Turning with the sail"],
-	"msg.drift_warn": ["우주로 떠내려간다… 돛으로 돌려!", "Drifting away! Turn with sail!"],
-	"msg.flower_crack": ["착지가 세서 금이 갔다", "Landed hard, glass cracked"],
-	"msg.slingshot": ["중력을 타고 휘어 돈다", "Curving past with gravity"],
-	"msg.rock_snag": ["바위에 걸렸다", "Caught on a rock"],
-	"msg.wall_gap": ["담 — 틈으로", "Wall — find the gap"],
-	"msg.wall_high": ["담이 높다 — 공중에서 놓기", "High wall — drop from above"],
-	"msg.picked": ["들었다 → {target}", "Picked up → {target}"],
-	"msg.missed_drop": ["빗나갔다 — 다시 줍기", "Missed — pick it up again"],
-	"msg.glass_broken": ["깨졌다… {src}에서 다시 받기", "Broken... get another at {src}"],
-	"msg.rose_smiles": ["장미가 환하게 웃는다", "The rose smiles brightly"],
-	"msg.next": ["다음: {planet}", "Next: {planet}"],
-	"hud.next_hint": ["다음: {planet} (노란 빛기둥). 달려 점프! 초록 점선이면 닿아.", "Next: {planet} (yellow pillar). Run and jump! Green dots will reach."],
-	"die.fire": ["뜨거운 불 별에 닿았다", "Touched the burning star"],
-	"die.rocks": ["빨간 지뢰 울타리에 부딪혔다", "Hit the red mine fence"],
-	"die.drift": ["깊은 우주로 떠내려갔다", "Drifted into deep space"],
-	"die.meteor": ["떨어지는 운석에 맞았다", "Struck by a falling meteor"],
-	"react.first_liftoff": ["별을 떠나 날아오른다", "Leaving gravity behind..."],
-	"react.first_landing": ["새로운 별에 내려앉았다", "Stepped onto a new world"],
-	"react.slingshot": ["별의 곁을 스쳐 가속한다", "Whipping past the planet"],
-	"react.orbit_landing": ["궤도를 돌아 살포시 앉았다", "A gentle orbit touchdown"],
-	"react.flower_cracked": ["금이 갔다… 더 살살 앉자", "Cracked... land gentler!"],
-	"react.flower_broken": ["깨져 버렸다… 다시 가자", "Shattered... start again"],
-	"react.drift_warning": ["멀어진다… 돛으로 돌리자!", "Drifting! Turn with sail!"],
-	"react.die_fire": ["스치기만 하고 닿지 말자", "Skim beside, do not touch!"],
-	"react.die_rocks": ["불 별 쪽으로 돌아가자", "Go around via the fire star!"],
-	"react.die_drift": ["초록 점선을 보고 뛰자", "Jump only on green dots!"],
-	"react.die_meteor": ["빨간 그림자를 미리 피하자", "Step off red shadows early!"],
-	"react.new_planet": ["새 별에 닿아 힘이 난다", "New planet! Life restored"],
-	"ending.1": ["발끝으로 건넌 별마다 다정한 빛이 켜졌다.", "A gentle light now glows on every star I crossed."],
-	"ending.2": ["작고 외롭던 별들이 하늘 한가운데서 서로 웃는다.", "Small, lonely worlds now smile together across the sky."],
-	"ending.3": ["차가운 유리 너머로 전해진 온기가 마음을 데운다.", "Warmth shared through glass softly warms my heart."],
-	"ending.4": ["언젠가 또 바람이 불면, 다시 달려 날아가야지.", "When the wind rises again, I will run and take flight."],
-	"ui.title": ["어린 배달부", "The Little Courier"],
-	"hint.first": ["스틱으로 달리기 · 막대가 차면 점프!", "Hold the stick to run · Jump when the bar fills"],
-	"ui.jump": ["점프", "Jump"],
-	"ui.drop": ["놓기", "Drop"],
-	"ui.sail": ["돛", "Sail"],
-	"banner.intro": ["나는 어린 배달부! 별마다 부탁을 듣고 물건을 배달하자. 할 일은 늘 위에 있어.", "I'm the Little Courier! Help each planet and deliver its packages. Your task is always at the top."],
-	"banner.sail": ["풍차지기의 고마움: 돛! 날 때 '돛' 버튼을 한 번 누르면 스틱 쪽으로 방향을 튼다 (스틱 안 밀면 갈 곳 쪽).", "The Windmill Keeper's thanks: a SAIL! In the air, tap SAIL once to steer toward your stick (no stick = toward your goal)."],
-	"hint.sail": ["지금 '돛'을 누를 수 있다 · 연한 점선이 돛을 쓰면 갈 길", "Tap SAIL to steer · the light dots show where it takes you"],
-	"banner.lost": ["우주 미아! 마지막 별로 돌아가는 중…", "Lost in space — returning…"],
-	"msg.use_sail": ["지금 돛!", "Sail now!"],
-	"msg.use_air": ["한 번 더 점프!", "Jump again!"],
-	"goal.talk": ["{who}에게 말 걸기", "Talk to the {who}"],
-	"goal.wind": ["풍차 깨우기: 땅에 붙어 힘껏 달리기", "Wake the windmill: sprint on the ground"],
-	"goal.pick": ["{planet}에서 {item} 받기", "Pick up the {item} on {planet}"],
-	"goal.deliver": ["{target}에 {item} 배달", "Deliver the {item} to {target}"],
-	"goal.band": ["노을 띠와 같은 빠르기로 달리기", "Run with the orange sunset band"],
-	"item.pkg": ["소포", "parcel"],
-	"item.flower": ["유리꽃", "glass flower"],
-	"item.dome": ["유리 덮개", "glass dome"],
-	"got.pkg": ["소포! {target}에 전해 주자", "Parcel! Deliver it to {target}"],
-	"got.flower": ["유리꽃! 살살 {target}에 전해 주자", "Glass flower! Carry it gently to {target}"],
-	"got.dome": ["유리 덮개! {target}에 씌워 주자", "Glass dome! Bring it to {target}"],
-	# v9 순서 자유 · 할 일 목록
-	"talk.busy": ["들고 있는 {item}부터 배달하고 다시 와 줘!", "Deliver the {item} you're carrying first, then come back!"],
-	"rose.early": ["바람이 차가워… 노을 아이가 유리 덮개를 갖고 있대. 노을의 별에 가 봐.", "It's cold... The Sunset Child has a glass dome. Try Sunset Planet."],
-	"p4.keep": ["고마워! 유리 덮개는 내가 맡아 둘게. 손이 비면 받으러 와!", "Thank you! I'll keep the glass dome here. Come back when your hands are free!"],
-	"p5.thanks_more": ["…따뜻해. 고마워. 다른 별들도 네 빠른 발을 기다리고 있어.", "...Warm now. Thank you. The other planets are waiting for your fast feet too."],
-	"msg.all_done": ["모든 부탁을 마쳤다!", "Every request is done!"],
-	"msg.drift_warn_ns": ["우주로 떠내려간다!", "Drifting away!"],
-	"react.drift_warning_ns": ["멀어진다… 초록 점선에서 뛰자", "Drifting... jump on green dots!"],
-	"todo.p1": ["풍차 깨우기: 땅에 붙어 힘껏 달리기", "Wake the windmill: sprint on the ground"],
-	"todo.p2": ["소포를 굴뚝 달 집에 공중에서 놓기", "Drop the parcel onto the Chimney Moon house"],
-	"todo.p3": ["유리꽃을 친구 달에 살살 전하기", "Carry the glass flower gently to Friend Moon"],
-	"todo.p4": ["주황 노을 띠와 같은 빠르기로 달리기", "Run at the orange sunset band's speed"],
-	"todo.p5": ["유리 덮개를 장미에게 씌우기", "Put the glass dome over the rose"],
-	"todo.p5_wait": ["유리 덮개가 필요해 (노을 아이가 줌)", "Needs a glass dome (from the Sunset Child)"],
-	"howto": ["별 여러 개가 한 하늘에 떠 있다. 왼쪽 스틱으로 달린다(밀수록 빠름). 빨리 달리면 발이 뜬다.\n아주 빨리 달려 점프하면 중력을 벗어난다. 다른 별에 끌려 돌다 내리고, 빗나가면 떠내려간다.\n발 앞 점선: 지금 뛰면 갈 길(초록 도달, 빨강 위험). 위 막대 초록이면 점프 가능. 노란 빛기둥이 갈 곳.\n날다 점프: 돛으로 스틱 쪽 방향 전환. '놓기'는 발밑 노란 점에. 유리는 세게 내리면 깨짐. 목숨 3(새 별서 회복).", "Tiny planets share one sky. Run with left stick (push more for speed); fast running lifts feet.\nSprint and jump to escape gravity and fly. Nearby planets pull you into orbit; miss and you drift off.\nDotted line shows path (green reaches, red is danger). Green top bar = escape ready. Yellow pillar is goal.\nJump mid-flight to turn toward stick with sail. 'Drop' lands on yellow dot. Glass breaks if slammed. 3 lives (refill on new planet)."],
-}

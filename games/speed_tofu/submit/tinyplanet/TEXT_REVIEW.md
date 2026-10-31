@@ -1,5 +1,9 @@
 # 어린 배달부 / The Little Courier — 진행 흐름과 글 검토
 
+> **2026-10-31 정리됨**: 모든 글이 `g/tinyplanet_text.gd` 한 표(143줄, 키 → [한국어, English])로 옮겨졌다. 아래 표·목록은 그 전 기록이다.
+> 영어를 한국어 뜻에 맞춤(1·2·4·5·6·10의 Fire Star·11). 한국어 "초록 칸" → "초록 점선"(3). 안 쓰이던 글 10개 지움(msg.start·liftoff·float·flower_crack·slingshot·rock_snag·picked, banner.intro, howto, "탭해서 시작").
+> v9부터 p4·p5 혼잣말과 p5.hint는 실제로 나온다(끝낸 주민 누구나 혼잣말, 덮개 들고 장미 별이면 p5.hint). 평가 카드 글은 모음판에서 쓰여 남겼다. 한국어 고치는 법은 README.md.
+
 코드 기준: `g/tinyplanet.gd`(DL·EN_UI·BD·JOB), `g/tinyplanet_ui.gd`(시작·끝 화면, EN), `g/tinyplanet_fx.gd`(글 없음, EN 비어 있음), `tofu.gd`(공통 바탕 글). 코드는 고치지 않았다.
 
 한국어/영어 고르기: 기본은 영어. 웹 주소에 `lang=ko`가 있거나 시작 화면 오른쪽 아래 "EN | 한국어"에서 고르면 그 말로 나온다.

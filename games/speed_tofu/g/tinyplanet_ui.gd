@@ -23,6 +23,7 @@ extends Node
 ## 화면 층: 할 일 목록 6, 점수 팝 7, 끝 화면 8(평가 카드 9 아래), 시작 화면 12(맨 위).
 ## 입력: 내 버튼은 _input 에서 먼저 받고 처리했다고 표시한다(조작 키트로 안 샌다). 왼쪽 위 "< 메뉴" 자리는 건드리지 않는다.
 
+const TX := preload("res://g/tinyplanet_text.gd")  # 화면 글은 모두 이 표의 키로 tr() 한다
 const DS := {
 	"cream": Color("fff6e6"), "ink": Color("2b2d42"), "sky": Color("9fd3ff"), "mint": Color("8fe3c2"), "lav": Color("b9a7f2"),
 	"accent": Color("ffd166"), "accent_dark": Color("e6a93a"), "danger": Color("e8453c"), "go": Color("37b24d"),
@@ -216,6 +217,7 @@ var _env_v := PackedVector2Array([Vector2(-22, -15), Vector2(0, 3), Vector2(22, 
 var _ko := false
 var _lang_pick := -1  # 저장된 선택: -1 없음, 0 영어, 1 한국어
 var _my_tl: Translation
+var _my_tl_ko: Translation
 # 시작 화면
 var _title_root: Control
 var _title_deco: _Canvas
@@ -425,24 +427,23 @@ func _apply_lang(ko: bool) -> void:
 	refresh_text()
 
 
-## 본체에 set_lang 이 없을 때: 내 글만이라도 바꾼다 (영어 번역이 서버에 없으면 내 EN 을 넣는다)
+## 본체에 set_lang 이 없을 때: 내 글만이라도 바꾼다 (번역이 서버에 없으면 g/tinyplanet_text.gd 표로 en·ko 를 넣는다)
 func _own_lang(ko: bool) -> void:
-	if ko:
-		TranslationServer.set_locale("ko")
-		return
-	TranslationServer.set_locale("en")
-	if _my_tl == null and tr("어린 배달부") == "어린 배달부":
-		_my_tl = Translation.new()
-		_my_tl.locale = "en"
-		for k: String in EN:
-			_my_tl.add_message(k, str(EN[k]))
+	if _my_tl == null and tr("ui.title") == "ui.title":
+		_my_tl = TX.make(false)
+		_my_tl_ko = TX.make(true)
 		TranslationServer.add_translation(_my_tl)
+		TranslationServer.add_translation(_my_tl_ko)
+	TranslationServer.set_locale("ko" if ko else "en")
 
 
 func _exit_tree() -> void:
 	if _my_tl != null:
 		TranslationServer.remove_translation(_my_tl)
 		_my_tl = null
+	if _my_tl_ko != null:
+		TranslationServer.remove_translation(_my_tl_ko)
+		_my_tl_ko = null
 
 
 # ---- 입력: 내 버튼이 먼저 ----
@@ -611,7 +612,7 @@ func _lab(parent: Control, text: String, rect: Rect2, ls: LabelSettings, align :
 	return l
 
 
-## 한국어 키로 만든 글자: 언어가 바뀌면 refresh_text 가 다시 쓴다
+## 글 키(g/tinyplanet_text.gd)로 만든 글자: 언어가 바뀌면 refresh_text 가 다시 쓴다
 func _klab(parent: Control, key: String, rect: Rect2, ls: LabelSettings, align := HORIZONTAL_ALIGNMENT_CENTER) -> Label:
 	var l := _lab(parent, tr(key), rect, ls, align)
 	_keyed.append([l, key])
@@ -628,7 +629,7 @@ func _box(parent: Control, rect: Rect2, fill: Color) -> _Box:
 	return b
 
 
-## 납작한 stadium 버튼. key 는 한국어(tr 로 바꿔 그린다), glyph 1 재생 세모 / 2 편지
+## 납작한 stadium 버튼. key 는 글 키(tr 로 바꿔 그린다), glyph 1 재생 세모 / 2 편지
 func _btn(parent: Control, rect: Rect2, key: String, glyph: int, act: Callable) -> _Btn:
 	var b := _Btn.new()
 	b.font = _font
@@ -752,7 +753,7 @@ func _build_title() -> void:
 	_ribbon_l = _lab(_ribbon, "", Rect2(0, -3, 280, 76), _ls(46, DS.cream, true))
 	_ribbon_l.autowrap_mode = TextServer.AUTOWRAP_OFF
 	_set_title_text()
-	_start_b = _btn(_title_root, START_RECT, "시작", 1, _title_go.bind(false))
+	_start_b = _btn(_title_root, START_RECT, "ui.start", 1, _title_go.bind(false))
 	_lang_b = _btn(_title_root, LANG_RECT, "", 0, _toggle_lang)
 	_lang_b.fs = int(DS.fs_small)
 	_lang_b.edge = 6.0
@@ -762,7 +763,7 @@ func _build_title() -> void:
 
 ## 제목 "어린 배달부" / "The Little Courier": 마지막 낱말은 큰 글자, 앞부분은 리본
 func _set_title_text() -> void:
-	var full := tr("어린 배달부")
+	var full := tr("ui.title")
 	var cut := full.rfind(" ")
 	var small := full.substr(0, cut) if cut > 0 else ""
 	var big := full.substr(cut + 1) if cut > 0 else full
@@ -1008,8 +1009,8 @@ func _build_end() -> void:
 		_row_k.append(_lab(_end_panel, "", Rect2(104, y, 250, 68), _ls(int(DS.fs_body), ink, false), HORIZONTAL_ALIGNMENT_LEFT))
 		_row_v.append(_lab(_end_panel, "", Rect2(330, y, 240, 68), _ls(int(DS.fs_btn), ink, false), HORIZONTAL_ALIGNMENT_RIGHT))
 	_new_b = _box(_end_panel, Rect2(272, 136.0 + 3.0 * 80.0 + 10.0, 160, 50), DS.accent)
-	_klab(_new_b, "새 기록", Rect2(0, -2, 160, 50), _ls(int(DS.fs_small), ink, false))
-	_again_end = _btn(_end_panel, Rect2(80, 492, 440, 110), "다시", 1, _again)
+	_klab(_new_b, "end.new_best", Rect2(0, -2, 160, 50), _ls(int(DS.fs_small), ink, false))
+	_again_end = _btn(_end_panel, Rect2(80, 492, 440, 110), "end.again", 1, _again)
 	_end_root.visible = false
 
 
@@ -1031,9 +1032,9 @@ func _on_over() -> void:
 			_new_rec = true
 	_save_cfg()
 	_end_ribbon.paint(DS.accent if _end_win else DS.lav, DS)
-	_end_head.text = tr("모든 부탁 완료!") if _end_win else tr("목숨을 다 썼어")
-	_end_msg.text = tr("다섯 별이 모두 웃고 있어") if _end_win else tr("다시 하면 첫 별부터 새로 시작해")
-	var keys := ["배달한 수", "걸린 시간" if _end_win else "버틴 시간", "새총", "최고 기록" if _end_win else "최고 배달"]
+	_end_head.text = tr("end.win_head") if _end_win else tr("end.lose_head")
+	_end_msg.text = tr("end.win_msg") if _end_win else tr("end.lose_msg")
+	var keys := ["end.delivered", "end.time" if _end_win else "end.survived", "end.slings", "end.best_time" if _end_win else "end.best_count"]
 	_row_target[0] = float(deliv)
 	_row_target[1] = _time
 	_row_target[2] = float(_slings)
@@ -1048,7 +1049,7 @@ func _on_over() -> void:
 	_rows_shown = 0
 	_new_b.visible = false
 	_again_end.glow = false
-	_again_end.text = tr("다시")
+	_again_end.text = tr("end.again")
 	_end_t = 0.0
 	_end_panel.position.y = 1000.0
 	_end_root.visible = true
@@ -1161,7 +1162,7 @@ func _build_todo() -> void:
 		_todo_stl.append(sl)
 	var hy := TODO_ROW_Y + 5.0 * TODO_ROW_H
 	_todo_held_l = _lab(_todo_panel, "", Rect2(104, hy + 14, 510, 64), _ls(30, ink, false), HORIZONTAL_ALIGNMENT_LEFT)
-	_todo_hint = _klab(_todo_panel, "탭하면 닫혀요", Rect2(0, hy + 92, 640, 40), _ls(22, Color(ink.r, ink.g, ink.b, 0.55), false))
+	_todo_hint = _klab(_todo_panel, "todo.close", Rect2(0, hy + 92, 640, 40), _ls(22, Color(ink.r, ink.g, ink.b, 0.55), false))
 
 
 ## 버튼 그림: 목록 (점 + 줄 셋)
@@ -1230,12 +1231,12 @@ func _todo_fill() -> void:
 		_todo_who[i].text = "%s · %s" % [str(r.get("who", "")), str(r.get("planet", ""))]
 		_todo_task[i].text = str(r.get("task", ""))
 		_todo_task[i].label_settings.font_color = Color(ink.r, ink.g, ink.b, 0.5 if st == 2 else 1.0)
-		_todo_stl[i].text = tr("끝" if st == 2 else ("하는 중" if st == 1 else "아직 안 만남"))
-	_todo_head.text = "%s  %d/5" % [tr("할 일"), n]
+		_todo_stl[i].text = tr("todo.st_done" if st == 2 else ("todo.st_doing" if st == 1 else "todo.st_none"))
+	_todo_head.text = "%s  %d/5" % [tr("todo.head"), n]
 	var held: Array = _game.call("todo_held") if _game.has_method("todo_held") else ["", ""]
 	_todo_hk = str(held[0]) if held.size() > 0 else ""
 	var hn := str(held[1]) if held.size() > 1 else ""
-	_todo_held_l.text = "%s: %s" % [tr("들고 있는 것"), hn if hn != "" else tr("빈손")]
+	_todo_held_l.text = "%s: %s" % [tr("todo.held"), hn if hn != "" else tr("todo.empty")]
 	_todo_canvas.queue_redraw()
 
 
@@ -1328,30 +1329,3 @@ func _pops_anim(dt: float) -> void:
 		var s := lerpf(0.4, 1.3, t / 0.12) if t < 0.12 else lerpf(1.3, 1.0, minf((t - 0.12) / 0.12, 1.0))
 		l.scale = Vector2(s, s)
 		l.modulate.a = 1.0 if k < 0.6 else 1.0 - (k - 0.6) / 0.4
-
-
-# 본체가 번역 서버에 합친다 (한국어 -> English). 본체에 set_lang 이 없으면 _own_lang 이 직접 넣는다.
-const EN := {
-	"어린 배달부": "The Little Courier",
-	"시작": "START",
-	"모든 부탁 완료!": "All done!",
-	"목숨을 다 썼어": "Out of lives",
-	"다섯 별이 모두 웃고 있어": "All five planets are smiling",
-	"다시 하면 첫 별부터 새로 시작해": "Try again from the first planet",
-	"배달한 수": "Delivered",
-	"걸린 시간": "Time",
-	"버틴 시간": "Time survived",
-	"새총": "Slingshots",
-	"최고 기록": "Best time",
-	"최고 배달": "Best delivered",
-	"새 기록": "New best",
-	"다시": "AGAIN",
-	# v9 할 일 목록
-	"할 일": "To-do",
-	"아직 안 만남": "Not met",
-	"하는 중": "In progress",
-	"끝": "Done",
-	"들고 있는 것": "Carrying",
-	"빈손": "Nothing",
-	"탭하면 닫혀요": "Tap anywhere to close",
-}
