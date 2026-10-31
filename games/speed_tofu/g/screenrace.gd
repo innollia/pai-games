@@ -2290,18 +2290,28 @@ func _place_mailboxes() -> void:
 			if y > -1.0e8:
 				_add_mailbox(x, y)
 				break
-	# 평평한 곳이 모자란 코스: 앞에서부터 더 찾아 채운다 (이웃 우체통과 5m 넘게 떨어진 곳만)
+	# 평평한 곳이 모자란 코스: 남은 빈자리 중 이미 있는 우체통에서 가장 먼 곳부터 채운다 (v47: 앞에서부터 채우면
+	# 초반에 몰려 "택배 6개 거의 연속으로 보내고 가만히 있었더니 이겼어"). 가장 먼 곳도 8m 안이면 그만
+	var spots := []
 	var sx := x0
-	while mailboxes.size() < want + 1 and sx < x1:
-		var sy := _mb_spot(sx)
-		var far := true
-		for mb in mailboxes:
-			if absf(float(mb.x) - sx) < 5.0:
-				far = false
-				break
-		if sy > -1.0e8 and far:
-			_add_mailbox(sx, sy)
+	while sx < x1:
+		if _mb_spot(sx) > -1.0e8:
+			spots.append(sx)
 		sx += 2.0
+	while mailboxes.size() < want + 1 and not spots.is_empty():
+		var best := -1.0
+		var bd := 0.0
+		for x in spots:
+			var d := 1.0e9
+			for mb in mailboxes:
+				d = minf(d, absf(float(mb.x) - float(x)))
+			if d > bd:
+				bd = d
+				best = x
+		if bd < 8.0:
+			break
+		_add_mailbox(best, _mb_spot(best))
+		spots.erase(best)
 	mailboxes.sort_custom(func(a, b): return a.x < b.x)
 
 

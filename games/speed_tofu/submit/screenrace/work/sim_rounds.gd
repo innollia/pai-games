@@ -26,6 +26,7 @@ func _run() -> void:
 		while g.phase != "race" and f < 900:
 			f += 1
 			await process_frame
+		print("  우체통 x ", g.mailboxes.map(func(m): return int(m.x)), " 결승 ", int(g.goal_x))
 		var held := false
 		var seen := {}
 		var gos := {}
