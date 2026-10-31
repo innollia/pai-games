@@ -1,43 +1,109 @@
 # 잼 제출 체크리스트 — 어린 배달부 (The Little Courier)
 
-전체 안내: `../speed_tofu/submit/tinyplanet/README.md`.
+마감: 2026-11-01(일) 00:00 KST (10/31 15:00 UTC). 마감 뒤에는 빌드를 못 고친다. 글은 마감 전까지 잼 페이지 → Edit submission에서 고칠 수 있다.
+이 파일 하나에 올릴 파일 위치와 붙여 넣을 글이 모두 있다. 위에서부터 차례로 하면 된다.
 
-마감: **2026-11-01(일) 00:00 KST**. 마감 뒤에는 고칠 수 없으니 **10/31(토) 20~21시에 미리 제출**한다.
-글(제목·설명·태그·도구)은 `../speed_tofu/submit/tinyplanet/ITCH_PAGE.md`에 있다. 복사해서 붙인다.
-Rosebud 상금은 맨 아래 단계(같은 빌드로 양식 제출).
+## 1. 올릴 파일 위치
 
-## 올리기 전에 (에이전트)
+- 게임 zip (itch와 Rosebud 둘 다 이것, v23):
+  C:\projects\pai-games\games\tiny_planet\little_courier_itch.zip
+- 표지 630×500 (itch Cover image):
+  C:\projects\pai-games\games\speed_tofu\submit\tinyplanet\cover.png
+- 16:9 표지 1920×1080:
+  C:\projects\pai-games\games\speed_tofu\submit\tinyplanet\cover_16x9.png
+- 세로 스크린샷 5장 (720×1280):
+  SHOTS_HERE
 
-- [ ] **제출 바로 전에 "평가/Rate" 버튼 빼기**(단독판만)
-- [ ] 로컬 `http.server` 끄기
-- [ ] `tools\sync.ps1` → `tools\build.ps1` 로 최신 빌드를 `web\`에 만들고 커밋·push
-- [ ] 폰에서 `https://innollia.github.io/pai-games/games/tiny_planet/web/` 한 판 확인(Pages 반영 1~2분)
+## 2. itch.io 새 프로젝트 (itch.io → Upload new project)
 
-## 올릴 파일
+- [ ] Title (복사):
 
-- 이 폴더의 `web/` 안 파일 전부를 zip 하나로 묶는다(`index.html`이 zip 맨 위에 와야 한다. 폴더째 묶지 않는다).
-  아래 한 줄을 PowerShell에서 실행하면 `C:\projects\pai-games\games\tiny_planet\little_courier_itch.zip`이 생긴다.
-
-```powershell
-Compress-Archive -Path C:\projects\pai-games\games\tiny_planet\web\* -DestinationPath C:\projects\pai-games\games\tiny_planet\little_courier_itch.zip -Force
+```
+The Little Courier
 ```
 
-## itch.io에서 사람이 할 일 (계정이 필요해서 에이전트가 대신 못 함)
+- [ ] Short description (복사, 120자 이내 — 118자):
 
-1. [ ] itch.io → Upload new project
-2. [ ] Title: `The Little Courier`. Short description은 ITCH_PAGE.md의 Short description을 쓴다
-3. [ ] Kind of project: **HTML**. zip 업로드 후 **"This file will be played in the browser"** 체크
-4. [ ] Embed options: 크기 **360 × 640**(세로), **Mobile friendly** 체크, Orientation **Portrait**, Fullscreen button 켬
-5. [ ] Classification: Games. Genre: Action. Tags: ITCH_PAGE.md의 Tags
-6. [ ] Description: ITCH_PAGE.md의 Long description + Controls + Tools used 붙이기
-7. [ ] 표지(630×500)와 스크린샷 3장 이상: **폰에서 직접 캡처**한 밝은 장면(별 위에서 달리기, 다른 별로 날아가는 점선, 의뢰 주민과 대화)
-8. [ ] Comments 켜기. Visibility는 **Public**으로 Save
-9. [ ] 잼 페이지 → **Submit your project** → 이 프로젝트 선택
-10. [ ] 사용 도구 체크리스트: **Claude**, **Codex/ChatGPT(OpenAI)**(GPT 그림), **Gemini(Google Antigravity)**(대사), Godot(+Blender, Python/numpy, nkido). 설명란의 Tools used와 같게
-11. [ ] 상금 연락처 이메일은 비공개 칸에 본인이 직접 입력(설명란에 쓰지 않는다)
-12. [ ] 제출 후 잼 제출 목록에 보이는지, 폰에서 itch 페이지로 한 판 돌아가는지 확인
+```
+Run around tiny planets and leap: your speed becomes your orbit. Deliver fragile gifts between worlds on real gravity.
+```
 
-## Rosebud $100 상 (사람이 할 일)
+- [ ] Kind of project: HTML → 위 zip 업로드 → "This file will be played in the browser" 체크
+- [ ] Embed options: 크기 360 × 640 (세로! 가로면 양옆이 검게 나온다. 게임이 360×640에 딱 맞게 그려진다), Mobile friendly 체크, Orientation Portrait, Fullscreen button 켬
+- [ ] Description (아래 통째로 복사. 긴 설명 → How to play → Controls → Tools used 순서가 이미 맞춰져 있다):
 
-13. [ ] Godot 빌드도 된다. 위 zip(`web/` 안 파일, 이름 그대로)을 양식 https://forms.gle/BhVwP4vpVKjP13j88 으로 낸다(이메일 등 개인정보는 본인이 입력)
-14. [ ] Rosebud 팀이 올려 준 링크를 받는다. 나중 수정이 반영 안 될 수 있으니 **최종본을 일찍** 낸다(마감 전 링크가 나와야 함)
+```
+The Little Courier — a cozy delivery game on tiny planets with real gravity.
+
+You are Posty, a little living mailbox with big eyes, a yellow flag and noodle legs. Five neighbours on five tiny planets need a hand, and the only way between worlds is your own two feet: run along a planet only a few steps around, and the speed you build and the moment you jump become your flight path through the sky. No warp, no auto-travel — aim with your feet.
+
+Land by orbit. Every planet pulls only within its own reach. Dip into a neighbour's air and you curve around it and touch down; pass outside and its gravity slings you onward. Skim the hot Fire Star to bend your path around a fence.
+
+Five requests, in any order:
+- Wake the sleeping windmill by running at just the right speed, and earn the Old Glidewing.
+- Drop a parcel over the wall of a little house on the Chimney Moon — from the air.
+- Carry a glass flower to a friend on the Friend Moon, and land softly.
+- Run alongside the sunset band for Big Bro on his icy little planet.
+- Bring a glass dome to the Rose, who would never admit she was waiting.
+
+No deaths, no lives. Bump the Fire Star and you just bounce off; drift into deep space and you are towed home. Glass can crack if you slam down, so circle in gently.
+
+Theme: Speed — your speed is your orbit: too slow and you fall back, just right and you fly to the next world.
+
+English by default; Korean with the language button on the title screen.
+
+How to play
+
+Push the stick to run around the planet (push further to run faster). Tap JUMP to leap. While you run, a dotted path shows where a jump would take you: green reaches another planet. The ring around the JUMP button shows your speed.
+
+Your current request is always shown at the top; a yellow arrow floats over the place to go, and an arrow at the screen edge points to it when it is off screen. Tap the list button (top left) to see all five requests.
+
+Talk to a neighbour by walking up to them; tap the speech bubble to read on, or just walk away — the game never waits for you.
+
+In the air, after the Windmill Keeper gives you the Old Glidewing, tap GLIDE (or JUMP) once to turn toward your stick. Tap DROP to let go of what you carry onto the yellow spot below you.
+
+Controls
+
+Touch, portrait. Left stick: run. JUMP: jump. GLIDE: turn once in the air. DROP: drop what you carry. List button (top left): your five requests. Tap a speech bubble to read the next line.
+On a computer: WASD or arrow keys to run, Space to jump/glide, F to drop, Enter or E for the next line, Tab or Q for the list, Enter to start. Sound on!
+
+Tools used / AI disclosure
+
+Made by 핸섬가이즈 with AI tools.
+Tools used: Godot, Claude (Anthropic), Codex / GPT image generation (OpenAI), Gemini (Google, via Antigravity), Blender, Python (numpy), nkido.
+Code, game design, the planets and the Posty and villager characters (modeled in code) by Claude. Prop models were built with Blender scripts and painted with GPT-generated textures; the title screen art, UI art and cover were made with OpenAI image generation via Codex. Dialogue in English and Korean was written with Gemini from Claude's character briefs. All sound effects were synthesized with nkido (MIT, no samples) and Python; no AI-generated audio. Fonts: Fredoka, Jua (SIL OFL), Pretendard.
+```
+
+- [ ] Classification: Games. Genre: Action (또는 Adventure)
+- [ ] Tags (복사):
+
+```
+ai, mobile, portrait, touch, slapjam, speed, gravity, space, cozy, low-poly
+```
+
+- [ ] Cover image: cover.png. Screenshots: 위 5장
+- [ ] Comments 켜기, Visibility Public → Save
+
+## 3. 잼 제출 (잼 페이지 → Submit your project)
+
+- [ ] 방금 만든 프로젝트 선택
+- [ ] 상금 연락처 이메일: 비공개 칸에 직접 입력 (설명란에 쓰지 않는다)
+- [ ] 도구 체크리스트 (Convai, Rosebud, Jamboree, Ziva, AutoSprite, PixelLab, None of these): None of these 하나만 체크(또는 비움). Rosebud는 Rosebud 플레이 주소가 실제로 생긴 뒤에만 체크. 잘못 눌렀으면 다시 눌러 해제
+- [ ] 제출 뒤 itch 게임 페이지를 열어 Run game으로 한 판: 세로 창인지, 소리가 나는지 확인
+
+## 4. Rosebud $100 상 (Best Game Hosted on Rosebud, 본상과 중복 가능)
+
+- [ ] 같은 zip(안의 파일 이름을 바꾸지 말 것)을 신청서에 직접 제출. 처리 시간이 공개되지 않았으니 지금 바로 낸다:
+  https://forms.gle/BhVwP4vpVKjP13j88
+  문의: support@rosebudai.com
+- [ ] Rosebud 주소가 나오면 itch 설명 맨 아래에 한 줄 추가하고, 잼 도구 체크리스트에서 Rosebud 체크 (None of these는 해제):
+
+```
+Also playable on Rosebud: <주소>
+```
+
+## 참고
+
+- 폰에서 먼저 해 볼 곳: https://innollia.github.io/pai-games/games/tiny_planet/web/
+- 엔딩까지 빨리 보기(시험용, 일반 플레이에는 안 보임): https://innollia.github.io/pai-games/games/tiny_planet/web/?skip=1 (오른쪽 Skip = 부탁 하나 끝냄, TP = 다음 별로)
+- 게임을 고치면 zip을 다시 만들고 itch·Rosebud 둘 다에 다시 올린다.
