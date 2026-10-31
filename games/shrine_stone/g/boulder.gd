@@ -2232,7 +2232,7 @@ func _step(dt: float) -> void:
 		_throw()
 	_shot(dt)
 	_aim()
-	if mode == "side":
+	if mode == "side" and not underground:  # 동굴 안에서는 등뒤 카메라라 좌우로 몬다
 		x_goal = 0.0
 	if on_ground:
 		_pads(dt)
@@ -2641,6 +2641,10 @@ func _bonk(th: Thing) -> void:
 	if th.kd == KIND.pillar or th.kd == KIND.post:
 		# 기둥: 붉게 깜빡이는 대신 진짜로 튕겨 난다 (뒤로 밀리고, 기둥 반대쪽 옆으로 튀고, 살짝 뜬다)
 		var away := signf(bx - th.x) if absf(bx - th.x) > 0.05 else (1.0 if randf() < 0.5 else -1.0)
+		# 그쪽에 몸이 빠져나갈 틈이 없으면(벽·길 끝) 반대쪽으로 튕긴다: 같은 기둥에 계속 박히지 않게
+		var room_w := _cave_hw(dist) if underground and cave_span.size() >= 2 else float(pd.hw[_oi(pd, dist)])
+		if room_w - away * th.x - sz.x * 0.5 < s * 1.05:
+			away = -away
 		dist = minf(dist, th.d - (s + sz.z) * 0.5 - 0.6)
 		v = maxf(v * 0.45, minf(v, VSTOP + 3.0))
 		bx = th.x + away * ((s + sz.x) * 0.45 + 0.3)
@@ -3029,7 +3033,7 @@ func _tap(p: Vector2) -> void:
 func _drag(p: Vector2) -> void:
 	var dx := p.x - last_x
 	last_x = p.x
-	if mode == "side":
+	if mode == "side" and not underground:
 		return  # 옆모습 수로는 외길: 뛰기만
 	# 높은 해안 사선 시점도 등뒤 시점과 같은 방향으로 조종한다
 	x_goal += dx * 0.05 * 1.0
@@ -3313,32 +3317,39 @@ func _try_crack() -> void:
 ## 지하 신전 바닥에 놓는 것: 위 수로와 다른 놀이. 항아리 무리로 크게 커지고(위에서는 못 먹는 양),
 ## 석상은 깔거나 뛰어넘고, 무너진 담은 뛰어넘는다. 커진 몸은 물기둥이 위로 솟을 때 그대로 간다.
 func _under_things(a: float, b: float, z: Dictionary) -> Array:
-	# 동굴 맵 한 바퀴: 항아리 무리로 커지기 → 붉은 종유 기둥 사이 지그재그 → 무너진 담 뛰기 → 석상 깔기/넘기 → 항아리 줄
+	# 동굴 맵: 넓은 굴방에서는 항아리를 쓸어 담아 커지고 석상을 깔고, 좁은 굴길에서는 붉은 석순 사이를 비틀고 무너진 담을 뛴다
 	var out := []
-	var d := a + 40.0
-	var n := 0
 	var lim := b - 60.0
 	if updraft.size() >= 5:
-		lim = minf(lim, float(updraft[0]) - 20.0)
+		lim = minf(lim, float(updraft[0]) - 10.0)
+	var d := a + 30.0
+	var n := 0
 	while d < lim:
+		var hall := _cave_hw(d) > 8.0 and _cave_hw(d + 14.0) > 8.0  # 무리 하나가 굴길로 넘어가지 않게
 		var put: Array = []
-		match n % 5:
-			0:
-				put = [[0.0, -3.0, "pot"], [2.0, 0.0, "pot"], [4.0, 3.0, "pot"], [7.0, -1.5, "pot"], [9.0, 1.5, "pot"]]
-			1:
-				put = [[0.0, -4.2, "pillar"], [9.0, 4.2, "pillar"], [18.0, -4.2, "pillar"], [4.5, 3.0, "pot"], [13.5, -3.0, "pot"]]
-			2:
-				put = [[0.0, -2.2, "wall"], [0.0, 2.2, "wall"], [10.0, 0.0, "pot"]]
-			3:
-				put = [[0.0, 0.0, "statue"], [0.0, -4.5, "pot"], [0.0, 4.5, "pot"], [8.0, 0.0, "pot"]]
-			4:
-				put = [[0.0, 0.0, "pot"], [3.0, 0.0, "pot"], [6.0, 0.0, "pot"], [9.0, -5.0, "pillar"], [9.0, 5.0, "pillar"]]
+		if hall:
+			match n % 3:
+				0:
+					put = [[0.0, -7.0, "pot"], [2.0, -3.5, "pot"], [4.0, 0.0, "pot"], [2.0, 3.5, "pot"], [0.0, 7.0, "pot"], [9.0, 0.0, "statue"]]
+				1:
+					put = [[0.0, -5.0, "statue"], [0.0, 5.0, "statue"], [4.0, 0.0, "pot"], [8.0, -2.0, "pot"], [8.0, 2.0, "pot"]]
+				2:
+					put = [[0.0, 0.0, "pot"], [3.0, -6.0, "pot"], [3.0, 6.0, "pot"], [6.0, 0.0, "pot"], [10.0, 0.0, "pillar"]]  # 석순은 하나씩: 둘을 나란히 두면 큰 몸이 못 지나간다
+		else:
+			match n % 3:
+				0:
+					put = [[0.0, -2.6, "pillar"], [9.0, 2.6, "pillar"], [18.0, -2.6, "pillar"], [4.5, 2.4, "pot"], [13.5, -2.4, "pot"]]
+				1:
+					put = [[0.0, -2.2, "wall"], [0.0, 2.2, "wall"], [8.0, 0.0, "pot"]]
+				2:
+					put = [[0.0, 0.0, "pillar"], [6.0, -3.0, "pot"], [6.0, 3.0, "pot"], [12.0, 0.0, "wall"]]
 		for pt: Array in put:
-			var th := _thing(pd, d + float(pt[0]), d + float(pt[0]), float(pt[1]), str(pt[2]), z)
+			var dd := d + float(pt[0])
+			var th := _thing(pd, dd, dd, clampf(float(pt[1]), -_cave_hw(dd) + 1.0, _cave_hw(dd) - 1.0), str(pt[2]), z)
 			th.base -= DEEP
 			th.n.position.y -= DEEP
 			out.append(th)
-		d += 34.0
+		d += 22.0 if hall else 26.0
 		n += 1
 	return out
 
@@ -3458,18 +3469,26 @@ func _build_tunnel(a: float, b: float, nd: Node3D, opt := {}) -> Array:
 	return route
 
 
-## 동굴 맵: 양쪽 바위 벽과 천장으로 닫힌 굴. 천장은 수로 틈 밑(떨어져 들어오는 구멍)과 순풍 길 위만 뚫려 있다.
-## 벽 사이(폭 16m)는 몸이 못 벗어난다. 종유석이 매달리고, 벽에 박힌 수정이 길을 비춘다.
+## 동굴 맵: 양쪽 바위 벽과 천장으로 닫힌 굴. 넓은 굴방(폭 22m)과 좁은 굴길(폭 11m)이 60m 마다 번갈아 나온다.
+## 천장은 수로 틈 밑(떨어져 들어오는 구멍)과 순풍 길 위만 뚫려 있다. 종유석이 매달리고, 벽에 박힌 수정이 길을 비춘다.
+const CAVE_SEC := 60.0
+func _cave_hw(d: float) -> float:
+	if cave_span.size() < 2:
+		return CAVE_HW
+	return 11.0 if int(floorf((d - float(cave_span[0])) / CAVE_SEC)) % 2 == 0 else 5.5
+
+
 func _build_cave(a: float, b: float, dp: float, nd: Node3D) -> void:
-	var seg := 24.0
-	var d := a - 6.0
+	var seg := 20.0
+	var d := a
 	var k := 0
-	var ch := 17.0  # 천장 높이
 	while d < b + 70.0:
 		var mid := d + seg * 0.5
 		var dd := minf(mid, b - 1.0)
 		var fl := _h(dd) - dp
 		var yw := _yaw(dd)
+		var hw := _cave_hw(mid)
+		var ch := 22.0 if hw > 8.0 else 13.0  # 굴방은 높고, 굴길은 낮다
 		var open := false
 		for q in range(int(d) - 4, int(d + seg) + 5, 2):
 			var ii := clampi(q, 0, pd.tg.size() - 1)
@@ -3479,29 +3498,35 @@ func _build_cave(a: float, b: float, dp: float, nd: Node3D) -> void:
 		if updraft.size() >= 5 and d + seg > float(updraft[0]) - 8.0 and d < float(updraft[2]) + 4.0:
 			open = true
 		for sd: float in [-1.0, 1.0]:
-			var w := box(_pos(dd, sd * (CAVE_HW + 2.0), fl + ch * 0.5), Vector3(4.0, ch + 2.0, seg + 0.6), ROCK, nd)
+			var w := box(_pos(dd, sd * (hw + 2.0), fl + ch * 0.5), Vector3(4.0, ch + 2.0, seg + 0.6), ROCK, nd)
 			_apply_art(w, "valley", Color("7d6a56") if sd < 0.0 else Color("6c5a48"))
 			w.rotation.y = yw
 		if not open:
-			var roof := box(_pos(dd, 0.0, fl + ch + 1.5), Vector3(CAVE_HW * 2.0 + 8.0, 3.0, seg + 0.6), ROCK, nd)
+			var roof := box(_pos(dd, 0.0, fl + ch + 1.5), Vector3(hw * 2.0 + 8.0, 3.0, seg + 0.6), ROCK, nd)
 			_apply_art(roof, "valley", Color("5e4f40"))
 			roof.rotation.y = yw
 			for j in 3:
-				var tl := 2.5 + float((k * 3 + j) % 4) * 1.2
-				var tip := box(_pos(dd - 8.0 + j * 8.0, -5.0 + float((k + j) % 3) * 5.0, fl + ch - tl * 0.5), Vector3(1.1, tl, 1.1), ROCK, nd)
+				var tl := (2.5 if hw > 8.0 else 1.6) + float((k * 3 + j) % 4) * 1.0
+				var tip := box(_pos(dd - 6.0 + j * 6.0, (-0.6 + float((k + j) % 3) * 0.6) * hw, fl + ch - tl * 0.5), Vector3(1.1, tl, 1.1), ROCK, nd)
 				_apply_art(tip, "crystal", Color("a88f70"))
 				tip.rotation.y = yw
+		if hw > 8.0 and k % 3 == 1:
+			# 굴방 바닥 둘레 석순 무리
+			for sd: float in [-1.0, 1.0]:
+				var sg := box(_pos(dd, sd * (hw - 1.2), fl + 2.0), Vector3(1.6, 4.0, 1.6), ROCK, nd)
+				_apply_art(sg, "crystal", Color("b49a7a"))
+				sg.rotation.y = yw
 		d += seg
 		k += 1
 
 
-## 동굴 안 거리 d 에서 몸이 벽에 걸리지 않게 좌우를 막는다
+## 동굴 안 거리 d 에서 몸이 벽에 걸리지 않게 좌우를 막는다 (굴길로 들어서면 벽이 몸을 가운데로 민다)
 func _cave_clamp() -> void:
 	if cave_span.size() < 2 or not underground or dist < float(cave_span[0]) or dist > float(cave_span[1]) + 70.0:
 		return
-	var lim := CAVE_HW - s * 0.5
+	var lim := maxf(0.5, _cave_hw(dist) - s * 0.5)
 	if absf(bx) > lim:
-		bx = clampf(bx, -lim, lim)
+		bx = move_toward(bx, signf(bx) * lim, 40.0 * get_process_delta_time())
 		v *= 0.985  # 벽에 쓸리면 조금 느려진다
 	x_goal = clampf(x_goal, -lim, lim)
 
@@ -3509,10 +3534,13 @@ func _cave_clamp() -> void:
 ## 순풍 길: 동굴 뒤쪽 바닥에서 바람결이 비스듬히 위로 감아 올라가 수로 틈으로 빠져나간다.
 ## 그 자리에 굴러 들어오면 바람이 돌을 밀어 올리고 앞으로 더 빠르게 지상으로 돌려보낸다.
 func _build_updraft(a: float, b: float, dp: float, nd: Node3D) -> void:
-	var i := int(a + (b - a) * 0.55)
-	while i < int(b) and pd.tg[i] != "gap":
-		i += 1
-	if i >= int(b) - 1:
+	# 동굴 맨 끝 틈: 어느 구멍으로 떨어져도 동굴을 끝까지 달린 뒤에 올라온다
+	var i := int(b) - 1
+	while i > int(a) and pd.tg[i] != "gap":
+		i -= 1
+	while i > int(a) and pd.tg[i - 1] == "gap":
+		i -= 1
+	if i <= int(a):
 		return
 	var gs := float(i)
 	var j := i
