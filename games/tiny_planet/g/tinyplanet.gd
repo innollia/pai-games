@@ -357,10 +357,10 @@ func _setup() -> void:
 		fv.base_font = fred
 		fv.variation_opentype = {TextServerManager.get_primary_interface().name_to_tag("wght"): 600}
 		_font = fv
-	# v22 단독판은 720×1280 픽셀 퍼펙트 (project.godot stretch = viewport): 모든 것을 720×1280 에 그려 늘린다 — 해상도 줄이기 둘은 끈다
-	var px_perfect := get_window().content_scale_mode == Window.CONTENT_SCALE_MODE_VIEWPORT
-	if not px_perfect:
-		_dpr_cap()
+	# v23 단독판(project.godot [tinyplanet] px_perfect)은 제출 권장 720×1280 에 픽셀 퍼펙트: 캔버스를 정확히 360×640 으로 그려
+	# 브라우저가 계단 그대로(pixelated) 딱 2배로 늘린다. 3D·글 모두 360×640 (화질은 낮고 가볍다)
+	var px_perfect := bool(ProjectSettings.get_setting("tinyplanet/px_perfect", false))
+	_dpr_cap(360.0 if px_perfect else 800.0)
 	# v21 (돌굴리기 v29 비결): 웹은 3D만 세로 약 1000px로 그린다 (폰 랙 = 픽셀 수). 글·UI 는 그대로 선명. ?hires=1 이면 끈다
 	if not px_perfect and OS.has_feature("web") and str(JavaScriptBridge.eval("location.search.indexOf('hires=1')>=0?'y':'n'", true)) != "y":
 		var vp := get_viewport()
@@ -451,10 +451,12 @@ func _setup() -> void:
 ## v8 성능 (웹): 고해상도 폰(devicePixelRatio 3 등)은 화면 픽셀을 다 그리면 GPU 가 벅차다.
 ## 놀이 화면 폭이 약 800px(설계 720px 보다 조금 크게)을 넘지 않게 브라우저가 알려 주는 픽셀 배율을 낮춘다.
 ## Godot 웹은 매 프레임 이 값으로 캔버스 크기를 정한다. 주소에 hires=1 이면 그대로.
-func _dpr_cap() -> void:
+## v23 픽셀 퍼펙트(단독판): 캔버스 가로(9:16 칸 기준)를 정확히 360 으로, 브라우저가 계단 그대로 늘린다 (720×1280 에서 딱 2배)
+func _dpr_cap(tw := 800.0) -> void:
 	if not OS.has_feature("web"):
 		return
-	JavaScriptBridge.eval("""(function(){
+	var pp := tw <= 360.0
+	JavaScriptBridge.eval(("var __tpTW = %d, __tpPP = %s;" % [int(tw), "true" if pp else "false"]) + """(function(){
 	if (window.__tpDpr || location.search.indexOf('hires=1') >= 0) return;
 	var ds = Object.getOwnPropertyDescriptor(window, 'devicePixelRatio') || Object.getOwnPropertyDescriptor(Window.prototype, 'devicePixelRatio');
 	if (!ds || !ds.get) return;
@@ -463,7 +465,12 @@ func _dpr_cap() -> void:
 	Object.defineProperty(window, 'devicePixelRatio', {configurable: true, get: function(){
 		var d = g.call(window) || 1;
 		var gw = Math.min(window.innerWidth, window.innerHeight * 0.5625);
-		return Math.min(d, Math.max(1, 800 / Math.max(gw, 1)));
+		if (__tpPP) {
+			var cv = document.querySelector('canvas');
+			if (cv && cv.style.imageRendering != 'pixelated') cv.style.imageRendering = 'pixelated';
+			return __tpTW / Math.max(gw, 1);
+		}
+		return Math.min(d, Math.max(1, __tpTW / Math.max(gw, 1)));
 	}});
 })();""", true)
 
