@@ -12,7 +12,8 @@ const OVER_G := 7.0  # 최고 속도보다 빠를 때 땅에서 줄어드는 정
 const OVER_A := 1.5
 const FRICTION := 35.0
 const MAX_FALL := 26.0
-const PAD_V := 23.0
+const PAD_V := 24.0  # v27: 23 -> 24
+const PAD_LOAD_K := 0.4  # v27: 노란 발판에서는 짐 무게가 이만큼만 (짐 8개로도 빨간 윗길 6.5m에 닿는다)
 const DASH_V := 32.0  # v13: 사용자가 실험판(대시 x2)에서 골랐다
 const RUSH_DASH := 40.0  # 과속 모드 가벼울 때 대시 (기본 대시가 32가 돼 과속은 40으로 한 단계 위)
 const DASH_T := 0.25
@@ -1776,7 +1777,7 @@ func _build_course() -> void:
 		var y := _floor_top(px, 60.0)
 		if y > -100.0:
 			# v25: 그림 가로등이 있으면 그것 (높이 4.1, 팔은 오른쪽). 없으면 종이 막대 두 개
-			if _art_put("lamp_post", stage, Vector3(px, y, 3.2), 4.1) == null:
+			if _art_put("lamp_post", stage, Vector3(px, y, 1.05), 4.1) == null:  # v27: 길 앞 가장자리 위 (3.2 는 땅이 없어 떠 보였다)
 				_vbox(Vector3(px, y + 2.0, 3.2), Vector3(0.22, 4.0, 0.22), WHITE)
 				_vbox(Vector3(px + 0.35, y + 4.0, 3.2), Vector3(0.9, 0.22, 0.3), cdef.top)
 		px += 9.0
@@ -3534,7 +3535,7 @@ func _runner(r: Courier, dt: float) -> void:
 		_land_fx(r, vy0)
 	r.sq = move_toward(r.sq, 0.0, dt * 2.5)
 	if r.grounded and r.sup == 1:
-		r.v.y = PAD_V * (1.0 - LOAD_JUMP * tn("weight") * _weight(r))
+		r.v.y = PAD_V * (1.0 - LOAD_JUMP * tn("weight") * _weight(r) * PAD_LOAD_K)
 		r.grounded = false
 		r.cut = true
 		_sfx("spring", r)
@@ -3957,6 +3958,14 @@ func _ai(r: Courier, dt: float) -> void:
 	if r.think > 0.0:
 		return
 	r.think = randf_range(0.04, 0.1) / r.skill
+	# v27: 노란 발판 앞. 대담한 경쟁자는 밟고 빨간 윗길로, 나머지는 뛰어넘어 아랫길로 (길이 갈리게)
+	if r.grounded and r.bold < 0.5:
+		for i in buckets[_bi(r.p.x + 2.0)]:
+			if kinds[i] == 1:
+				var d: float = rects[i].position.x - (r.p.x + HW)
+				if d > 0.2 and d < 0.9 + absf(r.v.x) * 0.06 and absf(rects[i].position.y - r.p.y) < 0.6:
+					r.i_jump = true
+				break
 	# 선로 위: 보이면 기차를 뛰어넘는다 (1등이면 잘 못 본다)
 	if not tr.is_empty() and tr.st == "run" and r.grounded and r.p.y < tr.y + 0.5:
 		var gap: float = tr.x - (r.p.x + HW)
@@ -4300,7 +4309,7 @@ func _anim_tick(r: Courier, spd: float, fdt: float) -> void:
 	elif spd < 0.8:
 		stops = ANIM_NEUTRAL
 	else:
-		t += fdt * clampf(spd / RUN_MAX * 1.6, 0.4, 2.2)
+		t += fdt * clampf(spd / RUN_MAX * 2.4, 0.5, 3.0)  # v27: 1.6 -> 2.4 (한 걸음 2.5m 로 미끄러지듯 보이던 것 -> 약 1.6m)
 	if not stops.is_empty():
 		# 다음 멈춤 자리까지 앞으로만 간다 (되감지 않아 다리가 튀지 않는다)
 		var nxt := 1.0e9
