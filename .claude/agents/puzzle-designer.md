@@ -30,7 +30,7 @@ effort: high
   - **기믹 끄기**: 그 기믹이 없으면 못 깨는지.
 - 결과 줄(CLEAR/DIE 사유/timeout 위치)을 보고에 붙인다. 한도 안에 못 찾았으면 "미확정"으로 적고, 풀린다고 쓰지 않는다.
 - 판정할 것은 풀리는지와 지름길이 없는지뿐이다. 난이도·재미는 폰 별점이 판정하니 밸런스 측정은 하지 않는다.
-- Godot: `"$LOCALAPPDATA/Temp/opencode/godot/Godot_v4.7.2-stable_win64_console.exe"`. 다른 Godot 프로세스가 돌고 있으면 끝날 때까지 기다린다.
+- Godot: `"$LOCALAPPDATA/Temp/opencode/godot/Godot_v4.7.2-stable_win64_console.exe"`. 없으면 `C:\Users\fixme\Downloads\Godot_v4.7.2-stable_win64.exe\Godot_v4.7.2-stable_win64_console.exe`. 다른 Godot 프로세스가 같은 프로젝트를 쓰고 있으면 끝날 때까지 기다린다.
 
 ## 작업 규칙
 - 맡은 게임 파일 하나만 고친다. git 명령은 쓰지 않는다(커밋은 부른 쪽이 한다).

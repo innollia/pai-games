@@ -33,6 +33,8 @@
 
 ## 명령 (모두 timeout 필수, 출력은 파일로)
 
+> 10/31: `%LOCALAPPDATA%\Temp\opencode\godot\` Godot이 사라진 적 있다. 없으면 `C:\Users\fixme\Downloads\Godot_v4.7.2-stable_win64.exe\Godot_v4.7.2-stable_win64_console.exe`를 쓴다. `tools/build.ps1`은 둘 중 있는 것을 고르고, 둘 다 없으면 web\을 지우기 전에 멈춘다. 커밋 전에 `web/index.pck`가 있는지 본다.
+
 ```bash
 cd /c/projects/pai-games/games/speed_tofu
 timeout 590 "$LOCALAPPDATA/Temp/opencode/godot/Godot_v4.7.2-stable_win64_console.exe" --headless --path . --fixed-fps 60 -s tools/smoke.gd -- <id들> > "$TEMP/smoke.txt" 2>&1; grep -E "ERROR|끝남|smoke done" "$TEMP/smoke.txt"
