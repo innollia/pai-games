@@ -1,4 +1,6 @@
-# 어린 배달부 / The Little Courier — 진행 흐름과 글 검토
+# 어린 배달부 / The Little Courier — 진행 흐름과 글 검토 (옛 기록)
+
+> **지금 글은 `DIALOGUE_FINAL.md`(대사 최종본)와 `g/tinyplanet_text.gd`가 기준이다.** 이 문서의 글은 v8 시절 것이라 '돛'(지금 '구식 날다리')·'노을 아이'(지금 '형님')가 남아 있고, 부탁 순서도 지금은 자유다.
 
 > **2026-10-31 정리됨**: 모든 글이 `g/tinyplanet_text.gd` 한 표(143줄, 키 → [한국어, English])로 옮겨졌다. 아래 표·목록은 그 전 기록이다.
 > 영어를 한국어 뜻에 맞춤(1·2·4·5·6·10의 Fire Star·11). 한국어 "초록 칸" → "초록 점선"(3). 안 쓰이던 글 10개 지움(msg.start·liftoff·float·flower_crack·slingshot·rock_snag·picked, banner.intro, howto, "탭해서 시작").
