@@ -410,6 +410,7 @@ var phase := "count"
 var pt := 0.0
 var rt := 0.0  # 라운드 시간
 var cdef: Dictionary
+var tile_of := {}  # v26: 코스 색(html) -> 이어 붙는 그림 무늬 이름 (ground·paving·plaster·planks)
 var stage: Node3D
 var rects: Array[Rect2] = []
 var kinds := PackedInt32Array()  # 0 바닥 1 점프대 3 흐름 4 판 5 얼음 6 짐 문 7 차단문 8 경사로
@@ -1341,6 +1342,41 @@ func mat(color: Color) -> StandardMaterial3D:
 	return _mats[key]
 
 
+## v26: 코스 상자 색마다 어떤 그림 무늬를 입힐지 (땅·길 윗면·벽과 건물·나무 판)
+func _tile_map() -> void:
+	tile_of.clear()
+	var g: Color = cdef.gnd
+	for c in [g, g.darkened(0.12), g.darkened(0.04), g.darkened(0.06)]:
+		tile_of[c.to_html()] = "ground"
+	tile_of[(cdef.top as Color).to_html()] = "paving"
+	tile_of[(cdef.wall as Color).to_html()] = "plaster"
+	for c in cdef.bld:
+		tile_of[(c as Color).to_html()] = "plaster"
+	for c in [BOARD, BOARD.darkened(0.3), BOARD.darkened(0.06)]:
+		tile_of[c.to_html()] = "planks"
+
+
+## v26: 코스 상자 재질. 그림 무늬가 있는 색이면 그 무늬를 월드 좌표로 이어 붙이고(늘어나도 무늬 크기는 그대로) 색을 곱한다.
+func _vmat(color: Color) -> Material:
+	var key := color.to_html()
+	var tn_: String = tile_of.get(key, "")
+	if tn_ == "":
+		return mat(color)
+	var mk := "tile_" + tn_ + key
+	if not _mats.has(mk):
+		var path := "res://art/screenrace/tile_%s.png" % tn_
+		if not ResourceLoader.exists(path):
+			return mat(color)
+		var sm := (mat(color) as StandardMaterial3D).duplicate() as StandardMaterial3D
+		sm.albedo_texture = load(path)
+		sm.uv1_triplanar = true
+		sm.uv1_world_triplanar = true
+		sm.uv1_scale = Vector3.ONE * 0.45  # 무늬 한 장 = 약 2.2m
+		sm.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+		_mats[mk] = sm
+	return _mats[mk]
+
+
 func _swap_visual(asset: String, parent: Node3D, pos: Vector3, height: float) -> void:
 	var fallback := parent.get_children()
 	if _art_model(asset, parent, pos, height):
@@ -1614,6 +1650,7 @@ func _build_course() -> void:
 	stage = Node3D.new()
 	world.add_child(stage)
 	cdef = COURSES[ci]
+	_tile_map()
 	_flat_cols[(cdef.gnd as Color).to_html()] = true  # deep ground: no outline seams down the control deck
 	rects.clear()
 	kinds = PackedInt32Array()
@@ -2109,7 +2146,7 @@ func _vis() -> void:
 			m.position = p
 			m.rotation.z = sp[3]
 			m.scale = s
-			m.material_override = mat(sp[2])
+			m.material_override = _vmat(sp[2])
 			m.visible = true
 		elif not inside and k >= 0:
 			vpool[k].visible = false

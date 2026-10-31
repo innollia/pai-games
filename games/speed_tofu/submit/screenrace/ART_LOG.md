@@ -1459,3 +1459,37 @@ No perspective, no shading that implies a 3D view inside a face.
 No text or labels.
 ```
 
+### screenrace_tiles (v26)
+모델: `work/street/build_tiles.py`(정사각 판 4장, 앞면만). 같은 hwapong 순서. 결과 1024 한 장에서 칸마다 테두리 18px 안쪽을 잘라 256으로 줄이고, 반 칸 밀어 겹쳐 이음새를 없앴다(나무 판은 가로만). 땅은 조작 버튼 밑이라 대비를 45% 낮췄다.
+Result: KEPT (attempt 1, image call 1회). Codex가 쓴 프롬프트 원문:
+
+```text
+﻿[IMAGE] Square game texture atlas for four flat square tiling panels for a low-poly paper-craft race course, painted onto the attached UV layout.
+[LAYOUT] The attached line image is the exact layout: preserve its square canvas and every panel's exact position, size, shape, and orientation; do not move, rotate, resize, or distort any panel.
+[LAYOUT] Fill each panel edge to edge with a flat, front-facing surface; keep everything outside the outlined panels a single flat medium gray (#808080).
+[LAYOUT] Treat each panel as its own seamless repeating tile: its left edge continues into its right edge and its top edge continues into its bottom edge.
+[LAYOUT] The top of each side-facing panel is the top of the world.
+[SURFACES] Bottom-left panel (ground): packed street ground in pale warm grey-white paint only, with a few broad soft darker patches and two or three small pebbles; keep contrast very low.
+[SURFACES] Bottom-right panel (paving): street paving stones in pale warm grey-white paint only, with one row of wide rounded flat stones and thin darker joints; use a few broad darker marks and keep contrast low.
+[SURFACES] Top-left panel (plaster): plaster wall in pale warm grey-white paint only, with soft mottling and a few faint brick outlines showing through in one corner; keep contrast low.
+[SURFACES] Top-right panel (planks): wooden planks running left to right in pale warm grey-white paint only, with three broad planks, thin dark gaps, two grain strokes, and one knot; keep contrast low.
+[LIGHT] Hand-painted flat light comes from above: the upper edges and upper parts are brightest; each panel becomes slightly darker toward its lower edge, whose bottom edge is darkest. Paint a thin bright edge line along panel borders. Use flat painted color only, with no perspective, volumetric forms, or cast shadows.
+[PALETTE] Pale warm grey-white base, soft warm light grey, a few muted darker warm grey marks, thin subdued dark grey joints, and a thin brighter warm-white edge line.
+[NEGATIVE] No hyper-detailed fur, bark, stone, or leaf rendering; a few confident marks stand for each.
+No sky gradients, no cloud detail, no glow around the sun, moon, or lights.
+No glossy digital painting, no airbrushed smooth gradients, no plastic or waxy skin.
+No bloom, lens flare, god rays, or haze unless the subject asks for them.
+No shallow depth of field, bokeh, or photographic blur.
+No 3D render look, no subsurface skin sheen, no CGI lighting.
+No evenly spread detail; detail sits in one or two places only.
+No perfectly symmetrical faces, poses, or compositions.
+No generic fantasy decoration: floating particles, sparkles, magic circles, random runes or glyphs.
+No extra eyes, mouths, faces, limbs, or tentacles; no melted or fused anatomy; hands have the correct number of fingers.
+No characters, animals, or props that the subject did not ask for.
+No text, letters, captions, title, signature, monogram, watermark, logo, frame, or border.
+No oversaturated or neon color unless the style card asks for it.
+No muddy, smeared, or noisy surface texture.
+No perspective, no shading that implies a 3D view inside a face.
+No text or labels.
+```
+
