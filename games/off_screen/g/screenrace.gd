@@ -28,6 +28,8 @@ const RAMP_RUN := 1.8  # 경사로 길이 = 높이 × 이만큼
 const RAMP_DRAG := 14.0  # 오르막에서 더 깎이는 속도 (경사·짐 무게에 비례)
 const COYOTE := 0.14  # v34: 0.1 -> 0.14 (끝에서 조금 늦게 눌러도 뛴다)
 const JBUF := 0.12
+const COYOTE_PL := 0.25  # v49: 나만, 발판 끝을 지나 이만큼 안에 눌러도 뛴다
+const JBUF_PL := 0.25  # v49: 나만, 땅에 닿기 이만큼 전에 누른 점프도 닿자마자 뛴다
 const CAM_D := 22.0
 const BX0 := -60.0
 const BK := 6.0
@@ -3651,8 +3653,9 @@ func _runner(r: Courier, dt: float) -> void:
 	elif not r.ai and r.cargo > 0 and r.drop_cd <= 0.0 and (r.post_buf > 0.0 or r.i_dheld) and _mb_at(r) >= 0:
 		_deliver(r)  # v14: 미리 눌렀거나 누르고 지나가면 닿는 순간 넣는다
 		r.post_buf = 0.0
-	r.coyote = COYOTE if r.grounded else maxf(r.coyote - dt, 0.0)
-	r.jbuf = JBUF if r.i_jump else maxf(r.jbuf - dt, 0.0)
+	# v49 "점프할 때도 자비": 나는 끝에서 늦게 눌러도(COYOTE_PL), 착지 전에 미리 눌러도(JBUF_PL) 더 너그럽게 뛴다
+	r.coyote = (COYOTE_PL if r == pl else COYOTE) if r.grounded else maxf(r.coyote - dt, 0.0)
+	r.jbuf = (JBUF_PL if r == pl else JBUF) if r.i_jump else maxf(r.jbuf - dt, 0.0)
 	if r.jbuf > 0.0 and r.coyote > 0.0:
 		r.v.y = _jump_v(r)
 		r.coyote = 0.0
