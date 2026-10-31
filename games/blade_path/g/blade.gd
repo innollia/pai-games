@@ -192,6 +192,7 @@ var pend := {}  # 눌렀지만 아직 발동 안 한 버튼 -> 누른 시간
 var sty := 0  # 이번 공격 모양 (위 T_WIND 설명)
 var hitstop := 0.0  # 막은 순간 화면이 멈추는 시간
 var sparks: Array = []  # 불꽃: [상자, 속도, 남은 시간, 처음 시간]
+var fx: Node = null  # 전투 이펙트 (g/fx.gd, 없거나 꺼져 있으면 null)
 var going := false  # 로비 버튼 누름 애니메이션 끝나고 출발하는 중
 var link := false  # 연격: 지금 칼 뒤에 다음 칼이 이미 오고 있다 (노랑)
 var link_at := -1.0  # 연격 칼(노랑)이 이때부터 보인다 (처음엔 흰 칼 하나만, 10/31)
@@ -244,6 +245,7 @@ const PLAY_R := Rect2(110, 880, 500, 150)
 const TUT_R := Rect2(200, 1050, 320, 80)
 const SET_R := Rect2(586, 118, 124, 68)
 const DEV := "res://g/dev.gd"  # 개발 도구. 출시 때는 이 파일만 지우면 된다
+const FX := "res://g/fx.gd"  # 전투 이펙트 (10/31 시험 적용). 안 어울리면 이 파일의 ON 을 false 로 (예전 불꽃으로 돌아간다)
 const SET_CLOSE := Rect2(210, 860, 300, 100)
 
 
@@ -355,6 +357,12 @@ func _setup() -> void:
 	_apply_text()
 	if ResourceLoader.exists(DEV):
 		add_child(load(DEV).new())
+	if ResourceLoader.exists(FX):
+		var fs_scr: GDScript = load(FX)
+		if fs_scr.get_script_constant_map().get("ON", false):
+			fx = fs_scr.new()
+			fx.g = self
+			add_child(fx)
 
 
 ## 글 기본값 (개발 도구 [대사 편집]에서 바꿀 수 있다)
@@ -1027,6 +1035,8 @@ func _step(dt: float) -> void:
 		hitstop -= dt
 		return
 	_sparks(dt)
+	if fx:
+		fx.tick(dt)
 	var fdt := dt
 	if slow > 0.0:
 		slow -= dt
@@ -1076,6 +1086,8 @@ func _step(dt: float) -> void:
 				_to_lobby(0)
 	piv.position = fl
 	mark.position = piv.position
+	if fx:
+		fx.trail(blade_m, mode == "fight" and fs == 1 and shown)
 	mark.rotation.z = piv.rotation.z
 	stance_l.visible = mode != "lobby"
 	_score_l.visible = mode != "lobby"
@@ -1294,6 +1306,8 @@ func _twice_next() -> bool:
 
 func _hurt() -> void:
 	msg("맞음 -%d" % foe_atk, 0.5)
+	if fx:
+		fx.hit(blade_m.global_position, blade_m.global_transform.basis.y.normalized() if sty == 0 else Vector3.ZERO)
 	fs = 3
 	fs_t = 0.0
 	_clear()
@@ -1321,6 +1335,8 @@ func _damage(v: int) -> void:
 ## wrong = 빈틈은 열렸는데 엉뚱한 쪽으로 벰 (공격 실패 소리)
 func _whiff(wrong := false) -> void:
 	sfx(SND["miss"] if wrong else SND["whiff"])
+	if fx and stance >= 0:
+		fx.swing(ind[stance].global_position, stance)  # 빗나감: 충돌 없이 잔상만
 	var steady := _lv("steady") > 0  # 능력 "흔들림 없는 손": 체력은 안 깎인다
 	msg(_s("whiff_steady") if steady else _s("whiff"), 0.9)
 	stun = 0.55
@@ -1413,6 +1429,8 @@ func _act(a: int) -> void:
 ## 간파 빈틈에 엉뚱한 쪽으로 휘두름: 피해 없이 간파만 끝난다
 func _lose_chance() -> void:
 	sfx(SND["miss"])
+	if fx and stance >= 0:
+		fx.swing(ind[stance].global_position, stance)
 	msg(_s("lose"), 0.6)
 	gp = false
 	slow = 0.0
@@ -1428,8 +1446,14 @@ func _parry(perfect: bool) -> void:
 	# 칼이 막히면 폰 진동, 간파는 더 길고 세게
 	_buzz(160 if perfect else 45, 1.0 if perfect else 0.5)
 	# 진동과 같은 순간: 칼 부딪친 자리에 불꽃, 화면 잠깐 멈춤 (간파는 더 많이·더 길게)
-	_burst(blade_m.global_position, 26 if perfect else 14, perfect)
-	hitstop = 0.09 if perfect else 0.05
+	if fx:
+		if perfect:
+			fx.parry(blade_m.global_position)
+		else:
+			fx.block(blade_m.global_position)
+	else:
+		_burst(blade_m.global_position, 26 if perfect else 14, perfect)
+		hitstop = 0.09 if perfect else 0.05
 	shake_t = maxf(shake_t, 0.12 if perfect else 0.06)
 	# 간파 = 패링 소리, 그냥 막기 = 이번 칼 모양의 막기 소리
 	sfx(SND["parry"] if perfect else BLOCK_SND[sty])
@@ -1477,6 +1501,10 @@ func _parry(perfect: bool) -> void:
 
 func _cut() -> void:
 	sfx(SND["hit"])
+	if fx:
+		fx.swing(ind[odir].global_position, odir)
+		fx.hit(ind[odir].global_position)
+		shake_t = maxf(shake_t, 0.08)
 	var dmg := _pow() * (2 if gp else 1)  # 간파로 연 빈틈에 벤 칼은 피해 두 배
 	body.material_override = mat(GOOD)
 	flash_t = 0.15
