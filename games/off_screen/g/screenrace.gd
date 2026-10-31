@@ -1673,7 +1673,6 @@ func _build_course() -> void:
 		_seg(s)
 	goal_x = gx + (24.0 if finale else 2.0)
 	if finale:
-		_sign(gx + 7.0, fy + 3.0, "마지막 집. 첫 도착 뒤 3초면 마감", "Last house. 3 s after the first arrival, post closes")
 		_vbox(Vector3(goal_x + 6.0, fy + 3.0, -3.0), Vector3(7, 6, 3), SOFT)
 		_vbox(Vector3(goal_x + 6.0, fy + 6.3, -3.0), Vector3(8, 0.6, 4), cdef.top)
 		_vbox(Vector3(goal_x + 4.0, fy + 1.4, -1.4), Vector3(1.6, 2.8, 0.2), GOOD)
@@ -1729,8 +1728,7 @@ func _build_course() -> void:
 
 func _seg(s: String) -> void:
 	var wallc: Color = BAD
-	if SEG_RULES.has(s):
-		_sign(gx + 1.0, fy + 4.2, SEG_RULES[s], SEG_RULES_EN[s], s)
+	# v23: 길 규칙 표지판은 뺐다 ("표지판 아무도 안 읽어서 도움 안 돼")
 	match s:
 		"ballast", "ballast_mix":
 			# 무거운 짐이 열쇠. 낮은 길도 열려 있지만 장애물/강물 때문에 늦다.
