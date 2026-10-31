@@ -203,6 +203,7 @@ var bonk_why := ""
 var arrow_mesh: ArrayMesh
 # v7: 쪼개기 돌진, 수로 밑 수정 동굴(떨어지면 딴 세상)
 var dash_t := 0.0
+var zone_queue: Array = []  # 나눠 짓는 중인 구역 (한 프레임에 한 조각)
 var bridge_signs: Array = []  # [원, 재질, 버티는 크기, 판]
 var bridge_parts: Array = []  # 흔들다리 판·발판 (무거우면 이 자리가 부서진다)
 var branch_nodes: Array = []  # 갈림길 갈래 길 노드 (고르면 다른 쪽을 지운다)
@@ -212,6 +213,8 @@ var gems: Array = []
 var under_route: Array = []  # 지금 떨어진 협곡 구간 [시작, 끝]
 var geysers: Array = []     # [거리, 노드] 끝의 물기둥: 타면 수로 위로 솟는다
 var rising := false         # 물기둥에 실려 올라가는 중
+var updraft: Array = []     # 지하 순풍 길 [시작, 나올 틈 시작, 틈 끝, 바닥 높이, 나올 높이]
+var wind_on := false        # 순풍을 타고 지상으로 오르는 중
 # 튜토리얼: 짧은 연습 코스 5개. 동작이 필요한 자리(gate)에 오면 느려지고 그 버튼이 깜빡인다
 var tutorial := false
 var gates: Array = []  # [거리, 버튼, 글]        # [거리, 높이(동굴 바닥 위), 노드]
@@ -626,6 +629,8 @@ func _reset() -> void:
 	fallen = false
 	underground = false
 	tunnels.clear()
+	updraft = []
+	wind_on = false
 	lanes.clear()
 	floor_cracks.clear()
 	sling_keep = 0.0
@@ -646,6 +651,7 @@ func _reset() -> void:
 	dash_t = 0.0
 	bridge_parts.clear()
 	bridge_signs.clear()
+	zone_queue.clear()
 	branch_nodes.clear()
 	fork_rail_end = -1.0
 	hs_t = 0.0
@@ -989,6 +995,29 @@ func _curv(d: float) -> float:
 
 
 ## (d, x) 아래 땅 높이. 땅이 없으면 NAN
+## 구멍으로 떨어지는 중 앞쪽 길 판 옆면: 빠르면 구멍 건너편 판 두께 속으로 파고들어 그냥 뚫고 지나갔다 → 벽처럼 박고 튕긴다
+func _hole_wall(d_prev: float) -> void:
+	if not underground or on_ground or fallen or wind_on:
+		return
+	var top := _h(dist)
+	if by > top - 0.3 or by + s < top - 6.0:  # 판(두께 약 6m) 높이에 몸이 걸칠 때만
+		return
+	underground = false
+	var solid_now := not is_nan(_ground(dist, bx))
+	var solid_was := not is_nan(_ground(d_prev, bx))
+	underground = true
+	if solid_now and not solid_was:
+		dist = d_prev - 0.3
+		v = maxf(4.0, v * 0.25)
+		vy = minf(vy, -6.0)
+		shake = 1.0
+		sq = 0.35
+		sfx("bonk", 2.0, 0.8)
+		_hitstop(0.08, -8.0)
+		_burst(_pos(dist + s, bx, by), DUST, 12, 12.0, 0.8)
+		_stamp("쿵!", 4, _pos(dist, bx, by + s))
+
+
 func _ground(d: float, x: float) -> float:
 	if underground:
 		return _h(d) - _tunnel_depth(d)
@@ -1009,13 +1038,20 @@ func _open_zone(k: int) -> void:
 	world.add_child(nd)
 	var z := {"k": k, "start": float(maxi(_len(), 0)), "end": -1.0, "node": nd, "things": [], "item": 0, "fork": null, "freed": false}
 	zones.append(z)
-	_zone_items(z)
+	_zone_items(z, 0 if zones.size() == 1 else 1)  # 달리는 중에 여는 구역은 한 프레임에 한 조각씩
 
 
 ## 구역의 다음 조각들을 길에 붙이고 짓는다. 갈림길을 만나면 두 갈래를 미리 짓고 멈춘다.
-func _zone_items(z: Dictionary) -> void:
+## step > 0 이면 그만큼만 짓고 다음 프레임으로 넘긴다 (갈래를 고른 순간 한꺼번에 지으면 멈칫한다)
+func _zone_items(z: Dictionary, step := 0) -> void:
 	var items: Array = Z[z.k].items
+	var n := 0
 	while int(z.item) < items.size():
+		if step > 0 and n >= step:
+			zone_queue.append(z)
+			_relist()
+			return
+		n += 1
 		var it: Dictionary = items[z.item]
 		if it.has("fork"):
 			var st := _end_st()
@@ -1072,7 +1108,7 @@ func _zone_items(z: Dictionary) -> void:
 		_draw_road(pd, int(d1), _len(), z)
 		if int(z.k) == 1 and not tutorial and int(z.item) + 1 == items.size():
 			# 수로 구역이 다 지어지면 구역 처음부터 끝까지 하나로 잇는다: 떨어지면 구역 끝 물기둥까지 아래 세상을 달린다
-			_build_tunnel(float(z.start), float(_len()), z.node, {"ext": 80.0})
+			_build_tunnel(float(z.start), float(_len()), z.node, {"ext": 80.0, "updraft": true})
 			z.things.append_array(_under_things(float(z.start), float(_len()), z))
 		var acc := d1
 		for lg: Array in it.legs:
@@ -1112,7 +1148,11 @@ func _choose(z: Dictionary) -> void:
 	# 고르지 않은 갈래 길은 지운다: 화면에 남아 있으면 그 위로 굴러가 바닥을 뚫고 떨어진다
 	var bns: Array = fk.get("nodes", [])
 	if bns.size() == 2 and is_instance_valid(bns[1 - side]):
-		(bns[1 - side] as Node3D).queue_free()
+		# 툭 사라지지 않게 아래로 가라앉으며 지운다
+		var gone: Node3D = bns[1 - side]
+		var tw := create_tween()
+		tw.tween_property(gone, "position:y", gone.position.y - 45.0, 1.1).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		tw.tween_callback(gone.queue_free)
 	fork_rail_end = float(fk.at) + 35.0
 	var ars: Array = fk.get("arrows", [])
 	if ars.size() == 2 and is_instance_valid(ars[1 - side]):
@@ -1136,7 +1176,7 @@ func _choose(z: Dictionary) -> void:
 			_secret(str(it.get("name", "")))
 	if not hidden:
 		sfx("tick")
-	_zone_items(z)
+	_zone_items(z, 1)
 
 
 ## 숨은 갈림길을 미리 지을 때: 봉인(한 차선) + 바람 줄 두 토막(갈림길 앞 36m, 지름길 첫 24m)
@@ -2333,9 +2373,11 @@ func _step(dt: float) -> void:
 		if hold and not rising:
 			v *= exp(-2.2 * dt)
 			vy -= 46.0 * dt
+	var d_prev := dist
 	dist += v * dt
 	vy -= FALL * dt
 	by += vy * dt
+	_hole_wall(d_prev)
 	_geyser_tick()
 	if cur_k == 1 and not tutorial and not underground and by < _h(dist) - 4.0:
 		_fall("퐁당!")
@@ -3190,6 +3232,8 @@ func _gems() -> void:
 func _geyser_tick() -> void:
 	if not underground:
 		return
+	if _updraft_tick():
+		return
 	if rising:
 		# 물기둥을 타는 동안: 돌 밑에서 물보라가 튀고 기둥이 꿈틀댄다
 		if fmod(clock, 0.06) < get_process_delta_time():
@@ -3483,7 +3527,125 @@ func _build_tunnel(a: float, b: float, nd: Node3D, opt := {}) -> Array:
 		ring.mesh = cyl
 		_skin(ring, "snowfield")  # 물거품 고리
 	geysers.append([gd, gy])
+	if bool(opt.get("updraft", false)):
+		_build_updraft(a, b, dp, nd)
+	_build_cave(a, b, dp, nd)
 	return route
+
+
+## 동굴: 길 위로 바위 아치(양쪽 기둥 + 천장)와 매달린 종유석. 수로 틈 밑은 비워 떨어지는 길과 햇빛을 막지 않는다.
+## 오른쪽 기둥은 낮게 두어 옆에서 보는 낙하 카메라를 가리지 않는다.
+func _build_cave(a: float, b: float, dp: float, nd: Node3D) -> void:
+	var d := a + 20.0
+	var k := 0
+	while d < b:
+		var near_gap := false
+		for q in range(-10, 11, 2):
+			var ii := clampi(int(d) + q, 0, pd.tg.size() - 1)
+			if pd.tg[ii] == "gap":
+				near_gap = true
+				break
+		if not near_gap:
+			var fl := _h(d) - dp
+			var yw := _yaw(d)
+			var top := 24.0 + float(k % 3) * 5.0
+			var lp := box(_pos(d, -15.0, fl + top * 0.5), Vector3(4.0, top, 4.0), ROCK, nd)
+			_apply_art(lp, "valley", Color("8a7660"))
+			lp.rotation.y = yw
+			var rp := box(_pos(d, 13.0, fl + 5.0), Vector3(3.0, 10.0, 3.0), ROCK, nd)
+			_apply_art(rp, "valley", Color("8a7660"))
+			rp.rotation.y = yw
+			var roof := box(_pos(d, -3.0, fl + top), Vector3(30.0, 3.0, 6.0), ROCK, nd)
+			_apply_art(roof, "valley", Color("6f5e4c"))
+			roof.rotation.y = yw
+			for j in 2:
+				var tip := box(_pos(d + (j * 2.0 - 1.0) * 1.5, -8.0 + j * 9.0, fl + top - 3.5), Vector3(1.2, 5.0, 1.2), ROCK, nd)
+				_apply_art(tip, "crystal", Color("b49a7a"))
+				tip.rotation.y = yw
+		d += 30.0
+		k += 1
+
+
+## 순풍 길: 동굴 뒤쪽 바닥에서 바람결이 비스듬히 위로 감아 올라가 수로 틈으로 빠져나간다.
+## 그 자리에 굴러 들어오면 바람이 돌을 밀어 올리고 앞으로 더 빠르게 지상으로 돌려보낸다.
+func _build_updraft(a: float, b: float, dp: float, nd: Node3D) -> void:
+	var i := int(a + (b - a) * 0.55)
+	while i < int(b) and pd.tg[i] != "gap":
+		i += 1
+	if i >= int(b) - 1:
+		return
+	var gs := float(i)
+	var j := i
+	while j < int(b) and pd.tg[j] == "gap":
+		j += 1
+	var ge := float(j)
+	var u0 := gs - 80.0
+	if u0 < a + 30.0:
+		return
+	var fl := _h(u0) - dp
+	var top := _h(gs + (ge - gs) * 0.4) + 3.0
+	updraft = [u0, gs, ge, fl, top]
+	# 바닥 금빛 바람 줄: 여기서부터 바람이 감아 오른다
+	for q in 5:
+		var ln := box(_pos(u0 - 14.0 + q * 3.0, 0.0, _h(u0) - dp + 0.1), Vector3(5.0, 0.08, 0.6), G_TOP, nd)
+		ln.rotation.y = _yaw(u0)
+	var d := u0 - 6.0
+	while d < gs + (ge - gs) * 0.4:
+		var y := _updraft_y(d)
+		var f := (_pos(d + 4.0, 0.0, _updraft_y(d + 4.0)) - _pos(d, 0.0, y)).normalized()
+		for sd: float in [-1.0, 1.0]:
+			var w := _wind_node(nd)
+			w.position = _pos(d, sd * 2.2, y + 2.0)
+			w.basis = Basis.looking_at(f, Vector3.UP).rotated(f, 0.0 if sd < 0.0 else PI * 0.5)
+			w.scale = Vector3(1.0, 5.0, 9.0)
+		d += 5.0
+
+
+## 순풍 길 높이: 시작점 바닥에서 틈 속 나올 높이까지 부드럽게 (느리게 떠서 가파르게 솟고 다시 눕는다)
+func _updraft_y(d: float) -> float:
+	var t := clampf((d - float(updraft[0])) / (float(updraft[1]) + (float(updraft[2]) - float(updraft[1])) * 0.4 - float(updraft[0])), 0.0, 1.0)
+	return lerpf(float(updraft[3]), float(updraft[4]), t * t * (3.0 - 2.0 * t))
+
+
+## 순풍 타기. 타는 중이면 true (물기둥 처리를 건너뛴다)
+func _updraft_tick() -> bool:
+	if updraft.size() < 5 or fallen:
+		return false
+	var dt := get_process_delta_time()
+	if not wind_on:
+		if dist >= float(updraft[0]) and dist < float(updraft[1]) and by < float(updraft[3]) + 4.0:
+			wind_on = true
+			rising = true
+			on_ground = false
+			x_goal = 0.0
+			shake = 0.6
+			sq = 0.3
+			sfx("launch", 0.0, 0.7)
+			_hitstop(0.0, 12.0)
+			_stamp("휘오오!", 3, _pos(dist, bx, by + s), Color("c58a1e"), 0.9)
+			_wake(dist, 80.0, 90.0)
+		else:
+			return false
+	x_goal = 0.0
+	v = minf(VMAX + 8.0, v + 22.0 * dt)  # 순풍: 뒤에서 밀어 준다
+	var ny := _updraft_y(dist)
+	vy = (ny - by) / maxf(dt, 0.001)
+	by = ny
+	if fmod(clock, 0.05) < dt:
+		_burst(pivot.position, Color("f3dcaa"), 2, 6.0, 0.5)
+	if dist >= float(updraft[1]) + (float(updraft[2]) - float(updraft[1])) * 0.4:
+		wind_on = false
+		rising = false
+		underground = false
+		under_route = []
+		updraft = []
+		vy = 9.0
+		_cave(false)
+		_burst(_pos(dist, 0.0, _h(dist)), Color("f3dcaa"), 14, 12.0, 0.7)
+		_slowmo(0.3, 0.5)
+		reveal_t = 1.2
+		_secret("순풍 길")
+	return true
 
 func _load_art() -> void:
 	for name: String in ART_NAMES:
@@ -4452,6 +4614,10 @@ func _kit_draw(c: Control) -> void:
 
 func _process(dt: float) -> void:
 	super(dt)
+	if zone_queue.size() > 0:
+		var zq: Dictionary = zone_queue.pop_front()
+		if not zq.freed:
+			_zone_items(zq, 1)
 	if stamp_layer:
 		stamp_layer.visible = not _rating
 		if plaque_pending.size() == 4 and not (_howto_box and _howto_box.visible):
@@ -4886,7 +5052,7 @@ const EN := {
 	"꽝!": "Bonk!",
 	"쩡!": "Clank!",
 	# 새긴 돌판 도장·지명판
-	"와르르!": "CRUMBLE!", "번쩍!": "GLEAM!", "쿠웅!": "THOOM!", "쩌억!": "CRACK!", "푸화악!": "WHOOSH!", "바다다!": "THE SEA!",
+	"와르르!": "CRUMBLE!", "번쩍!": "GLEAM!", "쿠웅!": "THOOM!", "쩌억!": "CRACK!", "푸화악!": "WHOOSH!", "휘오오!": "WHOOO!", "바다다!": "THE SEA!",
 	"지하 90m": "90 m below", "%s에서 이어서": "Continue from %s",
 	# 타이틀·튜토리얼
 	"굴러라 신전석": "ROCK AND\nSTONE", "신전에서 풀려난 돌,\n바다까지 멈추지 말고 굴러라": "A temple stone breaks free.\nDon't stop until the sea!",
@@ -4994,7 +5160,7 @@ const EN := {
 	"숨은 수정 동굴": "Hidden crystal cave", "잠든 지하 신전": "The Sleeping Under-Temple", "다음 틈을 봐": "Watch the next gap",
 	"안 닿았다!\n더 빨리, 더 가까이": "Fell short!\nFaster, or get closer",
 	# 숨은 길(지름길) 지명판
-	"지름길!": "Shortcut!", "옛 배수로": "Old Drain", "깊은 물길": "Deep Current", "뒷골목": "Back Alley",
+	"지름길!": "Shortcut!", "옛 배수로": "Old Drain", "깊은 물길": "Deep Current", "순풍 길": "Tailwind Draft", "뒷골목": "Back Alley",
 	"숨은 저수조": "Hidden Cistern", "얼음 골짜기": "Ice Gully", "수정 맥 길": "Crystal Vein Cut", "하늘 수로": "Sky Aqueduct",
 	"쪼개서 돌진!\n아니면 더 빨리": "SPLIT-dash it!\nOr come in faster",
 	# 결과 카드: 왜 끝났는지
