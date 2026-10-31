@@ -326,6 +326,7 @@ var ff := 1.0  # 빈 하늘 빨리 감기 배수
 var sim_why := 0  # _sim 이 -2 를 낸 까닭: 1 떠내려감, 2 불 별·지뢰
 var _lost_pts := PackedVector3Array()
 var _first_hint := false
+var _kit_fade := 1.0  # v16 조이스틱·점프가 나타나는 정도 (처음 줌이 끝난 뒤)
 var main_lost := false
 var tip_t := 0.0
 var _sail_shown := false
@@ -1700,6 +1701,10 @@ func _keyboard() -> void:
 		ui.key_todo()
 	if en and ui.title_visible():
 		ui.key_start()
+	if intro_k >= 0.0:
+		# v16: 처음 줌 동안은 조작 없음 (조이스틱·점프가 아직 안 보인다)
+		kit_move = Vector2.ZERO
+		_justs.clear()
 
 
 func _step(dt: float) -> void:
@@ -5121,6 +5126,14 @@ func _process(dt: float) -> void:
 		if not over and fin_t <= 0.0:
 			hud2.visible = true
 	_title_was = tv
+	# v16: 처음 줌 동안 조이스틱·점프를 숨기고, 도착하면 0.35초에 서서히 나타난다
+	if _pad and not tv:
+		if intro_k >= 0.0:
+			_pad.visible = false
+			_kit_fade = 0.0
+		elif _kit_fade < 1.0:
+			_kit_fade = minf(1.0, _kit_fade + dt / 0.35)
+			_pad.modulate.a = _kit_fade
 	# 평가 카드·끝 화면에선 _step 이 멈춰 바람이 안 줄어든다: 바로 끈다
 	if (_rating or over or (ui != null and ui.todo_open())) and wind_pl and wind_pl.playing:
 		wind_pl.stop()
@@ -5141,6 +5154,9 @@ func _process(dt: float) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if bub_talk and _talk_tap(event):
 		get_viewport().set_input_as_handled()
+		return
+	# v16: 처음 줌 동안은 누름을 키트에 안 넘긴다 (뗌은 넘겨서 손가락이 남지 않게)
+	if intro_k >= 0.0 and ((event is InputEventScreenTouch and (event as InputEventScreenTouch).pressed) or (event is InputEventMouseButton and (event as InputEventMouseButton).pressed)):
 		return
 	if _back_l and _back_l.text in RESTART_TXT:
 		var at := Vector2(-1, -1)
