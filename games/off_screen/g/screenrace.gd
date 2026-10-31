@@ -697,7 +697,7 @@ func _sfx(name: String, r: Courier = null, db := 0.0, force := false) -> void:
 			return
 		db -= 7.0
 	if sfx_pool.is_empty():
-		for k in 8:
+		for k in 16:  # v43: 8개로는 넷이 뛰고 떨어지는 소리가 겹쳐 울리던 소리를 잘랐다
 			var a := AudioStreamPlayer.new()
 			add_child(a)
 			sfx_pool.append(a)
