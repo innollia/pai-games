@@ -2,18 +2,17 @@ extends Node
 ## speed 두부게임 메뉴. 게임 하나 = g/<id>.gd (Tofu 를 extends).
 
 const GAMES := [
-	# ● 제출준비작 (v5를 넘긴 게임: 아트 스타일 확정 + Codex 담당)
+	# ● 개발 중 (제출준비작: 전담 세션이 강화)
 	["boulder", "● Rock and Stone (굴러라 신전석)"],
 	["screenrace", "● 화면 밖 경주 (옆모습)"],
 	["tinyplanet", "● 어린 배달부 (작은 행성)"],
-	# 합격 (10/30 판정)
+]
+## 쓸만한 것 (7세대 대멸종 생존, 폰 별 4 이상)
+const USEFUL := [
 	["overpower", "★ 과속 플랫포머 (옆모습)"],
-	["overpower_v4", "★ 과속 플랫포머 v4 (이전판)"],
+	["overpower_v4", "★ 과속 플랫포머 (이전판)"],
 	["overpower_edit", "▶ 스테이지 제작 (PC)"],
-	# 합격작 유전 변형 10 (돌연변이·교배)
 	["quicksilver_fp", "◇ 찰나 구조대 (1인칭)"],
-	# 메모 2차 7 (설계서 먼저 쓰고 첫 조각만 구현)
-	# 3세대 (유전 알고리즘: 평가 적합도 + Codex 아이디어 + 교배)
 	["scale_prison", "▲ 저울 감옥 (옆모습)"],
 	["compress", "▲ 압축 스프링 (옆모습)"],
 	["stretch_roll", "▲ 늘어나는 돌"],
@@ -102,6 +101,7 @@ const DROPPED := [
 const FOLDER := "__dropped"  # 1차 폐기 폴더
 const FOLDER2 := "__dropped2"  # 2차 폐기 폴더
 const FOLDER3 := "__hold"  # 보류 폴더
+const FOLDER4 := "__useful"  # 쓸만한 것 폴더
 # 제출준비작이 단독 프로젝트로 나가면 메뉴는 그 단독판 주소로 보낸다(웹에서만). 전담 세션이 여기에 한 줄 추가한다
 const STANDALONE := {"boulder": "../../shrine_stone/web/?from=tofu", "screenrace": "../../off_screen/web/?from=tofu", "tinyplanet": "../../tiny_planet/web/?from=tofu"}
 const UP := "__up"
@@ -165,13 +165,13 @@ func _ready() -> void:
 	_fill(0)
 
 
-## 목록을 채운다. folder 0 = 메인, 1 = 1차 폐기(판정 탈락), 2 = 2차 폐기(평가 낮음), 3 = 보류
+## 목록을 채운다. folder 0 = 메인, 1 = 1차 폐기(판정 탈락), 2 = 2차 폐기(평가 낮음), 3 = 보류, 4 = 쓸만한 것
 func _fill(folder: int) -> void:
 	for c in list.get_children():
 		c.queue_free()
 	buttons.clear()
 	var title := Label.new()
-	title.text = ["SPEED 두부", "1차 폐기 (판정 탈락)", "2차 폐기 (평가 낮음)", "보류 (나중에 다시)"][folder]
+	title.text = ["SPEED 두부", "1차 폐기 (판정 탈락)", "2차 폐기 (평가 낮음)", "보류 (나중에 다시)", "쓸만한 것"][folder]
 	title.add_theme_color_override("font_color", INK)
 	title.add_theme_font_size_override("font_size", 72 if folder == 0 else 56)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -179,30 +179,74 @@ func _fill(folder: int) -> void:
 	var rows: Array = []
 	if folder > 0:
 		rows.append([UP, "◀ 돌아가기"])
-		rows.append_array([DROPPED, DROPPED2, HOLD][folder - 1])
+		rows.append_array([DROPPED, DROPPED2, HOLD, USEFUL][folder - 1])
 	else:
 		rows.append_array(GAMES)
-		rows.append([FOLDER3, "▶ 보류 (나중에 다시) (%d)" % HOLD.size()])
-		rows.append([FOLDER, "▶ 1차 폐기 (판정 탈락) (%d)" % DROPPED.size()])
-		rows.append([FOLDER2, "▶ 2차 폐기 (평가 낮음) (%d)" % DROPPED2.size()])
+		rows.append([FOLDER4, "▶ 쓸만한 것 (%d개)" % USEFUL.size()])
+		rows.append([FOLDER3, "▶ 보류 (나중에 다시) (%d개)" % HOLD.size()])
+		rows.append([FOLDER, "▶ 1차 폐기 (판정 탈락) (%d개)" % DROPPED.size()])
+		rows.append([FOLDER2, "▶ 2차 폐기 (평가 낮음) (%d개)" % DROPPED2.size()])
 	rows.append([IDEA, "아이디어 제출하기"])
 	idea_btn = null
 	idea_wait = false
 	for g in rows:
-		var b := Button.new()
-		b.text = g[1]
-		if not str(g[0]).begins_with("__"):
-			b.text += " v%d" % GAME_VER.get(g[0], 1)
-		b.custom_minimum_size = Vector2(600, 92)
-		b.clip_text = true  # 긴 이름이 줄 폭을 넓혀 메뉴 전체가 화면 밖으로 밀리지 않게
-		b.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-		b.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var b := _row_button(g)
 		b.set_meta("id", g[0])
 		list.add_child(b)
 		buttons.append(b)
 		if g[0] == IDEA:
 			idea_btn = b
 	scroll.scroll_vertical = 0
+
+
+## 한 줄 버튼: 왼쪽에 제목(크게), 오른쪽에 괄호 속 설명·버전(작고 흐리게). 이름이 길어도 줄이 넘치지 않는다
+func _row_button(g: Array) -> Button:
+	var b := Button.new()
+	b.custom_minimum_size = Vector2(600, 92)
+	b.clip_text = true  # 긴 이름이 줄 폭을 넓혀 메뉴 전체가 화면 밖으로 밀리지 않게
+	b.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if g[0] == IDEA:  # 보내는 중·고마워요로 글이 바뀌는 버튼은 그대로
+		b.text = g[1]
+		return b
+	var label: String = g[1]
+	var name := label
+	var meta: Array = []
+	var i := label.find(" (")
+	if i > 0:
+		name = label.left(i)
+		for part in label.substr(i).split(")"):
+			var t := part.strip_edges().trim_prefix("(").strip_edges()
+			if t != "":
+				meta.append(t)
+	if not str(g[0]).begins_with("__"):
+		meta.append("v%d" % GAME_VER.get(g[0], 1))
+	var nl := Label.new()
+	nl.text = name
+	nl.add_theme_font_size_override("font_size", 38)
+	nl.add_theme_color_override("font_color", INK)
+	nl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	nl.clip_text = true
+	nl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	nl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	nl.set_anchors_preset(Control.PRESET_FULL_RECT)
+	nl.offset_left = 24
+	nl.offset_right = -24
+	b.add_child(nl)
+	if not meta.is_empty():
+		var ml := Label.new()
+		ml.text = " · ".join(meta)
+		ml.add_theme_font_size_override("font_size", 24)
+		ml.add_theme_color_override("font_color", Color(INK, 0.5))
+		ml.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		ml.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+		ml.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		ml.set_anchors_preset(Control.PRESET_FULL_RECT)
+		ml.offset_right = -20
+		ml.offset_bottom = -8
+		b.add_child(ml)
+		nl.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+		nl.offset_top = 10
+	return b
 
 
 func _input(event: InputEvent) -> void:
@@ -264,8 +308,8 @@ func _wake() -> void:
 
 
 func _open(id: String) -> void:
-	if id == FOLDER or id == FOLDER2 or id == FOLDER3 or id == UP:
-		_fill({FOLDER: 1, FOLDER2: 2, FOLDER3: 3}.get(id, 0))
+	if id == FOLDER or id == FOLDER2 or id == FOLDER3 or id == FOLDER4 or id == UP:
+		_fill({FOLDER: 1, FOLDER2: 2, FOLDER3: 3, FOLDER4: 4}.get(id, 0))
 		return
 	if id == IDEA:
 		_idea()
