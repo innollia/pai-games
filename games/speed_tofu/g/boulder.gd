@@ -4245,7 +4245,7 @@ func _stamp_build() -> void:
 	# 지명판: 구역에 들어설 때·지하 신전에 닿을 때
 	plaque = Control.new()
 	# 왼쪽 안내 줄(x 24..524)에 맞춘다: 오른쪽 키트 버튼(x 534~)을 가리지 않게
-	plaque.position = Vector2(40, 520)
+	plaque.position = Vector2(40, 230)
 	plaque.size = Vector2(500, 120)
 	plaque.pivot_offset = Vector2(250, 60)
 	plaque.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -4447,7 +4447,7 @@ func _plaque(word: String, sub: String, accent: Color, hold := 1.3) -> void:
 	plaque_crack.points = PackedVector2Array([Vector2(330, 20), Vector2(348, 56), Vector2(336, 94), Vector2(360, 130)])
 	plaque_crack.width = 0.0
 	plaque.visible = true
-	plaque.position = Vector2(40, 520)
+	plaque.position = Vector2(40, 230)
 	plaque.modulate.a = 0.0
 	plaque.scale = Vector2.ONE * 1.5
 	plaque.rotation = -0.05
@@ -4463,7 +4463,7 @@ func _plaque(word: String, sub: String, accent: Color, hold := 1.3) -> void:
 	plaque_tw.tween_property(plaque, "scale", Vector2(1.04, 0.96), 0.05)
 	plaque_tw.tween_property(plaque, "scale", Vector2.ONE, 0.08)
 	plaque_tw.tween_interval(hold)
-	plaque_tw.tween_property(plaque, "position:y", 490.0, 0.25).set_ease(Tween.EASE_IN)
+	plaque_tw.tween_property(plaque, "position:y", 200.0, 0.25).set_ease(Tween.EASE_IN)
 	plaque_tw.parallel().tween_property(plaque, "modulate:a", 0.0, 0.25)
 	plaque_tw.tween_callback(plaque.hide)
 
@@ -5046,6 +5046,50 @@ func _warp_tick() -> void:
 		warp_to = 0.0
 
 
+## 지금 이 버튼이 통하는 순간: [버튼, 글] (없으면 빈 배열). 규칙을 헷갈리지 않게 '왜 이 버튼인지'를 그 자리에서 보여 준다
+const CUE_TEXT := {"jump": "틈! 뛰기", "throw": "수정! 던지기", "hold": "탑 위! 버티기", "split": "쪼개서 뚫기", "hold_pad": "발판! 버티기"}
+func _cue() -> Array:
+	if fallen or won or over or underground or _btns.is_empty():
+		return []
+	# 떨어지는 중 아래에 탑·지붕·신상: 버티기
+	if _btns.has("hold") and not on_ground and vy < 0.0:
+		for th: Thing in things:
+			if not th.flat and th.kd.get("slam", false):
+				var dd := th.d - dist
+				if dd > -2.0 and dd < 26.0 and absf(th.x - bx) < float(th.kd.size.x) * 0.5 + s and by > th.base:
+					return ["hold", CUE_TEXT.hold]
+	if not on_ground:
+		return []
+	for drum: Dictionary in drums:
+		if dist >= float(drum.a) - 12.0 and dist < float(drum.b) and _btns.has("hold"):
+			return ["hold", CUE_TEXT.hold_pad]
+	# 앞에 틈(길이 끊김): 뛰기 (떨어지는 절벽 drop 은 그냥 떨어지면 되니 뺀다)
+	if _btns.has("jump"):
+		var look := v * 0.7 + 8.0
+		var d := dist + 2.0
+		while d < dist + look and d < _len():
+			var i := _oi(pd, d)
+			if pd.sol[i] == 0:
+				if pd.tg[i] == "gap":
+					return ["jump", CUE_TEXT.jump]
+				break
+			d += 2.0
+	for th: Thing in things:
+		if th.flat:
+			continue
+		var dd := th.d - dist
+		if dd < 0.0 or dd > 70.0:
+			continue
+		# 앞 수정(던져야 열리는 벽): 닿는 거리 안이면 던지기
+		if th.kd.get("shot", false) and _btns.has("throw") and dd <= _throw_range():
+			return ["throw", CUE_TEXT.throw]
+		# 몸으로 못 깨는 집·얼음벽이 바로 앞 내 차선: 쪼개서 돌진
+		if _btns.has("split") and dd < 22.0 and float(th.kd.need) < 90.0 and s_goal < float(th.kd.need) \
+				and not th.kd.get("shot", false) and absf(th.x - bx) < (float(th.kd.size.x) + s) * 0.5 and dash_t <= 0.0:
+			return ["split", CUE_TEXT.split]
+	return []
+
+
 ## 키트 버튼 = GPT 가 그린 팔각 새김 돌 메달(ui_gpt/seal.png)에 기술 색을 물들인 것: 아래 먹 그림자, 누르면 가라앉아 어두워짐,
 ## 먹 글자. 새로 열리면 톡 튀어나온다 (기본 원·테 도형은 쓰지 않는다)
 var seal_tex: Texture2D
@@ -5054,6 +5098,7 @@ func _kit_draw(c: Control) -> void:
 		super(c)
 		return
 	var now := Time.get_ticks_msec() * 0.001
+	var cue := _cue()
 	for n in _btns:
 		var b: Dictionary = _btns[n]
 		var down: bool = b.down
@@ -5078,6 +5123,16 @@ func _kit_draw(c: Control) -> void:
 			c.draw_arc(p, r + 11.0, -PI / 2.0, -PI / 2.0 + TAU * dash_t / DASH_T, 40, C, 9.0, true)
 		elif n == "split" and cool > 0.0:
 			c.draw_circle(p, r, Color(INK, 0.25))
+		if cue.size() == 2 and cue[0] == n and not down:
+			# 지금 이 버튼: 금빛 고리가 두근거리고, 왼쪽에 이유 한 줄
+			var pulse := 0.5 + 0.5 * sin(now * 12.0)
+			c.draw_arc(p, r + 8.0 + pulse * 6.0, 0.0, TAU, 48, Color(D, 0.6 + 0.4 * pulse), 7.0, true)
+			var cfs := 34
+			var ct := tr(str(cue[1]))
+			var cw := _font.get_string_size(ct, HORIZONTAL_ALIGNMENT_LEFT, -1, cfs).x
+			var cp := p + Vector2(-r - 22.0 - cw, cfs * 0.35)
+			c.draw_string_outline(_font, cp, ct, HORIZONTAL_ALIGNMENT_LEFT, -1, cfs, 9, WHITE)
+			c.draw_string(_font, cp, ct, HORIZONTAL_ALIGNMENT_LEFT, -1, cfs, INK)
 		if n == "hold" and drum_charge > 0.0:
 			var acol := GOOD if drum_charge >= 0.4 else D
 			if drum_charge >= 0.95 and fmod(now, 0.24) < 0.12:
@@ -5516,6 +5571,7 @@ const EN := {
 	"공명 제단 · 눌렀다 놓기": "Echo Altar · Press and Release", "바다 신전 · 마지막 도약": "Sea Temple · Final Leap",
 	"새 버튼: 뛰기!\n틈 앞에서 눌러": "New button: JUMP!\nTap it before a gap", "새 버튼: 쪼개기!\n가벼워지고 잠깐 돌진": "New button: SPLIT!\nGet lighter and dash",
 	"새 버튼: 버티기!\n떨어지며 누르면 내려찍기": "New button: HOLD!\nHold while falling to slam", "새 버튼: 던지기!\n점선이 초록이면 던져": "New button: THROW!\nThrow when the line is green",
+	"수정! 던지기": "Crystal! THROW", "탑 위! 버티기": "Tower below! HOLD", "쪼개서 뚫기": "SPLIT to dash through", "발판! 버티기": "Pad! HOLD",
 	"물살을 타면 빨라진다 · 버티면 제자리": "Ride the current = speed up · HOLD = stay put", "물살을 타면 빨라진다!": "Riding the current speeds you up!", "눈 위를 구르면\n몸이 커진다!": "Roll on snow\nand your body grows!", "물살을 타고\n초록이면 던져": "Ride the current\nTHROW on green",
 	"황금 발판에서 버티기 → 힘이 차면 손을 떼 발사": "HOLD on the golden pad → when charged, let go to launch",
 	"키우고 → 던지고 → 가볍게 날아 바다 신전까지": "Grow → throw → fly light all the way to the sea temple",
