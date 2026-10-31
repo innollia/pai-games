@@ -103,7 +103,7 @@ const ACT := ["막기", "베기"]
 const PERKS := [
 	["hp", "단단한 몸", "최대 체력 +4 (지금 체력도 +4)", 99],
 	["pow", "날 선 칼", "베기 힘 +1", 99],
-	["per", "맑은 눈", "간파 판정이 0.02초 넓어져요", 4],
+	["per", "맑은 눈", "간파 판정이 0.04초 넓어져요", 4],
 	["mend", "상처 동여매기", "체력을 절반만큼 되찾아요", 99],
 	["leech", "숨 고르기", "간파할 때마다 체력 +1", 3],
 	["steady", "흔들림 없는 손", "헛공격해도 체력이 안 깎여요", 1],
@@ -166,7 +166,8 @@ var mode_t := 0.0
 var ph := 0
 var ci := 0
 var mi := 0
-var fs := 0  # 0 쉼, 1 예비 동작, 2 빈틈, 3 내가 맞음, 4 상대 휘청
+var fs := 0  # 0 쉼, 1 예비 동작, 2 빈틈, 3 내가 맞음, 4 상대 휘청, 5 연격 사이 텀(흰→주황)
+var beat := 0.3  # 연격 사이 텀 길이
 var fs_t := 0.0
 var gap := 0.5
 var win := 0.5
@@ -303,9 +304,9 @@ func _pow() -> int:
 	return 1 + _lv("pow")
 
 
-## 간파 판정: 칼이 닿기 전 이 시간 안에 막으면 간파. 능력 "맑은 눈"으로 조금씩만 넓어진다 (다 골라도 0.28초)
+## 간파 판정: 칼이 닿기 전 이 시간 안에 막으면 간파. 기본은 좁게(10/31: 0.20 → 0.15), 능력 "맑은 눈"은 한 번에 크게 (+0.04, 다 골라도 0.31초)
 func _per() -> float:
-	return 0.2 + 0.02 * _lv("per")
+	return 0.15 + 0.04 * _lv("per")
 
 
 # ---- 화면 글자 ----
@@ -1176,6 +1177,16 @@ func _fight(dt: float) -> void:
 		3:
 			if fs_t >= 0.5:
 				_rest(_pat()[0])
+		5:
+			# 앞 절반은 흰 칼, 뒤 절반은 주황 칼로 바뀌며 살짝 더 젖힌다 (곧 온다)
+			if fs_t >= beat * 0.5 and blade_m.material_override != mat(A):
+				blade_m.material_override = mat(A)
+			var bp := _bpos(sdir, 0.0)
+			if fs_t >= beat * 0.5:
+				bp += (bp - Vector3(0, 0.3, 0)).normalized() * 0.12
+			blade_m.position = blade_m.position.lerp(bp, minf(1.0, dt * 18.0))
+			if fs_t >= beat:
+				_attack(true)
 		4:
 			fl = fl.lerp(Vector3(0, 0, -0.9), minf(1.0, dt * 8.0))
 			if fs_t >= 0.45:
@@ -1219,7 +1230,6 @@ func _attack(linked := false) -> void:
 		win = maxf(0.32, win * 0.7)
 		blade_m.position = _bpos(sdir, 0.0)
 		blade_m.rotation = _brot(sdir, 0.0)
-		msg("연격!", 0.5)
 	if _flag(mv) == 1:
 		# 두 번째 칼: 튕겨 나간 칼을 바로 다시 크게 젖혀 들고, 막을 틈은 남긴다
 		win = maxf(0.4, win)
@@ -1236,6 +1246,21 @@ func _attack(linked := false) -> void:
 	_link_show(_link_next())
 	# 느린 예비 동작은 낮은 소리, 갑작스러운 건 높은 소리
 	beep(lerpf(760.0, 300.0, clampf((win - 0.3) / 0.9, 0.0, 1.0)), 0.06, 0.0, 0.17)
+
+
+## 연격 사이 텀 (10/31): 막은 뒤 다음 칼이 그 자리에 들린 채 잠깐 서서 흰색 → 주황색으로 바뀐 뒤 들어온다
+func _link_beat() -> void:
+	var mv: Array = _pat()[2][ci][mi]
+	sdir = dmap[mv[0]]
+	sty = _style(mv)
+	fs = 5
+	fs_t = 0.0
+	beat = maxf(0.26, 0.42 * spd)
+	_clear()
+	blade_m.material_override = mat(WHITE)
+	blade_m.position = _bpos(sdir, 0.0)
+	blade_m.rotation = _brot(sdir, 0.0)
+	msg("연격!", 0.5)
 
 
 func _flag(mv: Array) -> int:
@@ -1362,7 +1387,7 @@ func _act(a: int) -> void:
 				_parry(win - fs_t <= _per())
 			else:
 				_hurt()
-		elif fs == 0 or fs == 1 or fs == 2:
+		elif fs == 0 or fs == 1 or fs == 2 or fs == 5:
 			_empty_guard()
 		return
 	# 베기: 빈틈에 맞는 쪽만. 그 밖에는 헛공격
@@ -1430,8 +1455,7 @@ func _parry(perfect: bool) -> void:
 			msg("간파!\n지금 초록 쪽으로 베요!", 0.8)
 	# 간파하면 연속기 중간이라도 끊고 내가 벨 차례 (초록 상자)
 	if linked and mi < combos[ci].size():
-		fs = 0
-		_attack(true)
+		_link_beat()
 		return
 	if twice or (tut < 0 and not perfect and mi < combos[ci].size()):
 		_rest(0.03 if twice else 0.12)
