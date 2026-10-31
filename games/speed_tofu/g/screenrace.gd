@@ -4179,7 +4179,7 @@ func _camera(dt: float) -> void:
 		var tx := lead.p.x
 		if mode == "lantern" and bearer and bearer.alive:
 			tx = lerpf(bearer.p.x, light_c, 0.3)  # 등불 모드: 화면은 등불 빛 쪽으로
-		var cx := lerpf(camx, tx - hwv * lerpf(-0.18, 0.32, lean), k)
+		var cx := lerpf(camx, tx - hwv * lerpf(-0.18, 0.08, lean), k)  # v36: 0.32 -> 0.08 ("앞이 안 보인다": 빨리 달리는 1등도 앞이 반 화면 가까이 보인다)
 		# v14: 선두가 대시해도 화면은 보통 달리기보다 조금 빠른 만큼만 따라간다 (뒤의 모두가 한꺼번에 밀려나지 않게).
 		# 선두가 오른쪽 끝(반폭의 75%)을 넘으려 하면 그때는 바로 따라간다.
 		if phase == "race" and cx > camx:
