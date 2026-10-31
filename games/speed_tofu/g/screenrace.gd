@@ -246,7 +246,7 @@ const POST_BUF := 0.9  # 미리 누른 배달이 기다리는 시간 (누르고 
 const AI_SKILL0 := 1.0  # v14: 경쟁자 기본 속도 (0.93 -> 1.0, 나와 같다: 나는 달리며 넣고 경쟁자는 서서 넣으니, 가끔은 경쟁자가 앞서 우체통을 먼저 차지하게)
 const SHOVE_T := 0.6  # v14: 선두 대시로 화면이 확 밀리면 이 시간 동안 왼쪽 끝은 부드러운 벽 (한 번 대시로 모두 반송되지 않게)
 const LAST_CALL := 3.0  # 첫 도착 뒤 마감까지
-const SKY_BRICKS := true  # v38 실험: 짐 벽을 양옆 대신 빈 하늘(위 진행 줄 아래)에 주자마다 한 줄로. 경주 폭이 넓어진다
+const SKY_BRICKS := false  # v39: 실험 그만 (사용자 "실험은 포기하자"). v38 실험: 짐 벽을 양옆 대신 빈 하늘(위 진행 줄 아래)에 주자마다 한 줄로. 경주 폭이 넓어진다
 const SKY_BW := 22.0  # 하늘 벽돌 하나 폭·높이 (px)
 const SKY_BH := 18.0
 const WALL_W := 14.0 if SKY_BRICKS else 56.0  # 화면 양옆 짐 벽 두께 (px). 벽 안쪽 면 = 진짜 떨어지는 끝 (v13: 34 -> 56, 폰에서 잘 안 보였다)
@@ -4085,8 +4085,7 @@ func _ai(r: Courier, dt: float) -> void:
 	r.mx = 1.0
 	if phase == "race" and rt < r.start_d:
 		r.mx = 0.0  # v22: 출발 반응
-	if _opening() and r.p.x > pl.p.x + 2.0:
-		r.mx = 0.0
+	# v39: 첫 판에 내가 가만히 있거나 뒤로 가면 경쟁자가 기다리던 것(최대 10초)을 뺐다. 경쟁자는 나와 상관없이 달린다
 	if mode == "lantern" and r == bearer and goal_x - r.p.x > 40.0:
 		r.mx = lerpf(0.5, 1.0, r.bold)  # 등불을 들면 대담한 만큼만 달린다
 	r.i_jump = false
@@ -5029,17 +5028,17 @@ func _fx_draw_edge(c: Control, tm: float) -> void:
 	if warn > 0.02 and pl.alive:
 		var pulse := 0.5 + 0.5 * sin(tm * TAU * lerpf(1.5, 6.0, warn))
 		var a := warn * (0.22 + 0.4 * pulse)
+		# v39: 화면 위아래 끝까지 (예전엔 위 진행 줄 아래부터라 잘려 보였다), 화살표는 내 높이에 하나만 크게 (7개는 너무 많았다)
 		for i in 6:
-			c.draw_rect(Rect2(ex + i * 14.0, PF_TOP, 14.0, PF_BOT - PF_TOP), Color(P_RED, a * (1.0 - i / 6.0)))
-		var slide := fposmod(tm * (24.0 + 60.0 * warn), 18.0)
+			c.draw_rect(Rect2(ex + i * 14.0, -10.0, 14.0, 1300.0), Color(P_RED, a * (1.0 - i / 6.0)))
+		var slide := fposmod(tm * (24.0 + 60.0 * warn), 22.0)
 		var ca := clampf(a * 1.8, 0.0, 0.95)
-		for k in 7:
-			var cy := PF_TOP + 60.0 + k * 105.0
-			var cx := ex + 40.0 - slide
-			_chev[0] = Vector2(cx + 11.0, cy - 15.0)
-			_chev[1] = Vector2(cx - 5.0, cy)
-			_chev[2] = Vector2(cx + 11.0, cy + 15.0)
-			c.draw_polyline(_chev, Color(P_NAVY, ca * 0.8), 6.0)
+		var cy := clampf(courier_screen(pl, HH * 0.5).y, PF_TOP + 60.0, PF_BOT - 300.0)
+		var cx := ex + 52.0 - slide
+		_chev[0] = Vector2(cx + 22.0, cy - 30.0)
+		_chev[1] = Vector2(cx - 8.0, cy)
+		_chev[2] = Vector2(cx + 22.0, cy + 30.0)
+		c.draw_polyline(_chev, Color(P_NAVY, ca * 0.85), 9.0)
 	if edge_hit > 0.0:
 		c.draw_rect(Rect2(ex, PF_TOP, 70.0, PF_BOT - PF_TOP), Color(P_RED, edge_hit * 0.5))
 		c.draw_rect(Rect2(ex + 70.0, PF_TOP, 70.0, PF_BOT - PF_TOP), Color(P_RED, edge_hit * 0.22))
