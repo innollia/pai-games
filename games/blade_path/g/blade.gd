@@ -102,6 +102,26 @@ const PERKS := [
 	["steady", "흔들림 없는 손", "헛공격해도 체력이 안 깎여요", 1],
 	["gap", "긴 빈틈", "빈틈(초록)이 30% 더 오래 열려요", 3],
 ]
+## 로비 [강화] 탭의 스킬 트리 (10/31, 로그라이트): 판이 끝나면 쓰러뜨린 만큼 냥을 받고, 냥으로 영구 강화를 찍는다.
+## 키, 이름, 설명, 최대 단계, 첫 값, 줄(0 몸 · 1 칼 · 2 눈), 칸(위에서 0~2), 먼저 찍어야 하는 칸.
+## 값 = 첫 값 × UP_GROW^지금 단계 (찍을수록 크게 비싸진다)
+const TREE := [
+	["t_hp", "튼튼한 몸", "시작 체력 +1", 5, 8, 0, 0, ""],
+	["t_mend", "숨 돌리기", "검객을 쓰러뜨릴 때마다 체력 +1", 3, 20, 0, 1, "t_hp"],
+	["t_last", "마지막 버팀", "판마다 한 번, 죽을 피해를 체력 1로 버텨요", 1, 70, 0, 2, "t_mend"],
+	["t_pow", "단련된 칼", "베기 힘 +1", 3, 15, 1, 0, ""],
+	["t_gap", "빈틈 읽기", "빈틈(초록)이 10% 더 오래 열려요", 3, 20, 1, 1, "t_pow"],
+	["t_x3", "간파 일격 강화", "간파 일격 x2 → x3", 1, 80, 1, 2, "t_gap"],
+	["t_per", "밝은 눈", "간파 판정이 0.01초 넓어져요", 5, 10, 2, 0, ""],
+	["t_stun", "빠른 손", "헛공격 뒤 굳는 시간 -0.1초", 2, 20, 2, 1, "t_per"],
+	["t_coin", "현상금 사냥", "판이 끝날 때 받는 냥 +25%", 2, 60, 2, 2, "t_stun"],
+]
+const UP_GROW := 2.5
+const TREE_COL := ["몸", "칼", "눈"]
+## 간파 판정 (10/31): 칼이 닿은 뒤에도 이만큼은 막으면 간파 (판정이 너무 빨랐다). 맞는 건 이만큼 늦게.
+const PARRY_LATE := 0.08
+## 죽기 직전(다음에 맞으면 죽을 때) 몰래 넓혀 주는 간파 판정. 칼 색(빨강)에는 안 보인다
+const LAST_HELP := 0.5
 
 ## 개발 도구(g/dev.gd)에서 고친 글·UI 자리. [내보내기]한 내용을 여기 붙여 넣으면 출시판에도 그대로 남는다.
 const BAKED_TEXT := {}
@@ -132,7 +152,7 @@ const EN := {
 	"숨 고르기": "Steady Breath", "간파할 때마다 체력 +1": "+1 HP on every parry",
 	"흔들림 없는 손": "Unshaken Hand", "헛공격해도 체력이 안 깎여요": "Whiffs no longer cost HP",
 	"긴 빈틈": "Long Opening", "빈틈(초록)이 30% 더 오래 열려요": "Openings (green) last 30% longer",
-	"전투": "FIGHT", "캐릭터": "Character", "도감": "Codex",
+	"전투": "FIGHT", "캐릭터": "Character", "강화": "Upgrade", "도감": "Codex",
 	"찌르기": "Thrust", "속임수": "Feint", "거합": "Iai", "검귀": "Demon",
 	"검객이 공격하려고 해요. 잘 봐요!": "The swordsman is about to attack. Watch closely!",
 	"이번엔 칼이 거의 닿을 때까지\n기다려요…": "This time, wait until the blade\nalmost reaches you…",
@@ -172,10 +192,22 @@ const EN := {
 	"고른 능력 없음": "No skills picked", "능력: ": "Skills: ",
 	"검객별 기록": "Records by swordsman", "%s\n쓰러뜨림 %d번 · 죽음 %d번": "%s\nDefeated %d · Died %d",
 	"%s\n최고 피해 %d · 죽음 %d번": "%s\nBest damage %d · Died %d", "???\n아직 못 만났어요": "???\nNot met yet",
+	"%d냥": "%d coins", "승리!  +%d냥": "VICTORY!  +%d coins", "받은 냥 +%d": "Coins earned +%d", "간파 일격! x3": "PARRY STRIKE! x3",
+	"마지막 버팀!\n체력 1": "LAST STAND!\nHP 1", "강화 · 가진 냥 %d": "Upgrade · %d coins", "최대": "MAX", "윗칸 먼저": "Unlock above first",
+	"강화하기 (%d냥)": "Upgrade (%d coins)", "냥이 모자라요 (%d냥)": "Not enough (%d coins)",
+	"몸": "Body", "칼": "Blade", "눈": "Eyes",
+	"튼튼한 몸": "Sturdy Body", "시작 체력 +1": "Starting HP +1",
+	"숨 돌리기": "Catch Breath", "검객을 쓰러뜨릴 때마다 체력 +1": "+1 HP each time you defeat a swordsman",
+	"마지막 버팀": "Last Stand", "판마다 한 번, 죽을 피해를 체력 1로 버텨요": "Once per run, survive a killing blow with 1 HP",
+	"단련된 칼": "Honed Blade", "빈틈 읽기": "Read the Gap", "빈틈(초록)이 10% 더 오래 열려요": "Openings (green) last 10% longer",
+	"간파 일격 강화": "Heavier Parry Strike", "간파 일격 x2 → x3": "Parry strike x2 → x3",
+	"밝은 눈": "Sharp Eyes", "간파 판정이 0.01초 넓어져요": "Parry window +0.01s",
+	"빠른 손": "Quick Hands", "헛공격 뒤 굳는 시간 -0.1초": "Freeze after a whiff -0.1s",
+	"현상금 사냥": "Bounty Hunter", "판이 끝날 때 받는 냥 +25%": "+25% coins at the end of a run",
 }
 
 ## 아래 탭 줄 (칸 번호 = tab)
-const TABS := ["전투", "캐릭터", "도감"]
+const TABS := ["전투", "강화", "도감"]
 const DEX := ["찌르기", "속임수", "베기", "거합", "검귀"]
 const NAV_Y := 1150.0
 
@@ -192,6 +224,8 @@ var best_dmg := 0  # 끝판왕에게 준 가장 큰 피해
 var vol := 8  # 설정: 소리 0~10
 var vib := 8  # 설정: 진동 0~10
 var lang := "en"  # 설정: 언어 (en 기본, ko)
+var coin := 0  # 강화에 쓰는 냥
+var tree := {}  # 찍은 강화 -> 단계
 var lang_l: Label  # 설정 창 언어 버튼 글
 var lang_btn: ColorRect  # 위 띠 언어 버튼
 var lang_top_l: Label
@@ -211,6 +245,8 @@ var max_life := 6
 var perk := {}  # 이번 판에 고른 능력 -> 단계
 var pick: Array = []  # 고르는 중인 능력 셋 (PERKS 번호)
 var boss_dmg := 0
+var run_coin := 0  # 이번 판에 모은 냥 (판이 끝나면 받는다)
+var last_used := false  # 강화 "마지막 버팀"을 이번 판에 썼나
 var cuts := 0  # 끝판왕: 벤 횟수 (단 오르기)
 # 장면
 var piv: Node3D
@@ -302,13 +338,20 @@ var pick_l: Array[Label] = []
 var play_bg: ColorRect
 var play_edge: ColorRect
 var tut_again: Label
-var char_l: Label
 var fixed_l := {}  # 대사 키 -> 늘 떠 있는 글들 (설정 창 등). 글을 고치면 _apply_text 가 다시 넣는다
 var dex_bg: Array[ColorRect] = []
 var dex_l: Array[Label] = []
 var dex_card: Label
 var dex_pick := 0
 var last_run := ""
+var up_pick := 0  # 강화 탭에서 고른 칸 (TREE 번호)
+var up_bg: Array[ColorRect] = []
+var up_l: Array[Label] = []
+var up_card: Label
+var up_buy: ColorRect
+var up_buy_l: Label
+var up_head: Label
+const UP_BUY := Rect2(160, 1035, 400, 100)
 var lobby_k := 0  # 전투 탭 뒤에 서 있는 검객 (마지막에 진 상대)
 var set_box: ColorRect  # 설정 창 (로비 위 [설정])
 var set_btn: ColorRect
@@ -354,6 +397,17 @@ func _tab_r(i: int) -> Rect2:
 	return Rect2(i * 240, NAV_Y, 240, 1280 - NAV_Y)
 
 
+## 강화 칸: c 줄(0 몸 · 1 칼 · 2 눈), r 칸(위에서 0~2)
+func _up_r(c: int, r: int) -> Rect2:
+	return Rect2(18 + c * 232, 312 + r * 182, 220, 140)
+
+
+## 강화 칸 i 를 찍을 수 있나 (윗칸을 먼저 1단계 이상 찍어야 열린다)
+func _up_open(i: int) -> bool:
+	var need: String = TREE[i][7]
+	return need == "" or _tl(need) > 0
+
+
 func _dex_r(i: int) -> Rect2:
 	return Rect2(16 + i * 139, 210, 131, 84)
 
@@ -382,12 +436,17 @@ func _load_save() -> void:
 	vol = clampi(int(d.get("vol", 8)), 0, 10)
 	vib = clampi(int(d.get("vib", 8)), 0, 10)
 	lang = "ko" if str(d.get("lang", "en")) == "ko" else "en"
+	coin = maxi(0, int(d.get("coin", 0)))
+	var t: Variant = d.get("tree", {})
+	if t is Dictionary:
+		for row: Array in TREE:
+			tree[row[0]] = clampi(int(t.get(row[0], 0)), 0, int(row[3]))
 
 
 func _save() -> void:
 	var f := FileAccess.open(FILE, FileAccess.WRITE)
 	if f:
-		f.store_string(JSON.stringify({"best": best_n, "dmg": best_dmg, "tut": tut_done, "runs": runs, "blocks": blocks, "perfects": perfects, "seen": seen, "kills": kills, "deaths": deaths, "vol": vol, "vib": vib, "lang": lang}))
+		f.store_string(JSON.stringify({"best": best_n, "dmg": best_dmg, "tut": tut_done, "runs": runs, "blocks": blocks, "perfects": perfects, "seen": seen, "kills": kills, "deaths": deaths, "vol": vol, "vib": vib, "lang": lang, "coin": coin, "tree": tree}))
 
 
 # ---- 능력치 ----
@@ -395,13 +454,30 @@ func _lv(k: String) -> int:
 	return int(perk.get(k, 0))
 
 
+func _tl(k: String) -> int:
+	return int(tree.get(k, 0))
+
+
+## 강화 칸 i 의 다음 값
+func _cost(i: int) -> int:
+	return int(round(float(TREE[i][4]) * pow(UP_GROW, _tl(TREE[i][0]))))
+
+
 func _pow() -> int:
-	return 1 + _lv("pow")
+	return 1 + _lv("pow") + _tl("t_pow")
 
 
 ## 간파 판정: 칼이 닿기 전 이 시간 안에 막으면 간파. 기본은 좁게(10/31: 0.20 → 0.15), 능력 "맑은 눈"은 한 번에 크게 (+0.04, 다 골라도 0.31초)
 func _per() -> float:
-	return 0.15 + 0.04 * _lv("per")
+	return 0.15 + 0.04 * _lv("per") + 0.01 * _tl("t_per")
+
+
+## 막은 순간이 간파인가: 칼이 닿기 _per() 전부터 닿은 뒤 PARRY_LATE 까지. 죽기 직전엔 몰래 LAST_HELP 만큼 더 일찍부터
+func _is_parry() -> bool:
+	var w := _per()
+	if tut < 0 and life <= foe_atk:
+		w += LAST_HELP
+	return win - fs_t <= w
 
 
 # ---- 화면 글자 ----
@@ -492,6 +568,9 @@ func _default_say() -> void:
 		"last_dead": "지난 판: %d번째 상대에게 쓰러짐\n%s", "no_perk": "고른 능력 없음", "perks": "능력: ",
 		"char_head": "검객별 기록", "char_row": "%s\n쓰러뜨림 %d번 · 죽음 %d번", "char_boss": "%s\n최고 피해 %d · 죽음 %d번",
 		"char_unknown": "???\n아직 못 만났어요",
+		"coin_top": "%d냥", "win_coin": "승리!  +%d냥", "got_coin": "받은 냥 +%d", "x3": "간파 일격! x3", "last": "마지막 버팀!\n체력 1",
+		"up_head": "강화 · 가진 냥 %d", "up_cost": "%d냥", "up_max": "최대", "up_lock": "윗칸 먼저",
+		"up_buy": "강화하기 (%d냥)", "up_short": "냥이 모자라요 (%d냥)",
 		"dex_none": "???\n아직 못 만났어요\n싸우다 보면 열려요", "dex_rec": "만남 %d번 · 쓰러뜨림 %d번",
 		"dex_rec_boss": "만남 %d번 · 준 피해 최고 %d",
 		"set": "설정", "set_vol": "소리 크기", "set_vib": "진동 세기", "close": "닫기", "off": "끔",
@@ -500,6 +579,11 @@ func _default_say() -> void:
 		say["tab%d" % i] = TABS[i]
 	for i in DEX.size():
 		say["dex%d" % i] = DEX[i]
+	for row: Array in TREE:
+		say[row[0]] = row[1]
+		say["d_" + row[0]] = row[2]
+	for i in TREE_COL.size():
+		say["tcol%d" % i] = TREE_COL[i]
 
 
 func _s(k: String) -> String:
@@ -631,11 +715,38 @@ func _lobby_ui() -> void:
 	tut_again.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	tut_again.position.x = TUT_R.position.x
 	tut_again.size.x = TUT_R.size.x
-	# 1 캐릭터: 검객별로 몇 번 쓰러뜨리고 몇 번 죽었는지만 (10/31)
+	# 1 강화: 스킬 트리 (세 줄 몸·칼·눈, 위에서 아래로 찍는다), 아래 고른 칸 설명과 [강화] 버튼 (10/31)
 	_panel(pages[1], Rect2(0, 194, 720, NAV_Y - 194), Color(0.12, 0.08, 0.05, 0.8))
-	char_l = _white(_label(pages[1], 38, 214, NAV_Y - 234))
-	char_l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	char_l.label_settings.line_spacing = 6
+	up_head = _white(_label(pages[1], 34, 200, 60))
+	for c in 3:
+		var hl := _white(_label(pages[1], 30, 262, 44))
+		hl.position.x = _up_r(c, 0).position.x
+		hl.size.x = _up_r(c, 0).size.x
+		_fixed("tcol%d" % c, hl)
+		for r in 2:
+			var a := _up_r(c, r)
+			_panel(pages[1], Rect2(a.get_center().x - 5, a.end.y, 10, _up_r(c, r + 1).position.y - a.end.y), SOFT)
+	for i in TREE.size():
+		var r := _up_r(int(TREE[i][5]), int(TREE[i][6]))
+		var edge := _panel(pages[1], r, INK)
+		var bg := _panel(edge, Rect2(Vector2(5, 5), r.size - Vector2(10, 10)), SOFT)
+		up_bg.append(bg)
+		var l := _label(bg, 26, 0, r.size.y - 10)
+		l.size.x = r.size.x - 10
+		l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		l.label_settings.outline_size = 0
+		up_l.append(l)
+	var uc := _panel(pages[1], Rect2(30, 860, 660, 165), Color(0.05, 0.03, 0.02, 0.6))
+	up_card = _white(_label(uc, 28, 0, 165))
+	up_card.size.x = 660
+	up_card.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	up_card.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	up_buy = _panel(pages[1], UP_BUY, D)
+	up_buy_l = _label(up_buy, 34, 0, UP_BUY.size.y)
+	up_buy_l.size.x = UP_BUY.size.x
+	up_buy_l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	up_buy_l.label_settings.outline_size = 0
 	# 2 도감: 위 칩 다섯, 가운데 검객(3D), 아래 설명 카드
 	for i in 5:
 		var bg := _panel(pages[2], _dex_r(i), SOFT)
@@ -757,7 +868,7 @@ func _buttons() -> void:
 
 
 func _lobby_refresh() -> void:
-	top_l.text = _f("best", [best_n])
+	top_l.text = "%s   %s" % [_f("best", [best_n]), _f("coin_top", [coin])]
 	for i in TABS.size():
 		nav_l[i].text = _s("tab%d" % i)
 		pages[i].visible = i == tab
@@ -770,15 +881,38 @@ func _lobby_refresh() -> void:
 				h += _f("home_dmg", [best_dmg])
 			home_l.text = h
 		1:
-			var rows: Array = [_s("char_head")]
-			for i in 5:
-				if seen[i] == 0:
-					rows.append(_s("char_unknown"))
-				elif i < 4:
-					rows.append(_f("char_row", [_s("name%d" % i), kills[i], deaths[i]]))
-				else:
-					rows.append(_f("char_boss", [_s("name%d" % i), best_dmg, deaths[i]]))
-			char_l.text = "\n\n".join(rows)
+			up_head.text = _f("up_head", [coin])
+			for i in TREE.size():
+				var row: Array = TREE[i]
+				var lv := _tl(row[0])
+				var mx := int(row[3])
+				var open := _up_open(i)
+				var price := _s("up_max") if lv >= mx else _f("up_cost", [_cost(i)])
+				up_l[i].text = "%s\n%d/%d · %s" % [_s(row[0]), lv, mx, price] if open else "%s\n%s" % [_s(row[0]), _s("up_lock")]
+				var c := SOFT
+				if lv >= mx:
+					c = GOOD
+				elif not open:
+					c = Color("8a7a66")
+				elif coin >= _cost(i):
+					c = D
+				up_bg[i].color = c
+				(up_bg[i].get_parent() as ColorRect).color = WHITE if i == up_pick else INK
+			var sel: Array = TREE[up_pick]
+			var slv := _tl(sel[0])
+			up_card.text = "%s  (%d/%d)\n%s" % [_s(sel[0]), slv, int(sel[3]), _s("d_" + sel[0])]
+			if slv >= int(sel[3]):
+				up_buy_l.text = _s("up_max")
+				up_buy.color = GOOD
+			elif not _up_open(up_pick):
+				up_buy_l.text = _s("up_lock")
+				up_buy.color = Color("8a7a66")
+			elif coin < _cost(up_pick):
+				up_buy_l.text = _f("up_short", [_cost(up_pick)])
+				up_buy.color = SOFT
+			else:
+				up_buy_l.text = _f("up_buy", [_cost(up_pick)])
+				up_buy.color = D
 		2:
 			for i in 5:
 				dex_l[i].text = _s("dex%d" % i) if seen[i] > 0 else "???"
@@ -1124,7 +1258,9 @@ func _start_run() -> void:
 	_save()
 	skip_l.visible = false
 	n = 0
-	max_life = 6
+	max_life = 6 + _tl("t_hp")
+	run_coin = 0
+	last_used = false
 	perk = {}
 	life = max_life
 	stun = 0.0
@@ -1323,6 +1459,7 @@ func _step(dt: float) -> void:
 					last_run = _f("last_dmg", [n + 1, boss_dmg, _perk_text()])
 				else:
 					last_run = _f("last_dead", [n + 1, _perk_text()])
+				last_run = _f("got_coin", [run_coin]) + "\n" + last_run
 				lobby_k = n
 				_to_lobby(0)
 	piv.position = fl
@@ -1445,7 +1582,7 @@ func _fight(dt: float) -> void:
 				br.z += sin(fs_t * 16.0) * 0.08 * (1.0 - k)  # 속임수: 진짜 속임수일 때만 칼끝이 살짝 흔들린다 (10/31)
 			blade_m.position = blade_m.position.lerp(bp, minf(1.0, dt * 22.0))
 			blade_m.rotation = blade_m.rotation.lerp(br, minf(1.0, dt * 18.0))
-			if fs_t >= win:
+			if fs_t >= win + (PARRY_LATE if tut < 0 else 0.0):
 				_hurt()
 		2:
 			k = clampf(fs_t / win, 0.0, 1.0)
@@ -1584,6 +1721,11 @@ func _hurt() -> void:
 func _damage(v: int) -> void:
 	life -= v
 	shake_t = 0.22
+	if life <= 0 and tut < 0 and _tl("t_last") > 0 and not last_used:
+		last_used = true
+		life = 1
+		msg(_s("last"), 1.0)
+		return
 	if life <= 0:
 		sfx(SND["death"])
 		mode = "dead"
@@ -1593,6 +1735,8 @@ func _damage(v: int) -> void:
 		best_n = maxi(best_n, n)
 		if ftype == 4:
 			best_dmg = maxi(best_dmg, boss_dmg)
+		run_coin = int(round(run_coin * (1.0 + 0.25 * _tl("t_coin"))))
+		coin += run_coin
 		_save()
 
 
@@ -1604,7 +1748,7 @@ func _whiff(wrong := false) -> void:
 		fx.swing(ind[stance].global_position, stance)  # 빗나감: 충돌 없이 잔상만
 	var steady := _lv("steady") > 0  # 능력 "흔들림 없는 손": 체력은 안 깎인다
 	msg(_s("whiff_steady") if steady else _s("whiff"), 0.9)
-	stun = 0.55
+	stun = 0.55 - 0.1 * _tl("t_stun")
 	whiff_t = 0.35
 	_floor(BAD)
 	if fs != 1:
@@ -1663,7 +1807,7 @@ func _act(a: int) -> void:
 		if fs == 1 and told:
 			var fooled := feint_at >= 0.0 and fs_t < feint_at
 			if d == rdir and not fooled:
-				_parry(win - fs_t <= _per())
+				_parry(_is_parry())
 			else:
 				_hurt()
 		elif fs == 2 and gp:
@@ -1771,7 +1915,7 @@ func _parry(perfect: bool) -> void:
 	fs = 2
 	fs_t = 0.0
 	gp = perfect
-	win = float(_pat()[1]) * (1.8 if perfect else 1.0) * (1.0 + 0.3 * _lv("gap"))
+	win = float(_pat()[1]) * (1.8 if perfect else 1.0) * (1.0 + 0.3 * _lv("gap") + 0.1 * _tl("t_gap"))
 	odir = OPP[rdir]  # 빈틈은 늘 마지막 칼이 온 쪽의 반대 (간파든 막기든)
 	_path(-1)
 	_show(odir)
@@ -1783,7 +1927,8 @@ func _cut() -> void:
 		fx.swing(ind[odir].global_position, odir)
 		fx.hit(ind[odir].global_position)
 		shake_t = maxf(shake_t, 0.08)
-	var dmg := _pow() * (2 if gp else 1)  # 간파로 연 빈틈에 벤 칼은 피해 두 배
+	var x := 3 if _tl("t_x3") > 0 else 2
+	var dmg := _pow() * (x if gp else 1)  # 간파로 연 빈틈에 벤 칼은 피해 두 배 (강화하면 세 배)
 	_tint(GOOD)
 	flash_t = 0.15
 	if anim and foe_hp - dmg > 0:
@@ -1797,17 +1942,21 @@ func _cut() -> void:
 		return
 	foe_hp -= dmg
 	if gp:
-		msg(_s("x2"), 0.6)
+		msg(_s("x3" if x == 3 else "x2"), 0.6)
 	if ftype == 4:
 		boss_dmg += dmg
+		run_coin += 1  # 끝판왕은 벨 때마다 1냥
 		foe_hp = maxi(foe_hp, 1)  # 끝판왕은 쓰러지지 않는다
 	_hp_bar()
 	if foe_hp <= 0:
 		kills[ftype] += 1
+		var got := 4 + 2 * n  # 냥: 뒤 상대일수록 많이
+		run_coin += got
+		life = mini(max_life, life + _tl("t_mend"))
 		_save()
 		mode = "fall"
 		mode_t = 1.4
-		msg(_s("win"), 1.2)
+		msg(_f("win_coin", [got]), 1.2)
 		hp_back.visible = false
 		hp_fill.visible = false
 		return
@@ -1981,6 +2130,23 @@ func _lobby_tap(p: Vector2) -> void:
 			elif tut_again.get_global_rect().has_point(p):
 				going = true
 				_press(tut_again).tween_callback(_begin_tut)
+		1:
+			for i in TREE.size():
+				if _up_r(int(TREE[i][5]), int(TREE[i][6])).has_point(p):
+					_press(up_bg[i].get_parent())
+					up_pick = i
+					_lobby_refresh()
+					return
+			if UP_BUY.has_point(p):
+				_press(up_buy)
+				var row: Array = TREE[up_pick]
+				if _tl(row[0]) < int(row[3]) and _up_open(up_pick) and coin >= _cost(up_pick):
+					coin -= _cost(up_pick)
+					tree[row[0]] = _tl(row[0]) + 1
+					_save()
+					_buzz(60, 0.6)
+					sfx(SND["parry"])
+				_lobby_refresh()
 		2:
 			for i in 5:
 				if _dex_r(i).has_point(p):
