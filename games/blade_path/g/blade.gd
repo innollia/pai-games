@@ -70,10 +70,11 @@ const PAT := [
 		[0.6, 0.45, [[[1, 1, 0.55], [1, 1, 0.28, 1], [0, 0, 0.55], [0, 0, 0.28, 1]], [[2, 2, 0.5], [2, 2, 0.26, 1], [2, 2, 0.26, 1]]]],
 	],
 	# 거합: 넷째 칸 2 = 가만히 서 있다가(길이 무작위) 눈이 번쩍하고 순식간에 뽑는다
+	# 10/31: 칼집에 있으면 무슨 수든 발도로 시작하고, 뽑은 뒤엔 베기로 몰아친다. 내가 맞거나 내가 베면 다시 칼집에 넣는다 (drawn)
 	[
-		[0.5, 0.7, [[[0, 0, 0, 2]], [[1, 1, 0, 2]], [[2, 2, 0, 2]], [[3, 3, 0, 2]]]],
-		[0.4, 0.6, [[[0, 0, 0, 2], [1, 1, 0.4]], [[3, 3, 0, 2]], [[1, 1, 0, 2], [0, 0, 0.35]]]],
-		[0.3, 0.5, [[[2, 2, 0, 2], [3, 3, 0, 2]], [[0, 0, 0, 2], [0, 0, 0.3, 1]]]],
+		[0.5, 0.7, [[[0, 0, 0, 2], [1, 1, 0.75]], [[2, 2, 0.75]], [[3, 3, 0, 2], [0, 0, 0.7]], [[1, 1, 0.7]]]],
+		[0.4, 0.6, [[[0, 0, 0, 2], [1, 1, 0.6], [2, 2, 0.6]], [[3, 3, 0.6]], [[1, 1, 0, 2], [0, 0, 0.55]], [[2, 2, 0.55], [3, 3, 0.55]]]],
+		[0.3, 0.5, [[[2, 2, 0, 2], [3, 3, 0.5]], [[0, 0, 0.5], [1, 1, 0.45]], [[0, 0, 0, 2], [0, 0, 0.3, 1]], [[3, 3, 0.45], [2, 2, 0.45]]]],
 	],
 	# 끝판왕: 넷을 섞는다. 단은 체력이 아니라 벤 횟수로 오른다
 	[
@@ -179,6 +180,7 @@ var feinting := false  # 이번 칼이 방향을 바꾸는 속임수인가 (속�
 var show_at := 0.0  # 거합: 이때 칼이 칼집에서 빠져나와 잔상 길이 보인다
 var tell_at := -1.0  # 거합: 이때 눈이 번쩍 (이보다 먼저 휘두르면 헛공격)
 var told := true
+var drawn := false  # 거합 검객이 칼을 뽑아 든 채인가 (10/31)
 var shown := true
 var stun := 0.0  # 헛공격 뒤 굳은 시간
 var whiff_t := 0.0
@@ -393,7 +395,8 @@ func _default_say() -> void:
 		say["pkd_%s" % pk[0]] = pk[2]
 	say.merge({"parry": "간파!", "parry_go": "간파!\n지금 초록 쪽으로 베요!", "parry_twice": "좋아요!\n두 번째도 맞춰야 간파!", "block": "막기",
 		"cut": "베기!", "x2": "간파 일격! x2", "link": "연격!", "whiff": "헛공격!  체력 -1\n빈틈을 보였어요",
-		"whiff_steady": "헛공격!\n빈틈을 보였어요", "eguard": "헛막기", "lose": "간파 놓침", "win": "승리!", "dead": "쓰러짐"})
+		"whiff_steady": "헛공격!\n빈틈을 보였어요", "eguard": "헛막기", "lose": "간파 놓침", "no_gap": "막았지만 빈틈이 없어요
+두 칼 다 간파해야 해요", "win": "승리!", "dead": "쓰러짐"})
 
 
 func _s(k: String) -> String:
@@ -772,6 +775,7 @@ func _spawn(k: int) -> void:
 	rig_m.clear()
 	blade_rest = Vector3(0.95, -0.3, 0.6)
 	blade_rr = Vector3(0, 0, 0.5)
+	drawn = false
 	var hp_y := 2.0
 	var eye_y := 0.6
 	var eye_z := 0.6 if ftype == 4 else 0.5
@@ -1029,6 +1033,8 @@ func _brot(d: int, t: float) -> Vector3:
 
 ## 이 수의 공격 모양: 검객 성향대로. 끝판왕은 수에 맞춰 넷을 섞는다.
 func _style(mv: Array) -> int:
+	if ftype == 3:
+		return 2 if drawn else 3  # 거합: 뽑은 뒤엔 크게 베어 들어온다
 	if ftype < 4:
 		return ftype
 	if _flag(mv) == 2:
@@ -1051,7 +1057,7 @@ func _link_next() -> bool:
 	if tut >= 0 or (ph < 1 and ftype != 4):
 		return false
 	var c: Array = _pat()[2][ci]
-	if mi + 1 >= c.size() or _flag(c[mi]) == 2:
+	if mi + 1 >= c.size() or _flag(c[mi]) == 2 or (ftype == 3 and not drawn):
 		return false
 	return _flag(c[mi + 1]) == 0
 
@@ -1227,6 +1233,8 @@ func _fight(dt: float) -> void:
 				if fs_t < show_at:
 					return
 				shown = true
+				if ftype == 3:
+					_hold(true)
 				_eyes()
 				_path(sdir)
 				sfx(SND["iai2"])
@@ -1308,6 +1316,12 @@ func _attack(linked := false) -> void:
 		mv = _pat()[2][ci][mi]
 		if mi == 0 and not linked:
 			dmap.shuffle()
+		if ftype == 3:
+			# 거합: 칼집에 있으면 발도, 뽑아 든 채면 발도 칸도 그냥 베기
+			if not drawn:
+				mv = [mv[0], mv[1], 0, 2]
+			elif _flag(mv) == 2:
+				mv = [mv[0], mv[1], 0.6]
 	sdir = mv[0] if tut >= 0 else dmap[mv[0]]
 	rdir = mv[1] if tut >= 0 else dmap[mv[1]]
 	sty = 0 if tut >= 0 else _style(mv)
@@ -1323,6 +1337,8 @@ func _attack(linked := false) -> void:
 		feint_at = -1.0
 		blade_m.material_override = mat(WHITE)
 		_clear()
+		if ftype == 3:
+			drawn = true
 		return
 	win = float(mv[2]) * (1.0 if tut >= 0 else spd)
 	blade_m.material_override = mat(WHITE)
@@ -1379,6 +1395,8 @@ func _twice_next() -> bool:
 
 func _hurt() -> void:
 	msg("맞음 -%d" % foe_atk, 0.5)
+	sfx(SND["hit"], 0.72)  # 내가 맞음: 적중 소리를 낮게 (10/31)
+	_hold(false)
 	if fx:
 		fx.hit(blade_m.global_position, blade_m.global_transform.basis.y.normalized() if sty == 0 else Vector3.ZERO)
 	fs = 3
@@ -1571,6 +1589,11 @@ func _parry(perfect: bool) -> void:
 		return
 	ci = (ci + 1) % combos.size()
 	mi = 0
+	# 베기 검객: 두 칼 다 간파하지 않으면 빈틈이 거의 안 난다 (10/31: 그냥 막기는 20%만)
+	if tut < 0 and ftype == 2 and not perfect and randf() >= 0.2:
+		msg(_s("no_gap"), 0.7)
+		_rest(0.5)
+		return
 	fs = 2
 	fs_t = 0.0
 	gp = perfect
@@ -1595,6 +1618,7 @@ func _cut() -> void:
 	fs = 4
 	fs_t = 0.0
 	_clear()
+	_hold(false)
 	if tut >= 0:
 		return
 	foe_hp -= dmg
@@ -1881,8 +1905,22 @@ func _input(event: InputEvent) -> void:
 
 
 ## 효과음 한 번 (줄 넷을 돌려 써서 겹쳐도 안 끊긴다. 소리 크기 설정은 버스 0 에 걸려 있다). 소리는 파이가 보낸 sfx 뿐이다.
-func sfx(st: AudioStream) -> void:
+func sfx(st: AudioStream, pitch := 1.0) -> void:
 	var p: AudioStreamPlayer = sfx_p[sfx_i]
 	sfx_i = (sfx_i + 1) % sfx_p.size()
 	p.stream = st
+	p.pitch_scale = pitch
 	p.play()
+
+
+## 거합 칼: true = 뽑아 손에 든다, false = 다시 칼집에 넣는다 (쉬는 동안 _relax 가 칼을 그 자리로 옮긴다)
+func _hold(on: bool) -> void:
+	if ftype != 3:
+		return
+	drawn = on
+	if on:
+		blade_rest = Vector3(0.95, -0.3, 0.6)
+		blade_rr = Vector3(0, 0, 0.5)
+	else:
+		blade_rest = Vector3(0.7, -0.55, 0.45)
+		blade_rr = Vector3(PI / 2, 0, 0)
