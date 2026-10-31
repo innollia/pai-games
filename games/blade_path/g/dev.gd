@@ -169,6 +169,8 @@ func _buttons() -> Array:
 			out.append([Rect2(20, 1110, 200, 100), "< 이전", "prev"])
 			out.append([Rect2(500, 1110, 200, 100), "다음 >", "next"])
 			out.append([Rect2(240, 1110, 240, 100), "완료", "menu"])
+			# 한영 바꾸기: 같은 줄이 다른 언어로 뭐였는지 바로 본다 (게임 언어도 같이 바뀜)
+			out.append([Rect2(420, 30, 280, 90), "English 보기" if g.lang != "en" else "한국어 보기", "lang"])
 			return out
 		"jump":
 			var out: Array = []
@@ -309,6 +311,11 @@ func _do(act: String, arg: String) -> void:
 				g._msg_l.visible = true
 		"text":
 			mode = "text"
+		"lang":
+			g.lang = "ko" if g.lang == "en" else "en"
+			g._set_lang()
+			g._save()
+			g._apply_text()
 		"jump":
 			mode = "jump"
 		"export":

@@ -1,0 +1,71 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+[   0% ] [90m[1mfirst_scan_filesystem[22m | Started 프로젝트 초기화 (5 steps)[39m[0m
+[   0% ] [90m[1mfirst_scan_filesystem[22m | 파일 구조 스캔 중...[39m[0m
+[  16% ] [90m[1mfirst_scan_filesystem[22m | 전역 클래스 이름을 불러오는 중...[39m[0m
+[  33% ] [90m[1mfirst_scan_filesystem[22m | GDExtensions 검증 중...[39m[0m
+[  50% ] [90m[1mfirst_scan_filesystem[22m | 오토로드 스크립트를 만드는 중...[39m[0m
+[  66% ] [90m[1mfirst_scan_filesystem[22m | 플러그인을 초기화 중...[39m[0m
+[  83% ] [90m[1mfirst_scan_filesystem[22m | 파일 스캔 시작 중...[39m[0m
+[92m[ DONE ][39m [1mfirst_scan_filesystem[22m
+[0m
+[   0% ] [90m[1mupdate_scripts_classes[22m | Started 전역 클래스를 등록하는 중... (2 steps)[39m[0m
+[   0% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  33% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[92m[ DONE ][39m [1mupdate_scripts_classes[22m
+[0m
+[   0% ] [90m[1m_update_scan_actions[22m | Started 액션 스캔 중... (3 steps)[39m[0m
+[   0% ] [90m[1m_update_scan_actions[22m | index.apple-touch-icon.png[39m[0m
+[  25% ] [90m[1m_update_scan_actions[22m | index.icon.png[39m[0m
+[  50% ] [90m[1m_update_scan_actions[22m | index.png[39m[0m
+[92m[ DONE ][39m [1m_update_scan_actions[22m
+[0m
+[   0% ] [90m[1msavepack[22m | Started 패킹 중 (102 steps)[39m[0m
+[   1% ] [90m[1msavepack[22m | 파일 저장 중: res://.godot/imported/field_bg.jpg-c3d255ba4eb87ee56d88941d04c0d387.ctex[39m[0m
+[   1% ] [90m[1msavepack[22m | 파일 저장 중: res://art/field_bg.jpg.import[39m[0m
+[   5% ] [90m[1msavepack[22m | 파일 저장 중: res://.godot/imported/Pretendard-Bold.otf-53041467fe44ef955dc9bc413af0e8f1.fontdata[39m[0m
+[   5% ] [90m[1msavepack[22m | 파일 저장 중: res://fonts/Pretendard-Bold.otf.import[39m[0m
+[  10% ] [90m[1msavepack[22m | 파일 저장 중: res://g/blade.gdc[39m[0m
+[  14% ] [90m[1msavepack[22m | 파일 저장 중: res://g/dev.gdc[39m[0m
+[  19% ] [90m[1msavepack[22m | 파일 저장 중: res://g/fx.gdc[39m[0m
+[  23% ] [90m[1msavepack[22m | 파일 저장 중: res://g/models.gdc[39m[0m
+[  28% ] [90m[1msavepack[22m | 파일 저장 중: res://.godot/imported/duelist.glb-98da47c5f225af10d3790a22b7793258.scn[39m[0m
+[  28% ] [90m[1msavepack[22m | 파일 저장 중: res://models/duelist.glb.import[39m[0m
+[  32% ] [90m[1msavepack[22m | 파일 저장 중: res://.godot/imported/block_iai.mp3-67c29cdfd4fda8815ee1826ea40e05d9.mp3str[39m[0m
+[  32% ] [90m[1msavepack[22m | 파일 저장 중: res://sfx/block_iai.mp3.import[39m[0m
+[  36% ] [90m[1msavepack[22m | 파일 저장 중: res://.godot/imported/block_slash.mp3-27383eb1ff46139bc6f4e5db937ff108.mp3str[39m[0m
+[  36% ] [90m[1msavepack[22m | 파일 저장 중: res://sfx/block_slash.mp3.import[39m[0m
+[  40% ] [90m[1msavepack[22m | 파일 저장 중: res://.godot/imported/block_thrust.mp3-cee1cf02cf708635b3ade703592735c1.mp3str[39m[0m
+[  40% ] [90m[1msavepack[22m | 파일 저장 중: res://sfx/block_thrust.mp3.import[39m[0m
+[  45% ] [90m[1msavepack[22m | 파일 저장 중: res://.godot/imported/block_trick.mp3-10f04065b0569201f9b91089d68b61e6.mp3str[39m[0m
+[  45% ] [90m[1msavepack[22m | 파일 저장 중: res://sfx/block_trick.mp3.import[39m[0m
+[  50% ] [90m[1msavepack[22m | 파일 저장 중: res://.godot/imported/death.mp3-39302160b08b42172c4e18d57547bd5a.mp3str[39m[0m
+[  50% ] [90m[1msavepack[22m | 파일 저장 중: res://sfx/death.mp3.import[39m[0m
+[  54% ] [90m[1msavepack[22m | 파일 저장 중: res://.godot/imported/hit.mp3-4025fac1dc77b67296f9f663a1057ba2.mp3str[39m[0m
+[  54% ] [90m[1msavepack[22m | 파일 저장 중: res://sfx/hit.mp3.import[39m[0m
+[  59% ] [90m[1msavepack[22m | 파일 저장 중: res://.godot/imported/iai_draw1.mp3-f94d495ec46e4f297148e4f3a16f2013.mp3str[39m[0m
+[  59% ] [90m[1msavepack[22m | 파일 저장 중: res://sfx/iai_draw1.mp3.import[39m[0m
+[  63% ] [90m[1msavepack[22m | 파일 저장 중: res://.godot/imported/iai_draw2.mp3-a2f1318127d8f6daef4b4feec14ecc37.mp3str[39m[0m
+[  63% ] [90m[1msavepack[22m | 파일 저장 중: res://sfx/iai_draw2.mp3.import[39m[0m
+[  67% ] [90m[1msavepack[22m | 파일 저장 중: res://.godot/imported/miss.mp3-5b43e04f7d66378b10a31e3c760bc91f.mp3str[39m[0m
+[  67% ] [90m[1msavepack[22m | 파일 저장 중: res://sfx/miss.mp3.import[39m[0m
+[  71% ] [90m[1msavepack[22m | 파일 저장 중: res://.godot/imported/parry.mp3-837543e071c5b88e12750ab03f522dcb.mp3str[39m[0m
+[  71% ] [90m[1msavepack[22m | 파일 저장 중: res://sfx/parry.mp3.import[39m[0m
+[  76% ] [90m[1msavepack[22m | 파일 저장 중: res://.godot/imported/whiff.mp3-9ce846930349b286e187606adfe19ce9.mp3str[39m[0m
+[  76% ] [90m[1msavepack[22m | 파일 저장 중: res://sfx/whiff.mp3.import[39m[0m
+[  80% ] [90m[1msavepack[22m | 파일 저장 중: res://ver.txt[39m[0m
+[  85% ] [90m[1msavepack[22m | 파일 저장 중: res://tofu.gdc[39m[0m
+[  89% ] [90m[1msavepack[22m | 파일 저장 중: res://.godot/exported/133200997/export-3070c538c03ee49b7677ff960a3f5195-main.scn[39m[0m
+[  94% ] [90m[1msavepack[22m | 파일 저장 중: res://main.gdc[39m[0m
+[  94% ] [90m[1msavepack[22m | 파일 저장 중: res://g/blade.gd.remap[39m[0m
+[  94% ] [90m[1msavepack[22m | 파일 저장 중: res://g/dev.gd.remap[39m[0m
+[  94% ] [90m[1msavepack[22m | 파일 저장 중: res://g/fx.gd.remap[39m[0m
+[  94% ] [90m[1msavepack[22m | 파일 저장 중: res://g/models.gd.remap[39m[0m
+[  94% ] [90m[1msavepack[22m | 파일 저장 중: res://tofu.gd.remap[39m[0m
+[  94% ] [90m[1msavepack[22m | 파일 저장 중: res://main.tscn.remap[39m[0m
+[  94% ] [90m[1msavepack[22m | 파일 저장 중: res://main.gd.remap[39m[0m
+[  94% ] [90m[1msavepack[22m | 파일 저장 중: res://.godot/global_script_class_cache.cfg[39m[0m
+[  94% ] [90m[1msavepack[22m | 파일 저장 중: res://.godot/uid_cache.bin[39m[0m
+[  94% ] [90m[1msavepack[22m | 파일 저장 중: res://project.binary[39m[0m
+[92m[ DONE ][39m [1msavepack[22m
+[0m
