@@ -464,12 +464,25 @@ func _person(dir: Vector3, body: Color, hat: Color) -> Node3D:
 	n.add_child(vb)
 	vb.position = Vector3(0, lift, 0)
 	_proc("vil_%d" % v, Callable(self, "_shape_vil").bind(v, body, hat), vb)
+	var core: Array = VIL[v].core
+	var ri := 0
 	for e: Array in VIL[v].eyes:
-		var pu := _proc("pupil", Callable(self, "_shape_pupil"), vb)
 		var er: float = e[1]
+		var eg := Node3D.new()
+		vb.add_child(eg)
+		eg.position = e[0]
+		var w := _proc("eye_white", Callable(self, "_shape_eye_white"), eg)
+		w.scale = Vector3.ONE * er
+		var pu := _proc("pupil", Callable(self, "_shape_pupil"), eg)
 		pu.scale = Vector3.ONE * er * 0.5
-		pu.position = (e[0] as Vector3) + Vector3(0, 0, -er * 0.6)
-		vil_pupils.append([pu, e[0], er, vb])
+		pu.position = Vector3(0, 0, -er * 0.62)
+		var roam: bool = e[2]
+		var c0: Vector3 = core[0]
+		# 떠도는 눈마다 따라오는 방향을 조금씩 비튼다 (겹치지 않게, 주민마다 다르게)
+		var off := (float(ri) - 0.5) * 0.9 + float(bk) * 0.37 if roam else 0.0
+		if roam:
+			ri += 1
+		vil_pupils.append([eg, pu, er, vb, roam, c0, core[1], ((e[0] as Vector3) - c0).normalized(), off])
 	vil_bobs.append([vb, lift, float(bk) * 1.7, bk])  # [3] = 별 번호 (멀면 숨김, _lod)
 	npc_mark = _ushape("gem", D, n)
 	npc_mark.position = Vector3(0, 2.9, 0)
@@ -484,15 +497,16 @@ func _build_posty() -> void:
 	p_body.position = Vector3(0, HIP_Y - 0.03, 0)
 	_proc("posty_body", Callable(self, "_shape_posty_body"), p_body)
 	p_mouth = _proc("posty_mouth", Callable(self, "_shape_posty_mouth"), p_body)
-	p_mouth.position = Vector3(0, 0.38, -0.355)
+	p_mouth.position = Vector3(0, 0.3, -0.35)
 	p_eyes.clear()
 	p_pupils.clear()
-	for sx: float in [-0.15, 0.15]:
+	# v9: 눈 둘을 세로로 — 위 눈은 정수리에 솟고 아래 눈은 앞 얼굴에
+	for ey: Array in [[Vector3(0, 0.9, -0.06), 0.16], [Vector3(0, 0.62, -0.3), 0.13]]:
 		var e := Node3D.new()
 		p_body.add_child(e)
-		e.position = Vector3(sx, 0.86, -0.08)
+		e.position = ey[0]
 		var w := _proc("eye_white", Callable(self, "_shape_eye_white"), e)
-		w.scale = Vector3.ONE * 0.17
+		w.scale = Vector3.ONE * float(ey[1])
 		var pu := _proc("pupil", Callable(self, "_shape_pupil"), e)
 		pu.scale = Vector3.ONE * 0.08
 		pu.position = Vector3(0, 0, -0.11)
@@ -541,7 +555,7 @@ var sq := 0.0  # 몸 눌림 스프링 (+ 늘어남, - 눌림)
 var sq_v := 0.0
 var mouth_o := 0.0
 var was_ground := true
-var vil_pupils: Array = []  # [눈동자, 눈 가운데, 눈 반지름, 몸 노드]
+var vil_pupils: Array = []  # [눈 노드, 눈동자, 반지름, 몸 노드, 떠도나, 몸 겉 가운데, 몸 겉 반지름, 지금 방향, 비틀기]
 var vil_bobs: Array = []  # [몸 노드, 바닥 높이, 위상]
 
 
@@ -2858,16 +2872,29 @@ func _posty_anim(dt: float, spd: float, k: float) -> void:
 		vb.scale = Vector3(1.0 + 0.02 * sin(clock * 4.4 + ph2), 1.0 - 0.02 * sin(clock * 4.4 + ph2), 1.0 + 0.02 * sin(clock * 4.4 + ph2))
 	var mp := me.global_position + me.global_transform.basis.y * 1.0
 	for e2: Array in vil_pupils:
-		var pu2: MeshInstance3D = e2[0]
 		var vb2: Node3D = e2[3]
 		if not vb2.is_visible_in_tree():
 			continue
-		var c: Vector3 = e2[1]
+		var eg2: Node3D = e2[0]
+		var pu2: MeshInstance3D = e2[1]
 		var er: float = e2[2]
-		var dv := vb2.to_local(mp) - c
+		var lp := vb2.to_local(mp)
+		if bool(e2[4]):
+			# 몸 겉(타원)을 따라 미끄러진다: 나를 향한 방향(배 아래로는 안 감), 비틀어 서로 안 겹치게, 천천히
+			var cc: Vector3 = e2[5]
+			var rr: Vector3 = e2[6]
+			var want := (lp - cc)
+			want.y = maxf(want.y, 0.0) + 0.15
+			if want.length_squared() < 0.0001:
+				want = Vector3(0, 0, -1)
+			want = want.normalized().rotated(Vector3.UP, float(e2[8]))
+			var cur_d: Vector3 = e2[7]
+			cur_d = cur_d.slerp(want, minf(1.0, dd * 2.2)).normalized()
+			e2[7] = cur_d
+			eg2.position = cc + cur_d * rr + cur_d * er * 0.45
+		var dv := lp - eg2.position
 		if dv.length_squared() > 0.0001:
-			var dn := (dv.normalized() + Vector3(0, 0, -0.5)).normalized()
-			pu2.position = c + dn * er * 0.62
+			pu2.position = dv.normalized() * er * 0.62
 
 
 ## 든 물건 모델 바꾸기 (금 간 정도 q 만큼 빨개진다)
@@ -3737,12 +3764,14 @@ func _shape_shin() -> void:
 
 
 ## 주민 몸 (변형 v: 0 풍차지기 키다리 캡슐·외눈, 1 우체부 쌓은 공, 2 정원사 넓적 방울, 3 노을 아이 작은 공, 4 꽃 친구 콩)
+## v9 눈: 개수 = 예전 x1.5 내림 (1→1, 2→3). 눈 = [자리, 반지름, 떠도나]. 떠도는 눈은 core(가운데, 반지름) 몸 겉을 미끄러져 나를 따라온다.
+## 주민마다 다르게: 풍차지기 외눈이 통째로 떠돌고, 우체부는 아래 공에서 하나, 정원사는 둘, 노을 아이는 작은 하나, 꽃 친구는 셋 다.
 const VIL := [
-	{"eyes": [[Vector3(0, 1.22, -0.25), 0.17]], "hip": 0.52},
-	{"eyes": [[Vector3(-0.1, 1.32, -0.2), 0.1], [Vector3(0.1, 1.32, -0.2), 0.1]], "hip": 0.41},
-	{"eyes": [[Vector3(-0.15, 0.95, -0.36), 0.11], [Vector3(0.15, 0.95, -0.36), 0.11]], "hip": 0.47},
-	{"eyes": [[Vector3(-0.13, 0.98, -0.2), 0.15], [Vector3(0.13, 0.98, -0.2), 0.15]], "hip": 0.57},
-	{"eyes": [[Vector3(-0.11, 1.02, -0.24), 0.1], [Vector3(0.11, 1.02, -0.24), 0.1]], "hip": 0.5},
+	{"eyes": [[Vector3(0, 1.22, -0.25), 0.17, true]], "hip": 0.52, "core": [Vector3(0, 1.05, 0), Vector3(0.3, 0.55, 0.3)]},
+	{"eyes": [[Vector3(-0.1, 1.32, -0.2), 0.1, false], [Vector3(0.1, 1.32, -0.2), 0.1, false], [Vector3(0, 0.75, -0.36), 0.09, true]], "hip": 0.41, "core": [Vector3(0, 0.75, 0), Vector3(0.36, 0.36, 0.36)]},
+	{"eyes": [[Vector3(0, 1.0, -0.36), 0.11, false], [Vector3(-0.2, 0.9, -0.33), 0.09, true], [Vector3(0.2, 0.9, -0.33), 0.09, true]], "hip": 0.47, "core": [Vector3(0, 0.85, 0), Vector3(0.48, 0.4, 0.42)]},
+	{"eyes": [[Vector3(-0.13, 0.98, -0.2), 0.15, false], [Vector3(0.13, 0.98, -0.2), 0.15, false], [Vector3(0, 0.75, -0.28), 0.07, true]], "hip": 0.57, "core": [Vector3(0, 0.85, 0), Vector3(0.3, 0.3, 0.3)]},
+	{"eyes": [[Vector3(-0.12, 1.02, -0.24), 0.09, true], [Vector3(0.12, 1.02, -0.24), 0.09, true], [Vector3(0, 0.85, -0.29), 0.08, true]], "hip": 0.5, "core": [Vector3(0, 0.9, 0), Vector3(0.33, 0.42, 0.3)]},
 ]
 
 
@@ -3775,10 +3804,6 @@ func _shape_vil(v: int, body: Color, hat: Color) -> void:
 				var a := TAU * i / 5.0
 				_dia(Vector3(cos(a) * 0.09, 1.5, sin(a) * 0.09), 0.08, 0.03, hat, Vector3(cos(a), 2.0, sin(a)))
 			_ico(Vector3(0, 1.5, 0), Vector3.ONE * 0.05, 0, D, D, _rs)
-	for e: Array in VIL[v].eyes:
-		var c: Vector3 = e[0]
-		var r: float = e[1]
-		_ico(c, Vector3.ONE * r, 1, EYE_W, EYE_W.darkened(0.04), _rs)
 	var hip: float = VIL[v].hip
 	for sx: float in [-0.12, 0.12]:
 		_cyl(Vector3(sx, hip, 0), Vector3.DOWN, 0.05, 0.045, hip - 0.04, 5, NOODLE, NOODLE)
