@@ -2,7 +2,7 @@ extends Node
 ## 개발 도구 (출시 때 이 파일 하나만 지운다. blade.gd 는 이 파일이 없으면 그냥 넘어간다).
 ## 오른쪽 위 [개발] → UI 편집 · 대사 편집 · 상대 고르기(보스로 건너뛰기) · 내보내기 · 처음대로. 여는 동안 게임은 멈춘다.
 ## 고친 것은 이 브라우저에 저장된다(user://blade_dev.json). [내보내기]로 복사해 디스코드에 붙이면
-## blade.gd 의 BAKED_TEXT / BAKED_UI 에 넣어 출시판에도 남긴다.
+## blade.gd 의 BAKED_TEXT(한국어) / BAKED_TEXT_EN(영어) / BAKED_UI 에 넣어 출시판에도 남긴다.
 
 const FILE := "user://blade_dev.json"
 const OPEN_R := Rect2(600, 0, 120, 100)
@@ -23,7 +23,8 @@ const TEXT_NAMES := {
 }
 
 var g: Node  # blade.gd (부모)
-var edits := {"text": {}, "ui": {}}
+var edits := {"text": {}, "ui": {}, "text_en": {}}  # text = 한국어판 글, text_en = 영어판 글
+var base_en := {}  # 고치기 전 영어판 글 (BAKED_TEXT_EN)
 var base_text := {}  # 고치기 전 글 (처음대로)
 var base_ui := {}  # 고치기 전 자리 (처음대로)
 var mode := ""  # "" 닫힘, menu, ui, text, jump
@@ -58,7 +59,9 @@ func _ready() -> void:
 	for k in UI_NAMES:
 		base_ui[k] = _ui_get(k)
 	_load()
+	base_en = g.say_en.duplicate()
 	g.say.merge(edits.text, true)
+	g.say_en.merge(edits.text_en, true)
 	g._apply_ui(edits.ui)
 	g._apply_text()
 
@@ -79,7 +82,7 @@ func _load() -> void:
 		return
 	var d: Variant = JSON.parse_string(f.get_as_text())
 	if d is Dictionary:
-		for key in ["text", "ui"]:
+		for key in ["text", "ui", "text_en"]:
 			if d.get(key) is Dictionary:
 				edits[key] = d[key]
 
@@ -193,7 +196,7 @@ func _paint(c: Control) -> void:
 		c.draw_string(f, Vector2(0, y + 44), hint, HORIZONTAL_ALIGNMENT_CENTER, 720, 30, Color.WHITE)
 	else:
 		c.draw_rect(Rect2(0, 0, 720, 1280), Color(0.06, 0.04, 0.02, 0.93))
-		var head: String = {"menu": "개발 도구 (출시 때 빠져요)", "text": "대사 편집 %d/%d · | = 줄 바꿈" % [page + 1, _pages()], "jump": "상대 고르기"}[mode]
+		var head: String = {"menu": "개발 도구 (출시 때 빠져요)", "text": "대사 편집(%s) %d/%d · | = 줄 바꿈" % ["영어판" if g.lang == "en" else "한국어판", page + 1, _pages()], "jump": "상대 고르기"}[mode]
 		c.draw_string(f, Vector2(0, 150), head, HORIZONTAL_ALIGNMENT_CENTER, 720, 40, Color.WHITE)
 		if note != "" and mode == "menu":
 			c.draw_multiline_string(f, Vector2(40, 960), note, HORIZONTAL_ALIGNMENT_CENTER, 640, 26, -1, Color("ffd43b"))
@@ -202,10 +205,10 @@ func _paint(c: Control) -> void:
 		var act: String = b[2]
 		if act == "edit":
 			var k: String = b[1]
-			var changed: bool = edits.text.has(k)
+			var changed: bool = _lang_edits().has(k)
 			c.draw_rect(r, Color("5a4632") if not changed else Color("6b5a1e"))
 			c.draw_string(f, r.position + Vector2(16, 38), _tname(k) + (" ✎" if changed else ""), HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 32, 26, Color("ffd43b"))
-			var pv: String = g.say[k].replace("\n", " | ")
+			var pv: String = g._s(k).replace("\n", " | ")
 			c.draw_string(f, r.position + Vector2(16, 82), pv, HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 32, 28, Color.WHITE)
 			continue
 		c.draw_rect(r, g.D if act != "close" and act != "menu" else Color("5a4632"))
@@ -311,9 +314,10 @@ func _do(act: String, arg: String) -> void:
 		"export":
 			_export()
 		"reset":
-			edits = {"text": {}, "ui": {}}
+			edits = {"text": {}, "ui": {}, "text_en": {}}
 			_save()
 			g.say = base_text.duplicate()
+			g.say_en = base_en.duplicate()
 			g._apply_ui(base_ui)
 			g._apply_text()
 			note = "고친 글·자리를 모두 처음대로 돌렸어요"
@@ -358,18 +362,25 @@ func _edit(k: String) -> void:
 	if not OS.has_feature("web"):
 		note = "글 고치기는 웹(폰 브라우저)에서만 돼요"
 		return
-	var cur: String = g.say[k].replace("\n", "|")
+	var cur: String = g._s(k).replace("\n", "|")
 	var r: Variant = JavaScriptBridge.eval("window.prompt(%s, %s)" % [JSON.stringify(_tname(k) + "  (| = 줄 바꿈)"), JSON.stringify(cur)], true)
 	if r == null or not r is String:
 		return  # 취소
-	var t: String = (r as String).replace("|", "\n")
-	if t.strip_edges() == "":
-		t = base_text[k]  # 비우면 원래 글로
-	g.say[k] = t
-	if t == base_text[k]:
-		edits.text.erase(k)
+	var t: String = (r as String).replace("|", "\n")  # 비워 두면 빈 글 그대로 (글이 안 뜬다)
+	# 지금 언어판의 글만 고친다: 영어판이면 say_en, 한국어판이면 say
+	var base: String = base_text[k]
+	if g.lang == "en":
+		base = base_en.get(k, tr(base_text[k]))
+		if base_en.has(k) or t != base:
+			g.say_en[k] = t
+		else:
+			g.say_en.erase(k)
 	else:
-		edits.text[k] = t
+		g.say[k] = t
+	if t == base:
+		_lang_edits().erase(k)
+	else:
+		_lang_edits()[k] = t
 	_save()
 	g._apply_text()
 
@@ -377,7 +388,7 @@ func _edit(k: String) -> void:
 ## 고친 것을 글로 복사 (디스코드에 붙이면 게임에 박아 넣는다)
 func _export() -> void:
 	var s := JSON.stringify(edits)
-	if edits.text.is_empty() and edits.ui.is_empty():
+	if edits.text.is_empty() and edits.ui.is_empty() and edits.text_en.is_empty():
 		note = "아직 고친 게 없어요"
 		return
 	if OS.has_feature("web"):
@@ -397,3 +408,8 @@ func _jump(k: int) -> void:
 	g._spawn(k)
 	g._clear()
 	g.msg("%d번째 상대로 건너뜀" % (k + 1), 1.2)
+
+
+## 지금 언어판에서 고친 글
+func _lang_edits() -> Dictionary:
+	return edits.text_en if g.lang == "en" else edits.text

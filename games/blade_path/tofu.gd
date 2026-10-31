@@ -257,7 +257,7 @@ func _kit_draw(c: Control) -> void:
 		c.draw_circle(b.pos, r, col.darkened(0.15) if b.down else col)
 		c.draw_arc(b.pos, r, 0.0, TAU, 48, WHITE, 6.0)
 		var fs := int(clampf(b.r * 0.42, 22.0, 44.0))
-		c.draw_string(_font, b.pos + Vector2(-r, fs * 0.35), b.label, HORIZONTAL_ALIGNMENT_CENTER, r * 2.0, fs, WHITE)
+		c.draw_string(_font, b.pos + Vector2(-r, fs * 0.35), tr(b.label), HORIZONTAL_ALIGNMENT_CENTER, r * 2.0, fs, WHITE)
 
 
 # ---- 도구 ----

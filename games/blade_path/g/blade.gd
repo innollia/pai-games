@@ -106,6 +106,71 @@ const PERKS := [
 ## 개발 도구(g/dev.gd)에서 고친 글·UI 자리. [내보내기]한 내용을 여기 붙여 넣으면 출시판에도 그대로 남는다.
 const BAKED_TEXT := {}
 const BAKED_UI := {}
+const BAKED_TEXT_EN := {}  # 영어판에서 고친 글
+
+## 영어판(기본) 번역: 한국어 원문 -> 영어. 새 글을 넣으면 여기에도 넣는다(없으면 영어판에 한국어가 뜬다).
+## 언어는 로비 [설정]의 언어 버튼으로 바꾼다(저장 lang). 서식 글은 tr("...%d...") % 값.
+const EN := {
+	"일격의 길": "Blade Path",
+	"< 처음부터": "< Restart",
+	"찌르기 검객": "Thrust Swordsman", "속임수 검객": "Feint Swordsman", "베기 검객": "Twin-Cut Swordsman",
+	"거합 검객": "Iai Swordsman", "끝판왕 검귀": "Sword Demon (Final Boss)",
+	"칼이 오는 쪽으로 밀고 막기": "Swipe toward the incoming blade and Block",
+	"반쯤에 칼이 다른 쪽으로 옮겨 가요\n끝까지 보고 막기": "Halfway, the blade switches sides\nWatch it to the end, then Block",
+	"같은 쪽으로 두 번 와요!\n흐린 칼이 두 자루면 한 번 더 막기": "Strikes the same side twice!\nTwo ghost blades = Block once more",
+	"가만히 있다가 갑자기 뽑아요!\n눈이 번쩍하면 칼 쪽을 보고 막기. 먼저 베면 헛공격": "Stands still, then draws in a flash!\nWhen the eyes flash, Block toward the blade. Striking first is a whiff",
+	"쓰러뜨릴 수 없어요. 오래 버티며 피해를 쌓아요": "Cannot be beaten. Survive and pile up damage",
+	"칼이 왼쪽에서 와요 (흐린 칼 = 지나갈 길)\n[막기]를 누른 채 왼쪽으로 밀어요!": "A blade comes from the left (ghost blade = its path)\nHold [BLOCK] and swipe left!",
+	"막았어요!\n초록 상자 = 빈틈. [베기]를 누른 채 오른쪽으로!": "Blocked!\nGreen box = opening. Hold [STRIKE] and swipe right!",
+	"끝까지 기다렸다 막으면 '간파'!\n[막기]를 누른 채 위로!": "Wait until the last moment to Block = PARRY!\nHold [BLOCK] and swipe up!",
+	"간파: 세상이 느려지고 빈틈이 길어요.\n[베기]를 누른 채 아래로!": "Parry: time slows and the opening lasts longer.\nHold [STRIKE] and swipe down!",
+	"막기": "BLOCK", "베기": "STRIKE",
+	"단단한 몸": "Iron Body", "최대 체력 +4 (지금 체력도 +4)": "Max HP +4 (current HP +4 too)",
+	"날 선 칼": "Keen Edge", "베기 힘 +1": "Strike power +1",
+	"맑은 눈": "Clear Eyes", "간파 판정이 0.04초 넓어져요": "Parry window +0.04s",
+	"상처 동여매기": "Bind Wounds", "체력을 절반만큼 되찾아요": "Recover half your HP",
+	"숨 고르기": "Steady Breath", "간파할 때마다 체력 +1": "+1 HP on every parry",
+	"흔들림 없는 손": "Unshaken Hand", "헛공격해도 체력이 안 깎여요": "Whiffs no longer cost HP",
+	"긴 빈틈": "Long Opening", "빈틈(초록)이 30% 더 오래 열려요": "Openings (green) last 30% longer",
+	"전투": "FIGHT", "캐릭터": "Character", "도감": "Codex",
+	"찌르기": "Thrust", "속임수": "Feint", "거합": "Iai", "검귀": "Demon",
+	"검객이 공격하려고 해요. 잘 봐요!": "The swordsman is about to attack. Watch closely!",
+	"이번엔 칼이 거의 닿을 때까지\n기다려요…": "This time, wait until the blade\nalmost reaches you…",
+	"좋아요!": "Nice!",
+	"준비 끝!\n검객을 쓰러뜨리면 능력을 하나 골라요.\n체력은 저절로 차지 않아요. 갈수록 적이 세져요.\n\n탭해서 싸우러 가기": "Ready!\nDefeat a swordsman to pick one skill.\nHP does not refill on its own. Foes get stronger.\n\nTap to fight",
+	"건너뛰기 >": "Skip >", "튜토리얼 다시 보기": "Replay tutorial",
+	"간파!": "PARRY!", "간파!\n지금 초록 쪽으로 베요!": "PARRY!\nStrike the green side now!",
+	"좋아요!\n두 번째도 맞춰야 간파!": "Nice!\nParry the second one too!",
+	"베기!": "STRIKE!", "간파 일격! x2": "PARRY STRIKE! x2", "연격!": "CHAIN!",
+	"헛공격!  체력 -1\n빈틈을 보였어요": "WHIFF!  HP -1\nYou left an opening",
+	"헛공격!\n빈틈을 보였어요": "WHIFF!\nYou left an opening",
+	"헛막기": "EMPTY BLOCK", "간파 놓침": "PARRY LOST",
+	"막았지만 빈틈이 없어요\n두 칼 다 간파해야 해요": "Blocked, but no opening\nParry both blades to open one",
+	"승리!": "VICTORY!", "쓰러짐": "DEFEATED",
+	"설정": "Settings", "소리 크기": "Sound", "진동 세기": "Vibration", "닫기": "Close", "끔": "Off",
+	"진동은 안드로이드 폰에서만 울려요\n0이면 꺼져요": "Vibration works on Android phones only\n0 = off",
+	"최고 %d명 쓰러뜨림": "Best: %d defeated",
+	"매 판 맨몸으로 시작해요\n검객을 쓰러뜨릴 때마다 능력을 하나 골라요": "Every run starts bare-handed\nPick one skill each time you defeat a swordsman",
+	"\n끝판왕 최고 피해 %d": "\nBest damage to the boss: %d",
+	"나 · 떠돌이 검객\n\n체력 6 · 베기 힘 1 · 간파 0.15초\n(판마다 맨몸으로 시작,\n검객을 쓰러뜨리면 능력을 골라요)\n\n— 기록 —\n최고 %d명 쓰러뜨림 · 끝판왕 최고 피해 %d\n싸운 판 %d · 막기 %d · 간파 %d": "Me · Wandering Swordsman\n\nHP 6 · Strike power 1 · Parry 0.15s\n(Every run starts bare-handed,\npick a skill after each win)\n\n— Records —\nBest %d defeated · Best boss damage %d\nRuns %d · Blocks %d · Parries %d",
+	"???\n아직 못 만났어요\n싸우다 보면 열려요": "???\nNot met yet\nKeep fighting to unlock",
+	"만남 %d번 · 쓰러뜨림 %d번": "Met %d · Defeated %d",
+	"만남 %d번 · 준 피해 최고 %d": "Met %d · Best damage %d",
+	"%d번째 상대\n체력 %s · 공격 %d": "Foe %d\nHP %s · Attack %d",
+	"지난 판: %d번째 상대에게 %d 피해\n%s": "Last run: foe %d, %d damage\n%s",
+	"지난 판: %d번째 상대에게 쓰러짐\n%s": "Last run: fell to foe %d\n%s",
+	"버튼을 누른 채 칼이 오는 쪽으로 밀기": "Hold a button and swipe toward the blade",
+	"버튼을 밀어 방향 · 지금 %s": "Swipe a button to aim · now %s",
+	"튜토리얼": "Tutorial",
+	"나 %d/%d   ·   %d번째 · 준 피해 %d · 공격 %d": "Me %d/%d   ·   Foe %d · Damage %d · Attack %d",
+	"나 %d/%d   ·   %d번째 %d/%d · 공격 %d": "Me %d/%d   ·   Foe %d %d/%d · Attack %d",
+	"맞음 -%d": "HIT -%d",
+	"버튼을 누른 채 %s 쪽으로 밀어요!": "Hold the button and swipe %s!",
+	"[%s]를 눌러요!": "Press [%s]!",
+	"%d단": "Rank %d",
+	"승리!  능력을 하나 골라요\n체력 %d/%d": "VICTORY!  Pick one skill\nHP %d/%d",
+	"고른 능력 없음": "No skills picked", "능력: ": "Skills: ",
+}
 
 ## 아래 탭 줄 (칸 번호 = tab)
 const TABS := ["전투", "캐릭터", "도감"]
@@ -123,6 +188,10 @@ var best_n := 0
 var best_dmg := 0  # 끝판왕에게 준 가장 큰 피해
 var vol := 8  # 설정: 소리 0~10
 var vib := 8  # 설정: 진동 0~10
+var lang := "en"  # 설정: 언어 (en 기본, ko)
+var lang_l: Label  # 설정 창 언어 버튼 글
+var say_en := {}  # 영어판에서 고친 글 (키 -> 글). 없으면 say 를 번역
+static var _tr: Translation  # 영어 번역표 (한 번만 만든다)
 # 한 판
 var tut := 0  # 0~3 튜토리얼 단계, 4 끝 카드, -1 실전
 var hold := false  # 튜토리얼: 맞는 손짓을 할 때까지 멈춤
@@ -257,7 +326,8 @@ const DUELIST := preload("res://models/duelist.glb")
 const RAPIER := ["Rapier_diamond_blade", "Curved_quillons", "Knuckle_bow", "Swept_ring_guard", "Round_pommel", "Rapier_leather_grip", "Grip_"]
 const THRUST := ["Thrust_Left", "Thrust_Right", "Thrust_Up", "Thrust_Down"]
 const FX := "res://g/fx.gd"  # 전투 이펙트 (10/31 시험 적용). 안 어울리면 이 파일의 ON 을 false 로 (예전 불꽃으로 돌아간다)
-const SET_CLOSE := Rect2(210, 860, 300, 100)
+const SET_CLOSE := Rect2(210, 960, 300, 90)
+const SET_LANG := Rect2(160, 850, 400, 90)  # 언어 버튼 (영어 <-> 한국어)
 
 
 ## 설정 창 줄 i(0 소리, 1 진동)의 [-] [+] 칸
@@ -301,12 +371,13 @@ func _load_save() -> void:
 	best_dmg = int(d.get("dmg", 0))
 	vol = clampi(int(d.get("vol", 8)), 0, 10)
 	vib = clampi(int(d.get("vib", 8)), 0, 10)
+	lang = "ko" if str(d.get("lang", "en")) == "ko" else "en"
 
 
 func _save() -> void:
 	var f := FileAccess.open(FILE, FileAccess.WRITE)
 	if f:
-		f.store_string(JSON.stringify({"best": best_n, "dmg": best_dmg, "tut": tut_done, "runs": runs, "blocks": blocks, "perfects": perfects, "seen": seen, "kills": kills, "vol": vol, "vib": vib}))
+		f.store_string(JSON.stringify({"best": best_n, "dmg": best_dmg, "tut": tut_done, "runs": runs, "blocks": blocks, "perfects": perfects, "seen": seen, "kills": kills, "vol": vol, "vib": vib, "lang": lang}))
 
 
 # ---- 능력치 ----
@@ -326,6 +397,7 @@ func _per() -> float:
 # ---- 화면 글자 ----
 func _setup() -> void:
 	_load_save()
+	_set_lang()
 	_apply_vol()
 	for i in 4:
 		var ap := AudioStreamPlayer.new()
@@ -364,6 +436,7 @@ func _setup() -> void:
 		"top": top_l.get_parent(), "set": set_btn, "title": title_l, "home": home_l.get_parent(), "play": play_edge, "tut_again": tut_again}
 	_default_say()
 	say.merge(BAKED_TEXT, true)
+	say_en.merge(BAKED_TEXT_EN, true)
 	_apply_ui(BAKED_UI)
 	_apply_text()
 	if ResourceLoader.exists(DEV):
@@ -400,7 +473,23 @@ func _default_say() -> void:
 
 
 func _s(k: String) -> String:
-	return say.get(k, k)
+	if lang == "en" and say_en.has(k):
+		return say_en[k]
+	return tr(say.get(k, k))
+
+
+## 언어 정하기: 영어 번역표를 한 번 넣고 locale 을 바꾼다. Label 은 저절로 바뀌고, 서식 글은 tr() 로 감싼다
+## (한국어판에서는 번역표를 뺀다. 남겨 두면 Godot 가 기본 언어 en 으로 돌아가 영어가 뜬다)
+func _set_lang() -> void:
+	if _tr == null:
+		_tr = Translation.new()
+		_tr.locale = "en"
+		for k: String in EN:
+			_tr.add_message(k, EN[k])
+	TranslationServer.remove_translation(_tr)
+	if lang == "en":
+		TranslationServer.add_translation(_tr)
+	TranslationServer.set_locale(lang)
 
 
 ## 글이 바뀌면 화면에 늘 떠 있는 글자에 다시 넣는다
@@ -556,7 +645,13 @@ func _lobby_ui() -> void:
 	cl.size.x = SET_CLOSE.size.x
 	cl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	cl.text = "닫기"
-	var sh := _white(_label(set_box, 28, 1010 - 194, 80))
+	var lb := _panel(set_box, Rect2(SET_LANG.position - Vector2(0, 194), SET_LANG.size), D)
+	lang_l = _label(lb, 34, 0, SET_LANG.size.y)
+	lang_l.size.x = SET_LANG.size.x
+	lang_l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	lang_l.label_settings.outline_size = 0
+	lang_l.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+	var sh := _white(_label(set_box, 28, 1064 - 194, 80))
 	sh.text = "진동은 안드로이드 폰에서만 울려요
 0이면 꺼져요"
 	# 검객을 쓰러뜨리면 뜨는 능력 고르기 (카드 셋)
@@ -586,6 +681,7 @@ func _set_refresh() -> void:
 		var v: int = vol if i == 0 else vib
 		set_fill[i].size.x = 360.0 * v / 10.0
 		set_val[i].text = "끔" if v == 0 else "%d%%" % (v * 10)
+	lang_l.text = "한국어로 바꾸기" if lang == "en" else "Switch to English"
 
 
 ## 소리 크기: 전체 소리 길(버스)에 건다
@@ -609,19 +705,19 @@ func _buttons() -> void:
 
 
 func _lobby_refresh() -> void:
-	top_l.text = "최고 %d명 쓰러뜨림" % best_n
+	top_l.text = tr("최고 %d명 쓰러뜨림") % best_n
 	for i in TABS.size():
 		pages[i].visible = i == tab
 		nav_bg[i].color = D if i == tab else Color("5a4632")
 		nav_l[i].label_settings.font_size = 36 if i == tab else 30
 	match tab:
 		0:
-			var h := last_run if last_run != "" else "매 판 맨몸으로 시작해요\n검객을 쓰러뜨릴 때마다 능력을 하나 골라요"
+			var h := last_run if last_run != "" else tr("매 판 맨몸으로 시작해요\n검객을 쓰러뜨릴 때마다 능력을 하나 골라요")
 			if best_dmg > 0:
-				h += "\n끝판왕 최고 피해 %d" % best_dmg
+				h += tr("\n끝판왕 최고 피해 %d") % best_dmg
 			home_l.text = h
 		1:
-			char_l.text = "나 · 떠돌이 검객\n\n체력 6 · 베기 힘 1 · 간파 0.15초\n(판마다 맨몸으로 시작,\n검객을 쓰러뜨리면 능력을 골라요)\n\n— 기록 —\n최고 %d명 쓰러뜨림 · 끝판왕 최고 피해 %d\n싸운 판 %d · 막기 %d · 간파 %d" % [
+			char_l.text = tr("나 · 떠돌이 검객\n\n체력 6 · 베기 힘 1 · 간파 0.15초\n(판마다 맨몸으로 시작,\n검객을 쓰러뜨리면 능력을 골라요)\n\n— 기록 —\n최고 %d명 쓰러뜨림 · 끝판왕 최고 피해 %d\n싸운 판 %d · 막기 %d · 간파 %d") % [
 				best_n, best_dmg, runs, blocks, perfects]
 		2:
 			for i in 5:
@@ -629,9 +725,9 @@ func _lobby_refresh() -> void:
 				dex_bg[i].color = D if i == dex_pick else (SOFT if seen[i] > 0 else Color("8a7a66"))
 			var i := dex_pick
 			if seen[i] == 0:
-				dex_card.text = "???\n아직 못 만났어요\n싸우다 보면 열려요"
+				dex_card.text = tr("???\n아직 못 만났어요\n싸우다 보면 열려요")
 			else:
-				var rec := "만남 %d번 · 쓰러뜨림 %d번" % [seen[i], kills[i]] if i < 4 else "만남 %d번 · 준 피해 최고 %d" % [seen[i], best_dmg]
+				var rec := tr("만남 %d번 · 쓰러뜨림 %d번") % [seen[i], kills[i]] if i < 4 else tr("만남 %d번 · 준 피해 최고 %d") % [seen[i], best_dmg]
 				dex_card.text = "%s\n%s\n%s" % [_s("name%d" % i), _s("tip%d" % i).replace("\n", " "), rec]
 
 
@@ -931,7 +1027,7 @@ func _intro() -> void:
 		mode_t = 2.6
 		var hp_s := "∞" if ftype == 4 else str(foe_max)
 		# 상대가 누구인지는 글로 알려 주지 않는다 (로비 도감에서만)
-		msg("%d번째 상대\n체력 %s · 공격 %d" % [n + 1, hp_s, foe_atk], 2.0)
+		msg(tr("%d번째 상대\n체력 %s · 공격 %d") % [n + 1, hp_s, foe_atk], 2.0)
 
 
 func _start_run() -> void:
@@ -1138,9 +1234,9 @@ func _step(dt: float) -> void:
 		"dead":
 			if mode_t <= 0.0:
 				if ftype == 4:
-					last_run = "지난 판: %d번째 상대에게 %d 피해\n%s" % [n + 1, boss_dmg, _perk_text()]
+					last_run = tr("지난 판: %d번째 상대에게 %d 피해\n%s") % [n + 1, boss_dmg, _perk_text()]
 				else:
-					last_run = "지난 판: %d번째 상대에게 쓰러짐\n%s" % [n + 1, _perk_text()]
+					last_run = tr("지난 판: %d번째 상대에게 쓰러짐\n%s") % [n + 1, _perk_text()]
 				lobby_k = n
 				_to_lobby(0)
 	piv.position = fl
@@ -1151,7 +1247,7 @@ func _step(dt: float) -> void:
 	mark.rotation.z = piv.rotation.z
 	stance_l.visible = mode != "lobby"
 	_score_l.visible = mode != "lobby"
-	stance_l.text = "버튼을 누른 채 칼이 오는 쪽으로 밀기" if stance < 0 else "버튼을 밀어 방향 · 지금 %s" % ARROW[stance]
+	stance_l.text = tr("버튼을 누른 채 칼이 오는 쪽으로 밀기") if stance < 0 else tr("버튼을 밀어 방향 · 지금 %s") % ARROW[stance]
 	if flash_t > 0.0:
 		flash_t -= dt
 		if flash_t <= 0.0:
@@ -1172,9 +1268,9 @@ func _step(dt: float) -> void:
 	else:
 		gauge(float(life) / float(max_life), GOOD if life > foe_atk else BAD)
 		if ftype == 4:
-			info_l.text = "나 %d/%d   ·   %d번째 · 준 피해 %d · 공격 %d" % [maxi(life, 0), max_life, n + 1, boss_dmg, foe_atk]
+			info_l.text = tr("나 %d/%d   ·   %d번째 · 준 피해 %d · 공격 %d") % [maxi(life, 0), max_life, n + 1, boss_dmg, foe_atk]
 		else:
-			info_l.text = "나 %d/%d   ·   %d번째 %d/%d · 공격 %d" % [maxi(life, 0), max_life, n + 1, maxi(foe_hp, 0), foe_max, foe_atk]
+			info_l.text = tr("나 %d/%d   ·   %d번째 %d/%d · 공격 %d") % [maxi(life, 0), max_life, n + 1, maxi(foe_hp, 0), foe_max, foe_atk]
 
 
 func _fight(dt: float) -> void:
@@ -1375,7 +1471,7 @@ func _twice_next() -> bool:
 
 
 func _hurt() -> void:
-	msg("맞음 -%d" % foe_atk, 0.5)
+	msg(tr("맞음 -%d") % foe_atk, 0.5)
 	sfx(SND["hit"], 0.72)  # 내가 맞음: 적중 소리를 낮게 (10/31)
 	_hold(false)
 	if fx:
@@ -1447,10 +1543,10 @@ func _act(a: int) -> void:
 		var want: int = rdir if fs == 1 else odir
 		var want_a := 0 if fs == 1 else 1
 		if d != want:
-			msg("버튼을 누른 채 %s 쪽으로 밀어요!" % ARROW[want], 0.8)
+			msg(tr("버튼을 누른 채 %s 쪽으로 밀어요!") % ARROW[want], 0.8)
 			return
 		if a != want_a:
-			msg("[%s]를 눌러요!" % ACT[want_a], 0.8)
+			msg(tr("[%s]를 눌러요!") % tr(ACT[want_a]), 0.8)
 			return
 		hold = false
 		tut += 1
@@ -1632,7 +1728,7 @@ func _cut() -> void:
 		mi = 0
 		mode = "shift"
 		mode_t = 1.2
-		msg("%d단" % (ph + 1), 1.0)
+		msg(tr("%d단") % (ph + 1), 1.0)
 		_eyes()
 
 
@@ -1656,7 +1752,7 @@ func _open_pick() -> void:
 	mode_t = 0.45  # 베기를 연타하다 카드를 잘못 누르지 않게 잠깐 막는다
 	_btns.clear()
 	pend.clear()
-	pick_head.text = "승리!  능력을 하나 골라요\n체력 %d/%d" % [life, max_life]
+	pick_head.text = tr("승리!  능력을 하나 골라요\n체력 %d/%d") % [life, max_life]
 	for i in 3:
 		pick_bg[i].visible = i < pick.size()
 		if i < pick.size():
@@ -1729,7 +1825,7 @@ func _perk_text() -> String:
 		var lv := _lv(p[0])
 		if lv > 0:
 			s.append(_s("pk_" + p[0]) if lv == 1 else "%s+%d" % [_s("pk_" + p[0]), lv])
-	return "고른 능력 없음" if s.is_empty() else "능력: " + ", ".join(s)
+	return tr("고른 능력 없음") if s.is_empty() else tr("능력: ") + ", ".join(s)
 
 
 func _lobby_tap(p: Vector2) -> void:
@@ -1749,6 +1845,13 @@ func _lobby_tap(p: Vector2) -> void:
 					_save()
 					_set_refresh()
 					return
+		if SET_LANG.has_point(p):
+			lang = "ko" if lang == "en" else "en"
+			_set_lang()
+			_save()
+			_apply_text()
+			_set_refresh()
+			return
 		if SET_CLOSE.has_point(p) or set_btn.get_global_rect().has_point(p) or p.y >= NAV_Y:
 			set_box.visible = false
 		return
