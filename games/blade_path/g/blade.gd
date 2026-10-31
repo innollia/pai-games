@@ -252,7 +252,7 @@ const SET_R := Rect2(586, 118, 124, 68)
 const DEV := "res://g/dev.gd"  # 개발 도구. 출시 때는 이 파일만 지우면 된다
 ## 찌르기 검객 3D 모델 (파이가 보낸 duelist_animated.glb, 10/31): 대기·찌르기 4방향·맞음·쓰러짐 동작이 들어 있다.
 ## 칼은 게임 칼(blade_m, 빨개지는 신호)을 그대로 쓰고 모델의 레이피어는 숨긴다. 상자 몸으로 되돌리려면 DUELIST_ON 을 false 로
-const DUELIST_ON := true
+const DUELIST_ON := false
 const DUELIST := preload("res://models/duelist.glb")
 const RAPIER := ["Rapier_diamond_blade", "Curved_quillons", "Knuckle_bow", "Swept_ring_guard", "Round_pommel", "Rapier_leather_grip", "Grip_"]
 const THRUST := ["Thrust_Left", "Thrust_Right", "Thrust_Up", "Thrust_Down"]
