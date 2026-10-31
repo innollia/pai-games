@@ -1,0 +1,165 @@
+﻿key	언제 나오나	누가	한국어	English	한국어(수정)
+ui.title	[시작 화면] 시작 화면 제목 (마지막 낱말은 큰 글자, 앞은 리본)		어린 배달부	The Little Courier	
+ui.start	[시작 화면] 시작 화면 버튼		시작	START	
+ui.jump	[조작 버튼·첫 안내] 늘 있는 점프 버튼		점프	Jump	
+ui.drop	[조작 버튼·첫 안내] 물건을 들고 있을 때 버튼		놓기	Drop	
+ui.sail	[조작 버튼·첫 안내] 돛이 있고 날고 있고 공중 한 번이 남았을 때 버튼		돛	Sail	
+hint.first	[조작 버튼·첫 안내] 첫 판, 풍차지기 부탁 바로 뒤 말풍선		스틱으로 달리기 · 막대가 차면 점프!	Stick to run · Jump when the bar fills!	
+who.me	[조작 버튼·첫 안내] 혼잣말·엔딩 말풍선의 이름	나	나	Me	
+name.windmill	[별·주민 이름] 별 1 이름 (처음 끌려 들어갈 때·내려앉을 때 알림, 칩)		풍차의 별	Windmill Planet	
+name.post	[별·주민 이름] 별 2 이름		우편의 별	Post Planet	
+name.glass	[별·주민 이름] 별 3 이름		유리꽃의 별	Glass Flower Planet	
+name.sunset	[별·주민 이름] 별 4 이름		노을의 별	Sunset Planet	
+name.rose	[별·주민 이름] 별 5 이름		장미의 별	Rose Planet	
+name.chimney_moon	[별·주민 이름] 소포 받는 달 이름		굴뚝 달	Chimney Moon	
+name.friend_moon	[별·주민 이름] 유리꽃 받는 달 이름		친구 달	Friend Moon	
+name.fire	[별·주민 이름] 닿으면 죽는 불 별 이름		불 별	Fire Star	
+who.windmill	[별·주민 이름] 별 1 주민 이름 (말풍선 위)		풍차지기	Windmill Keeper	
+who.post	[별·주민 이름] 별 2 주민 이름		우체부	Mail Carrier	
+who.glass	[별·주민 이름] 별 3 주민 이름		정원사	Gardener	
+who.sunset	[별·주민 이름] 별 4 주민 이름		노을 아이	Sunset Child	
+who.rose	[별·주민 이름] 별 5 주민 이름		장미	Rose	
+who.chimney	[별·주민 이름] 굴뚝 달 주민 이름		굴뚝 집	Chimney House	
+who.friend	[별·주민 이름] 친구 달 주민 이름		꽃 친구	Flower Friend	
+goal.talk	[맨 위 할 일 칩] 칩: 주민을 아직 안 만났을 때		{who}에게 말 걸기	Talk to {who}	
+goal.wind	[맨 위 할 일 칩] 칩: 풍차 부탁 중		풍차 깨우기: 땅에 붙어 힘껏 달리기	Wake the windmill: sprint on the ground	
+goal.pick	[맨 위 할 일 칩] 칩: 물건을 받으러 가야 할 때		{planet}에서 {item} 받기	Get the {item} on {planet}	
+goal.deliver	[맨 위 할 일 칩] 칩: 물건을 들고(또는 떨어뜨려 두고) 있을 때		{target}에 {item} 배달	Deliver the {item} to {target}	
+goal.band	[맨 위 할 일 칩] 칩: 노을 띠 부탁 중		노을 띠와 같은 빠르기로 달리기	Run at the sunset band's speed	
+item.pkg	[맨 위 할 일 칩] 칩·목록 안 {item}		소포	parcel	
+item.flower	[맨 위 할 일 칩] 칩·목록 안 {item}		유리꽃	glass flower	
+item.dome	[맨 위 할 일 칩] 칩·목록 안 {item}		유리 덮개	glass dome	
+todo.head	"[왼쪽 위 할 일 목록] 할 일 목록 판 제목 (뒤에 ""N/5"")"		할 일	To-do	
+todo.p1	[왼쪽 위 할 일 목록] 목록 1줄 (풍차지기)		풍차 깨우기: 땅에 붙어 힘껏 달리기	Wake the windmill: sprint on the ground	
+todo.p2	[왼쪽 위 할 일 목록] 목록 2줄 (우체부)		소포를 굴뚝 달 집에 공중에서 놓기	Drop the parcel on the Chimney Moon house from the air	
+todo.p3	[왼쪽 위 할 일 목록] 목록 3줄 (정원사)		유리꽃을 친구 달에 살살 전하기	Gently bring the glass flower to Friend Moon	
+todo.p4	[왼쪽 위 할 일 목록] 목록 4줄 (노을 아이)		주황 노을 띠와 같은 빠르기로 달리기	Run at the orange sunset band's speed	
+todo.p5	[왼쪽 위 할 일 목록] 목록 5줄 (장미), 덮개가 생긴 뒤		유리 덮개를 장미에게 씌우기	Put the glass dome over Rose	
+todo.p5_wait	[왼쪽 위 할 일 목록] 목록 5줄, 노을 부탁 끝나기 전		유리 덮개가 필요해 (노을 아이가 줌)	Needs a glass dome (from the Sunset Child)	
+todo.st_none	[왼쪽 위 할 일 목록] 목록 줄 오른쪽 상태		아직 안 만남	Not met yet	
+todo.st_doing	[왼쪽 위 할 일 목록] 목록 줄 오른쪽 상태		하는 중	In progress	
+todo.st_done	[왼쪽 위 할 일 목록] 목록 줄 오른쪽 상태		끝	Done	
+todo.held	"[왼쪽 위 할 일 목록] 목록 아래 ""들고 있는 것: ○○"""		들고 있는 것	Carrying	
+todo.empty	[왼쪽 위 할 일 목록] 위 줄에서 아무것도 안 들었을 때		빈손	Nothing	
+todo.close	[왼쪽 위 할 일 목록] 목록 판 맨 아래		탭하면 닫혀요	Tap to close	
+talk.busy	[왼쪽 위 할 일 목록] 물건을 든 채 다른 주민에게 갔을 때	그 주민	들고 있는 {item}부터 배달하고 다시 와 줘!	Deliver the {item} you're carrying first, then come back!	
+p1.ask	[별 1 풍차의 별] 풍차지기 5m 안에 처음 갔을 때	풍차지기	바람이 멎어 풍차가 잠들었네. 별 둘레를 힘껏 달려 바람을 깨워 주겠나?	The wind stopped and the windmill fell asleep. Run hard around the planet to wake the wind?	
+p1.hint	[별 1 풍차의 별] 부탁 바로 뒤, 또 바람 막대 15% 미만이면 40초마다	풍차지기	뜨기 직전이 제일 센 바람이지. 발이 뜨면 바람이 끊기니 땅에 붙어 달리게나.	The wind is strongest just before liftoff. It stops when your feet leave the ground, so stay low.	
+p1.thanks	[별 1 풍차의 별] 바람 막대 100%	풍차지기	고마우이, 돛을 받게나. 보라 별이 우편의 별이니 노란 줄을 힘껏 달리게.	Thank you! Take this sail. The purple one is Post Planet; sprint along the yellow line.	
+p1.thanks2	[별 1 풍차의 별] thanks 바로 뒤	풍차지기	초록 점선이 보이면 점프하게. 날다 스틱 밀며 뛰면 돛으로 방향을 한 번 튼다네.	Jump when the dots turn green. In flight, push the stick and jump to turn once with the sail.	
+banner.sail	[별 1 풍차의 별] 바람 막대 100% (위쪽 띠 5초)		풍차지기의 고마움: 돛! 날 때 '돛' 버튼을 한 번 누르면 스틱 쪽으로 방향을 튼다 (스틱 안 밀면 갈 곳 쪽).	The Windmill Keeper's gift: a sail! In flight, tap 'Sail' once to turn toward your stick (no stick: toward your goal).	
+hint.sail	[별 1 풍차의 별] 돛 버튼이 처음 나올 때 한 번		지금 '돛'을 누를 수 있다 · 연한 점선이 돛을 쓰면 갈 길	You can tap 'Sail' now · the faint dots show where it takes you	
+msg.sail	[별 1 풍차의 별] 날다가 돛을 쓸 때 알림		돛으로 방향을 튼다	Turning with the sail	
+p1.idle1	[별 1 풍차의 별] 부탁을 끝낸 뒤 곁에 서면 60초에 한 번 (둘 중 하나)	풍차지기	바람결을 느끼며 달리면 하늘도 그 발소리를 듣는다네.	Run with the wind, and the sky hears your footsteps.	
+p1.idle2	[별 1 풍차의 별] 위와 같음	풍차지기	서두르지 말게. 별은 언제나 제자리에서 자네를 기다리니.	No need to rush. The planets always wait for you right where they are.	
+react.first_liftoff	[날기·내려앉기] 처음으로 중력을 벗어나는 점프 (한 번)	나	별을 떠나 날아오른다	Off the planet, into the sky	
+react.first_landing	[날기·내려앉기] 다른 별에 처음 내려앉음 (한 번)	나	새로운 별에 내려앉았다	Landed on a new planet	
+react.new_planet	[날기·내려앉기] 그 뒤 새 별에 처음 내려앉음 (목숨이 3으로 참)	나	새 별에 닿아 힘이 난다	A new planet! I feel stronger	
+react.slingshot	[날기·내려앉기] 다른 별 곁을 지나 휘어 내려앉음	나	별의 곁을 스쳐 가속한다	Skimming a planet for speed	
+react.orbit_landing	[날기·내려앉기] 대기에서 오래 돌다 살살 앉음	나	궤도를 돌아 살포시 앉았다	Orbited and landed softly	
+msg.next	[날기·내려앉기] 부탁 하나 끝난 뒤 알림		다음: {planet}	Next: {planet}	
+hud.next_hint	[날기·내려앉기] 땅에 있고 갈 곳이 다른 별일 때 (50초에 한 번)		다음: {planet} (노란 빛기둥). 달려 점프! 초록 점선이면 닿아.	Next: {planet} (yellow pillar). Run and jump! Green dots mean you'll reach it.	
+msg.use_sail	[날기·내려앉기] 이대로면 못 닿는데 돛 한 번이면 닿을 때		지금 돛!	Sail now!	
+msg.use_air	[날기·내려앉기] 같은 상황, 돛이 없을 때		한 번 더 점프!	Jump once more!	
+p2.ask	[별 2 우편의 별 · 굴뚝 달] 우체부 5m 안 (손이 비었을 때)	우체부	이 소포, 저 하얀 굴뚝 달 집에 전해 줘! 담이 높아 걸어선 못 들어가.	Take this parcel to the house on the white Chimney Moon! The wall's too high to walk in.	
+got.pkg	[별 2 우편의 별 · 굴뚝 달] 소포를 주웠을 때 위쪽 띠 3초		소포! {target}에 전해 주자	A parcel! Let's take it to {target}	
+p2.hint	[별 2 우편의 별 · 굴뚝 달] 소포를 들고 있으면 45초마다	우체부	달은 작아 금방 떠! 굴뚝 위 지날 때 '놓기'. 발밑 노란 점에 떨어져!	The moon is tiny, so you float off fast! Tap 'Drop' over the chimney. It falls on the yellow dot below you!	
+msg.wall_high	[별 2 우편의 별 · 굴뚝 달] 굴뚝 달 담에 부딪힘		담이 높다 — 공중에서 놓기	The wall is high — drop it from the air	
+msg.missed_drop	[별 2 우편의 별 · 굴뚝 달] 놓은 물건이 과녁 밖에 떨어짐		빗나갔다 — 다시 줍기	Missed — pick it up again	
+moon.chimney.got	[별 2 우편의 별 · 굴뚝 달] 소포 배달 순간	굴뚝 집	굴뚝 속으로 소포가 쏙 들어왔어! 따뜻한 온기가 번지네.	The parcel popped right down the chimney! Cozy warmth is spreading.	
+p2.thanks	[별 2 우편의 별 · 굴뚝 달] 위 말 바로 뒤	우체부	잘 도착했대, 고마워! 남은 부탁은 왼쪽 위 할 일 목록에 있어.	It arrived safely, thank you! The other requests are in the to-do list, top left.	
+p2.idle1	[별 2 우편의 별 · 굴뚝 달] 부탁을 끝낸 뒤 곁에 서면 60초에 한 번	우체부	하늘에 띄운 편지는 길을 잃지 않아. 언제나 닿을 곳으로 가지!	Letters sent into the sky never get lost. They always find their way!	
+p2.idle2	[별 2 우편의 별 · 굴뚝 달] 위와 같음	우체부	오늘도 우편 가방이 든든하네! 다음 행선지는 어디야?	My mailbag is nice and full again today! Where are you headed next?	
+p3.ask	[별 3 유리꽃의 별 · 친구 달] 정원사 5m 안 (손이 비었을 때)	정원사	유리꽃을 저 민트 친구 달에 전해 줘요… 세게 내려앉으면 깨져 버려요.	Please take this glass flower to the mint Friend Moon... A hard landing will break it.	
+got.flower	[별 3 유리꽃의 별 · 친구 달] 유리꽃을 주웠을 때 위쪽 띠		유리꽃! 살살 {target}에 전해 주자	A glass flower! Let's take it gently to {target}	
+p3.hint	[별 3 유리꽃의 별 · 친구 달] 유리꽃을 들고 있으면 45초마다	정원사	곧장 말고 빙 돌아 살살 앉아요. 빨간 그림자는 운석 자리니 미리 피해요!	Don't dive straight in; circle and land softly. Red shadows mean meteors, so move early!	
+react.flower_cracked	[별 3 유리꽃의 별 · 친구 달] 유리 물건을 들고 세게 착지	나	금이 갔다… 더 살살 앉자	It cracked... land softer!	
+react.flower_broken	[별 3 유리꽃의 별 · 친구 달] 유리 물건이 깨짐	나	깨져 버렸다… 다시 가자	It broke... let's try again	
+msg.glass_broken	[별 3 유리꽃의 별 · 친구 달] 금 100% 또는 높이 놓기로 깨짐		깨졌다… {src}에서 다시 받기	Broken... get a new one on {src}	
+moon.friend.got	[별 3 유리꽃의 별 · 친구 달] 유리꽃 배달 순간	꽃 친구	정원사의 맑은 꽃이 깨지지 않고 닿았어… 달이 환해졌네!	The gardener's clear flower arrived unbroken... the moon is glowing!	
+p3.thanks	[별 3 유리꽃의 별 · 친구 달] 위 말 바로 뒤	정원사	꽃이 무사하대요… 정말 다행이에요. 다른 별에도 기다리는 이가 있을 거예요.	The flower is safe... what a relief. Someone on another planet must be waiting too.	
+p3.idle1	[별 3 유리꽃의 별 · 친구 달] 부탁을 끝낸 뒤 곁에 서면 60초에 한 번	정원사	유리꽃은 아주 여려요… 가만히 숨소리를 들으면 맑게 울리지요.	Glass flowers are very delicate... listen quietly and you'll hear them ring.	
+p3.idle2	[별 3 유리꽃의 별 · 친구 달] 위와 같음	정원사	별들 사이를 날아갈 땐 마음도 깃털처럼 가볍게 가져 보세요.	When you fly between planets, keep your heart light as a feather.	
+p4.ask	[별 4 노을의 별] 노을 아이 5m 안	노을 아이	내 별은 너무 작아서 노을이 자꾸 달아나. 저 주황 띠랑 같이 달려 줘!	My planet is so small the sunset keeps running away. Run with that orange band!	
+p4.hint	[별 4 노을의 별] 부탁 바로 뒤, 띠 막대 15% 미만이면 40초마다	노을 아이	얼음이라 미끄러워! 빠르면 뜨고 느리면 놓쳐. 띠랑 같은 빠르기로 뛰어!	It's icy and slippery! Too fast, you float; too slow, you lose it. Match its speed!	
+p4.thanks	[별 4 노을의 별] 띠 막대 100%, 손이 비었을 때 (맡겨 둔 덮개를 받을 때도)	노을 아이	고마워! 분홍 장미 별에 유리 덮개를 줘. 곧장 가면 빨간 지뢰 울타리야.	Thank you! Take the glass dome to the pink Rose Planet. The straight way has a red mine fence.	
+p4.keep	[별 4 노을의 별] 띠 막대 100%인데 손에 다른 물건	노을 아이	고마워! 유리 덮개는 내가 맡아 둘게. 손이 비면 받으러 와!	Thank you! I'll keep the glass dome for you. Come get it when your hands are free!	
+p4.thanks2	[별 4 노을의 별] thanks 바로 뒤, 또 덮개를 들고 장미 별 밖이면 45초마다	노을 아이	빨간 불 별 옆을 스치면 휘어 돌아가. 불 별에 닿으면 끝이니까 닿지 마!	Skim past the red Fire Star to curve around. Touching it is the end, so don't!	
+got.dome	[별 4 노을의 별] 덮개를 다시 주웠을 때 위쪽 띠		유리 덮개! {target}에 씌워 주자	The glass dome! Let's bring it to {target}	
+p4.idle1	[별 4 노을의 별] 부탁을 끝낸 뒤 곁에 서면 60초에 한 번	노을 아이	노을빛이 주황색으로 번질 때 별을 달리면 마음이 몽글몽글해.	When the sunset glows orange and I run, my heart feels soft and warm.	
+p4.idle2	[별 4 노을의 별] 위와 같음	노을 아이	혼자 달릴 땐 외로웠는데, 같이 뛰니까 노을이 안 무서워!	Running alone was lonely, but with you the sunset isn't scary!	
+rose.early	[별 5 장미의 별] 노을 부탁 전에 장미에게 갔을 때	장미	바람이 차가워… 노을 아이가 유리 덮개를 갖고 있대. 노을의 별에 가 봐.	The wind is cold... I hear the Sunset Child has a glass dome. Try Sunset Planet.	
+p5.ask	[별 5 장미의 별] 덮개가 생긴 뒤 장미 5m 안에 처음 갔을 때	장미	바람이 차가워… 유리 덮개를 씌워 줘. 담이 천천히 돌고 틈은 하나야.	The wind is cold... Please put the dome over me. The wall turns slowly and has one gap.	
+p5.hint	[별 5 장미의 별] 덮개를 들고 장미 별에 있으면 45초마다	장미	담 틈 맞춰 들어오거나 탑에서 날아 위에서 놓아 줘. 세게 내리면 깨져.	Come in through the gap, or leap from the tower and drop it from above. Drop it hard and it breaks.	
+msg.wall_gap	[별 5 장미의 별] 장미 별 담에 부딪힘		담 — 틈으로	Wall — use the gap	
+msg.tower_jump	[별 5 장미의 별] 탑 꼭대기에서 뛰어내릴 때		탑에서 뛰어내린다	Leaping from the tower	
+msg.rose_smiles	[별 5 장미의 별] 덮개 배달 (마지막 부탁이었을 때)		장미가 환하게 웃는다	Rose smiles brightly	
+p5.thanks	[별 5 장미의 별] 덮개 배달, 마지막 부탁이었을 때	장미	…따뜻해. 고마워. 네 빠른 발 덕분에 우리 다섯 별이 다 웃고 있어.	...So warm. Thank you. Thanks to your fast feet, all five planets are smiling.	
+p5.thanks_more	[별 5 장미의 별] 덮개 배달, 남은 부탁이 있을 때	장미	…따뜻해. 고마워. 다른 별들도 네 빠른 발을 기다리고 있어.	...So warm. Thank you. The other planets are waiting for your fast feet too.	
+p5.idle1	[별 5 장미의 별] 부탁을 끝낸 뒤 곁에 서면 60초에 한 번	장미	…뭘 그렇게 봐? 유리 덮개가 마음에 들어서 가만있는 것뿐이야.	...What are you staring at? I'm only sitting still because I like this dome.	
+p5.idle2	[별 5 장미의 별] 위와 같음	장미	별빛이 덮개에 닿아 반짝이는 건… 조금 예쁜 것 같네.	Starlight sparkling on the dome... is a little pretty, I suppose.	
+msg.drift_warn	[우주 미아·죽음] 어느 별에도 안 끌리고 멀어질 때 (돛 있음)		우주로 떠내려간다… 돛으로 돌려!	Drifting into space... turn with the sail!	
+msg.drift_warn_ns	[우주 미아·죽음] 위와 같음, 돛 받기 전		우주로 떠내려간다!	Drifting into space!	
+react.drift_warning	[우주 미아·죽음] 위 상황 첫 번 (돛 있음)	나	멀어진다… 돛으로 돌리자!	Drifting away... turn with the sail!	
+react.drift_warning_ns	[우주 미아·죽음] 위 상황 첫 번 (돛 받기 전)	나	멀어진다… 초록 점선에서 뛰자	Drifting away... jump on green dots	
+banner.lost	[우주 미아·죽음] 못 닿는 길로 2.6초 넘게 날면 끌려 돌아감		우주 미아! 마지막 별로 돌아가는 중…	Lost in space! Heading back to the last planet…	
+die.fire	[우주 미아·죽음] 불 별에 닿음		뜨거운 불 별에 닿았다	Touched the hot Fire Star	
+react.die_fire	[우주 미아·죽음] 위 바로 뒤	나	스치기만 하고 닿지 말자	Just skim past, don't touch it	
+die.rocks	[우주 미아·죽음] 빨간 지뢰 울타리에 닿음		빨간 지뢰 울타리에 부딪혔다	Hit the red mine fence	
+react.die_rocks	[우주 미아·죽음] 위 바로 뒤	나	불 별 쪽으로 돌아가자	Go around by the Fire Star	
+die.drift	[우주 미아·죽음] 너무 멀리 떠내려감		깊은 우주로 떠내려갔다	Drifted into deep space	
+react.die_drift	[우주 미아·죽음] 위 바로 뒤	나	초록 점선을 보고 뛰자	Look for green dots before jumping	
+die.meteor	[우주 미아·죽음] 운석에 맞음		떨어지는 운석에 맞았다	Hit by a falling meteor	
+react.die_meteor	[우주 미아·죽음] 위 바로 뒤	나	빨간 그림자를 미리 피하자	Move off red shadows early	
+help.idle1	[도움 힌트] 거의 안 달려 본 채 8초 가만히		스틱을 밀어 달려 봐	Push the stick to run	
+help.idle2	[도움 힌트] 또 그럴 때 (스틱 자리에 손가락 그림 깜빡)		왼쪽 아래 스틱을 손가락으로 밀어 봐	Drag the stick at the bottom left with your finger	
+help.lift1	[도움 힌트] 달리는데 이륙선 60%를 못 넘은 채 20초		스틱을 끝까지 밀어 더 빨리 달려	Push the stick all the way to run faster	
+help.lift2	[도움 힌트] 또 그럴 때 (위 막대 둘레 깜빡)		끝까지 밀고 계속 달려. 위 막대가 끝까지 차오르게	Keep it pushed and keep running. Fill the bar at the top	
+help.jump1	[도움 힌트] 갈 곳이 다른 별인데 뛰어도 4번(또는 30초) 못 떠남		위 막대가 초록일 때 점프하면 별을 떠나	Jump when the top bar is green to leave the planet	
+help.jump2	[도움 힌트] 또 그럴 때 (25초 동안 떠나기 도와주기 더 너그럽게)		지금은 막대가 금방 초록이 돼. 힘껏 달리다 점프!	The bar turns green sooner for now. Sprint, then jump!	
+help.lost1	[도움 힌트] 우주 미아(끌려 돌아옴·떠내려감) 2번		점선이 초록일 때 뛰면 다른 별에 닿아	Jump when the dots are green to reach another planet	
+help.lost2	[도움 힌트] 또 그럴 때 (25초 동안 끌어주기 세게)		잠깐 별들이 더 세게 끌어 줘. 초록 점선을 보고 뛰어!	Planets pull harder for a while. Jump on green dots!	
+help.goal1	[도움 힌트] 갈 곳 별에 90초 못 감 (할 일 버튼 숨쉼·화살표 크게)		어디로 갈지 모르겠으면 왼쪽 위 할 일 목록을 눌러 봐 · 노란 화살표를 따라가	Lost? Tap the to-do list at the top left · follow the yellow arrow	
+help.goal2	[도움 힌트] 또 그럴 때 (빛기둥 더 크고 밝게)		노란 빛기둥이 서 있는 별로 가면 돼	Head for the planet with the yellow light pillar	
+help.glass1	[도움 힌트] 유리 금·깨짐 2번		곧장 꽂지 말고 빙 돌다 살살 내려앉아	Don't dive in. Circle around and land softly	
+help.glass2	[도움 힌트] 또 그럴 때 (25초 동안 내려가는 빠르기 한도 낮춤)		잠깐 내려앉기가 더 부드러워져. 빙 돌며 천천히	Landings are gentler for a while. Circle and go slow	
+help.band1	[도움 힌트] 노을 띠를 3번 놓침		띠와 같은 빠르기로! 얼음이라 스틱은 살살	Match the band's speed! It's icy, so ease the stick	
+help.band2	[도움 힌트] 또 그럴 때 (25초 동안 띠 느리게)		잠깐 띠가 느려졌어. 띠 위에 머물러 봐	The band is slower for a while. Stay on it	
+help.fire1	[도움 힌트] 불 별·지뢰 울타리에 2번 죽음		불 별 옆을 스치면 휘어서 장미의 별로 돌아가	Skim past the Fire Star to curve around to Rose Planet	
+help.fire2	[도움 힌트] 또 그럴 때 (40초 동안 새총 길 점선)		노을의 별에 초록 점선 길을 보여 줄게. 그 길 쪽으로 힘껏 달려 점프	Green dots on Sunset Planet show a curving path. Sprint that way and jump	
+help.fire2b	[도움 힌트] 위와 같은데 길을 못 찾았을 때 (땅 점선을 늘 보임)		잠깐 땅에서도 점선이 보여. 초록이 될 때 점프	For a while you can see the dots on the ground. Jump when they turn green	
+help.sail1	[도움 힌트] 돛을 받고도 안 쓰고 빗나간 비행 3번		빗나갈 것 같으면 날 때 '돛' 버튼!	About to miss? Tap 'Sail' in flight!	
+help.sail2	[도움 힌트] 또 그럴 때 (돛 버튼 크게 깜빡)		연한 점선이 초록이면 지금 '돛'을 눌러	When the faint dots turn green, tap 'Sail' now	
+help.drop1	[도움 힌트] 소포를 들고 굴뚝 달 근처 40초		굴뚝 위를 지날 때 '놓기'	Tap 'Drop' as you pass over the chimney	
+help.drop2	[도움 힌트] 또 그럴 때 (떨어질 자리 노란 점 크게)		발밑 노란 점이 굴뚝에 겹칠 때 '놓기'	Tap 'Drop' when the yellow dot below you is on the chimney	
+msg.all_done	[엔딩·끝 화면] 마지막 부탁이 장미가 아닐 때 알림		모든 부탁을 마쳤다!	All requests done!	
+ending.1	[엔딩·끝 화면] 모든 부탁 뒤 혼잣말 1	나	발끝으로 건넌 별마다 다정한 빛이 켜졌다.	A gentle light came on at every planet I crossed.	
+ending.2	[엔딩·끝 화면] 혼잣말 2	나	작고 외롭던 별들이 하늘 한가운데서 서로 웃는다.	The small, lonely planets smile at each other across the sky.	
+ending.3	[엔딩·끝 화면] 혼잣말 3	나	차가운 유리 너머로 전해진 온기가 마음을 데운다.	Warmth passed through cold glass warms my heart.	
+ending.4	[엔딩·끝 화면] 혼잣말 4	나	언젠가 또 바람이 불면, 다시 달려 날아가야지.	Someday, when the wind blows again, I'll run and fly once more.	
+end.win_head	[엔딩·끝 화면] 끝 화면 제목 (이김)		모든 부탁 완료!	All requests done!	
+end.win_msg	[엔딩·끝 화면] 끝 화면 글 (이김)		다섯 별이 모두 웃고 있어	All five planets are smiling	
+end.lose_head	[엔딩·끝 화면] 끝 화면 제목 (목숨 0)		목숨을 다 썼어	Out of lives	
+end.lose_msg	[엔딩·끝 화면] 끝 화면 글 (목숨 0)		다시 하면 첫 별부터 새로 시작해	Playing again starts from the first planet	
+end.delivered	[엔딩·끝 화면] 기록 줄 1		배달한 수	Delivered	
+end.time	[엔딩·끝 화면] 기록 줄 2 (이김)		걸린 시간	Time	
+end.survived	[엔딩·끝 화면] 기록 줄 2 (목숨 0)		버틴 시간	Time survived	
+end.slings	[엔딩·끝 화면] 기록 줄 3 (불 별·다른 별 곁을 휘어 돈 수)		새총	Slingshots	
+end.best_time	[엔딩·끝 화면] 기록 줄 4 (이김)		최고 기록	Best time	
+end.best_count	[엔딩·끝 화면] 기록 줄 4 (목숨 0)		최고 배달	Most delivered	
+end.new_best	[엔딩·끝 화면] 기록을 깼을 때 딱지		새 기록	New best	
+end.again	[엔딩·끝 화면] 끝 화면 버튼 (첫 별부터 다시)		다시	AGAIN	
+tofu.list	[tofu 공통 글] 단독판을 목록에서 열었을 때 왼쪽 위 (tofu 공통 글: 한국어는 여기서 고쳐도 안 바뀜, 영어만)		< 목록	< List	
+tofu.menu	[tofu 공통 글] 모음판(SPEED 두부)에서 왼쪽 위 (tofu 공통 글: 한국어는 여기서 고쳐도 안 바뀜, 영어만)		< 메뉴	< Menu	
+tofu.restart	[tofu 공통 글] 단독판 왼쪽 위 (지금은 숨김) (tofu 공통 글: 한국어는 여기서 고쳐도 안 바뀜, 영어만)		< 처음부터	< Restart	
+tofu.over_best	"[tofu 공통 글] 게임 끝에 가운데 점수 글 ""점수 / 최고 N"" (끝 화면 아래) (tofu 공통 글: 한국어는 여기서 고쳐도 안 바뀜, 영어만)"		최고	Best	
+tofu.over_again	[tofu 공통 글] 같은 점수 글 셋째 줄 (tofu 공통 글: 한국어는 여기서 고쳐도 안 바뀜, 영어만)		탭해서 다시	Tap to play again	
+tofu.rate	[tofu 공통 글] 모음판 오른쪽 위 평가 버튼 (단독판은 끔) (tofu 공통 글: 한국어는 여기서 고쳐도 안 바뀜, 영어만)		평가	Rate	
+tofu.rate_title	[tofu 공통 글] 평가 카드 제목 (tofu 공통 글: 한국어는 여기서 고쳐도 안 바뀜, 영어만)		이 게임 어때요?	How was it?	
+tofu.close	[tofu 공통 글] 평가 카드 (tofu 공통 글: 한국어는 여기서 고쳐도 안 바뀜, 영어만)		닫기	Close	
+tofu.comment	[tofu 공통 글] 평가 카드 (tofu 공통 글: 한국어는 여기서 고쳐도 안 바뀜, 영어만)		한마디	Comment	
+tofu.thanks	[tofu 공통 글] 평가 카드, 별을 누른 뒤 (tofu 공통 글: 한국어는 여기서 고쳐도 안 바뀜, 영어만)		고마워요!	Thanks!	
+tofu.sending	[tofu 공통 글] 평가 카드 (tofu 공통 글: 한국어는 여기서 고쳐도 안 바뀜, 영어만)		보내는 중	Sending	
+tofu.sent	[tofu 공통 글] 평가 카드 (tofu 공통 글: 한국어는 여기서 고쳐도 안 바뀜, 영어만)		한마디 보냈어요	Comment sent	
+tofu.not_saved	[tofu 공통 글] 평가 카드 (tofu 공통 글: 한국어는 여기서 고쳐도 안 바뀜, 영어만)		저장 안 됨 · 별을 다시 탭	Not saved · tap a star again	
+tofu.comment_ph	[tofu 공통 글] 평가 카드 입력 칸 (tofu 공통 글: 한국어는 여기서 고쳐도 안 바뀜, 영어만)		이 게임에 한마디 (선택)	A word about this game (optional)	

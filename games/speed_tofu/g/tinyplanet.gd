@@ -979,6 +979,12 @@ func _flat(v: Vector3, up: Vector3) -> Vector3:
 func _say(who: String, s: String, dur: float) -> void:
 	if s == "":
 		return
+	# v11: 글 안의 "|" = 말풍선 나눔. 앞 조각을 지금, 나머지는 바로 이어서 (대기열 맨 앞)
+	var parts := tr(s).split("|", false)
+	if parts.size() > 1:
+		for i in range(parts.size() - 1, 0, -1):
+			bub_q.push_front([who, parts[i].strip_edges(), dur])
+		s = parts[0].strip_edges()
 	bub_who = who
 	bub_s = tr(s)
 	bub_t = clampf(2.2 + bub_s.length() * 0.03, 2.6, clampf(dur, 2.6, 4.2))
@@ -2009,9 +2015,7 @@ func _meet(k: int) -> void:
 			_say(P.who, _line(k, "ask"), 6.0)
 			if k == 4:
 				rose_said = true
-		if _first_hint:
-			_first_hint = false
-			_sayq("", _tx("hint.first"), 4.2)
+		_first_hint = false  # v11: 첫 조작 안내 말풍선(hint.first)은 뺐다 (사용자 수정)
 		if k == 0 or k == 3:
 			nag[300 + k] = clock + 40.0
 			_sayq(P.who, _line(k, "hint"), 4.0)
@@ -2028,7 +2032,8 @@ func _meet(k: int) -> void:
 		if j == 4 and not first and _can(260):
 			_nag(260, 30.0, P.who, _line(3, "thanks"))  # 맡아 둔 덮개를 이제 내준다 (지뢰 울타리 안내)
 	elif _can(700 + k):
-		var busy := _tx("talk.busy", {"item": _tx("item." + str(JOB[ij].item))})
+		var bk := str(BD[k].id) + ".busy"  # v11: 주민마다 제 말투로 (없으면 talk.busy)
+		var busy := _tx(bk if TX.TEXT.has(bk) else "talk.busy", {"item": _tx("item." + str(JOB[ij].item))})
 		nag[700 + k] = clock + 30.0
 		if first:
 			_sayq(P.who, busy, 4.0)
