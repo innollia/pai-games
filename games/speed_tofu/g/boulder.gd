@@ -203,6 +203,7 @@ var bonk_why := ""
 var arrow_mesh: ArrayMesh
 # v7: 쪼개기 돌진, 수로 밑 수정 동굴(떨어지면 딴 세상)
 var dash_t := 0.0
+var bridge_parts: Array = []  # 흔들다리 판·발판 (무거우면 이 자리가 부서진다)
 var branch_nodes: Array = []  # 갈림길 갈래 길 노드 (고르면 다른 쪽을 지운다)
 var fork_rail_end := -1.0     # 이 거리까지 길 가장자리가 난간
 var cave_nodes: Array = []  # 동굴 장식: 떨어지기 전엔 숨겨 둔다
@@ -455,12 +456,18 @@ func _zones_list() -> Array:
 		{"msg": "절벽 · 버티기", "mode": "fall", "skill": "hold", "road": ROCK, "floor": WATER, "accent": WHITE, "posts": true, "scen": "cliff",
 			"items": [
 				{"legs": [[40, -6, 7], [30, -5, 7]], "put": [["pot", 20, -2], ["pot", 25, 2]], "say": [[34, "떨어지며 조종"]]},
-				{"legs": [[3, -40, 7, 0, "drop"], [55, -6, 12], [25, -3, 8]],
-					"put": [["tower", 23, 0], ["house", 38, 6], ["tower", 52, -6], ["pot", 30, -8], ["pot", 45, 8]],
-					"holes": [[30, 42, -12.3, -2], [44, 54, 2, 12.3]], "say": [[2, "파란 머리 탑!\n떨어지며 버티기로 쾅"], [80, "탑을 부수면 빨라진다"]]},
-				{"legs": [[3, -30, 8, 0, "drop"], [60, -8, 12], [30, -5, 7]],
-					"put": [["tower", 20, -5], ["tower", 34, 5], ["gold", 48, 0], ["pot", 56, -6], ["pot", 58, 6]],
-					"holes": [[25, 35, -4, 4], [44, 55, -12.3, -3]], "say": [[2, "황금 신상은\n버티기로만 깨진다"]]},
+				# 배우기: 24m 절벽. 버티기를 누르면 빨리 떨어져 약 10m 앞에 내려찍는다: 그 자리에 탑. 안 누르면 30m 날아가 탑을 놓친다
+				{"legs": [[3, -24, 8, 0, "drop"], [50, -5, 12], [25, -3, 8]],
+					"put": [["tower", 14, 0], ["pot", 30, -4], ["pot", 34, 0], ["pot", 38, 4]],
+					"say": [[2, "파란 머리 탑!\n떨어지며 버티기로 쾅"]]},
+				# 무리: 36m 절벽 아래 넓은 착지 광장 한가운데 탑 넷. 한 번에 쾅 하면 크게 빨라진다. 구멍은 가장자리에만
+				{"legs": [[20, -4, 8], [3, -36, 9, 0, "drop"], [60, -6, 14], [25, -3, 8]],
+					"put": [["tower", 36, 0], ["tower", 40, -5], ["tower", 40, 5], ["tower", 44, 0], ["pot", 58, -6], ["pot", 60, 0], ["pot", 62, 6]],
+					"holes": [[66, 82, -14.3, -10], [66, 82, 10, 14.3]], "say": [[86, "탑을 부수면 빨라진다"]]},
+				# 두 단 절벽: 탑 둘 판 -> 바로 다시 떨어져 황금 신상과 둘레 탑 판
+				{"legs": [[20, -4, 8], [3, -28, 9, 0, "drop"], [45, -5, 12], [3, -22, 9, 0, "drop"], [50, -6, 12], [25, -3, 8]],
+					"put": [["tower", 35, -4], ["tower", 35, 4], ["gold", 83, 0], ["tower", 87, -6], ["tower", 87, 6], ["pot", 100, 0]],
+					"say": [[2, "황금 신상은\n버티기로만 깨진다"]]},
 				# 섞기: 틈 뛰기 → 떨어지며 구멍 피해 집 내려찍기 → 착지 뒤 큰 회전(버티기 또는 쪼개기)
 				{"legs": [[20, -4, 8], [10, 4, 6, 0, "ramp"], [16, -6, 6, 0, "gap"], [30, -4, 8], [3, -30, 12, 0, "drop"], [50, -6, 12],
 					[30, -5, 7, 60], [20, -3, 7]],
@@ -636,6 +643,7 @@ func _reset() -> void:
 	gates.clear()
 	Engine.time_scale = 1.0
 	dash_t = 0.0
+	bridge_parts.clear()
 	branch_nodes.clear()
 	fork_rail_end = -1.0
 	hs_t = 0.0
@@ -714,13 +722,15 @@ func _reset() -> void:
 	world.add_child(pivot)
 	ball = box(Vector3.ZERO, Vector3.ONE * s, ME, pivot)
 	_stone_mesh(ball)
-	chunk = box(Vector3.ZERO, Vector3.ONE * 1.3, STONE)
+	chunk = box(Vector3.ZERO, Vector3.ONE * 2.0, STONE)
 	chunk.visible = false
 	chunk_t = 0.0
-	# 던진 덩이 = 내 몸 한 조각: 돌과 같은 색, 같은 흰 띠
-	shot = box(Vector3.ZERO, Vector3.ONE * 1.4, ME)
-	_stone_mesh(shot)
-	_stone_mesh(chunk)
+	# 던진 덩이 = 내 몸 한 조각. 작아서 안 보였다: 크게, 금빛(던지기)·자수정(쪼개기) 물들이고 진한 외곽선
+	shot = box(Vector3.ZERO, Vector3.ONE * 2.2, ME)
+	_apply_art(shot, "stone", Color("ffe08a"))
+	_apply_art(chunk, "stone", Color("e2b8ff"))
+	_ink_outline(shot, INK)
+	_ink_outline(chunk, INK)
 	shot.visible = false
 	aim_dots.clear()
 	for i in 10:
@@ -1263,6 +1273,8 @@ func _draw_road(o: Dictionary, a: int, b: int, z: Dictionary) -> void:
 				thick = 0.5
 		var m := box(Vector3.ZERO, Vector3.ONE, col, nd)
 		_apply_art(m, "plank" if tg in ["rope", "bridge"] else _ground_art(int(z.k)))
+		if tg == "rope":
+			bridge_parts.append(m)
 		m.basis = bs
 		m.scale = Vector3(hw * 2.0, thick, ln + 0.4 + hw * absf(o.yw[j] - o.yw[i]))
 		m.position = (p0 + p1) * 0.5 - up * thick * 0.5 + up * (0.025 * float(i % 3))  # 겹친 이음매가 깜빡이지 않게
@@ -1288,6 +1300,7 @@ func _draw_road(o: Dictionary, a: int, b: int, z: Dictionary) -> void:
 					e.basis = bs
 					e.scale = Vector3(hw * 2.0, 0.08, 0.7)
 					e.position = p0 + dir * ((q + 0.5) / nb) + up * 0.03
+					bridge_parts.append(e)
 			elif tg != "plaza":
 				for sd: float in [-1.0, 1.0]:
 					# 숨은 길 입구(mouthL/R): 그쪽 턱 줄이 끊겨 있다
@@ -1506,6 +1519,7 @@ func _arch(d: float, lim: float, nd: Node3D) -> void:
 
 ## _arch 를 아무 길 표본 o 위에 (갈림길 갈래는 고르기 전에 미리 그린다)
 func _arch_o(o: Dictionary, d: float, lim: float, nd: Node3D) -> void:
+	_bridge_sign(o, maxf(1.0, d - 24.0), lim, nd)
 	var hw: float = o.hw[_oi(o, d)]
 	var h := _oh(o, d)
 	var yw := _oyaw(o, d)
@@ -1517,6 +1531,74 @@ func _arch_o(o: Dictionary, d: float, lim: float, nd: Node3D) -> void:
 		_red(cap)
 		cap.rotation.y = yw
 
+
+
+## 뒤집은 껍질 외곽선: 같은 메시를 조금 키워 앞면을 버리고 진한 색으로 (작은 것이 배경에 묻히지 않게)
+func _ink_outline(n: MeshInstance3D, col: Color) -> void:
+	var key := "outline" + col.to_html()
+	if not art_tinted.has(key):
+		var m := StandardMaterial3D.new()
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.albedo_color = col
+		m.cull_mode = BaseMaterial3D.CULL_FRONT
+		art_tinted[key] = m
+	var o := MeshInstance3D.new()
+	o.mesh = n.mesh
+	o.material_override = art_tinted[key]
+	o.scale = Vector3.ONE * 1.16
+	o.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	n.add_child(o)
+
+
+## 흔들다리 앞 표지판: 나무 기둥 위 둥근 돌판에 "MAX 3.2" (이 크기까지만 버틴다)
+func _bridge_sign(o: Dictionary, d: float, lim: float, nd: Node3D) -> void:
+	var hw: float = o.hw[_oi(o, d)]
+	var h := _oh(o, d)
+	var x := hw + 2.2
+	var post := box(_opos(o, d, x, h + 2.2), Vector3(0.5, 4.4, 0.5), D, nd)
+	_apply_art(post, "plank")
+	var board := MeshInstance3D.new()
+	var disk := CylinderMesh.new()
+	disk.top_radius = 1.0
+	disk.bottom_radius = 1.0
+	disk.height = 0.2
+	disk.radial_segments = 16
+	board.mesh = disk
+	nd.add_child(board)
+	board.position = _opos(o, d, x, h + 5.4)
+	board.rotation = Vector3(PI * 0.5, _oyaw(o, d), 0.0)
+	board.scale = Vector3(2.0, 1.0, 2.0)
+	_skin(board, "wall", Color("fff3dc"))
+	var rim := MeshInstance3D.new()
+	var tor := TorusMesh.new()
+	tor.inner_radius = 0.86
+	tor.outer_radius = 1.04
+	tor.rings = 16
+	tor.ring_segments = 6
+	rim.mesh = tor
+	board.add_child(rim)
+	_red(rim)
+	var lab := Label3D.new()
+	lab.text = tr("MAX") + "\n%.1f" % lim
+	lab.font = _font
+	lab.font_size = 110
+	lab.outline_size = 0
+	lab.modulate = Color("5a2a1a")
+	lab.pixel_size = 0.012
+	lab.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	lab.position = _opos(o, d, x, h + 5.4) + Vector3.UP * 0.05
+	nd.add_child(lab)
+
+
+## 다리가 부서진다: 돌 둘레 14m 발판·밧줄이 사라지고 나무 조각이 사방으로 튄다
+func _bridge_break(p: Vector3) -> void:
+	for n in bridge_parts:
+		if is_instance_valid(n) and (n as Node3D).visible and (n as Node3D).global_position.distance_to(p) < 14.0:
+			_burst((n as Node3D).global_position, A, 2, 10.0, 0.9)
+			(n as Node3D).visible = false
+	_burst(p, A, 12, 12.0, 1.0)
+	sfx("crush_m", 2.0, 0.8)
+	shake = maxf(shake, 0.9)
 
 func _thing(o: Dictionary, l: float, d: float, x: float, kind: String, z: Dictionary) -> Thing:
 	var th := Thing.new()
@@ -2179,7 +2261,7 @@ func _step(dt: float) -> void:
 			if fmod(crack_t, 0.12) < dt:
 				sfx("creak", -2.0)
 			if crack_t > 0.4:
-				_burst(_pos(dist, bx, by), A, 10, 9.0, 0.8)
+				_bridge_break(_pos(dist, bx, by))
 				_fall("와장창!")
 				_place(dt)
 				return
@@ -2397,7 +2479,9 @@ func _shot(dt: float) -> void:
 		return
 	shot_t -= dt
 	shot_d += shot_v * dt
-	shot.position = _pos(shot_d, shot_x, _h(shot_d) + 0.75)
+	shot.position = _pos(shot_d, shot_x, _h(shot_d) + 1.1)
+	if fmod(shot_t, 0.07) < dt:
+		_burst(shot.position, G_TOP, 1, 2.0, 0.45)  # 날아가는 길에 금빛 부스러기
 	shot.rotation = Vector3(-shot_d * 1.4, _yaw(shot_d), 0.0)
 	for th: Thing in things:
 		if th.flat:
@@ -4756,6 +4840,7 @@ func _lang() -> void:
 const HOWTO_EN := "ROCK AND STONE\nDrag to steer · too slow = out\nRoll all the way to the sea temple!"
 
 const EN := {
+	"MAX": "MAX",
 	# 실패 의성어
 	"와장창!": "Crash!",
 	"퐁당!": "Plop!",
