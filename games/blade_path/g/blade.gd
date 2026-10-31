@@ -183,6 +183,7 @@ var whiff_t := 0.0
 var fl := Vector3.ZERO
 var slow := 0.0
 var gp := false  # 지금 빈틈이 간파로 연 것인가 (헛공격하면 피해 없이 간파만 끝남)
+var tw_p := false  # 베기 검객 첫 칼을 간파 타이밍에 막았나 (두 칼 다 맞춰야 간파)
 var flash_t := 0.0
 var shake_t := 0.0
 var blink := 0.0
@@ -382,7 +383,7 @@ func _default_say() -> void:
 	for pk: Array in PERKS:
 		say["pk_%s" % pk[0]] = pk[1]
 		say["pkd_%s" % pk[0]] = pk[2]
-	say.merge({"parry": "간파!", "parry_go": "간파!\n지금 초록 쪽으로 베요!", "parry_twice": "간파!\n한 번 더 와요!", "block": "막기",
+	say.merge({"parry": "간파!", "parry_go": "간파!\n지금 초록 쪽으로 베요!", "parry_twice": "좋아요!\n두 번째도 맞춰야 간파!", "block": "막기",
 		"cut": "베기!", "x2": "간파 일격! x2", "link": "연격!", "whiff": "헛공격!  체력 -1\n빈틈을 보였어요",
 		"whiff_steady": "헛공격!\n빈틈을 보였어요", "eguard": "헛막기", "lose": "간파 놓침", "win": "승리!", "dead": "쓰러짐"})
 
@@ -1439,6 +1440,15 @@ func _lose_chance() -> void:
 
 
 func _parry(perfect: bool) -> void:
+	# 베기 검객의 두 칼: 둘 다 간파 타이밍에 막아야 간파. 하나만 맞추면 그냥 막기 (10/31)
+	var combos: Array = _pat()[2]
+	var first_p := false
+	if tut < 0 and _flag(combos[ci][mi]) == 1:
+		perfect = perfect and tw_p
+	elif tut < 0 and mi + 1 < combos[ci].size() and _flag(combos[ci][mi + 1]) == 1:
+		tw_p = perfect
+		first_p = perfect
+		perfect = false
 	# 연격이 오던 중: 그냥 막으면 연격 칼이 바로 들어오고, 간파하면 다 끊긴다
 	var linked := link and not perfect
 	_link_show(false)
@@ -1461,7 +1471,6 @@ func _parry(perfect: bool) -> void:
 	flash_t = 0.1
 	fl = Vector3(0, 0, -0.4)
 	_eyes()
-	var combos: Array = _pat()[2]
 	mi += 1
 	# 베기 검객의 두 번째 칼: 첫 칼을 간파해도 끊기지 않고 반드시 한 번 더 온다
 	var twice: bool = tut < 0 and mi < combos[ci].size() and _flag(combos[ci][mi]) == 1
@@ -1473,7 +1482,7 @@ func _parry(perfect: bool) -> void:
 			if _lv("leech") > 0 and life < max_life:
 				life = mini(max_life, life + _lv("leech"))
 		msg(_s("parry") if perfect else _s("block"), 0.6)
-	if perfect and twice:
+	if first_p:
 		msg(_s("parry_twice"), 0.7)
 	elif perfect:
 		slow = 0.7
