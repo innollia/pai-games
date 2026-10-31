@@ -2179,7 +2179,10 @@ func _mb_reset() -> void:
 
 
 ## 빈 우체통 번호 (r 바로 옆, MB_R 안). 없으면 -1.
+## v17: 나는 우체통을 가운데 둔 화면 한 폭 안(|거리| < 화면 반폭)이면 넣는다 — 가장 가까운 것. 배달과 대시가 헷갈리던 것
 func _mb_at(r: Courier) -> int:
+	if not r.ai:
+		return _mb_near_pl(r)
 	for i in mailboxes.size():
 		var mb: Dictionary = mailboxes[i]
 		var d: float = float(mb.x) - r.p.x
@@ -2223,12 +2226,37 @@ func _gold_tick() -> void:
 
 ## v14: 내 앞 POST_AHEAD 안의 빈 우체통 (같은 높이쯤). 있으면 짐 버튼 = 배달 (초록), 없으면 -1.
 func _post_ahead(r: Courier) -> int:
+	if not r.ai:
+		return _mb_near_pl(r)
 	for i in mailboxes.size():
 		var mb: Dictionary = mailboxes[i]
 		var d: float = float(mb.x) - r.p.x
 		if _mb_ok(mb, r) and d > -POST_BACK and d < POST_AHEAD and r.p.y - float(mb.y) > -1.5 and r.p.y - float(mb.y) < 3.0:
 			return i
 	return -1
+
+
+## v17: 나의 배달 범위 = 우체통 중심 화면 한 폭 (가로 |d| < hwv, 세로는 화면 안쯤). 가장 가까운 빈 우체통, 없으면 -1
+func _mb_near_pl(r: Courier) -> int:
+	var best := -1
+	var bd := hwv
+	for i in mailboxes.size():
+		var mb: Dictionary = mailboxes[i]
+		var d := absf(float(mb.x) - r.p.x)
+		if _mb_ok(mb, r) and d < bd and absf(r.p.y - float(mb.y)) < vhv * 0.8:
+			best = i
+			bd = d
+	return best
+
+
+## v17: 멀리서 넣은 짐이 우체통까지 포물선으로 날아간다 (어디에 넣었는지 보이게)
+func _fly_parcel(from: Vector3, to: Vector3) -> void:
+	var n := box(from, Vector3(0.5, 0.4, 0.5), PARCEL, stage)
+	var tw := n.create_tween()
+	tw.tween_method(func(u: float) -> void:
+		n.position = from.lerp(to, u) + Vector3(0.0, sin(u * PI) * (1.5 + absf(to.x - from.x) * 0.15), 0.0)
+		n.rotation.z = -u * TAU * 0.75, 0.0, 1.0, 0.32)
+	tw.tween_callback(n.queue_free)
 
 
 ## sr_hud: 짐 버튼을 초록 '배달'로 그릴지
@@ -2248,6 +2276,8 @@ func _deliver(r: Courier) -> bool:
 		return false
 	var mb: Dictionary = mailboxes[i]
 	var val: int = mb.val
+	if not r.ai and absf(float(mb.x) - r.p.x) > 1.5:
+		_fly_parcel(Vector3(r.p.x, r.p.y + 1.6, 0.4), Vector3(float(mb.x), float(mb.y) + 2.0, 0.4))
 	r.cargo -= 1
 	r.got += val
 	r.posts += 1

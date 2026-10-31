@@ -412,7 +412,7 @@ func _fill_bubble() -> void:
 			_bubble.text = "점프로 상자를 넘어!" if ko else "Jump the crate!"
 			_bubble.icon = "icon_jump"
 		2:
-			_bubble.text = "우체통 가까이 [짐]이 초록 = 배달! 달리면서 눌러" if ko else "BOX turns green near a mailbox: tap to post on the run!"
+			_bubble.text = "우체통이 화면에 보이면 [짐]이 초록 = 탭해서 배달!" if ko else "Mailbox on screen? BOX turns green: tap to post!"
 			_bubble.icon = "icon_parcel"
 		3:
 			_bubble.text = "다른 곳에서 [짐] = 던지고 대시!" if ko else "Tap BOX elsewhere: throw one and DASH!"
