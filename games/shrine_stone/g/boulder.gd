@@ -2364,6 +2364,13 @@ func _step(dt: float) -> void:
 		if absf(dd) > 14.0:
 			continue
 		var sz: Vector3 = th.kd.size
+		if (th.kd == KIND.pillar or th.kd == KIND.post) and by < th.base + sz.y and by + s > th.base:
+			# 기둥은 둥글다: 원과 원으로 맞닿음을 보고 그 면을 따라 튕긴다 (네모 판정은 모서리를 스치기만 해도 박혔다)
+			var rel := Vector2(dist - th.d, bx - th.x)
+			var rr := s * 0.5 + sz.x * 0.5
+			if rel.length() < rr:
+				_pillar_hit(th, rel, rr)
+			continue
 		if absf(dd) < (s + sz.z) * 0.5 and absf(th.x - bx) < (s + sz.x) * 0.45 and by < th.base + sz.y * 0.8 and by + s > th.base:
 			if th.kd == KIND.wall and not on_ground and by > th.base + sz.y * 0.3:
 				# 담 위쪽 모서리만 스쳤다: 넉백하지 않고 담 위로 넘겨 준다
@@ -2657,6 +2664,44 @@ func _crush(th: Thing, mm: float, slow := true) -> void:
 		play("good")
 
 
+## 기둥에 맞닿음: 맞은 면 바깥으로 밀어내고, 들어오던 속도를 그 면에 비춰 되튕긴다.
+## 정면이면 뒤로 튀며 크게 느려지고, 비스듬하면 옆으로 미끄러지며 조금만 느려진다. 붉은 깜빡임·찌그러짐 없음.
+func _pillar_hit(th: Thing, rel: Vector2, rr: float) -> void:
+	var n := rel.normalized() if rel.length() > 0.01 else Vector2(-1.0, 0.0)
+	var vel := Vector2(v, (x_goal - bx) * 4.0)
+	var vn := vel.dot(n)
+	dist = th.d + n.x * (rr + 0.05)
+	bx = th.x + n.y * (rr + 0.05)
+	if vn >= 0.0:
+		return  # 이미 떨어지는 중: 밀어내기만
+	vel -= 1.5 * vn * n  # 반발 0.5
+	var lat := vel.y
+	if absf(n.y) < 0.2:
+		# 거의 정면: 둥근 면이라 어느 한쪽으로 미끄러져 나간다 (한가운데 박혀 멈추지 않게)
+		var side := signf(n.y) if absf(n.y) > 0.01 else (1.0 if int(th.d) % 2 == 0 else -1.0)
+		lat += side * maxf(6.0, -vn * 0.4)
+	# 그쪽에 빠져나갈 자리가 없으면(용암 가장자리·길 끝) 반대로 미끄러진다
+	var room_w := _cave_hw(dist) if underground and cave_span.size() >= 2 else float(pd.hw[_oi(pd, dist)])
+	if room_w - absf(bx) < s * 0.6 and signf(lat) == signf(bx):
+		lat = -lat
+	if vel.x < 0.0:
+		dist += vel.x * 0.12  # 정면: 뒤로 튄다
+	v = maxf(absf(vel.x) * (0.35 if vel.x < 0.0 else 1.0), minf(v, VSTOP + 2.0))
+	x_goal = bx + lat * 0.3
+	if -vn > 6.0 and bump_t <= 0.0:
+		bump_t = 0.3
+		shake = clampf(-vn / 40.0, 0.2, 0.7)
+		_hitstop(0.05)
+		sfx("bonk", -2.0 + clampf(-vn / 10.0, 0.0, 3.0), randf_range(0.9, 1.1))
+		_burst(_pos(th.d + n.x * _pillar_r(th), th.x + n.y * _pillar_r(th), by + s * 0.5), th.shard_tint, 5, 7.0, 0.5, th.shard)
+		bonk_at = clock
+		bonk_why = "쿵!"
+
+
+func _pillar_r(th: Thing) -> float:
+	return float((th.kd.size as Vector3).x) * 0.5
+
+
 func _bonk(th: Thing) -> void:
 	var sz: Vector3 = th.kd.size
 	if bool(th.kd.get("soft", false)):
@@ -2675,29 +2720,6 @@ func _bonk(th: Thing) -> void:
 			msg("더 커지거나\n직전에 쪼개서 돌진!", 0.9)
 		else:
 			msg("쪼개서 돌진!\n아니면 더 빨리", 0.9)
-		return
-	if th.kd == KIND.pillar or th.kd == KIND.post:
-		# 기둥: 붉게 깜빡이는 대신 진짜로 튕겨 난다 (뒤로 밀리고, 기둥 반대쪽 옆으로 튀고, 살짝 뜬다)
-		var away := signf(bx - th.x) if absf(bx - th.x) > 0.05 else (1.0 if randf() < 0.5 else -1.0)
-		# 그쪽에 몸이 빠져나갈 틈이 없으면(벽·길 끝) 반대쪽으로 튕긴다: 같은 기둥에 계속 박히지 않게
-		var room_w := _cave_hw(dist) if underground and cave_span.size() >= 2 else float(pd.hw[_oi(pd, dist)])
-		if room_w - away * th.x - sz.x * 0.5 < s * 1.05:
-			away = -away
-		dist = minf(dist, th.d - (s + sz.z) * 0.5 - 0.6)
-		v = maxf(v * 0.45, minf(v, VSTOP + 3.0))
-		bx = th.x + away * ((s + sz.x) * 0.45 + 0.3)
-		x_goal = bx + away * (2.5 + v * 0.05)
-		if on_ground:
-			vy = 6.0
-			on_ground = false
-			by += 0.05
-		bump_t = 0.35  # 붉은 깜빡임(hurt)·찌그러짐 없이 튕기기만
-		shake = 0.7
-		_hitstop(0.06)
-		sfx("bonk", 0.0, randf_range(0.9, 1.1))
-		_burst(_pos(dist + s * 0.5, bx, by + s * 0.5), th.shard_tint, 5, 7.0, 0.5, th.shard)
-		bonk_at = clock
-		bonk_why = "쿵!"
 		return
 	v *= 0.3
 	dist = minf(dist, th.d - (s + sz.z) * 0.5 - 0.2)

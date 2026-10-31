@@ -3,7 +3,7 @@ extends Node
 ## 새 게임의 기반으로 쓸 때: g/boulder.gd 를 고치거나, g/ 에 Tofu 를 extends 한 새 파일을 만들고 GAME 을 바꾼다.
 
 const GAME := "boulder"
-const GVER := 21  # speed_tofu main.gd GAME_VER["boulder"] (tools/sync.ps1 이 맞춘다). 평가 ver = "v<GVER> <빌드>"
+const GVER := 22  # speed_tofu main.gd GAME_VER["boulder"] (tools/sync.ps1 이 맞춘다). 평가 ver = "v<GVER> <빌드>"
 
 var game: Tofu
 var from_tofu := false  # SPEED 두부 목록(?from=tofu)에서 왔으면 "<" 가 목록으로 돌아간다
