@@ -347,6 +347,16 @@ var _dbg_np := {}  # 외곽선 끈 재질 -> 원래 next_pass
 
 
 func _setup() -> void:
+	# v18 글꼴: 표지 그림(둥근 굵은 선)에 맞춰 영어는 Fredoka SemiBold(OFL), 한글은 주아체(OFL), 둘 다 없는 기호(→ ▼)는 Pretendard
+	var fred := load("res://fonts/Fredoka.ttf") as FontFile
+	var jua := load("res://fonts/Jua-Regular.ttf") as FontFile
+	if fred and jua:
+		jua.fallbacks = [_font]
+		fred.fallbacks = [jua]
+		var fv := FontVariation.new()
+		fv.base_font = fred
+		fv.variation_opentype = {TextServerManager.get_primary_interface().name_to_tag("wght"): 600}
+		_font = fv
 	_dpr_cap()
 	_lang()
 	time_limit = 0.0
@@ -424,6 +434,9 @@ func _setup() -> void:
 	_tags_build()
 	_v7_hud_build()
 	_dbg_build()
+	_skip_on = OS.get_cmdline_user_args().has("skip")
+	if OS.has_feature("web"):
+		_skip_on = str(JavaScriptBridge.eval("location.search.indexOf('skip=1')>=0?'y':'n'", true)) == "y"
 
 
 ## v8 성능 (웹): 고해상도 폰(devicePixelRatio 3 등)은 화면 픽셀을 다 그리면 GPU 가 벅차다.
@@ -577,35 +590,41 @@ func _person(dir: Vector3, body: Color, hat: Color) -> Node3D:
 
 
 ## 포스티 조립: 몸(눌림 스프링) · 입 · 왕눈 둘 · 정수리 편지 · 옆 깃발 · 국수 다리 둘(허벅지 → 정강이+발)
+## v18: 표지·타이틀 그림에 맞춤 — 아치 지붕 상자 몸, 앞 문짝에 같은 크기 왕눈 둘 세로, 테두리 있는 투입구 입, 왼쪽 노란 깃발, 노란 굵은 다리·발 (편지는 숨김)
 func _build_posty() -> void:
 	p_body = Node3D.new()
 	me_body.add_child(p_body)
 	p_body.position = Vector3(0, HIP_Y - 0.03, 0)
 	_proc("posty_body", Callable(self, "_shape_posty_body"), p_body)
+	# v18: 표지처럼 — 입(투입구)은 앞 문짝 아래, 테두리 안에
 	p_mouth = _proc("posty_mouth", Callable(self, "_shape_posty_mouth"), p_body)
-	p_mouth.position = Vector3(0, 0.3, -0.35)
+	p_mouth.position = Vector3(0, P_MOUTH_Y, -P_HD - 0.055)
 	p_eyes.clear()
 	p_pupils.clear()
-	# v9: 눈 둘을 세로로 — 위 눈은 정수리에 솟고 아래 눈은 앞 얼굴에
-	for ey: Array in [[Vector3(0, 0.9, -0.06), 0.16], [Vector3(0, 0.62, -0.3), 0.13]]:
+	# v18: 표지처럼 같은 크기 왕눈 둘을 앞 문짝에 세로로 (위 눈은 지붕 바로 아래, 아래 눈은 입 바로 위). 앞으로 불룩 튀어나온다
+	# v18 고침: 위 눈을 지붕 위로 살짝 내밀어 등 뒤 카메라에서도 왕눈 끝이 보이게
+	for ey: Array in [[Vector3(0, 0.74, -P_HD - 0.04), P_EYE_R], [Vector3(0, 0.5, -P_HD - 0.04), P_EYE_R]]:
 		var e := Node3D.new()
 		p_body.add_child(e)
 		e.position = ey[0]
 		var w := _proc("eye_white", Callable(self, "_shape_eye_white"), e)
 		w.scale = Vector3.ONE * float(ey[1])
 		var pu := _proc("pupil", Callable(self, "_shape_pupil"), e)
-		pu.scale = Vector3.ONE * 0.08
-		pu.position = Vector3(0, 0, -0.11)
+		pu.scale = Vector3.ONE * P_EYE_R * 0.58  # v18: 표지처럼 큰 남색 눈동자
+		pu.position = Vector3(0, 0, -P_EYE_R * 0.6)
 		p_eyes.append(e)
 		p_pupils.append(pu)
+	# v18: 표지엔 정수리 편지가 없다 — 노드는 두고(흔들림 코드 그대로) 숨긴다
 	p_letter = _proc("posty_letter", Callable(self, "_shape_posty_letter"), p_body)
 	p_letter.position = Vector3(0, 0.84, 0.13)
+	p_letter.visible = false
+	# v18: 표지처럼 노란 깃발이 왼쪽 옆, 뒤쪽 위에 둥근 축으로 붙는다
 	p_flag = _proc("posty_flag", Callable(self, "_shape_posty_flag"), p_body)
-	p_flag.position = Vector3(0.39, 0.45, 0.05)
-	p_flag.rotation.x = PI / 2.0
+	p_flag.position = Vector3(-P_HW - 0.01, 0.55, P_HD * 0.4)
+	p_flag.rotation.x = -PI / 2.0
 	p_thighs.clear()
 	p_shins.clear()
-	for sx: float in [-0.14, 0.14]:
+	for sx: float in [-0.15, 0.15]:
 		var th := Node3D.new()
 		me_body.add_child(th)
 		th.position = Vector3(sx, HIP_Y, 0)
@@ -1920,6 +1939,7 @@ func _play(dt: float) -> void:
 	_vis(dt)
 	_dbg_add("vis+posty", t0)
 	_sail_btn(dt)
+	_skip_btn()
 	_help_tick(dt)
 	if fin_t > 0.0:
 		fin_t -= dt
@@ -2474,6 +2494,43 @@ func _items(dt: float, up: Vector3) -> void:
 	if _btns.has("drop"):
 		_btns["drop"].r = 90.0 + (24.0 * (0.5 + 0.5 * sin(clock * 9.0)) if over_tg else 0.0)
 		_btns["drop"].color = GOOD if over_tg else B
+
+
+## v18 건너뛰기 (?skip=1): 오른쪽 위 "건너뛰기" 버튼(PC는 N) = 남은 부탁 하나를 바로 끝낸다. 엔딩까지 빨리 보려는 시험용
+var _skip_on := false
+var _skip_shown := false
+
+
+func _skip_btn() -> void:
+	if not _skip_on:
+		return
+	var want := fin_t <= 0.0 and not won and die_t <= 0.0 and tow_t <= 0.0 and intro_k < 0.0
+	if want != _skip_shown:
+		_skip_shown = want
+		if want:
+			kit_button("skip", "Skip", Vector2(650, 470), 46.0, Color("8a6d3b"))
+		elif _btns.has("skip"):
+			_btns["skip"].pos = Vector2(-600, -600)
+			_btns["skip"].r = 1.0
+	if want and (kit_just("skip") or _kb_edge(KEY_N)):
+		var k := -1
+		for i in 5:
+			if js[i] != 2 and (i != 4 or js[3] == 2):
+				k = i
+				break
+		if k < 0:
+			return
+		if js[k] == 0:
+			js[k] = 1
+		# 들고 있던·떨어뜨린 물건은 치운다 (_deliver 와 같이)
+		item = ""
+		item_b.visible = false
+		ig_on = false
+		fall_on = false
+		ig_b.visible = false
+		_drop_btn(false)
+		ij = -1
+		_done(k)
 
 
 func _drop_btn(on: bool) -> void:
@@ -3712,7 +3769,7 @@ func _posty_anim(dt: float, spd: float, k: float) -> void:
 	if pup_off.length() > 0.12:
 		pup_off = pup_off.normalized() * 0.12
 	for pu in p_pupils:
-		pu.position = pup_off
+		pu.position = pup_off * (P_EYE_R / 0.19)  # v18: 눈이 작아진 만큼 눈동자 움직임도 줄여 흰자 밖으로 안 나가게
 	# 빨리 달리면 왕눈이 바람에 뒤로 눌린다
 	for e in p_eyes:
 		e.rotation.x = lerpf(e.rotation.x, 0.35 * k if grounded else 0.5, minf(1.0, dd * 6.0))
@@ -3723,7 +3780,7 @@ func _posty_anim(dt: float, spd: float, k: float) -> void:
 	mouth_o = lerpf(mouth_o, open, minf(1.0, dd * 10.0))
 	p_mouth.scale = Vector3(1.0 - mouth_o * 0.25, 1.0 + mouth_o * 2.6, 1.0)
 	# 깃발: 물건 들면 세우고 아니면 뒤로 눕힌다
-	var fl := 0.0 if item != "" else PI / 2.0
+	var fl := 0.0 if item != "" else -PI / 2.0  # v18: 진짜 우체통처럼 내리면 막대가 몸 옆을 따라 앞으로 눕는다
 	p_flag.rotation.x = lerpf(p_flag.rotation.x, fl, minf(1.0, dd * 7.0))
 	# 편지: 날 때 바람에 떤다
 	var fz := 0.0
@@ -4751,21 +4808,38 @@ const EYE_W := Color("fffdf7")
 const HIP_Y := 0.62
 const THIGH := 0.34
 const SHIN := 0.24
+# v18: 표지 포스티 비율 — 앞이 아치(문짝) 모양인 상자 우체통. 너비 0.76, 높이 0.83, 깊이 0.66
+const P_HW := 0.38  # 몸 반너비 (= 지붕 아치 반지름)
+const P_HD := 0.33  # 몸 반깊이 (앞 = -Z)
+const P_YS := 0.45  # 네모 아랫몸 높이 = 아치가 시작하는 높이
+const P_EYE_R := 0.12  # 왕눈 둘 같은 크기
+const P_MOUTH_Y := 0.27
+const POSTY_SIDE := Color("e0544a")  # v18: 표지처럼 옆·지붕은 한 톤 진한 빨강, 앞 문짝만 밝다
 
 
-## 몸: 위가 둥근 우체통 콩 (원점 = 엉덩이, 가운데 y 0.45), 아래 진한 띠
+## v18 몸: 표지처럼 아래는 네모, 위는 둥근 지붕(아치)인 상자 우체통 (원점 = 몸 바닥 가운데, 앞 = -Z).
+## 앞 문짝은 밝은 산호색 판으로 한 겹 덧대어 진한 테두리가 남고, 문짝 아래엔 입 테두리. 뒤도 같은 문짝(카메라는 주로 등 뒤)
 func _shape_posty_body() -> void:
-	_rs.seed = 21
-	_ico(Vector3(0, 0.45, 0), Vector3(0.4, 0.48, 0.37), 2, POSTY, POSTY.darkened(0.05), _rs)
-	_cyl(Vector3(0, 0.03, 0), Vector3.UP, 0.33, 0.37, 0.09, 10, POSTY.darkened(0.28), POSTY.darkened(0.28))
-	# 등의 작은 크림 우편 표지 (뒤에서 보는 카메라에 읽히게)
-	_slab(Vector3(0, 0.5, 0.36), Vector3(0.11, 0, 0), Vector3(0, 0.08, 0), Vector3(0, 0, 0.02), CREAM)
-	_slab(Vector3(0, 0.5, 0.375), Vector3(0.07, 0, 0), Vector3(0, 0.025, 0), Vector3(0, 0, 0.01), POSTY.darkened(0.2))
+	_slab(Vector3(0, P_YS * 0.5, 0), Vector3(P_HW, 0, 0), Vector3(0, P_YS * 0.5, 0), Vector3(0, 0, P_HD), POSTY_SIDE)
+	_cyl(Vector3(0, P_YS, P_HD), Vector3.FORWARD, P_HW, P_HW, P_HD * 2.0, 12, POSTY_SIDE, POSTY)
+	# 앞·뒤 문짝 (테두리 0.035 안쪽, 겉으로 0.03 나온다)
+	# v18 고침: 외곽선 껍질(몸 가운데서 0.05~0.1 부풀림)이 얇은 판의 안쪽 면을 겉면 밖으로 밀어내 등에 남색 원판이 보였다.
+	# 판을 몸속 깊이(0.2) 묻어 안쪽 면 껍질이 몸 안에 숨게 한다
+	var dr := P_HW - 0.035
+	var dy0 := 0.035
+	var dd := 0.23  # 문짝 전체 두께 (겉 0.03 + 몸속 0.2)
+	for s: float in [-1.0, 1.0]:
+		var col := POSTY if s < 0.0 else POSTY.darkened(0.04)
+		var z0 := s * (P_HD + 0.03 - dd)
+		_slab(Vector3(0, (dy0 + P_YS) * 0.5, z0 + s * dd * 0.5), Vector3(dr, 0, 0), Vector3(0, (P_YS - dy0) * 0.5, 0), Vector3(0, 0, dd * 0.5), col)
+		_cyl(Vector3(0, P_YS, z0), Vector3(0, 0, s), dr, dr, dd, 12, col, col)
+	# 입 테두리: 표지처럼 밝은 빨강 둥근 네모 판 (안의 남색 투입구는 p_mouth 가 따로 벌어진다). 같은 까닭으로 몸속 깊이 묻는다
+	_slab(Vector3(0, P_MOUTH_Y, -P_HD - 0.054 + 0.144), Vector3(0.17, 0, 0), Vector3(0, 0.062, 0), Vector3(0, 0, 0.144), POSTY.lightened(0.12))
 
 
-## 입 = 편지 투입구 (가운데 원점, 놀라면 위아래로 벌어진다)
+## 입 = 편지 투입구 (가운데 원점, 놀라면 위아래로 벌어진다). v18: 테두리 안에 들어가게 좁게
 func _shape_posty_mouth() -> void:
-	_slab(Vector3.ZERO, Vector3(0.19, 0, 0), Vector3(0, 0.035, 0), Vector3(0, 0, 0.03), NAVY)
+	_slab(Vector3.ZERO, Vector3(0.125, 0, 0), Vector3(0, 0.026, 0), Vector3(0, 0, 0.012), NAVY)
 
 
 ## 왕눈 흰자 (반지름 1, 크기는 노드 scale)
@@ -4786,21 +4860,24 @@ func _shape_posty_letter() -> void:
 	_tri(Vector3(-0.15, 0.2, -0.014), Vector3(0.15, 0.2, -0.014), Vector3(0, 0.1, -0.014), CREAM.darkened(0.12), Vector3(0, 0, -1))
 
 
-## 우체통 깃발: 막대가 +Y, 깃발은 앞(-Z)으로. 드는 중이면 세우고(0), 아니면 뒤로 눕힌다(PI/2)
+## 우체통 깃발: 막대가 +Y. 드는 중이면 세우고(0), 아니면 앞으로 눕힌다(-PI/2)
+## v18: 표지처럼 전부 노랑 — 몸 옆(왼쪽 -X)에 둥근 축, 노란 막대, 끝의 노란 깃발은 뒤(+Z)로
 func _shape_posty_flag() -> void:
-	_cyl(Vector3.ZERO, Vector3.UP, 0.025, 0.025, 0.34, 4, NAVY, NAVY)
-	_slab(Vector3(0, 0.28, -0.08), Vector3(0.014, 0, 0), Vector3(0, 0.055, 0), Vector3(0, 0, 0.085), D)
+	_cyl(Vector3(0.02, 0, 0), Vector3.LEFT, 0.065, 0.065, 0.045, 8, NOODLE.darkened(0.08), NOODLE)  # 둥근 축
+	_cyl(Vector3(-0.035, 0, 0), Vector3.UP, 0.03, 0.03, 0.42, 5, NOODLE, NOODLE)
+	_slab(Vector3(-0.035, 0.36, 0.1), Vector3(0.016, 0, 0), Vector3(0, 0.065, 0), Vector3(0, 0, 0.085), NOODLE)
 
 
+## v18: 표지처럼 굵은 국수 다리
 func _shape_thigh() -> void:
-	_cyl(Vector3.ZERO, Vector3.DOWN, 0.06, 0.055, THIGH, 6, NOODLE, NOODLE)
+	_cyl(Vector3.ZERO, Vector3.DOWN, 0.078, 0.07, THIGH, 6, NOODLE, NOODLE)
 
 
-## 정강이 + 둥근 발 (발끝이 앞 -Z)
+## 정강이 + 둥근 발 (발끝이 앞 -Z). v18: 표지처럼 발도 노란 둥근 장화 모양 (남색 신발 없음)
 func _shape_shin() -> void:
 	_rs.seed = 24
-	_cyl(Vector3.ZERO, Vector3.DOWN, 0.055, 0.05, SHIN, 6, NOODLE, NOODLE)
-	_ico(Vector3(0, -SHIN - 0.01, -0.05), Vector3(0.09, 0.06, 0.13), 1, NAVY, NAVY.lightened(0.1), _rs)
+	_cyl(Vector3.ZERO, Vector3.DOWN, 0.07, 0.068, SHIN, 6, NOODLE, NOODLE)
+	_ico(Vector3(0, -SHIN - 0.015, -0.06), Vector3(0.105, 0.075, 0.15), 1, NOODLE, NOODLE.darkened(0.06), _rs)
 
 
 ## 주민 몸 (변형 v: 0 풍차지기 키다리 캡슐·외눈, 1 우체부 쌓은 공, 2 정원사 넓적 방울, 3 노을 아이 작은 공, 4 꽃 친구 콩)
