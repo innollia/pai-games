@@ -26,7 +26,7 @@ const VIS_K := 1.4  # carried parcels / ghosts scale with the bigger body (BODY_
 const STEP := 0.55
 const RAMP_RUN := 1.8  # 경사로 길이 = 높이 × 이만큼
 const RAMP_DRAG := 14.0  # 오르막에서 더 깎이는 속도 (경사·짐 무게에 비례)
-const COYOTE := 0.1
+const COYOTE := 0.14  # v34: 0.1 -> 0.14 (끝에서 조금 늦게 눌러도 뛴다)
 const JBUF := 0.12
 const CAM_D := 22.0
 const BX0 := -60.0
@@ -3606,9 +3606,8 @@ func _runner(r: Courier, dt: float) -> void:
 		r.cut = false
 		r.sq = -0.3
 		_sfx("jump", r, -2.0)
-	if not r.cut and r.v.y > 0.0 and not r.i_jheld:
-		r.v.y *= 0.5
-		r.cut = true
+	# v34: 짧게 탭해도 점프는 끝까지 ("봇들은 점프 다 성공하는데 유저만 떨어져": 경쟁자는 늘 누르고 있고,
+	# 폰에서 탭하면 바로 위 속도가 반이 되어 높이 1/4 점프로 구덩이에 빠졌다). 누르는 길이로 높이를 바꾸지 않는다.
 	var ice := r.grounded and r.sup == 5
 	var acc := (GROUND_ACC if r.grounded else AIR_ACC) * (1.3 if r.slip else 1.0) * (0.2 if ice else 1.0) * (1.0 + 2.0 * r.catch)
 	if absf(mx) > 0.15:
@@ -4457,7 +4456,12 @@ func _draw_all() -> void:
 	_vis()
 	_draw_lantern()
 	if backdrop:
-		backdrop.position = Vector3(camx * 0.94, camy * 0.94, -18.0)
+		# v34: 그린 배경(폭 65)이 코스 끝까지 화면을 덮도록, 코스 가운데를 기준으로 코스 길이에 맞춰 조금만 밀린다
+		# (예전 0.94 는 270m 쯤부터 그림 끝이 보였다 "후반 맵 배경이 짧다")
+		var bd_mid := goal_x * 0.5
+		var margin := 32.5 - WIDE * (CAM_D + 18.0) / CAM_D - 1.5
+		var slide := clampf(margin / maxf(bd_mid + 20.0, 1.0), 0.0, 0.06)
+		backdrop.position = Vector3(camx - (camx - bd_mid) * slide, camy * 0.94, -18.0)
 	var k2 := (CAM_D - 1.6) / CAM_D
 	# 정전: 1등 바로 앞부터 화면 오른쪽 끝까지 가린다
 	var lead := _leader()
