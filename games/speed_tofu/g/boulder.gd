@@ -700,6 +700,7 @@ func _reset() -> void:
 	fork_rail_end = -1.0
 	hs_t = 0.0
 	slo_t = 0.0
+	bt_skill = ""
 	slo_k = 1.0
 	fall_t = 0.0
 	slow_t = 0.0
@@ -2041,6 +2042,12 @@ func _enter(z: Dictionary) -> void:
 			ltw.tween_property(bar, "position:y", y0, 0.25).set_trans(Tween.TRANS_BACK)
 	if def.skill != "":
 		_unlock(def.skill)
+		if not tutorial and not bt_seen.has(def.skill):
+			bt_seen[def.skill] = true
+			bt_skill = def.skill
+			slo_t = 3.5
+			slo_k = 0.15
+			guide(BT_TEXT.get(def.skill, ""))
 	if cur_k > 0:
 		play("good")
 		var i := int(z.start)
@@ -2178,8 +2185,17 @@ func _hitstop(sec: float, fov_kick := 0.0) -> void:
 
 ## 느린 동작: sec 실제 초 동안 판이 k 배로 흐른다
 func _slowmo(sec: float, k: float) -> void:
+	if bt_skill != "":
+		return  # 새 버튼 불릿타임 중에는 다른 느린 동작이 덮지 않는다
 	slo_t = maxf(slo_t, sec)
 	slo_k = k
+
+
+## 새 버튼 불릿타임: 어떤 버튼이 처음 생겼는지 (한 판에 한 번씩만, 다시 하기에서는 다시 안 뜬다)
+const BT_TEXT := {"jump": "새 버튼: 뛰기!\n틈 앞에서 눌러", "split": "새 버튼: 쪼개기!\n가벼워지고 잠깐 돌진",
+	"hold": "새 버튼: 버티기!\n떨어지며 누르면 내려찍기", "throw": "새 버튼: 던지기!\n점선이 초록이면 던져"}
+var bt_skill := ""
+var bt_seen: Dictionary = {}
 
 
 ## 충격 고리: p 에서 땅 위로 납작하게 퍼지며 사라진다
@@ -2368,8 +2384,13 @@ func _step(dt: float) -> void:
 		hs_t -= real_dt
 		dt *= 0.04
 	elif slo_t > 0.0:
+		if bt_skill != "" and kit_held(bt_skill):
+			slo_t = minf(slo_t, 0.7)
+			bt_skill = "_pressed"
 		slo_t -= real_dt
 		dt *= slo_k
+		if slo_t <= 0.0:
+			bt_skill = ""
 	clock += dt
 	if not won:
 		run_elapsed += dt
@@ -5485,6 +5506,8 @@ const EN := {
 	"절벽 · 버티기": "Cliffs · HOLD", "광장 · 위에서": "Plaza · From Above", "설산 · 눈 굴리기": "Snow Peak · Snowball",
 	"협곡 · 던지기": "Canyon · THROW", "해안 · 추격": "Coast · Chase", "조수 정원 · 물살 타기": "Tide Garden · Currents",
 	"공명 제단 · 눌렀다 놓기": "Echo Altar · Press and Release", "바다 신전 · 마지막 도약": "Sea Temple · Final Leap",
+	"새 버튼: 뛰기!\n틈 앞에서 눌러": "New button: JUMP!\nTap it before a gap", "새 버튼: 쪼개기!\n가벼워지고 잠깐 돌진": "New button: SPLIT!\nGet lighter and dash",
+	"새 버튼: 버티기!\n떨어지며 누르면 내려찍기": "New button: HOLD!\nHold while falling to slam", "새 버튼: 던지기!\n점선이 초록이면 던져": "New button: THROW!\nThrow when the line is green",
 	"물살을 타면 빨라진다 · 버티면 제자리": "Ride the current = speed up · HOLD = stay put", "물살을 타면 빨라진다!": "Riding the current speeds you up!", "눈 위를 구르면\n몸이 커진다!": "Roll on snow\nand your body grows!", "물살을 타고\n초록이면 던져": "Ride the current\nTHROW on green",
 	"황금 발판에서 버티기 → 힘이 차면 손을 떼 발사": "HOLD on the golden pad → when charged, let go to launch",
 	"키우고 → 던지고 → 가볍게 날아 바다 신전까지": "Grow → throw → fly light all the way to the sea temple",
