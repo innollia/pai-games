@@ -137,10 +137,10 @@ help.sail2	[도움 힌트] 또 그럴 때 (날다리 버튼 크게 깜빡)		연�
 help.drop1	[도움 힌트] 소포를 들고 굴뚝 달 근처 40초		굴뚝 위를 지날 때 '놓기'	Tap 'Drop' as you pass over the chimney	
 help.drop2	[도움 힌트] 또 그럴 때 (떨어질 자리 노란 점 크게)		발밑 노란 점이 굴뚝에 겹칠 때 '놓기'	Tap 'Drop' when the yellow dot below you is on the chimney	
 msg.all_done	[엔딩·끝 화면] 마지막 부탁이 장미가 아닐 때 알림		모든 부탁 완료!	All requests done!	
-ending.1	[엔딩·끝 화면] 모든 부탁 뒤 혼잣말 1	너?	발끝으로 총총 건넌 별마다 다정한 빛이 켜졌다.	A gentle light came on at every planet I tiptoed across.	
-ending.2	[엔딩·끝 화면] 혼잣말 2	너?	작고 외롭던 별들이 하늘 한가운데서 서로 웃는다.	The small, lonely planets smile at each other across the sky.	
-ending.3	[엔딩·끝 화면] 혼잣말 3	너?	차가운 유리 너머로 전해진 온기가 마음을 데운다.	Warmth passed through cold glass warms my heart.	
-ending.4	[엔딩·끝 화면] 혼잣말 4	너?	언젠가 또 바람이 불면, 다시 달려 날아가야지.	Someday, when the wind blows again, I'll run and fly once more.	
+ending.1	[엔딩·끝 화면] 모든 부탁 뒤 혼잣말 1	나레이션 (이름 없음)	발끝으로 총총 건넌 별마다 다정한 빛이 켜졌다.	A gentle light came on at every planet I tiptoed across.	
+ending.2	[엔딩·끝 화면] 혼잣말 2	나레이션 (이름 없음)	작고 외롭던 별들이 하늘 한가운데서 서로 웃는다.	The small, lonely planets smile at each other across the sky.	
+ending.3	[엔딩·끝 화면] 혼잣말 3	나레이션 (이름 없음)	차가운 유리 너머로 전해진 온기가 마음을 데운다.	Warmth passed through cold glass warms my heart.	
+ending.4	[엔딩·끝 화면] 혼잣말 4	나레이션 (이름 없음)	언젠가 또 바람이 불면, 다시 달려 날아가야지.	Someday, when the wind blows again, I'll run and fly once more.	
 end.win_head	[엔딩·끝 화면] 끝 화면 제목 (이김)		모든 부탁 완료!	All requests done!	
 end.win_msg	[엔딩·끝 화면] 끝 화면 글 (이김)		다섯 별이 모두 웃고 있어	All five planets are smiling	
 end.lose_head	[엔딩·끝 화면] 끝 화면 제목 (v17: 안 쓰임, 목숨 없음)		오늘은 여기까지	That's all for today	

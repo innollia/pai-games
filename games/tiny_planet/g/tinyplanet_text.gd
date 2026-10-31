@@ -176,10 +176,10 @@ const TEXT := {
 
 	# ---- 엔딩·끝 화면 ----
 	"msg.all_done": ["모든 부탁 완료!", "All requests done!"],  # 마지막 부탁이 장미가 아닐 때 알림 | -
-	"ending.1": ["발끝으로 총총 건넌 별마다 다정한 빛이 켜졌다.", "A gentle light came on at every planet I tiptoed across."],  # 모든 부탁 뒤 혼잣말 1 | 너?
-	"ending.2": ["작고 외롭던 별들이 하늘 한가운데서 서로 웃는다.", "The small, lonely planets smile at each other across the sky."],  # 혼잣말 2 | 너?
-	"ending.3": ["차가운 유리 너머로 전해진 온기가 마음을 데운다.", "Warmth passed through cold glass warms my heart."],  # 혼잣말 3 | 너?
-	"ending.4": ["언젠가 또 바람이 불면, 다시 달려 날아가야지.", "Someday, when the wind blows again, I'll run and fly once more."],  # 혼잣말 4 | 너?
+	"ending.1": ["발끝으로 총총 건넌 별마다 다정한 빛이 켜졌다.", "A gentle light came on at every planet I tiptoed across."],  # 모든 부탁 뒤 혼잣말 1 | 나레이션 (이름 없음)
+	"ending.2": ["작고 외롭던 별들이 하늘 한가운데서 서로 웃는다.", "The small, lonely planets smile at each other across the sky."],  # 혼잣말 2 | 나레이션 (이름 없음)
+	"ending.3": ["차가운 유리 너머로 전해진 온기가 마음을 데운다.", "Warmth passed through cold glass warms my heart."],  # 혼잣말 3 | 나레이션 (이름 없음)
+	"ending.4": ["언젠가 또 바람이 불면, 다시 달려 날아가야지.", "Someday, when the wind blows again, I'll run and fly once more."],  # 혼잣말 4 | 나레이션 (이름 없음)
 	"end.win_head": ["모든 부탁 완료!", "All requests done!"],  # 끝 화면 제목 (이김) | -
 	"end.win_msg": ["다섯 별이 모두 웃고 있어", "All five planets are smiling"],  # 끝 화면 글 (이김) | -
 	"end.lose_head": ["오늘은 여기까지", "That's all for today"],  # 끝 화면 제목 (v17: 안 쓰임, 목숨 없음) | -

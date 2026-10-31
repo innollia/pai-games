@@ -2137,6 +2137,7 @@ func _fly(dt: float) -> bool:
 			msg(tr(P.name), 0.8)
 	if dm >= 0:
 		passed[dm] = true
+	_collide_air()
 	up = p.normalized()
 	r = p.length()
 	air_t -= dt
@@ -2266,6 +2267,54 @@ func _collide(up: Vector3) -> void:
 					msg(_tx("msg.wall_gap") if rg.gap else _tx("msg.wall_high"), 0.7)
 	else:
 		ring_in = d < rr
+
+
+## v20 공중 부딪힘: 담 높이보다 낮게 날면 담에 막힌다 (걷다 살짝 떠서 굴뚝 담을 넘던 것), 장미 별 탑 위 큰 장미는 단단한 공
+func _collide_air() -> void:
+	var up := p.normalized()
+	var r := p.length()
+	if rings.has(cur):
+		var rg: Dictionary = rings[cur]
+		var rc: Vector3 = rg.c
+		var rr: float = rg.r
+		var d := up.angle_to(rc) * R
+		if r - R < float(rg.h) + 0.3 and absf(d - rr) < 0.5:
+			var pass_ := false
+			if rg.gap:
+				var v := up - rc * up.dot(rc)
+				var th := atan2(v.dot(rg.e2), v.dot(rg.e1))
+				var gc := (gap_a if rg.spin else 0.0) + (NW - 0.5) * TAU / NW
+				pass_ = absf(wrapf(th - gc, -PI, PI)) < 0.3
+			var axis := rc.cross(up)
+			if not pass_ and axis.length() > 0.001:
+				var td := rr - 0.5 if ring_in else rr + 0.5
+				p = rc.rotated(axis.normalized(), td / R) * r
+				var nu := p.normalized()
+				var o := rc - nu * rc.dot(nu)
+				if o.length() > 0.001:
+					o = o.normalized()
+					var vo := vel.dot(o)
+					# 담 쪽으로 가던 옆 속도만 없앤다 (조금 튕겨 나온다)
+					if (vo > 0.0) != ring_in:
+						vel -= o * vo * 1.3
+				if bump_cd <= 0.0:
+					bump_cd = 0.5
+					sfx("land", -4.0, 1.5)
+					msg(_tx("msg.wall_gap") if rg.gap else _tx("msg.wall_high"), 0.7)
+		elif absf(d - rr) >= 0.5:
+			ring_in = d < rr
+	if cur == 4:
+		var c := tower_d * (_sr(4, tower_d) + TOWER_H + 1.3)
+		var off := p - c
+		if off.length() < 1.75:
+			var n := off.normalized() if off.length() > 0.01 else tower_d
+			p = c + n * 1.75
+			var vn := vel.dot(n)
+			if vn < 0.0:
+				vel -= n * vn * 1.4
+			if bump_cd <= 0.0:
+				bump_cd = 0.5
+				sfx("land", -6.0, 1.2)
 
 
 ## 탈출선 대비 에너지: 땅에선 "지금 점프하면", 날 땐 지금 (0 = 땅, 1 = 탈출)
@@ -2689,7 +2738,7 @@ func _done(k: int) -> void:
 		sfx("win")
 		_emit("finish")
 		for i in 4:
-			_sayq(_tx("who.me"), _tx("ending.%d" % (i + 1)), 2.8)
+			_sayq("", _tx("ending.%d" % (i + 1)), 2.8)  # v20: 나레이션은 이름 없이 ("너?" 대사가 아니다)
 		return
 	if k == 4:
 		msg(_tx("msg.rose_smiles"), 1.8)
