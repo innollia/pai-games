@@ -5,29 +5,29 @@ Off the Screen! / 화면 밖 경주
 A four-courier delivery race: post parcels into mailboxes — but the leader can't see them coming, and the screen is only as wide as the parcels you all carry.
 
 # Long description
-Off the Screen! — race three rival couriers across six bright paper-craft towns. The winner is not the last one standing but whoever DELIVERS the most parcels: stop at a red mailbox and tap BOX to post one. Each mailbox takes one parcel, first come first served.
+Off the Screen! — race three rival couriers across six bright paper-craft towns. The winner is not the last one standing but whoever DELIVERS the most parcels. When a red mailbox is on screen, the BOX button turns green: tap it and your parcel flies in. Each mailbox takes one parcel, first come first served — and the gold mailbox before the finish is worth 3, but not for whoever reaches it first.
 
-The camera follows the leader, and the faster the leader runs, the less they see ahead — so the front-runner overshoots mailboxes while the couriers tucked in behind see them and grab them. When to lead and when to follow is the whole race. Fall off the left edge and you're "returned to sender": you drop a parcel and climb back in.
+The camera follows the leader, and the faster the leader runs, the less they see ahead — so the front-runner overshoots mailboxes while the couriers tucked in behind see them and grab them. When to lead and when to follow is the whole race. Fall off the torn left edge of the page and you're "returned to sender": you drop a parcel and climb back in. Fall too far behind and a catch-up boost brings you back into the fight.
 
-The screen's side walls are built from every parcel being carried, taped in each courier's color. Deliver, throw or lose a parcel and a brick pops out of the wall — the screen gets narrower and the race gets tighter. Parcels are also weight: carry more and you run slower and jump lower. Tap BOX away from a mailbox to throw one backward for a burst of speed.
+The screen's side walls are built from every parcel being carried, taped in each courier's color. Deliver, throw or lose a parcel and a brick pops out of the wall — the screen gets narrower and the race gets tighter. Parcels are also weight: carry more and you run slower and jump lower. Tap BOX away from a mailbox to throw one backward for a burst of speed — but every thrown parcel lands on the road for a rival to pick up and deliver.
 
 Each course plays differently: flowing riverbanks, a railway crossing with a train coming at you, blackouts in the night market, a rope bridge that cracks under heavy runners, rooftops with no walls. Crates and walls have ramps: walk up and you slow down (more with heavy parcels), jump over and you keep your speed. Between rounds pick the next route — low gate, ice slide or headwind — and your parcels and rank carry over.
 
 New spots flip the answer: scales launch heavy runners up, updrafts lift light ones, trapdoors break under heavy feet, shutters slam on whoever leads. Right after you learn one, it is mixed with an older one.
 
-Three modes: Classic; Night Lantern (the leader holds the only light — run too fast and it shakes); Overspeed (drop to 4 parcels or fewer for ceiling boosts and wall bounces). Finish all six courses and the final delivery, earn gold/silver/bronze per course, and beat your best delivery record.
+Three modes: Classic; Night Lantern (the leader holds the only light, and mailboxes only show inside it); Rush (carry 4 parcels or fewer for ceiling boosts and wall bounces). Finish all six courses and the final delivery, earn gold/silver/bronze per course, and beat your best delivery record.
 
 Theme: Speed — speed costs you: the leader can't see the mailboxes ahead, and the fastest way to go faster is to throw away the parcels you're supposed to deliver.
 
 빨리 달리면 앞이 안 보여 우체통을 지나친다. 앞설까, 뒤에 붙어 배달할까.
 
 # Controls
-Joystick left/right to run, JUMP button, PARCEL button (drop one for a burst). Portrait, touch only. Sound on!
+Stick left/right to run, JUMP to hop, BOX to deliver (green near a mailbox) or throw a parcel for a dash. A short hands-on tutorial teaches it in 30 seconds. Portrait, touch only. Sound on!
 
 # Tools used / AI disclosure
 Made by 핸섬가이즈 with AI tools.
-Tools used: Godot, Claude (Anthropic), Codex (OpenAI), GPT image generation (OpenAI), Blender.
-Code, planning and text were developed with Claude and Codex. Character and prop textures were painted with OpenAI image generation onto low-poly models built in Blender (texture3d pipeline); course backdrops are OpenAI-generated paintings. The cover image was made with OpenAI image generation. Sound effects were built from raw oscillators and noise rendered with nkido (MIT, no samples) and shaped in Python (numpy/scipy); no AI-generated audio. UI font: Pretendard. English is the default language; Korean is one tap away.
+Tools used: Godot, Claude (Anthropic), Codex (OpenAI), GPT image generation (OpenAI), Gemini (Google), Blender, nkido.
+Code, planning and text were developed with Claude and Codex; Gemini (Google, via Antigravity) wrote the UI design spec and reviewed screenshots. Character and prop textures were painted with OpenAI image generation onto low-poly models built in Blender (texture3d pipeline); course backdrops are OpenAI-generated paintings. The cover image was made with OpenAI image generation. Sound effects were built from raw oscillators and noise rendered with nkido (MIT, no samples) and shaped in Python (numpy/scipy); no AI-generated audio. UI font: Pretendard. English is the default language; Korean is one tap away.
 
 # Page settings
 Kind: HTML (embed 360×640, mobile friendly, orientation: portrait, fullscreen button on). Classification: Games. Genre: Racing. Visibility: Public (set at submission time). Comments: enabled.

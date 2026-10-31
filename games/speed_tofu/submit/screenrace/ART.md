@@ -2,6 +2,8 @@
 
 Written before asset production, 2026-10-30. Style: **Pocket Parcel Town**.
 
+> Update 2026-10-31: the couriers, parcel, train and bridge board were remodeled to match the cover (`cover.png`, side-by-side check `work/cover_match.png`): big-head paper-toy couriers with a `run_loop` animation, parcels stacked in one tall column on the back. UI art (logo, icons, mode art, seals, tutorial panels, paper grain) lives in `art/screenrace/ui/` (`LIST.md`); UI rules in `DESIGN_SYSTEM.md`. Backdrops are unchanged (user: "배경은 아직은 괜찮아").
+
 Chunky folded-paper toys with hand-painted gouache surfaces. A courier has a large cap, peach face, small forward nose, short jacket, mitten hands and oversized running shoes. Boxes belong on the back, behind the head silhouette; never bake a cargo stack into the courier. Rounded/chamfered silhouettes, broad wedges and a few confident brush marks; no outlined placeholder cubes, photographic texture or random fine noise.
 
 ## Palette and light
