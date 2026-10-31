@@ -410,6 +410,8 @@ var kinds := PackedInt32Array()  # 0 바닥 1 점프대 3 흐름 4 판 5 얼음 
 var ramp_of := {}  # 경사로 상자 번호 -> 1 오른쪽 오르막 / -1 오른쪽 내리막
 var ramp_hit_y := 0.0
 var decor_n := 0
+var art_mesh := {}  # v20: 그림 모델 하나를 메시 하나로 합친 것 {이름: [ArrayMesh, AABB]} (상자·다리 판처럼 많이 놓는 것)
+var crack_over: StandardMaterial3D = null  # v20: 그림 입힌 다리 판에 금이 가면 덮는 빨간 막
 var sfx_pool: Array = []
 var sfx_bank := {}
 var sfx_i := 0
@@ -1194,6 +1196,59 @@ func _art_model(asset: String, parent: Node3D, pos := Vector3.ZERO, height := 1.
 	return false
 
 
+## v20: 모델의 메시를 전부 합쳐 하나로 (부품 27개짜리 다리 판을 판마다 27번 그리지 않게). 없으면 null.
+func _art_merged(asset: String) -> Array:
+	if art_mesh.has(asset):
+		return art_mesh[asset]
+	art_mesh[asset] = []
+	var path := "res://art/screenrace/%s.glb" % asset
+	if not ResourceLoader.exists(path):
+		return []
+	var model := (load(path) as PackedScene).instantiate()
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var mt: Material = null
+	var pending: Array = [[model, Transform3D.IDENTITY]]
+	var n := 0
+	while not pending.is_empty():
+		var entry: Array = pending.pop_back()
+		var node: Node = entry[0]
+		var tr: Transform3D = entry[1]
+		if node is Node3D:
+			tr = tr * (node as Node3D).transform
+		if node is MeshInstance3D and (node as MeshInstance3D).mesh:
+			var mi := node as MeshInstance3D
+			for k in mi.mesh.get_surface_count():
+				st.append_from(mi.mesh, k, tr)
+				n += 1
+				if mt == null:
+					mt = mi.get_active_material(k)
+		for child in node.get_children():
+			pending.append([child, tr])
+	model.free()
+	if n == 0:
+		return []
+	var am := st.commit()
+	if mt:
+		am.surface_set_material(0, mt)
+	art_mesh[asset] = [am, am.get_aabb()]
+	return art_mesh[asset]
+
+
+## v20: 그림 모델을 상자 하나(가운데 center, 크기 size)에 꼭 맞게 늘려 놓는다. 못 놓으면 null.
+func _art_fit(asset: String, parent: Node3D, center: Vector3, size: Vector3) -> MeshInstance3D:
+	var am := _art_merged(asset)
+	if am.is_empty():
+		return null
+	var ab: AABB = am[1]
+	var m := MeshInstance3D.new()
+	m.mesh = am[0]
+	m.scale = Vector3(size.x / ab.size.x, size.y / ab.size.y, size.z / ab.size.z)
+	m.position = center - ab.get_center() * m.scale
+	parent.add_child(m)
+	return m
+
+
 func _build_backdrop() -> void:
 	var names := ["market", "riverside", "crossing", "night_market", "bridge", "rooftops"]
 	var keys: Array = ["night", "night_market"] if mode == "lantern" else [names[ci]]
@@ -1703,7 +1758,7 @@ func _seg(s: String) -> void:
 				rects.append(rc)
 				kinds.append(4)
 				var bn := box(Vector3(rc.get_center().x, rc.get_center().y, 0), Vector3(1.5, 0.3, 2.4), BOARD, stage)
-				var bd := {"i": rects.size() - 1, "node": bn, "home": bn.position, "t": -1.0, "gone": false, "vy": 0.0}
+				var bd := {"i": rects.size() - 1, "node": bn, "home": bn.position, "t": -1.0, "gone": false, "vy": 0.0, "art": _board_art(bn)}
 				boards.append(bd)
 				board_of[rects.size() - 1] = bd
 			_plat(gx + 10.0, fy, 14.0, cdef.top)
@@ -1841,7 +1896,7 @@ func _seg(s: String) -> void:
 				rects.append(rc)
 				kinds.append(4)
 				var bn := box(Vector3(rc.get_center().x, rc.get_center().y, 0), Vector3(1.45, 0.35, 2.2), BOARD, stage)
-				var bd := {"i": rects.size() - 1, "node": bn, "home": bn.position, "t": -1.0, "gone": false, "vy": 0.0}
+				var bd := {"i": rects.size() - 1, "node": bn, "home": bn.position, "t": -1.0, "gone": false, "vy": 0.0, "art": _board_art(bn)}
 				boards.append(bd)
 				board_of[rects.size() - 1] = bd
 			var bw := n * 1.5
@@ -1946,6 +2001,14 @@ func _bump(x: float, y: float, w: float, h: float, c: Color, front := 9.0, back 
 	if back >= 1.2:
 		var bl := minf(rl, back)
 		_ramp(x + w, y, bl, h, -1, BOARD, BOARD.darkened(0.3))
+	# v20: 장애물 상자 = 그림 나무 상자 쌓기 (정사각에 가깝게 n단). 그림이 없으면 예전 종이 상자
+	if not _art_merged("crate").is_empty():
+		rects.append(Rect2(x, y, w, h))
+		kinds.append(0)
+		var n := maxi(1, roundi(h / w))
+		for k in n:
+			_art_fit("crate", stage, Vector3(x + w * 0.5, y + h * (k + 0.5) / n, 0), Vector3(w + 0.04, h / n, 2.4))
+		return
 	_block(Rect2(x, y, w, h), c)
 
 
@@ -2387,8 +2450,8 @@ func _start_round() -> void:
 				g.material_overlay = null
 		if r.ai:
 			var lv := ci * 0.6  # 코스 6개를 예전 4개 난이도 폭에 맞춘다
-			r.skill = AI_SKILL0 + 0.025 * lv + (runners.find(r) - 2) * 0.02
-			r.err = 0.2 - 0.03 * lv
+			r.skill = AI_SKILL0 - _ai_ease() + 0.025 * lv + (runners.find(r) - 2) * 0.02
+			r.err = 0.2 - 0.03 * lv + _ai_ease()
 			r.dive = randf() < 0.45
 			r.bold = randf()
 		r.lost = 0.0
@@ -2403,6 +2466,8 @@ func _start_round() -> void:
 		bn.rotation = Vector3.ZERO
 		bn.visible = true
 		bn.material_override = mat(BOARD)
+		if bd.get("art") != null:
+			(bd.art as MeshInstance3D).material_overlay = null
 	for tr in trains:
 		tr.st = "wait"
 		tr.t = randf_range(1.5, 3.5)
@@ -2758,6 +2823,14 @@ func _train_hit(r: Courier) -> void:
 	# v12: 빈손이면 튕겨 나가기만 한다 (탈락 없음)
 
 
+## v20: 다리 판(흔들다리·꺼지는 바닥)에 그림 목판을 입힌다. 종이 상자는 숨기고(메시만 빼서), 움직임은 그대로 bn 이 맡는다.
+func _board_art(bn: MeshInstance3D) -> MeshInstance3D:
+	var m := _art_fit("bridge_board", bn, Vector3.ZERO, Vector3(1.04, 1.0, 1.0))  # bn 의 scale 이 이미 판 크기
+	if m:
+		bn.mesh = null
+	return m
+
+
 ## 흔들다리: 무게 BREAK_W 이상으로 밟은 판은 금이 가고 BREAK_T 뒤 떨어진다
 func _crack(i: int, r: Courier) -> void:
 	var bd: Dictionary = board_of.get(i, {})
@@ -2765,6 +2838,13 @@ func _crack(i: int, r: Courier) -> void:
 		return
 	bd.t = 0.0
 	(bd.node as MeshInstance3D).material_override = mat(CRACK)
+	if bd.get("art") != null:
+		if crack_over == null:
+			crack_over = StandardMaterial3D.new()
+			crack_over.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			crack_over.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			crack_over.albedo_color = Color(CRACK, 0.55)
+		(bd.art as MeshInstance3D).material_overlay = crack_over
 	_snd(r, 330.0, 0.06, 200.0, 0.14)
 	if r == pl and not bridge_said:
 		bridge_said = true
@@ -3019,6 +3099,11 @@ func _round_decided() -> int:
 	return 2
 
 
+## v20: 첫 동네는 경쟁자를 느리고 서툴게 (폰 평가 "처음 할 때 상대가 너무 잘해"). 둘째 동네는 반, 셋째부터 예전 그대로.
+func _ai_ease() -> float:
+	return [0.12, 0.06][ci] if ci < 2 else 0.0
+
+
 ## 따라잡기 (v13): 선두보다 뒤일수록 최고 속도 보너스 (CATCH_NEAR 안이면 0, 반 화면 = hwv 뒤면 CATCH_MAX).
 ## 화면 둘 넘게 뒤에서 FAR_T 넘게 있으면 왼쪽 끝으로 다시 들어온다 (늘 화면 안에서 다툰다).
 func _catchup(dt: float) -> void:
@@ -3038,6 +3123,8 @@ func _catchup(dt: float) -> void:
 			r.catch *= clampf(1.0 - (r.p.x - camx) / maxf(hwv * 0.3, 0.5), 0.0, 1.0)
 		if r.nudge > 0.0:
 			r.catch = maxf(r.catch, CATCH_MAX * tn("catchup"))
+		if r.ai and ci == 0:
+			r.catch *= 0.5  # v20: 첫 동네의 경쟁자는 덜 따라붙는다
 		# 한참 뒤 순간이동: 나는 늘, 경쟁자는 판마다 한 번 (되풀이로 화면이 어지럽지 않게)
 		if behind > hwv * 2.0 * FAR_SCREENS and (r == pl or not r.far_used):
 			r.far_t += dt
@@ -3634,7 +3721,7 @@ func _ai(r: Courier, dt: float) -> void:
 			var mb: Dictionary = mailboxes[mi]
 			if r.mb_seen != mi:
 				r.mb_seen = mi
-				var p := clampf(0.55 + 2.0 * (r.skill - AI_SKILL0), 0.5, 0.7) * tn("ai")  # v14: 기술만큼 55 ~ 70% (실험판 배수)
+				var p := clampf(0.55 + 2.0 * (r.skill - AI_SKILL0), 0.35 if ci < 2 else 0.5, 0.7) * tn("ai")  # v14: 기술만큼 55 ~ 70% (v20: 첫 두 동네는 35%까지)
 				var fast := clampf((absf(r.v.x) - RUN_MAX * 0.7) / (RUN_MAX * 0.4), 0.0, 1.0)
 				if _leader() == r:
 					p -= 0.35 * fast + 0.1

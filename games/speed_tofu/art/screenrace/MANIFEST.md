@@ -8,7 +8,7 @@
 | bg_market.webp | 37046 | 코스 배경 1024×512 그림, 폭 65 단위 |
 | bg_night_market.webp | 20936 | 코스 배경 1024×512 그림, 폭 65 단위 |
 | bg_riverside.webp | 30218 | 코스 배경 1024×512 그림, 폭 65 단위 |
-| bridge_board.glb | 175220 | 1,188 tris. 나뭇결이 보이는 넓은 목판, 양 끝 세 겹 로프와 매듭. 기존 장착 상태 유지 |
+| bridge_board.glb | 175220 | 1,188 tris. 나뭇결이 보이는 넓은 목판, 양 끝 세 겹 로프와 매듭. 흔들다리·꺼지는 바닥 판(_board_art, 메시 하나로 합쳐 씀) |
 | bridge_board_props_atlas.jpg | 143114 | 이전 GLB에서 추출된 보존 파일. 새 GLB는 내장 atlas 사용 |
 | courier_blue.glb | 212496 | 1,480 tris. 커버형 큰 머리 종이 배달부, 파랑 모자·셔츠, 아래 공통 규격 |
 | courier_blue_courier_blue.jpg | 134914 | 이전 GLB에서 추출된 보존 파일. 새 GLB는 내장 atlas 사용 |
@@ -18,11 +18,11 @@
 | courier_gold_courier_gold.jpg | 130875 | 이전 GLB에서 추출된 보존 파일. 새 GLB는 내장 atlas 사용 |
 | courier_mint.glb | 212496 | 1,480 tris. 커버형 큰 머리 종이 배달부, 민트 초록 모자·셔츠 |
 | courier_mint_courier_mint.jpg | 132878 | 이전 GLB에서 추출된 보존 파일. 새 GLB는 내장 atlas 사용 |
-| crate.glb | 152136 | 만들었지만 아직 안 붙임(코스 상자 풀 교체 필요) |
+| crate.glb | 152136 | 장애물 상자(_bump) 쌓기, crates 구간 장식 |
 | crate_props_atlas.jpg | 143114 | GLB가 쓰는 텍스처(가져오기 때 풀려 나옴) |
 | lantern.glb | 171892 | 밤 등불 모드 등불 |
 | lantern_props_atlas.jpg | 143114 | GLB가 쓰는 텍스처(가져오기 때 풀려 나옴) |
-| market_stall.glb | 182348 | 만들었지만 아직 안 붙임(코스 상자 풀 교체 필요) |
+| market_stall.glb | 182348 | 평지 뒤 장식(_decor) |
 | market_stall_props_atlas.jpg | 143114 | GLB가 쓰는 텍스처(가져오기 때 풀려 나옴) |
 | parcel.glb | 92164 | 324 tris. 크라프트 상자, 날카로운 빨강 테이프 십자와 크림색 배송 라벨. 등짐·바닥 짐에 사용 |
 | parcel_props_atlas.jpg | 143114 | 이전 GLB에서 추출된 보존 파일. 새 GLB는 내장 atlas 사용 |
