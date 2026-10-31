@@ -206,6 +206,7 @@ var arrow_mesh: ArrayMesh
 # v7: 쪼개기 돌진, 수로 밑 수정 동굴(떨어지면 딴 세상)
 var dash_t := 0.0
 var crumble: Array = []  # [거리, 조각] 고르지 않은 갈래 조각: 돌이 다가가면 무너진다
+var bump_t := 0.0  # 기둥에 튕긴 직후: 붉은 깜빡임 없이
 var look_soft := 0.0  # 갈래를 고른 직후 카메라를 천천히 돌린다
 var zone_queue: Array = []  # 나눠 짓는 중인 구역 (한 프레임에 한 조각)
 var bridge_signs: Array = []  # [원, 재질, 버티는 크기, 판]
@@ -1037,7 +1038,7 @@ func _edge_tick(dt: float) -> void:
 	var over := absf(bx) - hw
 	if on_ground and over > 0.0:
 		x_goal += signf(bx) * 10.0 * dt * clampf(over / maxf(s * 0.35, 0.3), 0.0, 1.0)
-	elif not on_ground and over > -s * 0.5 and by < _h(dist) - 0.2 and by > _h(dist) - 6.0:
+	elif not on_ground and over > 0.0 and is_nan(_ground(dist, bx)) and by < _h(dist) - 0.2 and by > _h(dist) - 6.0:
 		bx = signf(bx) * (hw + s * 0.5 + 0.05)
 		x_goal = bx
 
@@ -1438,7 +1439,7 @@ func _draw_road(o: Dictionary, a: int, b: int, z: Dictionary) -> void:
 		var h: float = o.hh[q]
 		var tg: String = o.tg[q]
 		var fq := float(q)
-		if def.posts and q % 30 == 0:
+		if false and def.posts and q % 30 == 0:  # 길 옆 눈금 막대: 판 밖 허공에 떠 보여서 뺐다
 			var sd := 1.0 if (q / 30) % 2 == 0 else -1.0
 			var post := box(_opos(o, fq, sd * (hw + 1.2), h + 1.5), Vector3(0.8, 3.0, 0.8), WHITE, nd)
 			_apply_art(post, "pillar", WHITE if sd > 0.0 else def.accent.lightened(0.35))
@@ -2825,6 +2826,27 @@ func _bonk(th: Thing) -> void:
 		else:
 			msg("쪼개서 돌진!\n아니면 더 빨리", 0.9)
 		return
+	if th.kd == KIND.pillar or th.kd == KIND.post:
+		# 기둥: 붉게 깜빡이는 대신 진짜로 튕겨 난다 (뒤로 밀리고, 기둥 반대쪽 옆으로 튀고, 살짝 뜬다)
+		var away := signf(bx - th.x) if absf(bx - th.x) > 0.05 else (1.0 if randf() < 0.5 else -1.0)
+		dist = minf(dist, th.d - (s + sz.z) * 0.5 - 0.6)
+		v = maxf(v * 0.45, minf(v, VSTOP + 3.0))
+		bx = th.x + away * ((s + sz.x) * 0.45 + 0.3)
+		x_goal = bx + away * (2.5 + v * 0.05)
+		if on_ground:
+			vy = 6.0
+			on_ground = false
+			by += 0.05
+		hurt = 0.4
+		bump_t = 0.4
+		shake = 0.7
+		sq = 0.4
+		_hitstop(0.06)
+		sfx("bonk", 0.0, randf_range(0.9, 1.1))
+		_burst(_pos(dist + s * 0.5, bx, by + s * 0.5), th.shard_tint, 5, 7.0, 0.5, th.shard)
+		bonk_at = clock
+		bonk_why = "쿵!"
+		return
 	v *= 0.3
 	dist = minf(dist, th.d - (s + sz.z) * 0.5 - 0.2)
 	hurt = 0.5
@@ -2990,7 +3012,8 @@ func _place(dt: float) -> void:
 		ball.rotation.z = sin(clock * 16.0) * 0.07 * clampf((VSTOP * 1.8 - v) / VSTOP, 0.0, 1.0)
 	ball.scale = Vector3.ONE * s
 	_streaks(dt, yw)
-	ball.material_override = _art_mat("stone", Color("ff7a6a")) if hurt > 0.0 and fmod(hurt, 0.2) < 0.1 else art_materials["stone"]
+	bump_t -= get_process_delta_time()
+	ball.material_override = _art_mat("stone", Color("ff7a6a")) if hurt > 0.0 and bump_t <= 0.0 and fmod(hurt, 0.2) < 0.1 else art_materials["stone"]
 	if dash_t > 0.0 and hurt <= 0.0 and fmod(dash_t, 0.16) < 0.08:
 		ball.material_override = _art_mat("stone", C.lightened(0.3))  # 돌진 중: 쪼개기 색으로 물든 돌 그림이 깜빡
 	var q := floori(ang / (PI * 0.5))
@@ -3024,7 +3047,7 @@ func _place(dt: float) -> void:
 	var up := Vector3.UP
 	var fov := 55.0
 	# 지하에서는 위에서 내려다보는 카메라가 길 판 위에 걸리므로 낮은 등뒤로
-	match ("low" if underground and mode != "side" else mode):
+	match ("low" if underground and (mode != "side" or cave_span.size() >= 2) else mode):
 		"side":
 			off = rt * (34.0 + v * 0.4 + s * 1.5) + fw * (8.0 + v * 0.12) + Vector3.UP * (3.0 + s * 0.5)
 			look = fw * (12.0 + v * 0.2) + Vector3.UP * (1.0 + s * 0.4)
