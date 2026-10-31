@@ -3,7 +3,7 @@ config_version=5
 
 [application]
 
-config/name="Shrine Stone"
+config/name="Rock and Stone"
 run/main_scene="res://main.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 run/max_fps=60

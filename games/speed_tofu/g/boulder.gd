@@ -79,6 +79,8 @@ class Thing:
 	var base := 0.0
 	var flat := false
 	var col := Color.WHITE
+	var shard := "chip"          # 깨질 때 튀는 조각 그림
+	var shard_tint := Color.WHITE
 
 
 var Z: Array = []      # 구역 설계 (_zones_def)
@@ -682,8 +684,7 @@ func _reset() -> void:
 			sp.radial_segments = 12
 			sp.rings = 6
 			puff.mesh = sp
-			puff.material_override = mat(WHITE)
-			puff.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			_skin(puff, "chip")  # 흰 붓결 구름
 			clouds.add_child(puff)
 			puff.position = cc + Vector3((q - 1) * 14.0, (6.0 if q == 1 else 0.0), 0.0).rotated(Vector3.UP, -a)
 			puff.scale = Vector3(24, 10, 16) * (1.25 if q == 1 else 1.0)
@@ -716,28 +717,37 @@ func _reset() -> void:
 	shot.visible = false
 	aim_dots.clear()
 	for i in 10:
-		var n := box(Vector3.ZERO, Vector3(0.7, 0.16, 0.7), GOOD)
+		# 조준 점: 납작한 조약돌 (색은 붓결 위에 초록·노랑·빨강)
+		var n := box(Vector3.ZERO, Vector3(0.8, 0.3, 0.8), GOOD)
+		n.mesh = _shard_mesh(i)
+		n.material_override = _shard_mat("chip", GOOD)
+		n.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		n.visible = false
 		aim_dots.append(n)
 	aim_bar = box(Vector3.ZERO, Vector3(8.4, 0.5, 0.5), GOOD)
+	_skin(aim_bar, "chip", GOOD)
 	aim_bar.visible = false
 	aim_legs.clear()
 	for i in 2:
 		var n := box(Vector3.ZERO, Vector3(0.4, 1.6, 0.4), GOOD)
+		_skin(n, "chip", GOOD)
 		n.visible = false
 		aim_legs.append(n)
 	aim_ok = false
-	# 파편·바람 줄은 미리 만들어 돌려 쓴다
+	# 파편·바람 줄은 미리 만들어 돌려 쓴다. 파편 = 모난 낮은 다각 조각 (깨진 것의 그림을 입는다)
 	bits.clear()
 	for i in 16:
-		var n := box(Vector3.ZERO, Vector3.ONE * 0.5, WHITE)
+		var n := MeshInstance3D.new()
+		n.mesh = _shard_mesh(i)
+		n.material_override = _shard_mat("chip")
+		n.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		n.visible = false
+		world.add_child(n)
 		bits.append({"n": n, "v": Vector3.ZERO, "life": 0.0, "max": 1.0, "sz": 0.5})
 	streaks.clear()
 	for i in 14:
-		var n := box(Vector3.ZERO, Vector3(0.09, 0.09, 1.0), WHITE)
+		var n := _wind_node(world)
 		n.visible = false
-		n.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		streaks.append({"n": n, "d": 30.0 * i / 14.0 - 8.0, "x": 0.0, "y": 0.0, "p": false})
 	# 충격 고리: 착지·탑 깨기 때 땅 위로 퍼지는 납작한 고리
 	rings.clear()
@@ -752,6 +762,7 @@ func _reset() -> void:
 		rm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		rm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		rm.cull_mode = BaseMaterial3D.CULL_DISABLED
+		rm.albedo_texture = load(ART_ROOT + "chip.png") as Texture2D  # 붓결 고리 (색·투명은 _ring 이 정한다)
 		var rn := MeshInstance3D.new()
 		rn.mesh = tm
 		rn.material_override = rm
@@ -763,9 +774,12 @@ func _reset() -> void:
 	dust.clear()
 	dust_t = 0.0
 	for i in 14:
-		var n := box(Vector3.ZERO, Vector3.ONE, WHITE)
+		var n := MeshInstance3D.new()
+		n.mesh = _puff_mesh()
+		n.material_override = _shard_mat("chip", _dust_col())
 		n.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		n.visible = false
+		world.add_child(n)
 		dust.append({"n": n, "life": 0.0, "max": 1.0, "v": Vector3.ZERO, "sz": 1.0})
 	# 도장·조각·점수 튐은 판이 바뀌면 다 거둔다
 	if stamp_layer:
@@ -798,6 +812,7 @@ func _reset() -> void:
 		var n := box(Vector3.ZERO, Vector3.ONE, BAD)
 		_stone_mesh(n)
 		var warning := box(Vector3(0, -0.45, 0), Vector3.ONE, BAD, n)
+		_red(warning)
 		var disk := CylinderMesh.new()
 		disk.height = 0.08
 		disk.top_radius = 0.62
@@ -1032,6 +1047,7 @@ func _zone_items(z: Dictionary) -> void:
 		z.item += 1
 	z.end = float(_len())
 	_extras(z)
+	_cull_far(z.node)
 	_relist()
 
 
@@ -1135,8 +1151,7 @@ func _lane(o: Dictionary, la: float, lb: float, x: float, dy: float, nd: Node3D)
 		return
 	var ss := []
 	for i in 6:
-		var n := box(Vector3.ZERO, Vector3(0.16, 0.16, 3.6), WHITE, nd)
-		n.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		var n := _wind_node(nd)
 		ss.append({"n": n, "ph": randf() * float(pts.size() - 1), "ox": randf_range(-1.5, 1.5), "oy": randf_range(0.0, 2.0)})
 	lanes.append({"pts": pts, "yw": yws, "s": ss})
 
@@ -1160,17 +1175,16 @@ func _lane_tick(dt: float) -> void:
 			var yw := lerpf(yws[k], yws[k + 1], f)
 			var ox: float = sd.ox
 			var n: MeshInstance3D = sd.n
-			n.position = pts[k].lerp(pts[k + 1], f) + Vector3(cos(yw) * ox, float(sd.oy), -sin(yw) * ox)
-			n.rotation = Vector3(0.0, yw, 0.0)
 			# 양 끝에서는 짧아져 순간이동처럼 보이지 않는다
-			n.scale = Vector3(0.16, 0.16, 3.6 * clampf(sin(PI * ph / m) * 3.0, 0.05, 1.0))
-	var blink := B if fmod(clock, 0.5) < 0.25 else WHITE
+			var ll := 4.2 * clampf(sin(PI * ph / m) * 3.0, 0.05, 1.0)
+			_wind_place(n, pts[k].lerp(pts[k + 1], f) + Vector3(cos(yw) * ox, float(sd.oy), -sin(yw) * ox), Vector3(-sin(yw), 0.0, -cos(yw)), ll, ll * 0.26)
+	var blink := _pm("blue") if fmod(clock, 0.5) < 0.25 else _pm("chip")
 	for ck: Dictionary in floor_cracks:
 		if bool(ck.open) or absf(float(ck.a) - dist) > 70.0:
 			continue
 		for n in ck.seam:
 			if is_instance_valid(n):
-				(n as MeshInstance3D).material_override = mat(blink)
+				(n as MeshInstance3D).material_override = blink
 
 
 func _relist() -> void:
@@ -1220,6 +1234,7 @@ func _draw_road(o: Dictionary, a: int, b: int, z: Dictionary) -> void:
 		if ln > 5.0:
 			if tg == "aq":
 				var w := box(Vector3.ZERO, Vector3.ONE, WATER, nd)
+				_skin(w, "water", Color("c4dcff"))  # 수로 물: 물살판(청록)보다 푸르게
 				w.basis = bs
 				w.scale = Vector3(hw, 0.1, ln + 0.4)
 				w.position = (p0 + p1) * 0.5 + up * 0.04
@@ -1227,6 +1242,7 @@ func _draw_road(o: Dictionary, a: int, b: int, z: Dictionary) -> void:
 				# 난간 밧줄 + 발판 줄무늬
 				for sd: float in [-1.0, 1.0]:
 					var e := box(Vector3.ZERO, Vector3.ONE, WHITE, nd)
+					_skin(e, "chip", Color("e9d3a6"))  # 삼끈 빛 밧줄
 					e.basis = bs
 					e.scale = Vector3(0.18, 0.18, ln + 0.4)
 					e.position = (p0 + p1) * 0.5 + rt * sd * (hw + 0.1) + up * 1.3
@@ -1243,6 +1259,7 @@ func _draw_road(o: Dictionary, a: int, b: int, z: Dictionary) -> void:
 					if (tg == "mouthL" and sd < 0.0) or (tg == "mouthR" and sd > 0.0):
 						continue
 					var e := box(Vector3.ZERO, Vector3.ONE, Color("24566b"), nd)
+					_skin(e, "pit")  # 턱 줄: 짙은 청록 붓결
 					e.basis = bs
 					e.scale = Vector3(0.22, 0.1, ln + 0.4)
 					e.position = (p0 + p1) * 0.5 + rt * sd * (hw - 0.2) + up * 0.04
@@ -1298,6 +1315,7 @@ func _draw_road(o: Dictionary, a: int, b: int, z: Dictionary) -> void:
 						_column(o, fq, sd * (hw + 5.0), h + rng.randf_range(5.0, 10.0), 6.0, [A, B, C, WHITE].pick_random(), nd)
 				if tg == "plaza" and q % 12 == 6:
 					var st := box(_opos(o, fq, 0.0, h + 0.08), Vector3(hw * 2.0, 0.12, 1.0), WHITE, nd)
+					_skin(st, "wall", Color("fff1d6"))
 					st.rotation = Vector3(atan(float(o.hh[q + 1]) - h), o.yw[q], 0.0)
 			"coast":
 				if q % 40 == 0:
@@ -1310,6 +1328,7 @@ func _draw_road(o: Dictionary, a: int, b: int, z: Dictionary) -> void:
 					var top := h + rng.randf_range(3.0, 7.0)
 					_column(o, fq, x, top, 2.2, Color("4fbf6a"), nd)
 					var cap := box(_opos(o, fq, x, top + 0.6), Vector3(3.2, 1.4, 3.2), WHITE, nd)
+					_skin(cap, "snowfield")
 					cap.rotation.y = o.yw[q]
 				if q % 60 == 0:
 					var sd := -1.0 if (q / 60) % 2 == 0 else 1.0
@@ -1343,6 +1362,7 @@ func _make_things(it: Dictionary, o: Dictionary, loc0: float, d0: float, z: Dict
 				for x: float in [-4.0, 0.0, 4.0]:
 					var marker := box(_opos(o, loc0 + d, x, _oh(o, loc0 + d) + 0.24), Vector3(1.6, 0.12, 1.6), WHITE, z.node)
 					marker.mesh = _flow_arrow()
+					_skin(marker, "chip")
 					marker.scale = Vector3.ONE
 					marker.rotation = Vector3(0.0, _oyaw(o, loc0 + d) + (PI if float(f[4]) < 0.0 else 0.0), 0.0)
 					markers.append(marker)
@@ -1353,6 +1373,7 @@ func _make_things(it: Dictionary, o: Dictionary, loc0: float, d0: float, z: Dict
 			_plate(o, loc0 + float(f[0]), loc0 + float(f[1]), -8.0, 8.0, D, z.node, 0.08)
 			for d in range(int(f[0]) + 4, int(f[1]), 8):
 				var m := box(_opos(o, loc0 + d, 0.0, _oh(o, loc0 + d) + 0.22), Vector3(6, 0.15, 1), WHITE, z.node)
+				_skin(m, "chip")
 				m.rotation.y = _oyaw(o, loc0 + d)
 				nodes.append(m)
 			drums.append({"a": d0 + float(f[0]), "b": d0 + float(f[1]), "nodes": nodes})
@@ -1387,6 +1408,7 @@ func _make_things(it: Dictionary, o: Dictionary, loc0: float, d0: float, z: Dict
 					while mark < loc0 + float(pp[1]) - 2.0:
 						for sd: float in [-1.0, 1.0]:
 							var stripe := box(_opos(o, mark, (float(pp[2]) + float(pp[3])) * 0.5 + sd * 0.65, _oh(o, mark) + 0.23), Vector3(0.18, 0.08, 1.8), ICE, z.node)
+							_skin(stripe, "pit")
 							stripe.rotation.y = _oyaw(o, mark) + sd * 0.6
 						mark += 9.0
 				if key == "sun":
@@ -1394,6 +1416,7 @@ func _make_things(it: Dictionary, o: Dictionary, loc0: float, d0: float, z: Dict
 					var l := loc0 + float(pp[0]) + 4.0
 					while l < loc0 + float(pp[1]) - 2.0:
 						var st := box(_opos(o, l, (float(pp[2]) + float(pp[3])) * 0.5, _oh(o, l) + 0.1), Vector3(float(pp[3]) - float(pp[2]) - 1.0, 0.1, 0.8), A, z.node)
+						_skin(st, "sand", Color("ffb066"))  # 햇살 무늬: 금빛 모래에 주황
 						st.rotation.y = _oyaw(o, l)
 						l += 11.0
 	if it.has("holes"):
@@ -1433,8 +1456,7 @@ func _plate(o: Dictionary, la: float, lb: float, x0: float, x1: float, col: Colo
 		var p0 := _opos(o, d, xm, _oh(o, d))
 		var p1 := _opos(o, next, xm, _oh(o, next))
 		var m := box(Vector3.ZERO, Vector3.ONE, col, nd)
-		if col == BAD:
-			_red(m)
+		_plate_skin(m, col)
 		m.basis = Basis.looking_at((p1 - p0).normalized(), Vector3.UP)
 		m.scale = Vector3(x1 - x0, 0.2, (p1 - p0).length() + 0.02)
 		m.position = (p0 + p1) * 0.5 + Vector3.UP * lift
@@ -1454,6 +1476,7 @@ func _arch_o(o: Dictionary, d: float, lim: float, nd: Node3D) -> void:
 	var yw := _oyaw(o, d)
 	for sd: float in [-1.0, 1.0]:
 		var p := box(_opos(o, d, sd * (hw + 0.8), h + lim * 0.5), Vector3(1.0, lim, 1.0), D, nd)
+		_apply_art(p, "plank")  # 흔들다리 나무 기둥
 		p.rotation.y = yw
 		var cap := box(_opos(o, d, sd * (hw + 0.8), h + lim + 0.3), Vector3(1.6, 0.6, 1.6), BAD, nd)
 		_red(cap)
@@ -1470,6 +1493,9 @@ func _thing(o: Dictionary, l: float, d: float, x: float, kind: String, z: Dictio
 	th.col = (th.kd.col as Array).pick_random()
 	th.n = box(_opos(o, l, x, th.base + sz.y * 0.5), sz, th.col, z.node)
 	th.n.rotation.y = _oyaw(o, l)
+	var look: Array = SHARD_OF.get(kind, ["chip", th.col])
+	th.shard = look[0]
+	th.shard_tint = look[1]
 	if kind in ["pot", "pillar", "post", "crystal", "vein"]:
 		var shape := CylinderMesh.new()
 		shape.radial_segments = 6
@@ -1478,9 +1504,11 @@ func _thing(o: Dictionary, l: float, d: float, x: float, kind: String, z: Dictio
 		shape.top_radius = 0.0 if kind in ["crystal", "vein"] else (0.34 if kind == "pot" else 0.5)
 		th.n.mesh = shape
 	if kind in ["pot", "pillar", "post", "crystal", "vein"]:
-		# 위험 기둥은 연어빛: 빨강 = 위험 하나로 읽힌다
 		var art := "pillar" if kind == "post" else ("crystal" if kind == "vein" else kind)
-		_apply_art(th.n, art, Color("ffb3a6") if kind in ["pillar", "post"] else Color.WHITE)
+		_apply_art(th.n, art)
+		if kind in ["pillar", "post"]:
+			# 위험 기둥 = 붉은 흙빛(테라코타)으로 칠한 신전 기둥: 같은 홈·얼룩 그림에 색만 붉게. 빨강 = 위험 하나로 읽힌다
+			_skin(th.n, "pillar_red")
 	elif kind == "house":
 		_apply_art(th.n, "temple")
 	elif kind == "door":
@@ -1514,19 +1542,48 @@ func _thing(o: Dictionary, l: float, d: float, x: float, kind: String, z: Dictio
 		_apply_art(th.n, "temple", D)
 	if th.kd.get("slam", false):
 		# 파란 머리 + 둘레 띠: 버티기 버튼 색. 위에서 보이도록 크게.
-		box(Vector3(0, 0.56, 0), Vector3(1.3, 0.14, 1.3), B, th.n)
-		box(Vector3(0, 0.2, 0), Vector3(1.08, 0.06, 1.08), B, th.n)
+		_skin(box(Vector3(0, 0.56, 0), Vector3(1.3, 0.14, 1.3), B, th.n), "blue")
+		_skin(box(Vector3(0, 0.2, 0), Vector3(1.08, 0.06, 1.08), B, th.n), "blue")
 		return th
 	if bool(th.kd.get("soft", false)):
 		_seal_marks(th, kind)  # 숨은 길 봉인: 빨간 띠 없음(위험이 아니라 선택), 여는 동작 색 무늬
 		return th
+	var ring_band := kind == "pillar" or kind == "post"
 	if float(th.kd.need) > 90.0 or kind == "ice":
-		_red(box(Vector3(0, -0.43, 0), Vector3(1.05, 0.18, 1.05), BAD, th.n))
+		var foot := _red(box(Vector3(0, -0.43, 0), Vector3(1.05, 0.18, 1.05), BAD, th.n))
+		if ring_band:
+			foot.mesh = _band_mesh()
 	if kind == "house":
 		_roof(th.n)
-	elif kind == "pillar" or kind == "post":
-		_red(box(Vector3(0, 0.46, 0), Vector3(1.4, 0.08, 1.4), BAD, th.n))
+	elif ring_band:
+		# 기둥머리 아래 가는 붉은 띠 (둥근 고리라 기둥 홈에 감긴다)
+		var band := _red(box(Vector3(0, 0.46, 0), Vector3(1.22, 0.07, 1.22), BAD, th.n))
+		band.mesh = _band_mesh()
 	return th
+
+
+## 기둥에 감는 둥근 띠 (모두 같이 쓴다)
+var band_mesh: CylinderMesh
+
+
+func _band_mesh() -> CylinderMesh:
+	if band_mesh == null:
+		band_mesh = CylinderMesh.new()
+		band_mesh.radial_segments = 12
+		band_mesh.rings = 1
+		band_mesh.top_radius = 0.5
+		band_mesh.bottom_radius = 0.5
+		band_mesh.height = 1.0
+	return band_mesh
+
+
+## 깨진 것마다 튀는 조각 그림 [그림, 색]: 항아리는 사금파리, 기둥은 테라코타, 울타리는 나무, 수정은 자수정, 얼음은 얼음결
+const SHARD_OF := {
+	"pot": ["potshard", Color.WHITE], "statue": ["wall", Color("fff1d6")], "pillar": ["roof", Color.WHITE], "post": ["roof", Color.WHITE],
+	"fence": ["wood", Color.WHITE], "house": ["roof", Color.WHITE], "wall": ["wall", Color.WHITE], "ice": ["snowfield", Color("8fd0ff")],
+	"icedoor": ["snowfield", Color("8fd0ff")], "crystal": ["amethyst", Color.WHITE], "vein": ["amethyst", Color.WHITE],
+	"tower": ["chip", Color("cfe6ff")], "gold": ["sand", Color.WHITE], "door": ["wall", Color("efe1c4")],
+}
 
 
 ## 봉인 무늬 = 여는 버튼 색: 돌문은 쪼개기 보라 지그재그 금, 얼음판은 눈(키우기) 흰 서리 띠, 수정 하나는 밝은 받침
@@ -1536,11 +1593,12 @@ func _seal_marks(th: Thing, kind: String) -> void:
 			var zz := [[-0.2, 0.25, 0.7], [0.1, 0.0, -0.7], [-0.1, -0.25, 0.7]]
 			for q: Array in zz:
 				var sm := box(Vector3(float(q[0]), float(q[1]), 0.0), Vector3(0.06, 0.32, 1.06), C, th.n)
+				_skin(sm, "amethyst")
 				sm.rotation.z = float(q[2])
 		"icedoor":
-			box(Vector3(0, 0.3, 0), Vector3(1.04, 0.06, 1.04), WHITE, th.n)
+			_skin(box(Vector3(0, 0.3, 0), Vector3(1.04, 0.06, 1.04), WHITE, th.n), "snowfield")
 		"vein":
-			box(Vector3(0, -0.45, 0), Vector3(1.1, 0.1, 1.1), C.lightened(0.3), th.n)
+			_skin(box(Vector3(0, -0.45, 0), Vector3(1.1, 0.1, 1.1), C.lightened(0.3), th.n), "chip", C.lightened(0.3))
 
 
 ## 게이지 금빛 눈금: 80m 안에 '이 속도면 뚫리는' 봉인이 있으면 그 속도 자리에. 그만큼 빠르면 초록
@@ -1565,6 +1623,16 @@ func _ram_gauge() -> void:
 
 
 ## 구역이 다 이어진 뒤: 바닥, 신전, 다음 구역 문
+## 멀리 있는 작은 것은 그리지 않는다: 폰에서 그리기 호출을 줄인다 (큰 신전·바닥판·하늘 기둥은 늘 보인다)
+func _cull_far(n: Node) -> void:
+	for c in n.get_children():
+		if c is MeshInstance3D:
+			var m := c as MeshInstance3D
+			if m.scale.length() < 40.0 and m.visibility_range_end <= 0.0:
+				m.visibility_range_end = 230.0
+		_cull_far(c)
+
+
 func _extras(z: Dictionary) -> void:
 	var def: Dictionary = Z[z.k]
 	var nd: Node3D = z.node
@@ -1580,7 +1648,12 @@ func _extras(z: Dictionary) -> void:
 	var fy := mn - (3.0 if z.k == Z.size() - 1 else (DEEP + 4.0 if z.k == 1 and not tutorial else 30.0))
 	var mid := (lo + hi) * 0.5
 	var margin := 600.0 if z.k == Z.size() - 1 else 80.0
-	box(Vector3(mid.x, fy, mid.y), Vector3(hi.x - lo.x + margin, 1.0, hi.y - lo.y + margin), def.floor, nd)
+	var flr := box(Vector3(mid.x, fy, mid.y), Vector3(hi.x - lo.x + margin, 1.0, hi.y - lo.y + margin), def.floor, nd)
+	# 아래 바닥: 물이면 물결, 아니면 그 색 붓결 (넓어서 그림을 여러 번 깐다)
+	if def.floor == WATER:
+		_skin(flr, "water", Color("c4dcff"), 12.0)
+	else:
+		_skin(flr, "chip", def.floor, 12.0)
 	if int(z.k) == Z.size() - 1:
 		var temple_d := goal_d + 24.0
 		var temple := box(_pos(temple_d, 0.0, _h(temple_d) + 11.0), Vector3(40, 24, 20), STONE, nd)
@@ -1738,6 +1811,11 @@ func _far_build(k: int, cave := false) -> void:
 		var bot := -220.0
 		var m := box(Vector3(cos(a) * r, (h + bot) * 0.5, sin(a) * r), Vector3(w, h - bot, w * 0.8), col, far)
 		m.rotation.y = rng.randf_range(0.0, PI)
+		# 먼 실루엣도 칠한 그림: 도시 = 신전 기둥, 나머지 = 지층 띠 절벽 (하늘색 쪽으로 물든 채)
+		if def.far == "city":
+			_apply_art(m, "pillar", col.lightened(0.1))
+		else:
+			_skin(m, "strata", col.lightened(0.12))
 		if def.far == "peak":
 			var peak := CylinderMesh.new()
 			peak.radial_segments = 6
@@ -1760,7 +1838,11 @@ func _far_build(k: int, cave := false) -> void:
 
 
 ## 파편 n개를 p 에서 튀긴다 (미리 만든 상자를 돌려 쓴다)
-func _burst(p: Vector3, col: Color, n: int, spd: float, sz := 0.5) -> void:
+func _burst(p: Vector3, col: Color, n: int, spd: float, sz := 0.5, tex := "") -> void:
+	# 조각 그림: tex 를 주면 그 그림에 col 색, 아니면 색으로 그림을 고른다 (재질은 모두 캐시)
+	var look: Array = [tex, col] if tex != "" else _shard_look(col)
+	var tint: Color = look[1]
+	var sm := _shard_mat(str(look[0]), tint)
 	for b: Dictionary in bits:
 		if n <= 0:
 			break
@@ -1768,9 +1850,9 @@ func _burst(p: Vector3, col: Color, n: int, spd: float, sz := 0.5) -> void:
 			continue
 		var bn: MeshInstance3D = b.n
 		bn.visible = true
-		bn.material_override = mat(col)
+		bn.material_override = sm
 		bn.position = p + Vector3(randf_range(-0.5, 0.5), randf_range(0.0, 0.6), randf_range(-0.5, 0.5))
-		bn.rotation = Vector3(randf() * TAU, randf() * TAU, 0.0)
+		bn.rotation = Vector3(randf() * TAU, randf() * TAU, randf() * TAU)
 		b.v = Vector3(randf_range(-1.0, 1.0), randf_range(0.6, 1.4), randf_range(-1.0, 1.0)) * spd
 		b.max = randf_range(0.5, 0.9)
 		b.life = b.max
@@ -1952,7 +2034,7 @@ func _dust(dt: float) -> void:
 		if float(p.life) > 0.0:
 			continue
 		var pn: MeshInstance3D = p.n
-		pn.material_override = mat(_dust_col())
+		pn.material_override = _shard_mat("chip", _dust_col())
 		pn.position = _pos(dist - s * 0.4, bx + randf_range(-0.35, 0.35) * s, by + 0.2)
 		pn.scale = Vector3.ONE * 0.01
 		pn.visible = true
@@ -2336,26 +2418,28 @@ func _aim() -> void:
 		col = BAD
 	var a := dist + s * 0.5 + 1.0
 	var e := dist + minf(_throw_range(), gap)
+	var dot_m := _shard_mat("chip", col)
+	var bar_m := _pm("chip", col)
 	for i in aim_dots.size():
 		var n: MeshInstance3D = aim_dots[i]
 		var dd := lerpf(a, e, (i + 0.5) / aim_dots.size())
 		n.visible = dd < e and shot_t <= 0.0
 		n.position = _pos(dd, bx, _h(dd) + 0.12)
 		n.rotation.y = _yaw(dd)
-		n.material_override = mat(col)
+		n.material_override = dot_m
 	# 막대: 덩이가 맞으면 열리는 틈 너비 (돌이 지금 있는 옆 위치 기준)
 	var top := tgt.base + sz.y + 1.6 + 0.3 * sin(clock * 9.0)
 	var yw := _yaw(tgt.d)
 	aim_bar.visible = true
 	aim_bar.position = _pos(tgt.d, bx, top)
 	aim_bar.rotation.y = yw
-	aim_bar.material_override = mat(col)
+	aim_bar.material_override = bar_m
 	for i in 2:
 		var n: MeshInstance3D = aim_legs[i]
 		n.visible = true
 		n.position = _pos(tgt.d, bx + (-4.0 if i == 0 else 4.0), top - 0.8)
 		n.rotation.y = yw
-		n.material_override = mat(col)
+		n.material_override = bar_m
 	var ready := reach and big and shot_t <= 0.0
 	_btns["throw"].color = GOOD if ready else (A if big else BAD)
 	if ready and not aim_ok:
@@ -2371,7 +2455,7 @@ func _smash(th: Thing) -> void:
 	th.n.visible = false
 	bonus += int(th.kd.pts) * 5
 	_score_chip(th.n.global_position, th.col)
-	_burst(th.n.position, th.col, 8, 11.0, 0.7)
+	_burst(th.n.position, th.shard_tint, 8, 11.0, 0.7, th.shard)
 	sfx("glass" if th.kd.has("shot") else "crush_s", 7.0 if th.kd.has("shot") else 0.0)
 
 
@@ -2411,7 +2495,7 @@ func _crush(th: Thing, mm: float, slow := true) -> void:
 	var top_p: Vector3 = th.n.global_position + Vector3.UP * float(th.kd.size.y) * 0.6
 	th.flat = true
 	var sz: Vector3 = th.kd.size
-	_burst(th.n.position, th.col, 3 + int(sz.y), 6.0 + sz.y, clampf(sz.y * 0.25, 0.4, 1.0))
+	_burst(th.n.position, th.shard_tint, 3 + int(sz.y), 6.0 + sz.y, clampf(sz.y * 0.25, 0.4, 1.0), th.shard)
 	sq = maxf(sq, 0.1 + float(th.kd.mass) * 0.5)
 	if th.kd.get("nodive", false):
 		th.n.visible = false
@@ -2453,7 +2537,7 @@ func _bonk(th: Thing) -> void:
 		x_goal = th.x + signf(-th.x) * ((s + sz.x) * 0.45 + 0.6)
 		shake = 0.4
 		sq = 0.25
-		_burst(_pos(dist + s * 0.5, bx, by + s * 0.5), th.col, 4, 6.0)
+		_burst(_pos(dist + s * 0.5, bx, by + s * 0.5), th.shard_tint, 4, 6.0, 0.5, th.shard)
 		play("bad")
 		if th.kd.has("shot"):
 			msg("수정은 던져서!", 0.8)
@@ -2470,7 +2554,7 @@ func _bonk(th: Thing) -> void:
 	shake = 0.6
 	_hitstop(0.05)
 	sq = 0.35
-	_burst(_pos(dist + s * 0.5, bx, by + s * 0.5), th.col, 4, 6.0)
+	_burst(_pos(dist + s * 0.5, bx, by + s * 0.5), th.shard_tint, 4, 6.0, 0.5, th.shard)
 	play("bad")
 	if th.kd.has("shot"):
 		msg("수정은 던져서!", 0.8)
@@ -2563,8 +2647,10 @@ func _rocks(dt: float, mm: float) -> void:
 		n.position = _pos(rd, rk.x, _h(rd) + r * 0.5)
 		n.rotation = Vector3(-float(rk.a), _yaw(rd), 0.0)
 		n.scale = Vector3.ONE * r
-		n.material_override = mat(D if s_goal >= r else BAD)  # 쫓아오는 돌은 내 돌과 다른 색: 노랑=받기, 빨강=위험
-		(n.get_child(0) as MeshInstance3D).material_override = mat(D if s_goal >= r else BAD)
+		# 쫓아오는 돌은 내 돌과 다른 그림: 금빛 모래돌=받기, 붉은 테라코타=위험
+		var rkm := _pm("sand") if s_goal >= r else _pm("roof", Color("ff8a7a"))
+		n.material_override = rkm
+		(n.get_child(0) as MeshInstance3D).material_override = rkm
 		if absf(rd - dist) < (s + r) * 0.5 and absf(float(rk.x) - bx) < (s + r) * 0.45 and by < _h(rd) + r:
 			rk.on = false
 			n.visible = false
@@ -2625,9 +2711,9 @@ func _place(dt: float) -> void:
 		ball.rotation.z = sin(clock * 16.0) * 0.07 * clampf((VSTOP * 1.8 - v) / VSTOP, 0.0, 1.0)
 	ball.scale = Vector3.ONE * s
 	_streaks(dt, yw)
-	ball.material_override = mat(BAD) if hurt > 0.0 and fmod(hurt, 0.2) < 0.1 else art_materials["stone"]
+	ball.material_override = _art_mat("stone", Color("ff7a6a")) if hurt > 0.0 and fmod(hurt, 0.2) < 0.1 else art_materials["stone"]
 	if dash_t > 0.0 and hurt <= 0.0 and fmod(dash_t, 0.16) < 0.08:
-		ball.material_override = mat(C.lightened(0.3))  # 돌진 중: 쪼개기 색으로 깜빡
+		ball.material_override = _art_mat("stone", C.lightened(0.3))  # 돌진 중: 쪼개기 색으로 물든 돌 그림이 깜빡
 	var q := floori(ang / (PI * 0.5))
 	roll_t -= dt
 	if q != quarter:
@@ -2759,10 +2845,8 @@ func _streaks(dt: float, yw: float) -> void:
 				sk.d = randf_range(-6.0, 8.0)
 			sk.p = true
 			n.visible = true
-			n.position = _pos(dist + float(sk.d), float(sk.x), by + s * 0.5 + float(sk.y))
-			n.rotation = Vector3(0.0, yw, 0.0)
-			n.scale = Vector3(0.12, clampf(absf(vy) * 0.09, 1.5, 8.0), 0.12)
-			n.material_override = mat(Color("9fe8ff") if rising else WHITE)
+			var vl := clampf(absf(vy) * 0.12, 2.0, 10.0)
+			_wind_place(n, _pos(dist + float(sk.d), float(sk.x), by + s * 0.5 + float(sk.y)), Vector3.DOWN if vy < 0.0 else Vector3.UP, vl, vl * 0.28)
 			continue
 		sk.p = false
 		sk.d = float(sk.d) - v * (0.7 + spd * 0.5) * dt
@@ -2773,12 +2857,50 @@ func _streaks(dt: float, yw: float) -> void:
 			sk.y = randf_range(0.4, s + 3.0)
 		var d := dist + float(sk.d)
 		n.visible = true
-		n.material_override = mat(WHITE)
-		n.position = _pos(d, float(sk.x), _h(d) - (_tunnel_depth(d) if underground else 0.0) + float(sk.y)) if on_ground else _pos(d, float(sk.x), by + float(sk.y) - s * 0.5)
-		n.rotation = Vector3(0.0, _yaw(d), 0.0)
-		var th := 0.06 + spd * 0.07
-		n.scale = Vector3(th, th, clampf((v - 20.0) * 0.16, 0.5, 9.0))
+		var wp := _pos(d, float(sk.x), _h(d) - (_tunnel_depth(d) if underground else 0.0) + float(sk.y)) if on_ground else _pos(d, float(sk.x), by + float(sk.y) - s * 0.5)
+		var wy := _yaw(d)
+		var wl := clampf((v - 20.0) * 0.2, 1.2, 10.0)
+		_wind_place(n, wp, Vector3(-sin(wy), 0.0, -cos(wy)), wl, wl * 0.26)
 
+
+
+# ---- 바람: 흰 줄 대신 붓으로 쓸고 간 모래 바람결 그림 (art/boulder/fx_gpt/wind_*.png, Codex GPT) ----
+var wind_mats: Array = []
+var wind_quad: QuadMesh
+
+
+func _wind_node(parent: Node) -> MeshInstance3D:
+	if wind_quad == null:
+		wind_quad = QuadMesh.new()
+		wind_quad.orientation = PlaneMesh.FACE_X  # YZ 평면: 길이는 Z(진행 방향), 높이는 Y
+		wind_quad.size = Vector2(1.0, 1.0)
+		for i in 4:
+			var m := StandardMaterial3D.new()
+			m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			m.cull_mode = BaseMaterial3D.CULL_DISABLED
+			m.albedo_texture = load(ART_ROOT + "fx_gpt/wind_%d.png" % i) as Texture2D
+			m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+			wind_mats.append(m)
+	var n := MeshInstance3D.new()
+	n.mesh = wind_quad
+	n.material_override = wind_mats[randi() % 4]
+	n.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(n)
+	return n
+
+
+## 바람결 하나를 p 에 진행 방향 f 로 놓고, 카메라 쪽으로 면을 돌린다 (어느 시점에서도 옆면이 아니라 붓자국으로 보이게)
+func _wind_place(n: MeshInstance3D, p: Vector3, f: Vector3, length: float, height: float) -> void:
+	n.position = p
+	var to_cam := cam.global_position - p
+	to_cam -= f * to_cam.dot(f)
+	if to_cam.length() < 0.01:
+		to_cam = Vector3.UP if absf(f.y) < 0.9 else Vector3.RIGHT
+	var nx := to_cam.normalized()
+	var ny := f.cross(nx)
+	# 텍스처 왼쪽(짙은 머리)이 앞(돌 쪽), 흩어지는 꼬리가 뒤로
+	n.basis = Basis(nx, ny * height, -f * length)
 
 # ---- 입력 ----
 func _tap(p: Vector2) -> void:
@@ -3031,6 +3153,7 @@ func _hidden_chamber(it: Dictionary, d1: float, z: Dictionary) -> void:
 	for i in 4:
 		var dd := a + 2.0 + i * 3.0
 		var sn := box(_pos(dd, -1.0 if i % 2 == 0 else 1.0, _h(dd) + 0.25), Vector3(0.25, 0.08, 2.6), B, ckn)
+		_skin(sn, "blue")
 		sn.rotation.y = _yaw(dd) + (0.7 if i % 2 == 0 else -0.7)
 		seam.append(sn)
 	floor_cracks.append({"a": a, "b": b, "x0": x0, "x1": x1, "ckn": ckn, "seam": seam, "route": route, "cn": cn, "nd": z.node, "open": false})
@@ -3095,14 +3218,13 @@ func _build_tunnel(a: float, b: float, nd: Node3D, opt := {}) -> Array:
 	tunnels.append(route)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = int(a) * 7 + 3
-	var strata := [ROCK, Color("d4b483"), Color("b98f62"), Color("9c7650"), Color("7d6047"), Color("5f4b3d")]
 	var glow := [Color("7ff0ff"), Color("ffd27a"), C.lightened(0.35), Color("9cf2c4")]
 	# 바닥 길: 수로 끝 너머 80m 까지 (늦게 떨어져도 착지할 곳). 끝 너머는 마지막 방향으로 곧게 잇는다.
 	var e := b - 1.0
 	var fwe := Vector3(-sin(_yaw(e)), 0.0, -cos(_yaw(e)))
 	var d := a
 	while d < b + ext:
-		var end_d := minf(d + 4.0, b + ext)
+		var end_d := minf(d + 12.0, b + ext)  # 12m 판: 바닥 조각 수를 1/3 로
 		var p0 := _pos(d, 0.0, _h(d) - dp) if d <= e else _pos(e, 0.0, _h(e) - dp) + fwe * (d - e)
 		var p1 := _pos(end_d, 0.0, _h(end_d) - dp) if end_d <= e else _pos(e, 0.0, _h(e) - dp) + fwe * (end_d - e)
 		var bs := Basis.looking_at((p1 - p0).normalized(), Vector3.UP)
@@ -3117,12 +3239,11 @@ func _build_tunnel(a: float, b: float, nd: Node3D, opt := {}) -> Array:
 		var fl := h - dp
 		var yw := _yaw(d)
 		# 뒤 절벽: 위는 밝은 사암, 아래로 갈수록 진한 흙빛 (떨어지며 지층을 지나친다)
-		if int(d - a) % 12 == 0:
-			for li in strata.size():
-				var top := h - 4.0 - li * (dp - 4.0) / strata.size()
-				var ht := (dp - 4.0) / strata.size() + 0.4
-				var w := box(_pos(d + 6.0, -22.0 - li * 0.6, top - ht * 0.5), Vector3(2.0, ht, 12.4), strata[li], nd)
-				w.rotation.y = yw
+		# 판 하나에 지층 그림(위 밝은 사암 -> 아래 진한 흙) : 예전엔 띠마다 상자라 그리기가 6배였다
+		if int(d - a) % 24 == 0:
+			var w := box(_pos(d + 12.0, -22.0, h - 4.0 - (dp - 4.0) * 0.5), Vector3(2.0, dp - 4.0, 24.4), WHITE, nd)
+			_skin(w, "strata")
+			w.rotation.y = yw
 		# 옛 기둥 폐허 (뒤쪽, 높이 제각각 = 부서진 기둥)
 		if int(d - a) % 24 == 8:
 			var x := -rng.randf_range(9.0, 18.0)
@@ -3136,7 +3257,7 @@ func _build_tunnel(a: float, b: float, nd: Node3D, opt := {}) -> Array:
 			_apply_art(tp, "temple", Color("d8c6a4"))
 			tp.rotation.y = yw
 		# 빛나는 수정 무리 (바닥 가까이, 앞뒤 양쪽)
-		if int(d - a) % 10 == 4:
+		if int(d - a) % 18 == 4:
 			for sd: float in [-1.0, 1.0]:
 				if rng.randf() < 0.6:
 					var cr := box(_pos(d + rng.randf_range(-3.0, 3.0), sd * rng.randf_range(7.0, 11.0), fl), Vector3.ONE, WHITE, nd)
@@ -3181,7 +3302,8 @@ func _build_tunnel(a: float, b: float, nd: Node3D, opt := {}) -> Array:
 	var water := StandardMaterial3D.new()
 	water.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	water.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	water.albedo_color = Color(0.62, 0.92, 1.0, 0.55)
+	water.albedo_color = Color(0.85, 1.0, 1.0, 0.55)
+	water.albedo_texture = load(ART_ROOT + "water.png") as Texture2D  # 비치는 물에 붓결
 	var gy := box(_pos(gd, 0.0, _h(gd) - dp * 0.5 + 3.0), Vector3(5.0, dp + 6.0, 5.0), WHITE, nd)
 	var cyl := CylinderMesh.new()
 	cyl.radial_segments = 10
@@ -3193,6 +3315,7 @@ func _build_tunnel(a: float, b: float, nd: Node3D, opt := {}) -> Array:
 	for r in 6:
 		var ring := box(_pos(gd, 0.0, _h(gd) - dp + 2.0 + r * dp / 6.0), Vector3(6.4, 0.5, 6.4), WHITE, nd)
 		ring.mesh = cyl
+		_skin(ring, "snowfield")  # 물거품 고리
 	geysers.append([gd, gy])
 	return route
 
@@ -3216,6 +3339,9 @@ func _load_art() -> void:
 	var ice_material := StandardMaterial3D.new()
 	ice_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	ice_material.albedo_color = ICEWALL
+	# 수정 그림을 밝게 바랜 얼음결로: 같은 모양 메시에 칠한 얼음 면
+	ice_material.albedo_texture = load(ART_ROOT + "ice_crystal.png") as Texture2D
+	ice_material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	art_materials["ice_wall"] = ice_material
 
 
@@ -3231,31 +3357,161 @@ func _find_art_mesh(node: Node) -> Mesh:
 
 func _apply_art(node: MeshInstance3D, name: String, tint := Color.WHITE) -> void:
 	node.mesh = art_meshes[name]
-	node.material_override = art_materials[name]
-	if tint != Color.WHITE:
-		# 같은 그림·같은 색이면 재질 하나를 같이 쓴다 (지하 협곡은 수백 개라 폰에서 무겁다)
-		var key: String = name + tint.to_html()
-		if not art_tinted.has(key):
-			var m: StandardMaterial3D = art_materials[name].duplicate()
-			m.albedo_color = tint
-			art_tinted[key] = m
-		node.material_override = art_tinted[key]
+	node.material_override = _art_mat(name, tint)
 	node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 
+## 칠한 모델 재질 + 색. 같은 그림·같은 색이면 재질 하나를 같이 쓴다 (지하 협곡은 수백 개라 폰에서 무겁다)
+func _art_mat(name: String, tint := Color.WHITE) -> StandardMaterial3D:
+	if tint == Color.WHITE:
+		return art_materials[name]
+	var key: String = name + tint.to_html()
+	if not art_tinted.has(key):
+		var m: StandardMaterial3D = art_materials[name].duplicate()
+		m.albedo_color = tint
+		art_tinted[key] = m
+	return art_tinted[key]
+
 
 ## 메시는 그대로 두고 잘라 낸 그림 재질만 입힌다: roof(신전 테라코타), wall(계곡 사암 띠). tint 로 색을 바꾼다.
-func _skin(node: MeshInstance3D, tex_name: String, tint := Color.WHITE) -> void:
-	var key := "skin_" + tex_name + tint.to_html()
+func _skin(node: MeshInstance3D, tex_name: String, tint := Color.WHITE, rep := 1.0) -> void:
+	node.material_override = _pm(tex_name, tint, rep)
+	node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
+
+## 잘라 낸 그림 재질 하나 (그림·색·반복 수가 같으면 돌려 쓴다). 그림들: roof wall strata chip(무채 붓결: 색을 그대로 입힌다)
+## sand(금빛 모래) snowfield(눈) water(물) pit(어두운 얼음 구멍) blue(파란 돌) potshard wood amethyst pillar_red ice_crystal
+func _pm(tex_name: String, tint := Color.WHITE, rep := 1.0) -> StandardMaterial3D:
+	var key := "skin_" + tex_name + tint.to_html() + ("" if rep == 1.0 else str(rep))
 	if not art_tinted.has(key):
 		var m := StandardMaterial3D.new()
 		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		m.albedo_texture = load(ART_ROOT + tex_name + ".png") as Texture2D
 		m.albedo_color = tint
 		m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+		if rep != 1.0:
+			m.uv1_scale = Vector3(rep, rep, 1.0)
 		art_tinted[key] = m
-	node.material_override = art_tinted[key]
-	node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	return art_tinted[key]
+
+
+## 파편·먼지 재질: 그림 + 면마다 구운 밝기(정점색) + 양면
+func _shard_mat(tex_name: String, tint := Color.WHITE) -> StandardMaterial3D:
+	var key := "shard_" + tex_name + tint.to_html()
+	if not art_tinted.has(key):
+		var m := StandardMaterial3D.new()
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.vertex_color_use_as_albedo = true
+		m.albedo_texture = load(ART_ROOT + tex_name + ".png") as Texture2D
+		m.albedo_color = tint
+		m.cull_mode = BaseMaterial3D.CULL_DISABLED
+		m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+		art_tinted[key] = m
+	return art_tinted[key]
+
+
+## 낮은 다각 덩이 (반지름 0.5): 위도 rows × 경도 seg 꼭짓점을 흔들어 각진 면을 만들고, 면 밝기는 위 왼쪽 빛으로 정점색에 굽는다
+func _lowpoly(rseed: int, seg: int, rows: int, jitter: float, squash: Vector3) -> ArrayMesh:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = rseed
+	var top := Vector3(rng.randf_range(-0.1, 0.1), 0.5, rng.randf_range(-0.1, 0.1)) * squash
+	var bot := Vector3(rng.randf_range(-0.1, 0.1), -0.5, rng.randf_range(-0.1, 0.1)) * squash
+	var grid: Array = []
+	for r in rows + 1:
+		var row: Array = []
+		for q in seg:
+			if r == 0:
+				row.append(bot)
+				continue
+			if r == rows:
+				row.append(top)
+				continue
+			var lat := PI * float(r) / float(rows) - PI * 0.5
+			var lon := TAU * (float(q) + rng.randf_range(-0.2, 0.2)) / float(seg)
+			var p := Vector3(cos(lat) * cos(lon), sin(lat), cos(lat) * sin(lon)) * 0.5 * (1.0 + rng.randf_range(-jitter, jitter))
+			row.append(p * squash)
+		grid.append(row)
+	var light := Vector3(-0.4, 1.0, 0.3).normalized()
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for r in rows:
+		for q in seg:
+			var a: Vector3 = grid[r][q]
+			var b: Vector3 = grid[r][(q + 1) % seg]
+			var c: Vector3 = grid[r + 1][q]
+			var d: Vector3 = grid[r + 1][(q + 1) % seg]
+			for tri: Array in [[a, c, b], [b, c, d]]:
+				var p0: Vector3 = tri[0]
+				var p1: Vector3 = tri[1]
+				var p2: Vector3 = tri[2]
+				var nrm := (p1 - p0).cross(p2 - p0)
+				if nrm.length() < 0.0001:
+					continue
+				nrm = nrm.normalized()
+				if nrm.dot((p0 + p1 + p2) / 3.0) < 0.0:
+					nrm = -nrm
+				var k := 0.72 + 0.28 * maxf(0.0, nrm.dot(light))
+				var ax := absf(nrm.x)
+				var ay := absf(nrm.y)
+				var az := absf(nrm.z)
+				for p: Vector3 in tri:
+					var uv := Vector2(p.x, p.z) if ay >= ax and ay >= az else (Vector2(p.z, p.y) if ax >= az else Vector2(p.x, p.y))
+					st.set_color(Color(k, k, k))
+					st.set_uv(uv * 0.9 + Vector2(0.5, 0.5))
+					st.add_vertex(p)
+	return st.commit()
+
+
+## 파편 메시 셋(납작하고 모난 돌·사금파리)과 먼지 덩이 하나: 처음 한 번 만들어 돌려 쓴다
+var shard_meshes: Array = []
+var puff_mesh: ArrayMesh
+
+
+func _shard_mesh(i: int) -> ArrayMesh:
+	if shard_meshes.is_empty():
+		shard_meshes.append(_lowpoly(11, 5, 2, 0.35, Vector3(1.1, 0.55, 0.9)))
+		shard_meshes.append(_lowpoly(23, 4, 2, 0.3, Vector3(1.2, 0.4, 0.8)))
+		shard_meshes.append(_lowpoly(37, 5, 3, 0.3, Vector3(0.9, 0.7, 1.0)))
+	return shard_meshes[i % shard_meshes.size()]
+
+
+func _puff_mesh() -> ArrayMesh:
+	if puff_mesh == null:
+		puff_mesh = _lowpoly(5, 7, 4, 0.12, Vector3(1.0, 0.8, 1.0))
+	return puff_mesh
+
+
+## 색만 받은 파편: 색에 맞는 그림을 고른다 [그림, 색]
+func _shard_look(col: Color) -> Array:
+	if col == A:
+		return ["wood", WHITE]
+	if col == D:
+		return ["sand", WHITE]
+	if col == B or col == ME:
+		return ["blue", WHITE]
+	if col == STONE:
+		return ["wall", WHITE]
+	if col == WATER or col == Color("9fe8ff"):
+		return ["water", WHITE]
+	if col == WHITE:
+		return ["snowfield", WHITE]
+	return ["chip", col]
+
+
+## 길 위 판 색 -> 그림: 흰 = 눈, 노랑 = 녹는 모래, 청록 = 물살, 먹청 = 구멍, 빨강 = 위험
+func _plate_skin(m: MeshInstance3D, col: Color) -> void:
+	if col == BAD:
+		_red(m)
+	elif col == WHITE:
+		_skin(m, "snowfield")
+	elif col == D:
+		_skin(m, "sand")
+	elif col == Color("69bdbf"):
+		_skin(m, "water")
+	elif col == Color("183e53"):
+		_skin(m, "pit")
+	else:
+		_skin(m, "chip", col)
 
 
 ## 위험 표시(빨간 띠·머리·경계): 맨 빨강 대신 붉게 칠한 테라코타 돌결
@@ -4073,9 +4329,10 @@ func _current_tick(dt: float, hold: bool) -> void:
 		if dist < float(flow.a) - 80.0 or dist > float(flow.b) + 10.0:
 			continue
 		var pulse := 0.5 + 0.5 * sin(clock * 1.8 + float(flow.a) * 0.02)
+		var fm := _pm("chip") if pulse < 0.5 else _pm("chip", D)
 		for node: MeshInstance3D in flow.markers:
 			if is_instance_valid(node):
-				node.material_override = mat(WHITE if pulse < 0.5 else D)
+				node.material_override = fm
 		if dist >= float(flow.a) and dist < float(flow.b) and bx > float(flow.x0) and bx < float(flow.x1) and on_ground:
 			x_goal += float(flow.dir) * (2.5 + pulse * 5.0) / sqrt(s / 2.0) * (0.14 if hold else 1.0) * dt
 			# Flow pushes the body, so shedding weight also changes the steering problem.
@@ -4119,9 +4376,10 @@ func _drum_tick(dt: float, hold: bool) -> void:
 		var dcol := GOOD if drum_charge >= 0.4 else WHITE
 		if drum_charge >= 0.95 and fmod(clock, 0.24) < 0.12:
 			dcol = D
+		var dm := _pm("chip", dcol)
 		for node: MeshInstance3D in active.nodes:
 			if is_instance_valid(node):
-				node.material_override = mat(dcol)
+				node.material_override = dm
 	else:
 		drum_charge = 0.0
 	was_holding = hold
@@ -4276,6 +4534,11 @@ func _flow_arrow() -> ArrayMesh:
 	arrays.resize(Mesh.ARRAY_MAX)
 	arrays[Mesh.ARRAY_VERTEX] = PackedVector3Array([Vector3(-0.8, 0, -0.28), Vector3(0, 0, -0.28), Vector3(0, 0, -0.8), Vector3(1, 0, 0), Vector3(0, 0, 0.8), Vector3(0, 0, 0.28), Vector3(-0.8, 0, 0.28)])
 	arrays[Mesh.ARRAY_NORMAL] = PackedVector3Array([Vector3.UP, Vector3.UP, Vector3.UP, Vector3.UP, Vector3.UP, Vector3.UP, Vector3.UP])
+	# 붓결 그림이 얹히게 위에서 내려다본 자리를 그대로 UV 로
+	var uvs := PackedVector2Array()
+	for vtx: Vector3 in arrays[Mesh.ARRAY_VERTEX]:
+		uvs.append(Vector2(vtx.x * 0.5 + 0.5, vtx.z * 0.5 + 0.5))
+	arrays[Mesh.ARRAY_TEX_UV] = uvs
 	arrays[Mesh.ARRAY_INDEX] = PackedInt32Array([0, 6, 1, 1, 6, 5, 2, 4, 3, 2, 5, 4, 2, 1, 5])
 	arrow_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 	return arrow_mesh
@@ -4430,7 +4693,7 @@ func _lang() -> void:
 	TranslationServer.set_locale("en")
 
 
-const HOWTO_EN := "Roll, Temple Stone!\nDrag to steer · too slow = out\nRoll all the way to the sea temple!"
+const HOWTO_EN := "ROCK AND STONE\nDrag to steer · too slow = out\nRoll all the way to the sea temple!"
 
 const EN := {
 	# 실패 의성어
@@ -4446,7 +4709,7 @@ const EN := {
 	"와르르!": "CRUMBLE!", "번쩍!": "GLEAM!", "쿠웅!": "THOOM!", "쩌억!": "CRACK!", "푸화악!": "WHOOSH!", "바다다!": "THE SEA!",
 	"지하 90m": "90 m below", "%s에서 이어서": "Continue from %s",
 	# 타이틀·튜토리얼
-	"굴러라 신전석": "Roll, Temple Stone!", "신전에서 풀려난 돌,\n바다까지 멈추지 말고 굴러라": "A temple stone breaks free.\nDon't stop until the sea!",
+	"굴러라 신전석": "ROCK AND\nSTONE", "신전에서 풀려난 돌,\n바다까지 멈추지 말고 굴러라": "A temple stone breaks free.\nDon't stop until the sea!",
 	"최고 완주 %s": "Best run %s", "▶  시작": "▶  Play", "튜토리얼": "Tutorial",
 	"튜토리얼 끝!\n이제 진짜 길로": "Tutorial done!\nNow the real road",
 	"연습 1 · 끌어서 조향": "Practice 1 · Steer", "연습 2 · 뛰기": "Practice 2 · JUMP", "연습 3 · 쪼개기": "Practice 3 · SPLIT",

@@ -1,5 +1,5 @@
 # Title
-Roll, Temple Stone! / 굴러라 신전석
+Rock and Stone
 
 # Short description
 Everything you crush makes you bigger, and bigger means slower. Break off pieces of yourself to stay fast, and race a runaway temple stone to the sea.

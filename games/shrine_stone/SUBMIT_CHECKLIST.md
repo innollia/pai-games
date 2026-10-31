@@ -1,4 +1,4 @@
-# 잼 제출 체크리스트 — 굴러라 신전석 (Roll, Temple Stone!)
+# 잼 제출 체크리스트 — 굴러라 신전석 (Rock and Stone)
 
 마감: **2026-11-01(일) 00:00 KST**. 마감 뒤에는 고칠 수 없으니 **10/31(토) 20~21시에 미리 제출**한다.
 글(제목·설명·태그·도구)은 `../speed_tofu/submit/boulder/ITCH_PAGE.md`에 있다. 복사해서 붙인다.
@@ -18,7 +18,7 @@ Compress-Archive -Path C:\projects\pai-games\games\shrine_stone\web\* -Destinati
 ## itch.io에서 사람이 할 일 (계정이 필요해서 에이전트가 대신 못 함)
 
 1. [ ] itch.io → Upload new project
-2. [ ] Title: `Roll, Temple Stone!`. Short description은 ITCH_PAGE.md의 Short description을 쓴다
+2. [ ] Title: `Rock and Stone`. Short description은 ITCH_PAGE.md의 Short description을 쓴다
 3. [ ] Kind of project: **HTML**. zip 업로드 후 **"This file will be played in the browser"** 체크
 4. [ ] Embed options: 크기 **360 × 640**(세로), **Mobile friendly** 체크, Orientation **Portrait**, Fullscreen button 켬
 5. [ ] Classification: Games. Genre: Action. Tags: ITCH_PAGE.md의 Tags

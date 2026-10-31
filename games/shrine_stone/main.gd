@@ -3,7 +3,7 @@ extends Node
 ## 새 게임의 기반으로 쓸 때: g/boulder.gd 를 고치거나, g/ 에 Tofu 를 extends 한 새 파일을 만들고 GAME 을 바꾼다.
 
 const GAME := "boulder"
-const GVER := 10  # speed_tofu main.gd GAME_VER["boulder"] (tools/sync.ps1 이 맞춘다). 평가 ver = "v<GVER> <빌드>"
+const GVER := 11  # speed_tofu main.gd GAME_VER["boulder"] (tools/sync.ps1 이 맞춘다). 평가 ver = "v<GVER> <빌드>"
 
 var game: Tofu
 var from_tofu := false  # SPEED 두부 목록(?from=tofu)에서 왔으면 "<" 가 목록으로 돌아간다
@@ -91,28 +91,35 @@ func _title_open() -> void:
 	shade.size = Vector2(720, 1280)
 	shade.mouse_filter = Control.MOUSE_FILTER_STOP
 	title.add_child(shade)
-	var sub := "Roll, Temple Stone!" if TranslationServer.get_locale() != "en" else "A speed game about weight"  # 영어면 제목 아래 한 줄 소개
+	var sub := "Rock and Stone" if TranslationServer.get_locale() != "en" else "A speed game about weight"  # 영어면 제목 아래 한 줄 소개
 	if ui:
 		# 제목 = 신전 문 위 돌 상인방: 위에서 떨어져 쿵 박히고 천천히 흔들린다
 		lintel = Control.new()
-		lintel.position = Vector2(20, 150)
-		lintel.size = Vector2(680, 250)
-		lintel.pivot_offset = Vector2(340, 125)
+		lintel.position = Vector2(10, 120)
+		lintel.size = Vector2(700, 360)
+		lintel.pivot_offset = Vector2(350, 180)
 		lintel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		title.add_child(lintel)
-		game.call("ui_slab", lintel, Vector2.ZERO, Vector2(680, 250), 0, STONE, "title")  # GPT 가 그린 신전 상인방
+		game.call("ui_slab", lintel, Vector2.ZERO, Vector2(700, 360), 0, STONE, "title")  # GPT 가 그린 신전 상인방
 		# 글은 양 끝 기둥머리 사이 돌면 안에만 (가로 420)
-		var fs: int = game.call("fit_fs", tr("굴러라 신전석"), 84, 420)
+		# 제목은 크게, 두 줄(ROCK AND / STONE). 가장 긴 줄이 기둥머리 사이 돌면(가로 450) 안에
+		var lines := tr("굴러라 신전석").split("\n")
+		var longest := ""
+		for ln: String in lines:
+			if ln.length() > longest.length():
+				longest = ln
+		var fs: int = game.call("fit_fs", longest, 120, 450)
 		var tl: Label = game.call("ui_glyph", lintel, fs)
 		tl.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
-		tl.position = Vector2(130, 70)
-		tl.size = Vector2(420, 104)
+		tl.position = Vector2(125, 72)
+		tl.size = Vector2(450, 210)
+		tl.label_settings.line_spacing = -fs * 0.18
 		tl.text = tr("굴러라 신전석")
 		# 한 줄 소개는 상인방 아래에 (흰 테로 3D 위에서도 읽히게)
 		var sl: Label = game.call("ui_glyph", lintel, 34, GLYPH_SUB)
 		sl.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
-		sl.position = Vector2(0, 258)
-		sl.size = Vector2(680, 50)
+		sl.position = Vector2(0, 366)
+		sl.size = Vector2(700, 50)
 		sl.label_settings.outline_size = 10
 		sl.label_settings.outline_color = Color.WHITE
 		sl.text = sub
@@ -120,13 +127,13 @@ func _title_open() -> void:
 		lintel.position.y = -280.0
 		var tw := lintel.create_tween()
 		tw.tween_interval(0.1)
-		tw.tween_property(lintel, "position:y", 150.0, 0.6).set_trans(Tween.TRANS_BOUNCE).set_ease(Tween.EASE_OUT)
+		tw.tween_property(lintel, "position:y", 120.0, 0.6).set_trans(Tween.TRANS_BOUNCE).set_ease(Tween.EASE_OUT)
 		tw.tween_callback(func() -> void:
 			if game and game.has_method("sfx"):
 				game.call("sfx", "bonk", 2.0, 0.7)
 			var bob := li.create_tween().set_loops()
-			bob.tween_property(li, "position:y", 162.0, 1.4).set_trans(Tween.TRANS_SINE)
-			bob.tween_property(li, "position:y", 150.0, 1.4).set_trans(Tween.TRANS_SINE)
+			bob.tween_property(li, "position:y", 132.0, 1.4).set_trans(Tween.TRANS_SINE)
+			bob.tween_property(li, "position:y", 120.0, 1.4).set_trans(Tween.TRANS_SINE)
 			var rot := li.create_tween().set_loops()
 			rot.tween_property(li, "rotation", -0.02, 2.1).set_trans(Tween.TRANS_SINE)
 			rot.tween_property(li, "rotation", 0.02, 2.1).set_trans(Tween.TRANS_SINE)
