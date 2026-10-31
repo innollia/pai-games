@@ -33,7 +33,7 @@ const KIND := {
 	# 얼음벽: 벽 높이(4.5)만큼 크거나, 쪼갠 직후 돌진이면 깨진다. 뛰어 내려찍기로는 안 깨진다.
 	"ice": {"size": Vector3(3.6, 4.5, 1.6), "need": 4.5, "pts": 6, "grow": 0.0, "mass": 0.22, "col": [ICEWALL, WHITE], "nodive": true},
 	# 수정: 몸으로는 못 깨고, 던진 덩이로만 깨진다.
-	"crystal": {"size": Vector3(3.6, 7.0, 1.2), "need": 99.0, "pts": 4, "grow": 0.0, "mass": 0.0, "col": [C], "nodive": true, "shot": true},
+	"crystal": {"size": Vector3(3.6, 3.2, 1.2), "need": 99.0, "pts": 4, "grow": 0.0, "mass": 0.0, "col": [C], "nodive": true, "shot": true},
 	# 파란 머리(버티기 색) = 공중에서 버티기로 내려찍어야 부서진다. 그냥 굴러 박거나 그냥 떨어지면 튕긴다.
 	# 부수면 느려지지 않고 오히려 빨라진다(boost). 집 다음 단계: 탑 → 황금 신상.
 	"tower": {"size": Vector3(4.2, 9.0, 4.2), "need": 99.0, "pts": 20, "grow": 0.4, "mass": 0.0, "col": [Color("cfe6ff"), WHITE], "slam": true, "boost": 9.0},
@@ -335,6 +335,12 @@ func _setup() -> void:
 	cam.near = 0.4
 	cam.far = 1500.0
 	_lang()
+	# 그리기: 폰 화면은 픽셀이 아주 많다(기기 배율 3배면 1080×2400). 3D 만 세로 약 1000 픽셀로 그리고 늘린다. 글·버튼은 그대로 선명
+	if OS.has_feature("web"):
+		var vp := get_viewport()
+		vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_BILINEAR
+		vp.scaling_3d_scale = clampf(1000.0 / maxf(1.0, float(DisplayServer.window_get_size().y)), 0.45, 1.0)
+		vp.msaa_3d = Viewport.MSAA_DISABLED
 	# 시작 설명 카드는 없다: 제목은 타이틀 화면이, 조작·실패 규칙은 첫 길 위 안내가 맡는다
 	howto = ""
 	time_limit = 0.0
@@ -771,7 +777,7 @@ func _reset() -> void:
 	chunk.visible = false
 	chunk_t = 0.0
 	# 던진 덩이 = 내 몸 한 조각. 작아서 안 보였다: 크게, 금빛(던지기)·자수정(쪼개기) 물들이고 진한 외곽선
-	shot = box(Vector3.ZERO, Vector3.ONE * 2.2, ME)
+	shot = box(Vector3.ZERO, Vector3.ONE * 3.2, ME)
 	_apply_art(shot, "stone", Color("ffe08a"))
 	_apply_art(chunk, "stone", Color("e2b8ff"))
 	_ink_outline(shot, INK)
@@ -2593,9 +2599,10 @@ func _shot(dt: float) -> void:
 		return
 	shot_t -= dt
 	shot_d += shot_v * dt
-	shot.position = _pos(shot_d, shot_x, _h(shot_d) + 1.1)
-	if fmod(shot_t, 0.07) < dt:
-		_burst(shot.position, G_TOP, 1, 2.0, 0.45)  # 날아가는 길에 금빛 부스러기
+	shot.position = _pos(shot_d, shot_x, _h(shot_d) + 1.7)
+	shot.scale = Vector3.ONE * (1.0 + 0.15 * sin(shot_t * 40.0))  # 두근거리며 날아가 눈에 띈다
+	if fmod(shot_t, 0.035) < dt:
+		_burst(shot.position, G_TOP, 3, 3.0, 0.8)  # 날아가는 길에 금빛 부스러기 (멀리서도 보이게 굵고 오래)
 	shot.rotation = Vector3(-shot_d * 1.4, _yaw(shot_d), 0.0)
 	for th: Thing in things:
 		if th.flat:
