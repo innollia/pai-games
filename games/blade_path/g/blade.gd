@@ -143,6 +143,9 @@ var cuts := 0  # 끝판왕: 벤 횟수 (단 오르기)
 # 장면
 var piv: Node3D
 var body: MeshInstance3D
+var rig: Node3D = null  # 찌르기 검객 모델 (없으면 상자 몸)
+var anim: AnimationPlayer = null
+var rig_m: Array[MeshInstance3D] = []
 var blade_m: MeshInstance3D
 var eyes: Array[MeshInstance3D] = []
 var hp_fill: MeshInstance3D
@@ -246,6 +249,12 @@ const PLAY_R := Rect2(110, 880, 500, 150)
 const TUT_R := Rect2(200, 1050, 320, 80)
 const SET_R := Rect2(586, 118, 124, 68)
 const DEV := "res://g/dev.gd"  # 개발 도구. 출시 때는 이 파일만 지우면 된다
+## 찌르기 검객 3D 모델 (파이가 보낸 duelist_animated.glb, 10/31): 대기·찌르기 4방향·맞음·쓰러짐 동작이 들어 있다.
+## 칼은 게임 칼(blade_m, 빨개지는 신호)을 그대로 쓰고 모델의 레이피어는 숨긴다. 상자 몸으로 되돌리려면 DUELIST_ON 을 false 로
+const DUELIST_ON := true
+const DUELIST := preload("res://models/duelist.glb")
+const RAPIER := ["Rapier_diamond_blade", "Curved_quillons", "Knuckle_bow", "Swept_ring_guard", "Round_pommel", "Rapier_leather_grip", "Grip_"]
+const THRUST := ["Thrust_Left", "Thrust_Right", "Thrust_Up", "Thrust_Down"]
 const FX := "res://g/fx.gd"  # 전투 이펙트 (10/31 시험 적용). 안 어울리면 이 파일의 ON 을 false 로 (예전 불꽃으로 돌아간다)
 const SET_CLOSE := Rect2(210, 860, 300, 100)
 
@@ -650,6 +659,8 @@ func _set_tab(t: int) -> void:
 			for c in piv.get_children():
 				if c is MeshInstance3D:
 					c.material_override = mat(INK)
+			for m in rig_m:
+				m.material_override = mat(INK)
 	else:
 		_spawn(lobby_k)
 	_clear()
@@ -764,6 +775,9 @@ func _spawn(k: int) -> void:
 	piv = Node3D.new()
 	world.add_child(piv)
 	eyes.clear()
+	rig = null
+	anim = null
+	rig_m.clear()
 	blade_rest = Vector3(0.95, -0.3, 0.6)
 	blade_rr = Vector3(0, 0, 0.5)
 	var hp_y := 2.0
@@ -778,7 +792,8 @@ func _spawn(k: int) -> void:
 		for i in mini(k / 2, 5):
 			box(Vector3((i - (mini(k / 2, 5) - 1) * 0.5) * 0.36, 1.5, 0), Vector3(0.22, 0.3, 0.22), D, piv)
 	for s in [-1.0, 1.0]:
-		eyes.append(box(Vector3(s * 0.33, eye_y, eye_z), Vector3(0.24, 0.24, 0.06), INK, piv))
+		if rig == null:
+			eyes.append(box(Vector3(s * 0.33, eye_y, eye_z), Vector3(0.24, 0.24, 0.06), INK, piv))
 	_spawn_rest(k, hp_y)
 
 
@@ -787,7 +802,10 @@ func _dress_box(col: Color) -> void:
 	match ftype:
 		0:
 			body = box(Vector3.ZERO, Vector3(1.4, 2.8, 0.9), col, piv)
-			box(Vector3(0, 0.95, 0), Vector3(1.45, 0.18, 0.95), BAD, piv)
+			if DUELIST_ON:
+				_dress_duelist()
+			else:
+				box(Vector3(0, 0.95, 0), Vector3(1.45, 0.18, 0.95), BAD, piv)
 		1:
 			body = box(Vector3(0, -0.25, 0), Vector3(2.0, 2.3, 1.0), col, piv)
 			box(Vector3(0, 1.0, 0), Vector3(2.8, 0.18, 1.8), D, piv)
@@ -810,6 +828,63 @@ func _dress_box(col: Color) -> void:
 			box(Vector3(0, 1.95, 0), Vector3(1.6, 0.4, 1.0), D, piv)
 			for s in [-1.0, 0.0, 1.0]:
 				box(Vector3(s * 0.55, 2.3, 0), Vector3(0.25, 0.4 if s == 0.0 else 0.28, 0.25), D, piv)
+
+
+## 찌르기 검객 = 파이가 보낸 모델. 상자 몸(body)은 숨겨 두고 번쩍임 색만 받는다
+func _dress_duelist() -> void:
+	body.visible = false
+	rig = DUELIST.instantiate()
+	rig.scale = Vector3.ONE * 1.3
+	rig.position = Vector3(0, -1.4, 0)
+	piv.add_child(rig)
+	for m in rig.find_children("*", "MeshInstance3D", true, false):
+		var hide := false
+		for r in RAPIER:
+			if (m.name as String).begins_with(r):
+				hide = true
+		m.visible = not hide
+		if not hide:
+			rig_m.append(m)
+	anim = rig.find_child("AnimationPlayer", true, false)
+	anim.get_animation("Idle").loop_mode = Animation.LOOP_LINEAR
+	anim.animation_finished.connect(func(a: StringName) -> void:
+		if a != &"Death" and anim:
+			anim.play("Idle"))
+	anim.play("Idle")
+
+
+## 모델 동작: 칼이 오는 동안 그쪽 찌르기 동작을 칼에 맞춰 당겼다 뻗고, 그 밖엔 남은 동작을 마저 하고 대기로
+func _rig_pose() -> void:
+	if anim == null:
+		return
+	if mode == "fight" and fs == 1 and shown:
+		var k := clampf((fs_t - show_at) / maxf(0.01, win - show_at), 0.0, 1.0)
+		var a: String = THRUST[sdir]
+		if anim.current_animation != a:
+			anim.play(a)
+		anim.pause()
+		# 0~0.25 당김, 0.25~0.5 뻗음: 오래 당기고 있다가 끝에 뻗는다 (게임 칼과 같은 박자)
+		var t := 0.25 * minf(1.0, k / 0.7) + 0.22 * maxf(0.0, (k - 0.7) / 0.3)
+		anim.seek(anim.get_animation(a).length * t, true)
+	elif not anim.is_playing():
+		anim.play()
+
+
+## 몸 번쩍임: 상자 몸은 색을 바꾸고, 모델은 위에 반투명 색을 덮는다. null 이면 원래대로
+func _tint(c: Variant) -> void:
+	if c == null:
+		body.material_override = mat(body.get_meta("col"))
+	else:
+		body.material_override = mat(c)
+	for m in rig_m:
+		if c == null:
+			m.material_overlay = null
+		else:
+			var o := StandardMaterial3D.new()
+			o.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			o.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			o.albedo_color = Color(c, 0.55)
+			m.material_overlay = o
 
 
 func _spawn_rest(k: int, hp_y: float) -> void:
@@ -1067,7 +1142,11 @@ func _step(dt: float) -> void:
 			if not hold:
 				_fight(fdt)
 		"fall":
-			piv.rotation.x = lerpf(piv.rotation.x, -1.45, minf(1.0, dt * 5.0))
+			if anim:
+				if anim.current_animation != "Death":
+					anim.play("Death")
+			else:
+				piv.rotation.x = lerpf(piv.rotation.x, -1.45, minf(1.0, dt * 5.0))
 			fl = fl.lerp(Vector3(-1.6, -1.3, -1.5), minf(1.0, dt * 5.0))
 			if mode_t <= 0.0:
 				_open_pick()
@@ -1086,6 +1165,7 @@ func _step(dt: float) -> void:
 				lobby_k = n
 				_to_lobby(0)
 	piv.position = fl
+	_rig_pose()
 	mark.position = piv.position
 	if fx:
 		fx.trail(blade_m, mode == "fight" and fs == 1 and shown)
@@ -1096,7 +1176,7 @@ func _step(dt: float) -> void:
 	if flash_t > 0.0:
 		flash_t -= dt
 		if flash_t <= 0.0:
-			body.material_override = mat(body.get_meta("col"))
+			_tint(null)
 	cam.position = cam_base
 	if shake_t > 0.0:
 		shake_t -= dt
@@ -1467,7 +1547,7 @@ func _parry(perfect: bool) -> void:
 	shake_t = maxf(shake_t, 0.12 if perfect else 0.06)
 	# 간파 = 패링 소리, 그냥 막기 = 이번 칼 모양의 막기 소리
 	sfx(SND["parry"] if perfect else BLOCK_SND[sty])
-	body.material_override = mat(WHITE)
+	_tint(WHITE)
 	flash_t = 0.1
 	fl = Vector3(0, 0, -0.4)
 	_eyes()
@@ -1515,8 +1595,10 @@ func _cut() -> void:
 		fx.hit(ind[odir].global_position)
 		shake_t = maxf(shake_t, 0.08)
 	var dmg := _pow() * (2 if gp else 1)  # 간파로 연 빈틈에 벤 칼은 피해 두 배
-	body.material_override = mat(GOOD)
+	_tint(GOOD)
 	flash_t = 0.15
+	if anim and foe_hp - dmg > 0:
+		anim.play("Hit")
 	fl = Vector3(0, 0, -1.2)
 	fs = 4
 	fs_t = 0.0
