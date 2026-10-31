@@ -658,9 +658,8 @@ func _set_tab(t: int) -> void:
 	if t == 2:
 		_spawn(BOSS_AT if dex_pick == 4 else dex_pick)
 		if seen[dex_pick] == 0:
-			for c in piv.get_children():
-				if c is MeshInstance3D:
-					c.material_override = mat(INK)
+			for c in piv.find_children("*", "MeshInstance3D", true, false):
+				c.material_override = mat(INK)
 			for m in rig_m:
 				m.material_override = mat(INK)
 	else:
@@ -784,46 +783,27 @@ func _spawn(k: int) -> void:
 		hp_y = 2.9
 		eye_y = 0.95
 	body.set_meta("col", (body.material_override as StandardMaterial3D).albedo_color)
-	if ftype < 4:
-		for i in mini(k / 2, 5):
-			box(Vector3((i - (mini(k / 2, 5) - 1) * 0.5) * 0.36, 1.5, 0), Vector3(0.22, 0.3, 0.22), D, piv)
 	for s in [-1.0, 1.0]:
-		if rig == null:
+		if rig == null and rig_m.is_empty():
 			eyes.append(box(Vector3(s * 0.33, eye_y, eye_z), Vector3(0.24, 0.24, 0.06), INK, piv))
 	_spawn_rest(k, hp_y)
 
 
 ## 상자 검객 몸
-func _dress_box(col: Color) -> void:
-	match ftype:
-		0:
-			body = box(Vector3.ZERO, Vector3(1.4, 2.8, 0.9), col, piv)
-			if DUELIST_ON:
-				_dress_duelist()
-			else:
-				box(Vector3(0, 0.95, 0), Vector3(1.45, 0.18, 0.95), BAD, piv)
-		1:
-			body = box(Vector3(0, -0.25, 0), Vector3(2.0, 2.3, 1.0), col, piv)
-			box(Vector3(0, 1.0, 0), Vector3(2.8, 0.18, 1.8), D, piv)
-			box(Vector3(0, 1.2, 0), Vector3(1.0, 0.25, 0.8), D, piv)
-		2:
-			# 베기: 넓은 어깨, 긴 칼
-			body = box(Vector3.ZERO, Vector3(1.6, 2.7, 1.0), col, piv)
-			for s in [-1.0, 1.0]:
-				box(Vector3(s * 1.0, 0.95, 0), Vector3(0.6, 0.3, 1.1), INK, piv)
-		3:
-			# 거합: 마르고 칼은 허리춤 칼집에
-			body = box(Vector3(0, -0.1, 0), Vector3(1.1, 2.9, 0.8), col, piv)
-			box(Vector3(0, 0.85, 0), Vector3(1.6, 0.12, 1.2), INK, piv)
-			box(Vector3(0.7, -0.55, 0.15), Vector3(0.18, 0.18, 1.3), INK, piv)
-			blade_rest = Vector3(0.7, -0.55, 0.45)
-			blade_rr = Vector3(PI / 2, 0, 0)  # 칼집 안에 눕혀 둠
-		4:
-			# 끝판왕: 크고 검다, 붉은 눈, 금관
-			body = box(Vector3(0, 0.1, 0), Vector3(2.4, 3.4, 1.2), col, piv)
-			box(Vector3(0, 1.95, 0), Vector3(1.6, 0.4, 1.0), D, piv)
-			for s in [-1.0, 0.0, 1.0]:
-				box(Vector3(s * 0.55, 2.3, 0), Vector3(0.25, 0.4 if s == 0.0 else 0.28, 0.25), D, piv)
+func _dress_box(_col: Color) -> void:
+	body = box(Vector3.ZERO, Vector3.ONE, WHITE, piv)
+	body.visible = false
+	var model := preload("res://g/models.gd").new()
+	piv.add_child(model)
+	model.build(ftype)
+	for m in model.find_children("*", "MeshInstance3D", true, false):
+		rig_m.append(m)
+		if m.has_meta("signal_eye"):
+			m.set_meta("eye_col", m.material_override.albedo_color)
+			eyes.append(m)
+	if ftype == 3:
+		blade_rest = Vector3(0.85, -0.55, 0.55)
+		blade_rr = Vector3(PI / 2, 0, 0)
 
 
 ## 찌르기 검객 = 파이가 보낸 모델. 상자 몸(body)은 숨겨 두고 번쩍임 색만 받는다
@@ -887,6 +867,7 @@ func _spawn_rest(k: int, hp_y: float) -> void:
 	# 칼은 세로로 긴 막대: 좌우 공격은 세운 칼, 위아래 공격은 눕힌 칼로 보인다
 	blade_m = box(blade_rest, Vector3(0.16, 2.0 if ftype == 2 else 1.7, 0.16), WHITE, piv)
 	blade_m.rotation = blade_rr
+	preload("res://g/models.gd").sword(blade_m)
 	ghosts.clear()
 	for i in 4:
 		var gm := StandardMaterial3D.new()
@@ -926,7 +907,7 @@ func _spawn_rest(k: int, hp_y: float) -> void:
 func _eyes() -> void:
 	var c := BAD if ph == 2 or ftype == 4 else INK
 	for e in eyes:
-		e.material_override = mat(c)
+		e.material_override = mat(BAD if c == BAD else e.get_meta("eye_col", INK))
 
 
 func _hp_bar() -> void:
