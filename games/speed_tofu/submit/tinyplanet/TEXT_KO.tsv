@@ -23,7 +23,7 @@ who.rose	[별·주민 이름] 별 5 주민 이름		장미	Rose
 who.chimney	[별·주민 이름] 굴뚝 달 주민 이름		굴뚝 집	Chimney House	
 who.friend	[별·주민 이름] 친구 달 주민 이름		꽃 친구	Flower Friend	
 goal.talk	[맨 위 할 일 칩] 칩: 주민을 아직 안 만났을 때		{who}에게 말 걸기	Talk to {who}	
-goal.wind	[맨 위 할 일 칩] 칩: 풍차 부탁 중		풍차 깨우기 · 땅에서 전력 질주	Wake the windmill · sprint on the ground	
+goal.wind	[맨 위 할 일 칩] 칩: 풍차 부탁 중		풍차 깨우기 · 초록 칸 빠르기로 달리기	Wake the windmill · run at green-zone speed	
 goal.pick	[맨 위 할 일 칩] 칩: 물건을 받으러 가야 할 때		{planet}에서 {item} 받기	Get the {item} on {planet}	
 goal.deliver	[맨 위 할 일 칩] 칩: 물건을 들고(또는 떨어뜨려 두고) 있을 때		{target}에 {item} 배달	Deliver the {item} to {target}	
 goal.band	[맨 위 할 일 칩] 칩: 노을 띠 부탁 중		노을 띠 속도 맞추기	Match the sunset band's speed	
@@ -31,8 +31,8 @@ item.pkg	[맨 위 할 일 칩] 칩·목록 안 {item}		소포	parcel
 item.flower	[맨 위 할 일 칩] 칩·목록 안 {item}		유리꽃	glass flower	
 item.dome	[맨 위 할 일 칩] 칩·목록 안 {item}		유리 덮개	glass dome	
 todo.head	"[왼쪽 위 할 일 목록] 할 일 목록 판 제목 (뒤에 ""N/5"")"		할 일	To-do	
-todo.p1	[왼쪽 위 할 일 목록] 목록 1줄 (풍차지기)		풍차 깨우기 · 땅에서 전력 질주	Wake the windmill · sprint on the ground	
-todo.p2	[왼쪽 위 할 일 목록] 목록 2줄 (우체부)		소포 → 굴뚝 달 집 (공중에서 놓기)	Parcel → Chimney Moon house (drop from the air)	
+todo.p1	[왼쪽 위 할 일 목록] 목록 1줄 (풍차지기)		풍차 깨우기 · 초록 칸 빠르기로 달리기	Wake the windmill · run at green-zone speed	
+todo.p2	[왼쪽 위 할 일 목록] 목록 2줄 (우체부)		소포 → 굴뚝 달 집 (담이 막힘 · 공중에서 놓기)	Parcel → Chimney Moon house (wall closed · drop from the air)	
 todo.p3	[왼쪽 위 할 일 목록] 목록 3줄 (정원사)		유리꽃 → 친구 달 (살살 착지)	Glass flower → Friend Moon (land softly)	
 todo.p4	[왼쪽 위 할 일 목록] 목록 4줄 (형님)		노을 띠 속도 맞추기	Match the sunset band's speed	
 todo.p5	[왼쪽 위 할 일 목록] 목록 5줄 (장미), 덮개가 생긴 뒤		유리 덮개 → 장미	Glass dome → Rose	
@@ -43,66 +43,66 @@ todo.st_done	[왼쪽 위 할 일 목록] 목록 줄 오른쪽 상태		끝	Done
 todo.held	"[왼쪽 위 할 일 목록] 목록 아래 ""들고 있는 것: ○○"""		들고 있는 것	Carrying	
 todo.empty	[왼쪽 위 할 일 목록] 위 줄에서 아무것도 안 들었을 때		빈손	Nothing	
 todo.close	[왼쪽 위 할 일 목록] 목록 판 맨 아래 (판 아무 데나 누르면 닫힘)		닫기	Close	
-talk.busy	[왼쪽 위 할 일 목록] 물건을 든 채 주민에게 갔는데 그 주민 줄(pN.busy)이 없을 때 (예비)	그 주민	어라, 이미 {item} 들고 있네.|그것부터 갖다주고 와!	Oh, you're already carrying the {item}.|Deliver that first!	
-p1.ask	[별 1 풍차의 별] 풍차지기 5m 안에 처음 갔을 때 (말풍선 둘)	풍차지기	허허, 어서 오게나, 젊은이.|오, 마침 잘 됐군.|자네 다리가 튼실해 보이는데 나 좀 도와주게나.|바람이 멎어 풍차가 잠들었네.|이 별을 뛰어다녀 바람을 만들어주게나.	Ho ho, welcome, young one.|Oh, just in time.|Those legs of yours look sturdy. Lend an old man a hand.|The wind has stopped, and the windmill fell asleep.|Run around this planet and make me some wind.	
-p1.hint	[별 1 풍차의 별] 부탁 바로 뒤, 또 바람 막대 15% 미만이면 40초마다	풍차지기	조이스틱은 조금 덜 밀게나.|끝까지 밀면 붕 뜬다네.|점프 버튼 둘레 고리를 보게.|초록 칸에 맞춰 달리게나.|그러면 바람이 인다네.	Push the joystick a little less.|Full tilt sends you floating.|Watch the ring around Jump.|Run with it in the green.|Then the wind will rise.	
-p1.thanks	[별 1 풍차의 별] 바람 막대 100% (말풍선 둘)	풍차지기	고마우이, 구식 날다리를 받게나.|배달 일이라면 우편의 별, 보라색 별로 가면 되겠군 그래.	Much obliged. Take this Old Glidewing.|If it's delivery work you're after, the Post Planet is the purple one.	
-p1.thanks2	[별 1 풍차의 별] thanks 바로 뒤	풍차지기	날다가 한번 더 뛰면 조이스틱 방향으로 방향을 튼다네.	Jump once more in flight, and you'll turn toward your joystick.	
-banner.sail	[별 1 풍차의 별] 바람 막대 100% (위쪽 띠 5초)		구식 날다리! 날 때 '날다리' 버튼을 한 번 누르면 조이스틱 쪽으로 방향을 튼다.	Old Glidewing! In flight, tap 'Glide' once to turn toward your joystick.	
-hint.sail	[별 1 풍차의 별] 날다리 버튼이 처음 나올 때 한 번		'날다리' 버튼이 생겼어.|연한 점선은 날다리로 갈 길이야.	'Glide' is ready.|Faint dots show where it takes you.	
+talk.busy	[왼쪽 위 할 일 목록] 물건을 든 채 주민에게 갔는데 그 주민 줄(pN.busy)이 없을 때 (예비)	그 주민	손에 든 {item}부터 먼저 전해 주고 와.	Go deliver the {item} in your hands first.	
+p1.ask	[별 1 풍차의 별] 풍차지기 5m 안에 처음 갔을 때 (말풍선 셋)	풍차지기	어서 오게나, 작은 길손이구먼.|바람이 딱 멈춰서 우리 풍차가 깊이 잠들었네.|이 별 둘레를 신나게 달려서 바람을 좀 일으켜 주게.	Welcome, little traveler.|The wind died down, and my windmill fell fast asleep.|Run around my planet and stir up a breeze, would you?	
+p1.hint	[별 1 풍차의 별] 부탁 바로 뒤, 또 바람 막대 15% 미만이면 40초마다	풍차지기	언젠가 시원한 바람이 다시 별을 찾아올 걸세.	A cool breeze will find this planet again someday.	
+p1.thanks	[별 1 풍차의 별] 바람 막대 100% (말풍선 셋)	풍차지기	풍차가 다시 시원하게 돌아가는구먼, 고맙네!|보답으로 내 젊은 시절 쓰던 '구식 날다리'를 주겠네.	The windmill's spinning nicely again. Much obliged!|As thanks, take the 'Old Glidewing' I used in my youth.	
+p1.thanks2	[별 1 풍차의 별] thanks 바로 뒤	풍차지기	그 날다리가 낡아 보여도 뼈대는 아주 튼튼하다네.	That glidewing may look old, but its frame is sturdy.	
+banner.sail	[별 1 풍차의 별] 바람 막대 100% (위쪽 띠 5초)		구식 날다리 획득! 날 때 '날다리'를 한 번 누르면 조이스틱 쪽으로 방향을 튼다.	Old Glidewing acquired! In flight, tap 'Glide' once to turn toward your joystick.	
+hint.sail	[별 1 풍차의 별] 날다리 버튼이 처음 나올 때 한 번		'날다리' 버튼이 생겼다.	The 'Glide' button appeared.	
 msg.sail	[별 1 풍차의 별] 날다가 날다리를 쓸 때 알림		날다리로 방향 전환	Glidewing turn	
-p1.idle1	[별 1 풍차의 별] 부탁을 끝낸 뒤 곁에 서면 60초에 한 번 (둘 중 하나)	풍차지기	요즘 젊은이들은 바람도 앱으로 부른다지?|나는 아직 발로 부른다네.	Young folks summon wind with an app these days, I hear.|I still do it with my feet.	
-p1.idle2	[별 1 풍차의 별] 위와 같음	풍차지기	서두르지 않아도 되네.|별은 언제나 제자리에서 릴스를 보고 있으니.	No need to hurry.|The planets are always right where they are, watching Reels.	
+p1.idle1	[별 1 풍차의 별] 부탁을 끝낸 뒤 곁에 서면 60초에 한 번 (둘 중 하나)	풍차지기	요즘 젊은이들은 앱 하나로 바람을 부른다더군.|그래도 바람은 발로 뛰어서 만들어야 제맛이지.	I hear young folks summon wind with an app these days.|Still, wind tastes best when you make it with your own feet.	
+p1.idle2	[별 1 풍차의 별] 위와 같음	풍차지기	이웃 별 녀석들이 온종일 릴스만 들여다보고 있네.|하도 고개를 숙이고 있어서 궤도가 비뚤어질 지경이야.	The neighbor planets do nothing but watch Reels all day.|They hang their heads so low their orbits are going crooked.	
 react.first_liftoff	[날기·내려앉기] 처음으로 중력을 벗어나는 점프 (한 번)	너?	어… 나 지금 나는 거야?	Wait... am I flying?	
 react.first_landing	[날기·내려앉기] 다른 별에 처음 내려앉음 (한 번)	너?	착지 성공. 여긴 어디지?	Landed. Where am I?	
 react.new_planet	[날기·내려앉기] 그 뒤 새 별에 처음 내려앉음 (목숨이 3으로 참)	너?	새 별이다. 기운이 솟는다	A new planet. I feel recharged	
 react.slingshot	[날기·내려앉기] 다른 별 곁을 지나 휘어 내려앉음	너?	별 옆을 스치니 슝 빨라졌다!	Skimmed a planet. Whoosh, faster!	
 react.orbit_landing	[날기·내려앉기] 대기에서 오래 돌다 살살 앉음	너?	빙글빙글 돌다 사뿐히 착지!	Round and round, then a soft landing!	
 msg.next	[날기·내려앉기] 부탁 하나 끝난 뒤 알림		다음: {planet}	Next: {planet}	
-hud.next_hint	[날기·내려앉기] 땅에 있고 갈 곳이 다른 별일 때 (50초에 한 번)		다음은 {planet}.|노란 빛기둥이 선 별이야.|달려서 점프! 초록 점선이면 닿아.	Next: {planet}.|It's the one with the yellow pillar.|Run and jump! Green dots mean you'll reach it.	
+hud.next_hint	[날기·내려앉기] 땅에 있고 갈 곳이 다른 별일 때 (50초에 한 번)		다음: {planet} · 노란 화살표 쪽	Next: {planet} · follow the yellow arrow	
 msg.use_sail	[날기·내려앉기] 이대로면 못 닿는데 날다리 한 번이면 닿을 때		지금 날다리!	Glide now!	
 msg.use_air	[날기·내려앉기] 같은 상황, 날다리가 없을 때		한 번 더 점프!	Jump once more!	
-p2.ask	[별 2 우편의 별 · 굴뚝 달] 우체부 5m 안 (손이 비었을 때, 말풍선 둘)	우체부	어서 오세요, 우편의 별입니다!|마침 특급 배송 건이 하나 있어요.|이 소포, 하얀 굴뚝 달 집으로요.|담이 높아요.|공중에서 쏙 넣어 주세요!	Welcome to the Post Planet!|Perfect timing. I've got an express job.|This parcel goes to the house on the white Chimney Moon.|The wall's high.|Drop it in from the air!	
-p2.busy	[별 2 우편의 별 · 굴뚝 달] 다른 물건을 든 채 우체부에게 갔을 때	우체부	아, 손에 {item} 있으시네요!|한 건씩만요.|그거 먼저 배송하고 오세요.	Oh, you've got the {item}!|One job at a time.|Deliver that first.	
+p2.ask	[별 2 우편의 별 · 굴뚝 달] 우체부 5m 안 (손이 비었을 때, 말풍선 넷)	우체부	우편의 별에 잘 오셨어요, 배달부님!|마침 당일 특송 건이 하나 밀려 있거든요.|이 소포를 굴뚝 달의 굴뚝 집으로 보내 주세요.|거긴 담이 높아서 하늘로만 물건이 들어간대요.	Welcome to the Post Planet, courier!|I happen to have a same-day express job backed up.|Please take this parcel to the house on Chimney Moon.|Its wall is high, so things only get in from the sky.	
+p2.busy	[별 2 우편의 별 · 굴뚝 달] 다른 물건을 든 채 우체부에게 갔을 때	우체부	배송은 한 번에 딱 한 건씩이 원칙이에요.|들고 계신 {item}부터 먼저 완료하고 오세요.	Our rule is strictly one job at a time.|Please finish delivering the {item} you're holding first.	
 got.pkg	[별 2 우편의 별 · 굴뚝 달] 소포를 주웠을 때 위쪽 띠 3초		소포 → {target}	Parcel → {target}	
-p2.hint	[별 2 우편의 별 · 굴뚝 달] 소포를 들고 있으면 45초마다	우체부	달은 작아서 금방 떠요!|굴뚝 위를 지날 때 '놓기'.|발밑 노란 점에 떨어져요.	The moon's tiny, so you float off fast!|Tap 'Drop' over the chimney.|It lands on the yellow dot below you.	
+p2.hint	[별 2 우편의 별 · 굴뚝 달] 소포를 들고 있으면 45초마다	우체부	그 소포는 속도가 생명인 당일 특송이에요.	That parcel's same-day express. Speed is everything.	
 msg.wall_high	[별 2 우편의 별 · 굴뚝 달] 굴뚝 달 담에 부딪힘		높은 담 · 공중에서 놓기	High wall · drop from the air	
 msg.missed_drop	[별 2 우편의 별 · 굴뚝 달] 놓은 물건이 과녁 밖에 떨어짐		빗나감 · 다시 줍기	Missed · pick it up again	
-moon.chimney.got	[별 2 우편의 별 · 굴뚝 달] 소포 배달 순간	굴뚝 집	캬, 굴뚝으로 소포가 쏙!|방바닥 뜨끈하다.|이 맛에 집 하지.	Ahh, right down the chimney!|Floor's toasty.|This is why I'm a house.	
-p2.thanks	[별 2 우편의 별 · 굴뚝 달] 위 말 바로 뒤	우체부	배송 완료!|덕분에 오늘 칼퇴각이에요.|남은 부탁은 왼쪽 위 할 일 목록에 있어요.	Delivered!|Thanks to you, I might clock out on time.|The other requests are in the to-do list, top left.	
-p2.idle1	[별 2 우편의 별 · 굴뚝 달] 부탁을 끝낸 뒤 곁에 서면 60초에 한 번	우체부	형님이 밥 산다는 말 있죠?|그거 3년째 배송 중이래요.|도착 예정일 미정.	You know Big Bro's 'I'll buy you dinner'?|It's been in transit for three years.|ETA unknown.	
-p2.idle2	[별 2 우편의 별 · 굴뚝 달] 위와 같음	우체부	오늘 물량 실화예요?|그래도 가방이 빵빵하면 기분은 좋아요.	Is today's load for real?|Still, a full bag feels good.	
-p3.ask	[별 3 유리꽃의 별 · 친구 달] 정원사 5m 안 (손이 비었을 때, 말풍선 둘)	정원사	아, 안녕하세요…|쉿… 꽃들이 자고 있어서요.|이 유리꽃, 민트색 친구 달에 전해 줄래요?|세게 내려앉으면… 깨져 버려요.	Oh, hello...|Shh... the flowers are sleeping.|Could you take this glass flower to the mint Friend Moon?|If you land hard... it'll break.	
-p3.busy	[별 3 유리꽃의 별 · 친구 달] 다른 물건을 든 채 정원사에게 갔을 때	정원사	어머… 이미 {item} 들고 있네요.|그것부터 전해 주세요…|그다음에 천천히 오세요.	Oh... you're already carrying the {item}.|Deliver that first...|Then come back, slowly.	
+moon.chimney.got	[별 2 우편의 별 · 굴뚝 달] 소포 배달 순간	굴뚝 집	굴뚝으로 소포가 쏙 들어왔어!|온돌 바닥이 지글지글 끓는 기분이야.|이 맛에 내가 집 하는 거지.	The parcel plopped right down my chimney!|My heated floor feels all sizzly.|This is why I'm a house.	
+p2.thanks	[별 2 우편의 별 · 굴뚝 달] 위 말 바로 뒤	우체부	굴뚝 달에서 배송 완료 신호가 떴어요!|덕분에 오늘은 저도 기적의 칼퇴를 노려 볼게요.	The delivery-complete signal just came in from Chimney Moon!|Thanks to you, I might pull off a miracle and clock out on time.	
+p2.idle1	[별 2 우편의 별 · 굴뚝 달] 부탁을 끝낸 뒤 곁에 서면 60초에 한 번	우체부	노을의 별 형님이 밥 산다는 약속 말이에요.|송장만 찍힌 채 3년째 '배송 중'이더라고요.|도착 예정일은 아직도 미정이고요.	About Big Bro's promise to buy dinner.|The label's printed, but it's been 'in transit' for three years.|Estimated arrival: still unknown.	
+p2.idle2	[별 2 우편의 별 · 굴뚝 달] 위와 같음	우체부	오늘 배송 물량이 진짜 어마어마하네요.|그래도 가방이 묵직하게 차 있으면 왠지 뿌듯해요.	Today's delivery load is seriously insane.|Still, a heavy, packed bag feels kind of satisfying.	
+p3.ask	[별 3 유리꽃의 별 · 친구 달] 정원사 5m 안 (손이 비었을 때, 말풍선 넷)	정원사	…안녕하세요, 작게 인사할게요.|지금 아기 꽃들이 곤히 낮잠을 자고 있거든요…|이 유리꽃을 친구 달에 좀 데려다주실래요?|세게 부딪히면 깨져 버릴까 봐 걱정돼요…	...Hello. I'll say it quietly.|The baby flowers are taking a nap right now...|Could you take this glass flower to Friend Moon?|I'm so worried it'll shatter if it hits hard...	
+p3.busy	[별 3 유리꽃의 별 · 친구 달] 다른 물건을 든 채 정원사에게 갔을 때	정원사	…이미 손에 {item} 들고 계시네요.|그 배달부터 조심히 끝내고 와 주세요…	...You're already holding the {item}.|Please finish that delivery first, carefully...	
 got.flower	[별 3 유리꽃의 별 · 친구 달] 유리꽃을 주웠을 때 위쪽 띠		유리꽃 → {target} (살살)	Glass flower → {target} (gently)	
-p3.hint	[별 3 유리꽃의 별 · 친구 달] 유리꽃을 들고 있으면 45초마다	정원사	곧장 꽂지 마세요.|빙 돌다 살살 앉아요.|빨간 그림자는 운석 자리예요…|미리 피해요.	Don't dive straight in.|Circle and land softly.|Red shadows mean meteors...|Move early.	
+p3.hint	[별 3 유리꽃의 별 · 친구 달] 유리꽃을 들고 있으면 45초마다	정원사	…유리꽃이 다치지 않게 살살 다뤄 주세요.	...Please be gentle so the glass flower doesn't get hurt.	
 react.flower_cracked	[별 3 유리꽃의 별 · 친구 달] 유리 물건을 들고 세게 착지	너?	으앗, 금이 갔다… 더 살살	Yikes, it cracked... softer	
 react.flower_broken	[별 3 유리꽃의 별 · 친구 달] 유리 물건이 깨짐	너?	와장창… 다시 받으러 가자	Crash... go get another	
 msg.glass_broken	[별 3 유리꽃의 별 · 친구 달] 금 100% 또는 높이 놓기로 깨짐		깨짐 · {src}에서 다시 받기	Broken · get another on {src}	
-moon.friend.got	[별 3 유리꽃의 별 · 친구 달] 유리꽃 배달 순간	꽃 친구	헐, 하나도 안 깨졌어!|바로 릴스 올려야지.|달이 반짝반짝해!	No way, not a single crack!|Posting this to Reels right now.|The moon's sparkling!	
-p3.thanks	[별 3 유리꽃의 별 · 친구 달] 위 말 바로 뒤 (말풍선 둘)	정원사	꽃이 무사하대요…|휴, 제 손이 다 떨렸어요.|다른 별에도 기다리는 이가 있을 거예요.	The flower made it...|Phew, my hands were shaking.|Someone on another planet must be waiting too.	
-p3.idle1	[별 3 유리꽃의 별 · 친구 달] 부탁을 끝낸 뒤 곁에 서면 60초에 한 번	정원사	유리꽃은 아주 여려요…|귀 기울이면 맑게 울려요.|가끔 랩도 해요.	Glass flowers are delicate...|Listen closely and they chime.|Sometimes they rap.	
-p3.idle2	[별 3 유리꽃의 별 · 친구 달] 위와 같음	정원사	꽃들이 어젯밤 릴스 보다 늦게 잤대요…|그래서 오늘 다들 시들해요.	The flowers stayed up late watching Reels...|So they're all droopy today.	
-p4.ask	[별 4 노을의 별] 형님 5m 안 (말풍선 둘)	형님	어이 동생, 왔냐.|내 별이 쪼끄매.|그래서 노을이 자꾸 도망가거든.|저 주황 띠랑 같이 좀 달려 줘.|형이 밥 살게. 아마도.	Hey kiddo, you made it.|My planet's tiny.|So the sunset keeps running off.|Run alongside that orange band for me.|I'll buy you dinner. Probably.	
-p4.hint	[별 4 노을의 별] 부탁 바로 뒤, 띠 막대 15% 미만이면 40초마다	형님	얼음이라 미끄럽다.|조이스틱은 살살.|빠르면 뜬다.|느리면 놓쳐.|띠랑 같은 빠르기로.	It's icy.|Easy on the joystick.|Too fast and you float.|Too slow and you lose it.|Match the band's speed.	
-p4.thanks	[별 4 노을의 별] 띠 막대 100%, 손이 비었을 때 (맡겨 둔 덮개를 받을 때도, 말풍선 둘)	형님	오, 잘했다.|이 유리 덮개, 분홍 장미 별에 좀 갖다줘.|곧장 가면 빨간 지뢰 울타리야.|거긴 형도 못 지나가.	Nice work.|Take this glass dome to the pink Rose Planet.|The straight route has a red mine fence.|Even I can't get through that.	
-p4.keep	[별 4 노을의 별] 띠 막대 100%인데 손에 다른 물건	형님	오, 잘했다.|근데 손이 꽉 찼네?|덮개는 형이 맡아 둘게.|손 비면 와.	Nice work.|Hands full, huh?|I'll hang on to the dome.|Come back when you're free.	
-p4.busy	[별 4 노을의 별] 맡긴 덮개가 있는데 다른 물건을 든 채 형님에게 갔을 때	형님	야, 동생.|손에 {item} 있잖아.|그거부터 갖다주고 와.|난 안 급해.	Hey kiddo.|You've got the {item}.|Drop that off first.|I'm in no rush.	
-p4.thanks2	[별 4 노을의 별] thanks 바로 뒤, 또 덮개를 들고 장미 별 밖이면 45초마다	형님	빨간 불 별 옆을 스쳐 가.|그럼 휘어서 돌아간다.|닿으면 끝이다, 진짜로.	Skim past the red Fire Star.|You'll curve around it.|Touch it and it's over. For real.	
+moon.friend.got	[별 3 유리꽃의 별 · 친구 달] 유리꽃 배달 순간	꽃 친구	헐, 대박! 금 하나 없이 멀쩡하게 왔잖아!|이 자태, 당장 릴스에 박제해야지.	No way! It got here without a single crack!|Posting this beauty to Reels right now.	
+p3.thanks	[별 3 유리꽃의 별 · 친구 달] 위 말 바로 뒤 (말풍선 둘)	정원사	…유리꽃이 무사히 도착했다는 소식 들었어요.|깨질까 봐 내내 손이 파르르 떨렸답니다…	...I heard the glass flower arrived safely.|My hands were trembling the whole time, afraid it would break...	
+p3.idle1	[별 3 유리꽃의 별 · 친구 달] 부탁을 끝낸 뒤 곁에 서면 60초에 한 번	정원사	유리꽃에 귀를 기울이면 맑은 종소리가 나요…|그런데 가끔은 아주 빠른 랩을 하기도 해요.	If you listen to a glass flower, it chimes like a bell...|Though sometimes it raps really fast.	
+p3.idle2	[별 3 유리꽃의 별 · 친구 달] 위와 같음	정원사	꽃들이 어젯밤 릴스 보느라 새벽까지 안 잤나 봐요…|꽃잎이 졸려서 다 축 처져 있지 뭐예요.	The flowers must've stayed up watching Reels till dawn...|Their petals are all drooping from sleepiness.	
+p4.ask	[별 4 노을의 별] 형님 5m 안 (말풍선 넷)	형님	어이 동생, 마침 심심했는데 잘 왔다.|별이 너무 좁아서 노을이 자꾸 도망치거든.|저기 주황색 노을 띠를 따라서 같이 좀 뛰어 줘라.|형이 밥 살게. 아마도.	Hey kiddo, good timing. I was getting bored.|My planet's so tiny the sunset keeps running off.|Run along with that orange sunset band for me.|I'll buy you dinner. Probably.	
+p4.hint	[별 4 노을의 별] 부탁 바로 뒤, 띠 막대 15% 미만이면 40초마다	형님	동생, 그러다 저 노을 다 놓치겠다.	Kiddo, at this rate that sunset's getting away.	
+p4.thanks	[별 4 노을의 별] 띠 막대 100%, 손이 비었을 때 (맡겨 둔 덮개를 받을 때도, 말풍선 셋)	형님	오, 발이 제법 빠른데, 동생?|이 유리 덮개를 장미의 별에 좀 가져다줘라.	Oh, you're pretty quick, kiddo.|Take this glass dome to the Rose Planet for me.	
+p4.keep	[별 4 노을의 별] 띠 막대 100%인데 손에 다른 물건	형님	동생, 아주 시원하게 잘 달렸어!|근데 손이 꽉 찼으니 덮개는 형이 들고 있을게.|손 비면 언제든 슬슬 다시 와라.	Kiddo, that was a great run!|Your hands are full, so I'll hang on to the dome.|Swing by whenever your hands are free.	
+p4.busy	[별 4 노을의 별] 맡긴 덮개가 있는데 다른 물건을 든 채 형님에게 갔을 때	형님	손에 든 {item}부터 배달하고 와.|어차피 형은 낮잠이나 잘 거라 하나도 안 급해.	Deliver the {item} in your hands first.|I'm just gonna nap anyway, so I'm in no rush.	
+p4.thanks2	[별 4 노을의 별] thanks 바로 뒤, 또 덮개를 들고 장미 별 밖이면 45초마다	형님	동생, 불 별 쪽은 진짜 뜨거우니까 얼씬도 마라.	Kiddo, the Fire Star is seriously hot. Stay away.	
 got.dome	[별 4 노을의 별] 덮개를 다시 주웠을 때 위쪽 띠		유리 덮개 → {target}	Glass dome → {target}	
-p4.idle1	[별 4 노을의 별] 부탁을 끝낸 뒤 곁에 서면 60초에 한 번	형님	노을 보면서 달리면 마음이 몽글몽글해진다.|형 감성 좀 있지?	Running under the sunset makes me all mushy inside.|Got some soul, huh?	
-p4.idle2	[별 4 노을의 별] 위와 같음	형님	혼자 뛸 땐 좀 외로웠어.|둘이 뛰니 노을도 안 무섭네.|밥은 다음에 살게. 아마도.	Running alone got lonely.|With two of us, the sunset's not so scary.|Dinner's on me next time. Probably.	
-rose.early	[별 5 장미의 별] 노을 부탁 전에 장미에게 갔을 때 (말풍선 둘)	장미	…안녕.|…추워.|형님이 유리 덮개를 갖고 있대.|노을의 별에 가 봐.|딱히 네가 가져오길 기다리는 건 아니니까.|착각하지 마.	...Hi.|...It's cold.|I hear Big Bro has a glass dome.|Try the Sunset Planet.|It's not like I'm waiting for you to bring it.|Don't get the wrong idea.	
-p5.ask	[별 5 장미의 별] 덮개가 생긴 뒤 장미 5m 안에 처음 갔을 때 (말풍선 둘)	장미	…왔어?|바람이 차가워.|유리 덮개 좀 씌워 줘.|담이 천천히 돌아.|틈은 딱 하나야.	...You're here?|The wind is cold.|Put the dome over me.|The wall turns slowly.|There's just one gap.	
-p5.hint	[별 5 장미의 별] 덮개를 들고 장미 별에 있으면 45초마다	장미	담 틈으로 걸어 들어와도 돼.|아니면 탑에서 뛰어.|내 위에서 '놓기'를 눌러.|세게 떨어뜨리면 깨져.|…살살 해.	You can walk in through the gap.|Or jump from the tower.|Tap 'Drop' above me.|Drop it hard and it breaks.|...Be gentle.	
+p4.idle1	[별 4 노을의 별] 부탁을 끝낸 뒤 곁에 서면 60초에 한 번	형님	노을 받으며 달리면 마음이 몽글몽글해진단 말이지.|어때, 형한테도 낭만이 좀 있지 않냐?	Running in the sunset glow makes me all mushy inside.|What do you think, your big bro's got some soul, huh?	
+p4.idle2	[별 4 노을의 별] 위와 같음	형님	혼자 뛸 땐 쓸쓸했는데 둘이 뛰니 노을도 안 무섭네.|다음엔 진짜 밥 살게. 아마도.	Running alone was lonely, but with two, the sunset's not scary.|Next time I'm buying dinner for real. Probably.	
+rose.early	[별 5 장미의 별] 노을 부탁 전에 장미에게 갔을 때 (말풍선 셋)	장미	…안녕, 여기까지 웬일이야?|우주 바람이 불어서 좀 춥네.|형님이 유리 덮개를 갖고 있다던데.	...Hi. What brings you all the way here?|The space wind is blowing, and it's a bit cold.|I heard Big Bro has a glass dome.	
+p5.ask	[별 5 장미의 별] 덮개가 생긴 뒤 장미 5m 안에 처음 갔을 때 (말풍선 셋)	장미	…진짜 그걸 들고 찾아왔어?|바람이 차가우니까 얼른 그 덮개 씌워 줘.	...You actually came with it?|The wind is freezing, so hurry and put that dome over me.	
+p5.hint	[별 5 장미의 별] 덮개를 들고 장미 별에 있으면 45초마다	장미	…딱히 네가 올 때까지 기다리는 건 아니야.	...It's not like I'm waiting for you or anything.	
 msg.wall_gap	[별 5 장미의 별] 장미 별 담에 부딪힘		담 · 틈으로	Wall · use the gap	
 msg.tower_jump	[별 5 장미의 별] 탑 꼭대기에서 뛰어내릴 때		탑에서 점프	Tower leap	
 msg.rose_smiles	[별 5 장미의 별] 덮개 배달 (마지막 부탁이었을 때)		장미가 환하게 웃는다	Rose smiles brightly	
-p5.thanks	[별 5 장미의 별] 덮개 배달, 마지막 부탁이었을 때	장미	…따뜻해.|고, 고마워.|네 빠른 발 덕분이야.|다섯 별이 다 웃고 있어.	...It's warm.|Th-thanks.|It's all thanks to your fast feet.|All five planets are smiling.	
-p5.thanks_more	[별 5 장미의 별] 덮개 배달, 남은 부탁이 있을 때	장미	…따뜻해.|고, 고마워.|다른 별들도 네 발을 기다려.|가 봐, 얼른.	...It's warm.|Th-thanks.|The others are waiting for your feet too.|Go on, hurry.	
-p5.idle1	[별 5 장미의 별] 부탁을 끝낸 뒤 곁에 서면 60초에 한 번	장미	…뭘 봐?|덮개가 마음에 들어서 가만있는 거야.|사진은 찍지 마.	...What are you looking at?|I'm only sitting still because I like the dome.|No photos.	
-p5.idle2	[별 5 장미의 별] 위와 같음	장미	별빛이 덮개에 반짝이는 건… 조금 예쁘네.|형님 밥 약속보단 확실하고.	Starlight on the dome is... a little pretty.|More reliable than Big Bro's dinner promises.	
-msg.drift_warn	[우주 미아·죽음] 어느 별에도 안 끌리고 멀어질 때 (날다리 있음)		떠내려가는 중 · 날다리로 방향 틀기	Drifting away · turn with Glide	
+p5.thanks	[별 5 장미의 별] 덮개 배달, 마지막 부탁이었을 때	장미	…덮개를 쓰니까 정말 따뜻하네.|그… 여기까지 와 줘서, 고마워.	...It's really warm under this dome.|Th-thanks for coming all this way.	
+p5.thanks_more	[별 5 장미의 별] 덮개 배달, 남은 부탁이 있을 때	장미	…바람이 하나도 안 느껴져, 따뜻해.|그… 덮개 가져다줘서, 고마워.	...I can't feel the wind at all. It's warm.|Th-thanks for bringing the dome.	
+p5.idle1	[별 5 장미의 별] 부탁을 끝낸 뒤 곁에 서면 60초에 한 번	장미	…뭘 그렇게 빤히 쳐다봐?|덮개가 마음에 들어서 가만히 있는 것뿐이거든.|사진 같은 건 절대 찍지 마.	...What are you staring at?|I'm only sitting still because I happen to like the dome.|Don't even think about taking photos.	
+p5.idle2	[별 5 장미의 별] 위와 같음	장미	덮개에 비치는 별빛이 조금 예쁘긴 하네.|형님 밥 약속보다는 백 배 믿을 만하고.	The starlight on the dome is a little pretty.|A hundred times more reliable than Big Bro's dinner promise.	
+msg.drift_warn	[우주 미아·죽음] 어느 별에도 안 끌리고 멀어질 때 (날다리 있음)		떠내려가는 중…	Drifting away...	
 msg.drift_warn_ns	[우주 미아·죽음] 위와 같음, 날다리 받기 전		떠내려가는 중!	Drifting away!	
 react.drift_warning	[우주 미아·죽음] 위 상황 첫 번 (날다리 있음)	너?	어어, 멀어진다… 날다리로 돌리자!	Uh-oh, drifting... turn with the Glidewing!	
 react.drift_warning_ns	[우주 미아·죽음] 위 상황 첫 번 (날다리 받기 전)	너?	어어, 멀어진다… 초록 점선에서 뛰자	Uh-oh, drifting... jump on green dots	
@@ -124,7 +124,7 @@ help.jump2	[도움 힌트] 또 그럴 때 (25초 동안 떠나기 도와주기 �
 help.lost1	[도움 힌트] 우주 미아(끌려 돌아옴·떠내려감) 2번		점선이 초록일 때 뛰어 봐.|그럼 다른 별에 닿아.	Jump when the dots are green.|You'll reach another planet.	
 help.lost2	[도움 힌트] 또 그럴 때 (25초 동안 끌어주기 세게)		잠깐 별들이 더 세게 끌어 줘.|초록 점선을 보고 뛰어!	Planets pull harder for a while.|Jump on green dots!	
 help.goal1	[도움 힌트] 갈 곳 별에 90초 못 감 (할 일 버튼 숨쉼·화살표 크게)		어디로 갈지 모르겠어?|왼쪽 위 할 일 목록을 눌러 봐.|노란 화살표를 따라가.	Lost?|Tap the to-do list at the top left.|Follow the yellow arrow.	
-help.goal2	[도움 힌트] 또 그럴 때 (빛기둥 더 크고 밝게)		노란 빛기둥이 서 있는 별로 가면 돼	Head for the planet with the yellow light pillar	
+help.goal2	[도움 힌트] 또 그럴 때 (노란 화살표 더 크고 밝게)		노란 화살표가 떠 있는 별로 가 봐	Head for the planet with the yellow arrow over it	
 help.glass1	[도움 힌트] 유리 금·깨짐 2번		곧장 꽂지 마.|빙 돌다 살살 내려앉아.	Don't dive in.|Circle around and land softly.	
 help.glass2	[도움 힌트] 또 그럴 때 (25초 동안 내려가는 빠르기 한도 낮춤)		잠깐 내려앉기가 더 부드러워져.|빙 돌며 천천히.	Landings are gentler for a while.|Circle and go slow.	
 help.band1	[도움 힌트] 노을 띠를 3번 놓침		띠와 같은 빠르기로!|얼음이라 조이스틱은 살살.	Match the band's speed!|It's icy, so ease the joystick.	

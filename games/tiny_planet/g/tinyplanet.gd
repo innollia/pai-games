@@ -26,7 +26,7 @@ const DROP_SLOW := 0.9  # v11 소포를 들고 굴뚝 달 둘레 안: 옆 속도
 const LAND_VMAX := 5.5  # v7 4.0 → v8 5.5 (세게 꽂으면 유리가 깨질 수 있게) 잡기: 다른 별 대기 안에서 내려가는 빠르기 한도 (유리는 3 넘으면 금이 조금)
 const SAIL_ADD := 2.5  # v7 돛: 틀면서 조금 빨라진다
 const SAIL_TURN := 0.62  # v7 돛: 스틱 없이 쓰면 갈 곳 쪽으로 이만큼(라디안)까지 튼다
-const TOW_T := 2.4  # v8 1.5 → 2.4 (천천히 끌려 돌아온다) # v7 우주 미아: 마지막 별로 끌려 돌아가는 시간
+const TOW_T := 3.0  # v14 2.4 → 3.0. v8 1.5 → 2.4 (천천히 끌려 돌아온다) # v7 우주 미아: 마지막 별로 끌려 돌아가는 시간
 const DOT_SC := 0.78  # v7 점선 점 크기 (v6 대비)
 const GHOST_SC := 0.5  # v7 "지금 돛/공중 점프하면" 연한 점선 점 크기
 const SAIL_POS := Vector2(400, 1165)  # v7 돛 버튼 (날 때만)
@@ -75,7 +75,7 @@ const BD := [
 # 부탁 (별 번호 = 부탁 번호). 물건은 src 별 HOME_D 에서 받아 tgt 별 tdir 로.
 const JOB := [
 	{},
-	{"item": "pkg", "src": 1, "tgt": 5, "tdir": Vector3(-1, 0.3, 0.35), "tr": 2.1, "frag": false},
+	{"item": "pkg", "src": 1, "tgt": 5, "tdir": Vector3(-1, 0.3, 0.35), "tr": 1.7, "frag": false},  # v14 tr 2.1 → 1.7
 	{"item": "flower", "src": 2, "tgt": 6, "tdir": Vector3(-0.4, 0.5, -1), "tr": 1.6, "frag": true},
 	{},
 	{"item": "dome", "src": 3, "tgt": 4, "tdir": Vector3(-1, 0.3, -0.25), "tr": 1.1, "frag": true},
@@ -115,7 +115,7 @@ var env_node: WorldEnvironment
 const INTRO_DUR := 9.0
 const NIGHT := Color("0b1030")  # 멀리 떠 있으면 깊은 밤하늘
 var intro_k := -1.0
-var intro_boost := 0.0  # 말을 넘길 때마다 조금 더 다가갈 몫 (한꺼번에 튀지 않게 나눠서)
+var intro_boost := 0.0  # v14: 1 = 처음 줌 중에 내가 움직이기 시작했다 (그때부터 빨리 마저 다가간다). 탭으로는 안 빨라진다
 var intro_p := Vector3.ZERO
 var intro_l := Vector3.ZERO
 var _fit_c := Vector3.ZERO  # 모든 별을 감싸는 공
@@ -223,8 +223,9 @@ var bub_t := 0.0
 var bub_s := ""
 var bub_who := ""
 var bub_age := 0.0
-var bub_talk := false  # v12: 주민과 마주 본 말 — 탭(스페이스·엔터·E)할 때까지 떠 있고, 그동안 놀이는 멈춘다
+var bub_talk := false  # v12: 주민과 마주 본 말 — 말풍선 탭·엔터·E 로 넘긴다. v14: 놀이는 안 멈춘다 (안 읽어도 된다)
 var bub_talk_age := 0.0
+var talk_pl := -1  # v14: 대화를 건 주민의 별 (멀어지거나 날거나 별이 바뀌면 대화를 닫는다)
 var bub_more: Label  # 말풍선 오른쪽 아래 "▼" (눌러서 넘기기)
 var nag := {}  # 상황 말 번호 -> 다시 해도 되는 시각 (같은 잔소리 반복 없음)
 var pbar_bg: Panel
@@ -791,7 +792,7 @@ func _reset() -> void:
 			rad.append(0.0 if BD[k].kind == "fire" else br[k])
 		fx.set_bodies(bc, rad)
 	ui.reset_run()
-	beacon = _ushape("hex", D)
+	beacon = _ushape("arrow", D)  # v14 "긴 노란 막대 정체를 모르겠어" → 아래를 가리키는 큰 노란 화살표
 	ig_b = _art("parcel", Callable())
 	ig_b.visible = false
 	# 부탁
@@ -893,10 +894,11 @@ func _build() -> void:
 			5:
 				# 굴뚝 집과 담. v11 "굴뚝 너무 어려워": 담을 넓고 낮게(1.8/2.6 → 2.7/1.3), 틈 하나(제자리) — 내려서 걸어 들어가도 된다.
 				# 놓을 자리(노란 동그라미, 소포를 들 때만)는 tr 2.1 로 넓혔다
+				# v14 "걸어 들어가니 굴뚝 의미가 없다": 틈 없는 담(r 2.4, 높이 2.2) — 공중에서 놓아야 한다. 놓을 자리 tr 1.7
 				var c: Vector3 = (JOB[1].tdir as Vector3).normalized()
 				_stand("chimney_house", c, 1.0)
 				_shadow_q(5, c, 1.5)
-				_ring(5, c, 2.7, true, 1.3, false)
+				_ring(5, c, 2.4, false, 2.2, false)
 				_zone(5, c, float(JOB[1].tr), n)
 			6:
 				# 꽃 친구
@@ -1088,6 +1090,7 @@ func _say(who: String, s: String, dur: float, talk := -1) -> void:
 	bub_talk = tk
 	bub_talk_age = 0.0
 	if tk:
+		talk_pl = cur  # v14
 		bub_t = 1.0  # 대화 중엔 줄지 않는다 (_talk_next 가 닫는다)
 	else:
 		bub_t = clampf(bub_s.length() * 0.06, 2.5, 7.0)
@@ -1177,8 +1180,7 @@ func _talk_next() -> void:
 		return
 	play("tap")
 	bub_talk = false
-	if intro_k >= 0.0:
-		intro_boost += 0.1  # v13: 넘길 때마다 조금 더 다가간다
+	# v14: 넘겨도 처음 줌은 빨라지지 않는다 (intro_boost 뺌)
 	if not bub_q.is_empty():
 		var q: Array = bub_q[0]
 		if q.size() > 3 and int(q[3]) == 1:
@@ -1189,17 +1191,35 @@ func _talk_next() -> void:
 	bub_t = 0.25
 
 
-## v12: 대화가 떠 있는 동안 (_step 이 _play 대신): 말풍선만 움직인다. 헤드리스(스모크)는 8초 뒤 저절로 넘긴다
+## v14: 대화가 떠 있는 동안 (_hud 가 부른다, 놀이는 그대로 돈다). 헤드리스(스모크)는 8초 뒤 저절로 넘긴다.
+## 주민에게서 9m 넘게 멀어지거나, 날아오르거나, 별이 바뀌면 대화를 닫고 이어질 대화도 버린다
 func _talk_wait(dt: float) -> void:
+	if not bub_talk:
+		return
 	bub_talk_age += dt
+	var gone := cur != talk_pl or (not grounded and fly_t > 1.0)
+	if not gone and npcs.has(talk_pl):
+		gone = p.distance_to((npcs[talk_pl] as Node3D).position) > 9.0
+	if gone:
+		_talk_close()
+		return
 	if DisplayServer.get_name() == "headless" and bub_talk_age > 8.0:
 		_talk_next()
-	_bub_anim(dt)
-	if intro_k >= 0.0:
-		_camera(dt)  # v13: 처음 대화를 읽는 동안 카메라가 천천히 다가간다
 
 
-## v12: 대화 중 누름 — 조이스틱 자리·메뉴·평가 버튼이 아니면 (말풍선 위는 늘) 넘기고 그 누름은 먹는다 (점프로 안 간다)
+## v14: 대화 닫기 — 지금 말풍선은 옅어지고, 대기열의 대화(q[3]==1)는 버린다 (혼잣말·안내는 남긴다)
+func _talk_close() -> void:
+	bub_talk = false
+	var keep: Array = []
+	for q: Array in bub_q:
+		if not (q.size() > 3 and int(q[3]) == 1):
+			keep.append(q)
+	bub_q = keep
+	bub_more.visible = false
+	bub_t = minf(bub_t, 0.25)
+
+
+## v14: 대화 중 누름 — 말풍선 위(가장자리 조금 여유)만 넘기고 그 누름은 먹는다. 다른 곳은 그냥 놀이 (점프·스틱)
 func _talk_tap(event: InputEvent) -> bool:
 	var at := Vector2(-1, -1)
 	if event is InputEventScreenTouch and (event as InputEventScreenTouch).pressed:
@@ -1214,9 +1234,8 @@ func _talk_tap(event: InputEvent) -> bool:
 		return false
 	if (at.x < 180.0 and at.y < 100.0) or _RATE_BTN.has_point(at):
 		return false
-	var on_bub := Rect2(bub.position, bub.size).has_point(at)
-	if not on_bub and _stick_zone.has_area() and _stick_zone.has_point(at):
-		return false
+	if not bub.visible or not Rect2(bub.position, bub.size).grow(16.0).has_point(at):
+		return false  # v14: 말풍선 밖은 넘기지 않는다
 	_talk_next()
 	return true
 
@@ -1666,12 +1685,10 @@ func _keyboard() -> void:
 	var en := _kb_edge(KEY_ENTER)
 	var kf := _kb_edge(KEY_F)
 	var ke := _kb_edge(KEY_E)
-	# v12: 주민 말이 떠 있으면 스페이스·엔터·E = 다음 말 (점프·놓기로 안 간다)
+	# v14: 주민 말이 떠 있으면 엔터·E = 다음 말. 스페이스는 늘 점프, F 는 늘 놓기 (놀이는 안 멈춘다)
 	if bub_talk and not ui.title_visible() and not ui.todo_open():
-		if sp or en or ke:
+		if en or ke:
 			_talk_next()
-		sp = false
-		kf = false
 		ke = false
 	if sp:
 		_justs["jump"] = true
@@ -1694,9 +1711,7 @@ func _step(dt: float) -> void:
 		_title_cam(dt)
 	elif ui.todo_open():
 		pass  # v9: 할 일 목록이 떠 있는 동안 놀이는 멈춘다
-	elif bub_talk:
-		_talk_wait(dt)  # v12: 주민 말을 읽는 동안 놀이는 멈춘다
-	else:
+	else:  # v14: 주민 말이 떠 있어도 놀이는 돈다 (_hud → _talk_wait)
 		_play(dt)
 	_lod()
 	_post(dt)
@@ -1806,7 +1821,7 @@ func _state() -> Dictionary:
 	_st["me"] = me
 	_st["sky"] = P.get("sky", Color("d6ecff"))
 	_st["planet"] = cur
-	_st["paused"] = ui.title_visible() or _rating or over or ui.todo_open() or bub_talk
+	_st["paused"] = ui.title_visible() or _rating or over or ui.todo_open()  # v14: 대화는 멈춤이 아니다
 	# v9 할 일 목록 버튼: 놀이 중에만, 끝낸 부탁 수
 	_st["jobs_done"] = _ndone()
 	_st["todo_ok"] = not over and not _rating and fin_t <= 0.0 and hud2 != null and hud2.visible and not ui.title_visible()
@@ -1938,7 +1953,9 @@ func _play(dt: float) -> void:
 		# v7 빈 하늘 빨리 감기: 어느 별 대기에도 안 걸리고 벗어나는 중이면 시간을 2.2배로 (느릿느릿 바라보기 없음)
 		var w0 := bc[cur] + p
 		var fast := fly_t > 0.6 and not main_lost and _is_free(w0, vel.length(), _dominant(w0))
-		ff = move_toward(ff, 2.2 if fast else 1.0, dt * 3.0)
+		# v14 우주 미아: 못 돌아오는 길이면 3.5배로 멀리 휙 날아가 버린다 (미아라는 느낌이 들게)
+		var lost_ff := lost_now or tip_t > 3.0
+		ff = move_toward(ff, 3.5 if lost_ff else (2.2 if fast else 1.0), dt * (2.0 if lost_ff else 3.0))
 		fly_adv = dt * ff
 		if _fly(dt * ff):
 			return
@@ -1979,8 +1996,8 @@ func _ground(dt: float, up: Vector3) -> void:
 	if kit_move.length() > 0.05:
 		want = (cright * kit_move.x - cfwd * kit_move.y) * TOP
 	var acc: float = ACC * float(P.acc)
-	if float(P.acc) < 1.0 and want.length() < 0.1:
-		acc = 0.5  # 얼음: 손을 떼도 잘 안 멈춘다
+	if want.length() < 0.1:
+		acc = maxf(acc, ACC)  # v14 "멈추니까 혼자 좀 걷다 멈췄어": 얼음이어도 손을 떼면 바로 선다 (미끄러짐은 출발·방향 바꿀 때만)
 	vel = vel.move_toward(want, acc * dt)
 	vel -= up * vel.dot(up)
 	p += vel * dt
@@ -2112,8 +2129,7 @@ func _fly(dt: float) -> bool:
 		if has_sail:
 			sail_open = 0.01
 			sail_used = true
-			msg(_tx("msg.sail"), 0.9)
-			sfx("sail")
+			sfx("sail")  # v14: "지금 날다리" 글은 뺐다 (미니게임 시절 UI)
 			_emit("sail")
 		else:
 			sfx("liftoff", -4.0, 1.25)
@@ -2132,7 +2148,7 @@ func _fly(dt: float) -> bool:
 				warn_t = 0.35
 				sfx("drift_warn")
 				_emit("drift_warn")
-				msg(_tx("msg.drift_warn" if has_sail else "msg.drift_warn_ns"), 0.5)  # v9: 돛을 받기 전엔 돛 말 없이
+				msg(_tx("msg.drift_warn_ns"), 0.5)  # v14: 늘 "떠내려가요"만 (돛 안내 글 없음)
 				if not drift_said:
 					drift_said = true
 					_react("drift_warning" if has_sail else "drift_warning_ns")
@@ -2367,9 +2383,7 @@ func _meet(k: int) -> void:
 			if k == 4:
 				rose_said = true
 		_first_hint = false  # v11: 첫 조작 안내 말풍선(hint.first)은 뺐다 (사용자 수정)
-		if k == 0 or k == 3:
-			nag[300 + k] = clock + 40.0
-			_sayq(P.who, _line(k, "hint"), 4.0)
+		# v14 "설명이 쓸데없이 많아": 부탁 뒤에 붙던 방법 안내(hint)는 뺐다. 막히면 _help 가 돕는다
 	elif k == 4 and js[3] == 2 and not rose_said:
 		rose_said = true
 		_say(P.who, _line(4, "ask"), 6.0)
@@ -2489,7 +2503,14 @@ func _item_landed() -> void:
 	if J.frag and fall_h0 > 5.5:
 		_break()
 		return
-	if fall_pl == int(J.tgt) and (fall_dir * br[fall_pl]).distance_to(tg * br[fall_pl]) < float(J.tr):
+	var off := (fall_dir * br[fall_pl]).distance_to(tg * br[fall_pl])
+	if fall_pl == int(J.tgt) and off < float(J.tr):
+		if ij == 1 and off < 0.6:
+			# v14 한가운데(굴뚝 바로 위) 놓기: 덤 +10, 쿵 흔들림
+			score += 10
+			shake = 0.35
+			sfx("slingshot", 0.0, 1.2)
+			_emit("score", {"n": 10, "pos": bc[fall_pl] + fall_dir * (br[fall_pl] + 2.5)})
 		_deliver()
 		return
 	ig_on = true
@@ -2568,8 +2589,7 @@ func _done(k: int) -> void:
 		_say(gv.who, _tx("p4.keep"), 6.0)  # v9: 손에 다른 물건 — 덮개는 노을 아이가 맡아 둔다
 	else:
 		_say(gv.who, _line(k, "thanks"), 6.0)
-	if TX.TEXT.has(str(gv.id) + ".thanks2") and (k != 3 or _hands_free()):
-		_sayq(gv.who, _line(k, "thanks2"), 7.0)
+	# v14: 고맙다 뒤의 덧붙임 안내(thanks2)는 뺐다 (설명이 너무 많다)
 	if k == 3:
 		# 덮개가 생겼다: 장미 부탁이 열린다 (손이 비면 바로 내놓고, 아니면 노을 아이가 맡아 둔다)
 		if js[4] == 0:
@@ -2643,13 +2663,20 @@ func _tick(dt: float, up: Vector3, lf: float) -> void:
 		_streaks_tick(dt, false, up)
 	# 노을 띠: 적도를 이륙선의 80%(후반 90%) 빠르기로 돈다 (v9: 노을의 별 위에 있을 때만 움직인다)
 	var r3 := br[3]
+	var band_w := 0.0
 	if js[3] == 1 and cur == 3:
-		band_a += (0.8 if bprog < 0.5 else 0.9) * (1.0 - 0.3 * as_band) * sqrt((bg[3] - 0.8) * r3) / r3 * dt
+		band_w = (0.8 if bprog < 0.5 else 0.9) * (1.0 - 0.3 * as_band) * sqrt((bg[3] - 0.8) * r3) / r3
+		band_a += band_w * dt
 	var inb := false
 	if cur == 3 and grounded:
 		var lon := atan2(-up.z, up.x)
 		var lat := asin(clampf(up.y, -1.0, 1.0))
-		inb = absf(wrapf(lon - band_a, -PI, PI)) < 0.24 and absf(lat) < 0.5
+		inb = absf(wrapf(lon - band_a, -PI, PI)) < 0.34 and absf(lat) < 0.5  # v14 "형님별 어려워": 0.24 → 0.34
+	if inb and band_w > 0.0:
+		# v14 살짝 도와주기: 띠 위에 서 있으면 내 속도를 띠의 빠르기·방향 쪽으로 조금씩 당긴다
+		var vb := Vector3(0, band_w, 0).cross(p)
+		vb -= up * vb.dot(up)
+		vel = vel.lerp(vb, minf(1.0, dt * 1.2))
 	# v6: 띠가 움직일 때만 다시 놓고(각진 면 거리 계산이 무겁다), 색은 바뀔 때만
 	if band_a != _band_last:
 		_band_last = band_a
@@ -2664,7 +2691,7 @@ func _tick(dt: float, up: Vector3, lf: float) -> void:
 	if js[3] == 1 and cur == 3:
 		_help_band(inb, dt)
 		var b0 := bprog
-		bprog = clampf(bprog + (dt / 14.0 if inb else -0.04 * dt), 0.0, 1.0)
+		bprog = clampf(bprog + (dt / 10.0 if inb else -0.025 * dt), 0.0, 1.0)  # v14: 14초 → 10초, 줄어듦 0.04 → 0.025
 		if int(bprog * 20.0) > int(b0 * 20.0):
 			_pb_gain = 1.0
 		if inb:
@@ -2683,8 +2710,13 @@ func _tick(dt: float, up: Vector3, lf: float) -> void:
 	beacon.visible = ob_k >= 0 and fin_t <= 0.0
 	var kb := _cue("beacon")  # v10 도움 힌트: 빛기둥 더 크고 밝게
 	if beacon.visible:
-		var bw := 0.6 * (1.0 + kb * (1.3 + 0.3 * sin(clock * 5.0)))
-		_orient(beacon, bc[ob_k] + ob_d * (br[ob_k] + 7.0 + 3.0 * kb), ob_d, Vector3(bw, 14.0 + 6.0 * kb, bw))
+		# v14: 갈 자리 위 몇 칸에서 위아래로 둥실. 카메라가 멀수록 크게 (다른 별에서도 보이게, 1.2~5배)
+		var gp0 := bc[ob_k] + ob_d * br[ob_k]
+		var cd := cam.global_position.distance_to(gp0) if cam else 20.0
+		var bs := clampf(cd * 0.06, 1.2, 5.0) * (1.0 + kb * (0.6 + 0.15 * sin(clock * 5.0)))
+		var bob := (0.5 + 0.5 * sin(clock * 3.0)) * 0.6 * bs
+		_orient(beacon, gp0 + ob_d * (2.0 + bob), ob_d, Vector3.ONE * bs)
+		beacon.rotate_object_local(Vector3.UP, clock * 1.2)
 	if (kb > 0.0) != _beacon_lit:
 		_beacon_lit = kb > 0.0
 		beacon.material_override = _pm(Color("fff0a6") if _beacon_lit else D)
@@ -2767,11 +2799,16 @@ func _job_planet(j: int) -> int:
 
 ## 말풍선과 부탁 막대. v6: 늘 떠 있는 말 없음 — 상황 말은 한 번씩, 같은 말은 한참 쉬었다가 (_nag)
 func _hud(dt: float) -> void:
+	_talk_wait(dt)  # v14: 대화 넘기기·닫기는 놀이 중에
 	if not bub_talk:
 		bub_t -= dt
 	if bub_t <= 0.0 and not bub_q.is_empty():
 		var q: Array = bub_q.pop_front()
-		_say(str(q[0]), str(q[1]), float(q[2]), int(q[3]) if q.size() > 3 else -1)
+		var qt := int(q[3]) if q.size() > 3 else -1
+		if qt == 1 and not _talk_ok(str(q[0])):
+			_talk_close()  # v14: 주민 곁을 떠났으면 남은 대화는 버린다
+		else:
+			_say(str(q[0]), str(q[1]), float(q[2]), qt)
 	if bub_t <= 0.0 and die_t <= 0.0 and fin_t <= 0.0:
 		_situation()
 	_bub_anim(dt)
@@ -2881,25 +2918,8 @@ func _situation() -> void:
 		if _can(100 + cur):
 			_nag(100 + cur, 60.0, P.who, _line(cur, "idle1" if randf() < 0.5 else "idle2"))
 		return
-	# 글자는 쉬는 시간이 끝났을 때만 만든다 (매 프레임 글자·사전을 만들지 않게)
-	if js[0] == 1 and cur == 0 and wprog < 0.15 and item == "":
-		if _can(300):
-			_nag(300, 40.0, BD[0].who, _line(0, "hint"))
-	elif js[3] == 1 and cur == 3 and bprog < 0.15 and item == "":
-		if _can(303):
-			_nag(303, 40.0, BD[3].who, _line(3, "hint"))
-	elif item != "" and ij == 4:
-		if cur == 4:
-			if _can(450):
-				_nag(450, 45.0, BD[4].who, _line(4, "hint"))  # 장미 별: 담 틈·탑 안내
-		elif _can(400):
-			_nag(400, 45.0, BD[3].who, _line(3, "thanks2"))  # 불 별 새총 안내
-	elif item != "" and ij >= 0:
-		if _can(500 + ij):
-			_nag(500 + ij, 45.0, BD[ij].who, _line(ij, "hint"))
-	elif grounded and ob_k >= 0 and ob_k != cur:
-		if _can(600 + ob_k * 10 + cur):
-			_nag(600 + ob_k * 10 + cur, 50.0, "", _tx("hud.next_hint", {"planet": tr(BD[ob_k].name)}))
+	# v14 "설명이 쓸데없이 많아": 때마다 되풀이하던 주민 안내(바람·띠·물건·장미·불 별)와 "다음은 ○○ 별" 잔소리는 뺐다.
+	# 막혔을 때 돕는 말은 _help (help.*) 가 그대로 맡는다
 
 
 func _can(id: int) -> bool:
@@ -3038,14 +3058,14 @@ func _camera(dt: float) -> void:
 
 ## v13 처음 줌: 먼 자리(intro_p, intro_l)에서 놀이 카메라 자리로. 천천히 시작해 천천히 멈춘다(ease-in-out).
 ## 거리는 비율로 줄여(멀 때도 가까울 때도 같은 느낌), 볼 곳은 먼저 별 쪽으로 가서 별이 화면 밖으로 안 나간다.
-## 대화를 넘길 때마다 조금 더, 대화가 끝났는데 아직이면 1.5초 안에 마저 다가간다
+## v14: 대화를 넘겨도 빨라지지 않는다. 내가 움직이기 시작하면(스틱·뜀) 1.5초 안에 마저 다가간다
 func _intro_cam(dt: float) -> void:
 	var rate := 1.0 / INTRO_DUR
-	if not bub_talk:
+	if kit_move.length() > 0.1 or not grounded:
+		intro_boost = 1.0  # v14: 한 번 움직이면 멈춰도 계속 빨리
+	if intro_boost > 0.0:
 		rate += 1.0 / 1.5
-	var mv := minf(intro_boost, dt * 0.5)
-	intro_boost -= mv
-	intro_k = minf(1.0, intro_k + dt * rate + mv)
+	intro_k = minf(1.0, intro_k + dt * rate)
 	var e := intro_k * intro_k * (3.0 - 2.0 * intro_k)
 	var ec := 1.0 - pow(1.0 - e, 3.0)
 	var d0v := intro_p - intro_l
@@ -3107,7 +3127,9 @@ func _lost_check(dt: float) -> void:
 				lost_now = false
 				if not air_tip:
 					air_tip = true
-					msg(_tx("msg.use_sail" if has_sail else "msg.use_air"), 1.6)
+					# v14: 글 대신 돛 버튼이 숨쉰다 (돛이 없으면 아무 글도 없이). _cue 는 6초가 최대라 4초로 또렷하게
+					if has_sail:
+						_cue_on("sail", 4.0)
 	elif lost_cd <= 0.0:
 		lost_cd = 0.3
 		var w := bc[cur] + p
@@ -3118,14 +3140,26 @@ func _lost_check(dt: float) -> void:
 	lost_t = lost_t + dt if lost_now else 0.0
 	tip_t = tip_t + dt if main_lost else 0.0
 	# 하늘 끝(떠내려가 죽는 선) 가까이면 기다리지 않는다
-	var near_edge := main_lost and _dominant(bc[cur] + p) < 0 and (bc[cur] + p - MID).length() > BOUND - 4.0
-	# v8: 판정이 너무 빨라서 늘림 (0.9/2.5 → 2.6/4.5초). 그동안 돛·공중 점프로 고칠 시간이 있다
-	if lost_t >= 2.6 or tip_t >= 4.5 or near_edge:
+	# v14: 하늘 끝 밖 6칸까지 (떠내려가 죽는 선은 +10)
+	var near_edge := main_lost and _dominant(bc[cur] + p) < 0 and (bc[cur] + p - MID).length() > BOUND + 6.0
+	# v8: 판정이 너무 빨라서 늘림 (0.9/2.5 → 2.6/4.5초). v14: 더 멀리 날아간 뒤에 (3.8/5.5초)
+	if lost_t >= 3.8 or tip_t >= 5.5 or near_edge:
 		_tow_start()
 
 
 func _tow_start() -> void:
 	_help_ev("tow", {})  # v10: 우주 미아 셈 (airjump 가 이번 비행 그대로일 때)
+	# v14 "체력도 안 떨어져": 끌려 돌아오면 목숨 하나. 마지막 목숨이면 보통 죽음(떠내려감)으로
+	if lives <= 1:
+		lost_t = 0.0
+		tip_t = 0.0
+		lost_now = false
+		main_lost = false
+		_die("drift")
+		return
+	lives -= 1
+	_hearts_show(lives)
+	play("bad")
 	tow_t = TOW_T
 	lost_t = 0.0
 	tip_t = 0.0
@@ -3142,7 +3176,7 @@ func _tow_start() -> void:
 	_emit("drift_warn")
 
 
-## 끌려 돌아가기: 마지막으로 내려앉은 자리 위로 둥글게 날아와 그 자리에 선다 (목숨·든 물건 그대로, 잃는 건 시간뿐)
+## 끌려 돌아가기: 마지막으로 내려앉은 자리 위로 둥글게 날아와 그 자리에 선다 (든 물건 그대로. v14: 목숨 하나는 _tow_start 에서 잃는다)
 func _tow(dt: float) -> void:
 	tow_t -= dt
 	var e := smoothstep(0.0, 1.0, 1.0 - maxf(tow_t, 0.0) / TOW_T)
@@ -3168,9 +3202,7 @@ func _sail_btn(_dt: float) -> void:
 		_sail_shown = want
 		if want:
 			kit_button("sail", _tx("ui.sail"), SAIL_POS, 72.0, Color("12b886"))
-			if not sail_hinted:
-				sail_hinted = true
-				_say("", _tx("hint.sail"), 4.2)
+			sail_hinted = true  # v14: 돛 설명은 banner.sail 하나만 (hint.sail 말풍선 뺌)
 		elif _btns.has("sail"):
 			_btns["sail"].pos = Vector2(-600, -600)
 			_btns["sail"].r = 1.0
@@ -4943,6 +4975,12 @@ func _shape_u_hex() -> void:
 	_cyl(Vector3(0, -0.5, 0), Vector3.UP, 0.5, 0.5, 1.0, 6, WHITE, WHITE)
 
 
+## v14 갈 곳 화살표: 끝(원점)이 아래를 가리키는 뿔 + 짧은 자루 (높이 1.7)
+func _shape_u_arrow() -> void:
+	_cyl(Vector3.ZERO, Vector3.UP, 0.0, 0.6, 0.85, 8, WHITE, WHITE)
+	_cyl(Vector3(0, 0.85, 0), Vector3.UP, 0.22, 0.22, 0.85, 8, WHITE, WHITE)
+
+
 func _shape_u_disc() -> void:
 	_cyl(Vector3(0, -0.5, 0), Vector3.UP, 0.5, 0.5, 1.0, 8, WHITE, WHITE)
 
@@ -5067,7 +5105,7 @@ func _process(dt: float) -> void:
 			hud2.visible = true
 	_title_was = tv
 	# 평가 카드·끝 화면에선 _step 이 멈춰 바람이 안 줄어든다: 바로 끈다
-	if (_rating or over or bub_talk or (ui != null and ui.todo_open())) and wind_pl and wind_pl.playing:
+	if (_rating or over or (ui != null and ui.todo_open())) and wind_pl and wind_pl.playing:
 		wind_pl.stop()
 	if _en and over:
 		_over_l.text = "%d\n%s %d%s" % [score, TX.en("tofu.over_best"), best, ("\n" + TX.en("tofu.over_again")) if wait <= 0.0 else ""]
