@@ -330,17 +330,25 @@ func _init() -> void:
 		_font = fv
 
 
+## 3D 를 세로 640 점으로 (제출 720×1280 의 절반: 픽셀이 2배로 딱 맞는다)
+func _fit_3d() -> void:
+	var h := float(DisplayServer.window_get_size().y)
+	get_viewport().scaling_3d_scale = clampf(640.0 / maxf(1.0, h), 0.2, 1.0)
+
+
 func _setup() -> void:
 	# 깊이 정밀도: 가까운 면을 0.05m 로 두면 먼 바닥 판끼리 지직거린다
 	cam.near = 0.4
 	cam.far = 1500.0
 	_lang()
-	# 그리기: 폰 화면은 픽셀이 아주 많다(기기 배율 3배면 1080×2400). 3D 만 세로 약 1000 픽셀로 그리고 늘린다. 글·버튼은 그대로 선명
+	# 그리기: 폰 화면은 픽셀이 아주 많다(기기 배율 3배면 1080×2400). 3D 만 360×640 으로 그리고 늘린다.
+	# 제출 해상도 720×1280 의 딱 절반이라 그 화면에서는 한 점이 2×2 로 맞아떨어진다. 글·버튼은 그대로 선명
 	if OS.has_feature("web"):
 		var vp := get_viewport()
 		vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_BILINEAR
-		vp.scaling_3d_scale = clampf(1000.0 / maxf(1.0, float(DisplayServer.window_get_size().y)), 0.45, 1.0)
 		vp.msaa_3d = Viewport.MSAA_DISABLED
+		_fit_3d()
+		vp.size_changed.connect(_fit_3d)  # 전체 화면으로 바꾸면 다시 맞춘다
 	# 시작 설명 카드는 없다: 제목은 타이틀 화면이, 조작·실패 규칙은 첫 길 위 안내가 맡는다
 	howto = ""
 	time_limit = 0.0
