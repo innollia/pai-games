@@ -48,6 +48,8 @@ const SND := {
 	"whiff": preload("res://sfx/whiff.mp3"),
 	"parry": preload("res://sfx/parry.mp3"),
 	"death": preload("res://sfx/death.mp3"),
+	"iai1": preload("res://sfx/iai_draw1.mp3"),  # 거합: 눈이 번쩍할 때 (10/31)
+	"iai2": preload("res://sfx/iai_draw2.mp3"),  # 거합: 칼이 칼집에서 빠져나올 때 (10/31)
 }
 const BLOCK_SND := [preload("res://sfx/block_thrust.mp3"), preload("res://sfx/block_trick.mp3"), preload("res://sfx/block_slash.mp3"), preload("res://sfx/block_iai.mp3")]
 const BOSS_AT := 8  # 이 번째(0부터)부터 끝판왕
@@ -174,6 +176,7 @@ var odir := 0
 ## 연속기마다 방향을 섞는다(10/31): 패턴(박자·몇 번·속임수·같은 쪽 두 번)은 그대로, 쪽만 무작위로 바꿔 끼운다
 var dmap := [0, 1, 2, 3]
 var feint_at := -1.0
+var feinting := false  # 이번 칼이 방향을 바꾸는 속임수인가 (속임수 칼만 흔들린다)
 var show_at := 0.0  # 거합: 이때부터 빨간 상자가 보인다
 var tell_at := -1.0  # 거합: 이때 눈이 번쩍 (이보다 먼저 휘두르면 헛공격)
 var told := true
@@ -1116,6 +1119,7 @@ func _fight(dt: float) -> void:
 					for e in eyes:
 						e.material_override = mat(WHITE)
 					beep(1700.0, 0.04, 0.0, 0.16)
+					sfx(SND["iai1"])
 				if told:
 					# 칼집에서 칼이 그쪽으로 빠져나온다: 칼만 보고도 방향을 안다
 					blade_m.position = blade_m.position.lerp(_bpos(sdir, 0.0), minf(1.0, dt * 9.0))
@@ -1129,6 +1133,7 @@ func _fight(dt: float) -> void:
 				_eyes()
 				_path(sdir)
 				beep(1200.0, 0.05, 2400.0, 0.25)
+				sfx(SND["iai2"])
 			if feint_at >= 0.0 and fs_t >= feint_at and sdir != rdir:
 				sdir = rdir
 				_path(rdir, _twice_next())
@@ -1152,8 +1157,8 @@ func _fight(dt: float) -> void:
 			var br := _brot(sdir, k * k * k)
 			if sty == 0 and k < 0.85:
 				bp.z -= 0.15 * k  # 찌르기: 칼을 조금씩 더 당겼다가
-			elif sty == 1 and k < 0.8:
-				br.z += sin(fs_t * 16.0) * 0.22 * (1.0 - k)  # 속임수: 칼끝이 살랑살랑
+			elif sty == 1 and feinting and k < 0.8:
+				br.z += sin(fs_t * 16.0) * 0.08 * (1.0 - k)  # 속임수: 진짜 속임수일 때만 칼끝이 살짝 흔들린다 (10/31)
 			blade_m.position = blade_m.position.lerp(bp, minf(1.0, dt * 22.0))
 			blade_m.rotation = blade_m.rotation.lerp(br, minf(1.0, dt * 18.0))
 			if fs_t >= win:
@@ -1226,6 +1231,7 @@ func _attack(linked := false) -> void:
 	told = true
 	shown = true
 	feint_at = win * 0.5 if sdir != rdir else -1.0
+	feinting = feint_at >= 0.0
 	_path(sdir, _twice_next())
 	_link_show(_link_next())
 	# 느린 예비 동작은 낮은 소리, 갑작스러운 건 높은 소리
