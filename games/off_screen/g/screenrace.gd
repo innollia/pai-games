@@ -96,7 +96,7 @@ const SrTheme = preload("res://g/sr_theme.gd")
 const MODE_KIT := {"base": "jump", "lantern": "drop", "over": "mode_over"}  # _pick_mode takes the old kit names
 const KIT_PHASES := ["count", "race", "roundend", "tutorial"]  # the stick and buttons only work here
 const BACK_ARM_PHASES := ["race", "count", "perk", "route", "roundend"]
-const MARKER_PHASES := ["count", "tutorial"]  # the "you" pointer only finds you at the start; the blue courier does the rest
+const MARKER_PHASES := ["count", "tutorial", "race", "roundend"]  # v33: 경주 내내 ("나 어디 갔어", "내가 보이질 않는데")
 const SEG_RULES := {
 	"flat": "우체통 앞에서 짐 버튼 = 배달",
 	"stairs": "언덕: 짐이 무거우면 오르막이 느리다",
@@ -375,6 +375,7 @@ class Courier:
 	var i_drop := false
 	# v12 배달
 	var got := 0  # 이번 판 배달한 짐
+	var gate_t := 0.0  # v33: 낮은 문에 짐이 많은 채로 밀고 있는 시간 (차면 짐 하나가 걸려 떨어진다)
 	var throws := 0  # 던진 짐 (연습 던지기 단계가 센다)
 	var back_t := 0.0  # > 0: 화면 밖에 반송돼 다시 들어오기를 기다린다
 	var fin := -1  # 결승 도착 순서 (0 = 처음)
@@ -456,6 +457,9 @@ var gate_said := 0.0
 var edge_strip: MeshInstance3D
 var curtain: MeshInstance3D
 var marker: MeshInstance3D
+var me_l: Label3D  # v33: 내 표시 위 "나 · 짐 n" (내가 어디 있는지, 짐이 몇 개인지)
+var gate_told := {}  # v33: 이번 판에 안내한 낮은 문 x
+const FIRST_BONUS := 1  # v33: 결승에 가장 먼저 닿은 사람 +1점
 var danger := false
 var tick := 0.0
 var was_slip := false
@@ -1579,6 +1583,16 @@ func _reset() -> void:
 	marker = box(Vector3.ZERO, Vector3(0.36, 0.36, 0.05), WHITE)
 	marker.rotation.z = PI * 0.25
 	box(Vector3(0, 0, 0.6), Vector3(0.72, 0.72, 1.0), ME, marker)
+	me_l = Label3D.new()
+	me_l.font = _font
+	me_l.font_size = 64
+	me_l.outline_size = 14
+	me_l.modulate = P_BLUE
+	me_l.outline_modulate = P_CREAM
+	me_l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	me_l.no_depth_test = true
+	me_l.visible = false
+	world.add_child(me_l)
 	vpool.clear()
 	for i in POOL_N:
 		var m := box(Vector3(0, -80, 0), Vector3.ONE, WHITE)
@@ -1739,6 +1753,7 @@ func _build_course() -> void:
 	mechanisms.clear()
 	shutter_of.clear()
 	signs.clear()
+	gate_told.clear()
 	mailboxes.clear()  # 우체통 노드는 stage 와 함께 사라진다
 	if rnd == 0:
 		course_got = 0
@@ -2876,6 +2891,7 @@ func _race(dt: float) -> void:
 	for r in runners:
 		if r.alive:
 			_runner(r, dt)
+	_gate_tick(dt)
 	_pickups()
 	if not trains.is_empty():
 		_trains(dt)
@@ -2922,6 +2938,16 @@ func _race(dt: float) -> void:
 			fin_n += 1
 			if r == pl:
 				_sfx("bell", null, -4.0)
+			if r.fin == 0 and not finale:
+				# v33: 가장 먼저 결승에 닿은 사람 +1점 (빨리 달린 보상)
+				r.got += FIRST_BONUS
+				pop_num(r, "+%d" % FIRST_BONUS, P_GOLD)
+				if r == pl:
+					delivered += FIRST_BONUS
+					course_got += FIRST_BONUS
+					_stamp("1등 도착 +%d" % FIRST_BONUS, "FIRST IN +%d" % FIRST_BONUS, ST_GOOD, pl)
+				else:
+					_stamp("1등 도착은 상대 +%d" % FIRST_BONUS, "RIVAL FIRST IN +%d" % FIRST_BONUS, ST_INK, null, 0.9)
 		if r.fin >= 0 and r.p.x > goal_x + 26.0:
 			r.p.x = goal_x + 26.0  # 결승 뒤 마당 끝에서 멈춘다
 			r.v.x = minf(r.v.x, 0.0)
@@ -3354,6 +3380,8 @@ func _round_decided() -> int:
 			free_v += int(mb.val)
 	if not any_free:
 		return 1
+	if fin_n == 0:
+		free_v += FIRST_BONUS  # v33: 1등 도착 점수가 아직 남았다
 	var o := _deliv_order()
 	var top: int = o[0].got
 	if top <= 0:
@@ -3637,6 +3665,45 @@ func _runner(r: Courier, dt: float) -> void:
 
 
 ## 짐 하나를 뒤에 내려놓고 튀어나간다 (다른 사람이 주워 갈 수 있다)
+## v33: 낮은 문 ("이거 어떻게 통과해"). 짐이 GATE_MAX 개보다 많으면 문틀에 막힌다: 밀고 있으면 0.22초마다 짐 하나가
+## 문에 걸려 뒤에 떨어진다(누구나 주울 수 있다). 다가갈 때 한 번 크게 안내한다.
+func _gate_tick(dt: float) -> void:
+	for r in runners:
+		if not r.alive:
+			continue
+		var at := false
+		if r.cargo > GATE_MAX:
+			for gp in gates:
+				var gd: float = float(gp) - (r.p.x + HW)
+				if gd > -0.2 and gd < 0.15 and (r.ai or r.mx > 0.1):
+					at = true
+				if r == pl and gd > 0.0 and gd < 9.0 and not gate_told.has(gp):
+					gate_told[gp] = true
+					goal_l.text = L("낮은 문: 짐 %d개까지만 지나간다
+밀고 가면 짐이 걸려 떨어진다", "Low door: %d boxes max
+Push on and extra boxes fall off") % GATE_MAX
+					goal_t = 3.0
+		if not at:
+			r.gate_t = 0.0
+			continue
+		r.gate_t += dt
+		if r.gate_t < 0.22:
+			continue
+		r.gate_t = 0.0
+		r.cargo -= 1
+		var x := r.p.x - 1.3
+		var y := _floor_top(x, r.p.y + 0.5)
+		if y > r.p.y - 3.0:
+			_put_parcel(Vector2(x, y), r)
+		_sfx("bump", r)
+		r.sq = 0.2
+		if r == pl:
+			pop_num(r, "-1", P_RED)
+			shk = maxf(shk, 0.12)
+			if r.cargo == GATE_MAX:
+				_stamp("통과!", "THROUGH!", ST_GOOD, pl, 0.7)
+
+
 func _drop(r: Courier) -> void:
 	r.cargo -= 1
 	r.throws += 1
@@ -4123,7 +4190,12 @@ func _camera(dt: float) -> void:
 				shove_t = SHOVE_T  # v14: 선두가 화면을 확 밀었다 -> 잠깐 왼쪽 끝은 부드러운 벽
 		camx = cx
 		# feet land at FEET_Y: more sky / shortcuts above, little dirt above the control deck
-		camy = lerpf(camy, lead.p.y + vhv * _feet_k(), 1.0 - exp(-4.0 * dt))
+		var ty := lead.p.y + vhv * _feet_k()
+		# v33: 나도 늘 화면 안 (빨간 윗길에 올라가 1등보다 높으면 화면 위로 사라졌다 "나 어디 갔어")
+		if pl and pl.alive and lead != pl and (phase == "race" or phase == "count"):
+			ty = maxf(ty, pl.p.y + _stack_top(pl.cargo) + 1.6 - vhv * 0.8)
+			ty = minf(ty, pl.p.y - 0.5 + vhv * 0.85)
+		camy = lerpf(camy, ty, 1.0 - exp(-4.0 * dt))
 	fov_kick = lerpf(fov_kick, 0.0, 1.0 - exp(-5.0 * dt))
 	cam_nudge = lerpf(cam_nudge, 0.0, 1.0 - exp(-5.0 * dt))
 	_cam_apply()
@@ -4292,11 +4364,18 @@ func _draw_all() -> void:
 	marker.visible = pl.alive and MARKER_PHASES.has(phase)
 	if marker.visible:
 		# box() keeps the mesh size in scale: keep the 0.36 base so it stays ~30 px at any view width
-		var mk := maxf(0.36 * (hwv / _narrow()) * 0.8, 0.6)
+		var mk := maxf(0.36 * (hwv / _narrow()) * 1.1, 0.8)  # v33: 0.8 -> 1.1 ("나 어디 갔어")
 		marker.scale = Vector3(mk, mk, 0.05)
 		# just above the head / top box of the stack (whichever is higher), never floating among posts
 		var stack_top := _stack_top(pl.cargo)
 		marker.position = _fz(pl.p.x, pl.p.y + maxf(BODY_H, stack_top) + 0.3 + mk * 0.5 + sin(tm * 5.0) * 0.06)
+	if me_l:
+		me_l.visible = marker.visible
+		if me_l.visible:
+			me_l.text = L("나 · 짐 %d", "ME · %d") % pl.cargo
+			var mk2 := maxf(0.36 * (hwv / _narrow()) * 1.1, 0.8)
+			me_l.pixel_size = mk2 * 1.0 / 64.0
+			me_l.position = marker.position + Vector3(0, mk2 * 1.05, 0.2)
 	# 흐르는 바닥 눈금 (뒤로 흐른다)
 	for fl in flows:
 		var w: float = fl.w
