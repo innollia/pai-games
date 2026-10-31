@@ -5029,6 +5029,7 @@ var _sfx := {}
 var _sfx_pool: Array[AudioStreamPlayer] = []
 var _sfx_i := 0
 var _sfx_at := {}
+const SFX_SMALL := ["step", "ui_tap", "talk", "sail"]  # 잦고 짧은 소리: 다른 소리를 끊지 않는다
 
 
 func _sfx_get(nm: String) -> Variant:
@@ -5048,20 +5049,36 @@ func sfx(nm: String, db := 0.0, pitch := 1.0) -> void:
 		return
 	_sfx_at[nm] = now
 	if _sfx_pool.is_empty():
-		for i in 10:
+		for i in 14:
 			var np := AudioStreamPlayer.new()
 			add_child(np)
 			_sfx_pool.append(np)
-	var ap: AudioStreamPlayer = _sfx_pool[_sfx_i % _sfx_pool.size()]
-	for i in _sfx_pool.size():
-		var c: AudioStreamPlayer = _sfx_pool[(_sfx_i + i) % _sfx_pool.size()]
-		if not c.playing:
+	# v15 "소리 끊겨": 발소리·경고음·말소리 같은 잦은 짧은 소리는 빈 자리가 없으면 그냥 건너뛴다.
+	# 긴 소리(배달·죽음·탈출 등)는 빈 자리가 없을 때 짧은 소리 자리를 먼저 빼앗고, 긴 소리끼리는 가장 오래된 것을 뺏는다
+	var small: bool = nm in SFX_SMALL
+	var ap: AudioStreamPlayer = null
+	var steal: AudioStreamPlayer = null
+	var n := _sfx_pool.size()
+	for i in n:
+		var c: AudioStreamPlayer = _sfx_pool[(_sfx_i + i) % n]
+		# 웹 샘플 재생에서도 확실하게: 끝날 시각(직접 계산)이 지났으면 빈 자리로 본다
+		if not c.playing or now >= int(c.get_meta("end", 0)):
 			ap = c
 			break
+		if steal == null and c.has_meta("small") and bool(c.get_meta("small")):
+			steal = c
+	if ap == null:
+		if small:
+			return
+		ap = steal if steal != null else _sfx_pool[_sfx_i % n]
+		ap.stop()
 	_sfx_i += 1
-	ap.stream = st
+	ap.set_meta("small", small)
+	if ap.stream != st:
+		ap.stream = st
 	ap.volume_db = db - 4.0
 	ap.pitch_scale = clampf(pitch * randf_range(0.97, 1.03), 0.3, 3.0)
+	ap.set_meta("end", now + int((st as AudioStream).get_length() * 1000.0 / ap.pitch_scale) + 30)
 	ap.play()
 
 

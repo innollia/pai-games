@@ -125,8 +125,19 @@ const LAST_HELP := 0.5
 
 ## 개발 도구(g/dev.gd)에서 고친 글·UI 자리. [내보내기]한 내용을 여기 붙여 넣으면 출시판에도 그대로 남는다.
 const BAKED_TEXT := {}
-const BAKED_UI := {}
-const BAKED_TEXT_EN := {}  # 영어판에서 고친 글
+const BAKED_UI := {"home": [64.0, 1015.0, 0.5], "msg": [1.0, 609.0, 0.81], "tut_again": [201.0, 1050.0, 0.99]}
+const BAKED_TEXT_EN := {  # 영어판에서 고친 글
+	"foe_intro": "", "home": "",
+	"no_gap": "I blocked it, but there are no gaps.",
+	"parry_go": "PARRY!", "parry_twice": "One more!",
+	"title": "Hurry up block left!",
+	"tut0": "Attack comes from the left 
+Hold [BLOCK] and swipe left!",
+	"tut1": "Blocked! Hold [STRIKE] and swipe right!",
+	"tut2": "Enter the block near the end. 
+Hold [BLOCK] and swipe up!",
+	"tut_look": "The swordsman is going to attack you. Watch closely!",
+}
 
 ## 영어판(기본) 번역: 한국어 원문 -> 영어. 새 글을 넣으면 여기에도 넣는다(없으면 영어판에 한국어가 뜬다).
 ## 언어는 로비 [설정]의 언어 버튼으로 바꾼다(저장 lang). 서식 글은 tr("...%d...") % 값.
@@ -371,7 +382,7 @@ const PLAY_R := Rect2(110, 880, 500, 150)
 const TUT_R := Rect2(200, 1050, 320, 80)
 const SET_R := Rect2(586, 118, 124, 68)
 const LANG_R := Rect2(446, 118, 134, 68)  # 위 띠 [설정] 왼쪽 언어 버튼 (설정 창 안 버튼과 같은 일)
-const DEV := "res://g/dev.gd"  # 개발 도구. 출시 때는 이 파일만 지우면 된다
+const DEV := "res://g/dev.gd"  # 개발 도구(10/31 출시판에서 지움). 다시 쓰려면 git 기록에서 되살린다
 ## 찌르기 검객 3D 모델 (파이가 보낸 duelist_animated.glb, 10/31): 대기·찌르기 4방향·맞음·쓰러짐 동작이 들어 있다.
 ## 칼은 게임 칼(blade_m, 빨개지는 신호)을 그대로 쓰고 모델의 레이피어는 숨긴다. 상자 몸으로 되돌리려면 DUELIST_ON 을 false 로
 const DUELIST_ON := false
