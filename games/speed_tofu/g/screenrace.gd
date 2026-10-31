@@ -259,7 +259,7 @@ const MB_FULL := Color("6E7391")  # 찬 우체통: 잿빛 남색 (골판지 땅�
 # v13 따라잡기 (뒤처지면 확정 패배 + 판이 안 끝나던 것)
 const CATCH_MAX := 0.25  # 선두보다 반 화면(hwv) 넘게 뒤면 최고 속도 +25%, 가속은 +50% (붙어 있으면 0)
 const CATCH_NEAR := 2.0  # 이만큼 안이면 보너스 없음
-const GOLD_VAL := 3  # 결승 앞 금색 우체통 하나 = 든 짐을 3개까지 한꺼번에 (v44, 넣은 개수만큼 점수)
+const GOLD_VAL := 3  # 결승 앞 금색 우체통 하나 = 짐 1개로 배달 3개 (사용자 결정: 바꾸지 않는 값)
 const MB_GOLD := Color("F7B336")
 const FAR_SCREENS := 2.0  # 선두보다 화면 이만큼 넘게 뒤에서
 const FAR_T := 4.0  # 이만큼 있으면 왼쪽 끝으로 다시 들어온다
@@ -2511,14 +2511,9 @@ func _deliver(r: Courier) -> bool:
 		return false
 	var mb: Dictionary = mailboxes[i]
 	var val: int = mb.val
-	var cost := 1
-	if val > 1:
-		# v44: 금색은 든 짐을 3개까지 한꺼번에 넣고 넣은 개수만큼 점수 (짐 1개로 3점이던 것: 대시로 짐을 다 쓰고 금색만 먹어도 이겼다)
-		val = mini(r.cargo, GOLD_VAL)
-		cost = val
 	if not r.ai and absf(float(mb.x) - r.p.x) > 1.5:
 		_fly_parcel(Vector3(r.p.x, r.p.y + 1.6, 0.4), Vector3(float(mb.x), float(mb.y) + 2.0, 0.4))
-	r.cargo -= cost
+	r.cargo -= 1
 	r.got += val
 	r.posts += 1
 	r.drop_cd = 0.35

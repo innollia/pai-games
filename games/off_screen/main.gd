@@ -3,7 +3,7 @@ extends Node
 ## 강화는 speed_tofu 의 g/screenrace.gd 에서 하고 tools/sync.ps1 로 가져온다.
 
 const GAME := "screenrace"
-const GVER := 44  # speed_tofu main.gd GAME_VER["screenrace"] (tools/sync.ps1 이 맞춘다). 평가 ver = "v<GVER> <빌드>"
+const GVER := 45  # speed_tofu main.gd GAME_VER["screenrace"] (tools/sync.ps1 이 맞춘다). 평가 ver = "v<GVER> <빌드>"
 
 var game: Tofu
 var from_tofu := false  # SPEED 두부 목록(?from=tofu)에서 왔으면 "<" 가 목록으로 돌아간다

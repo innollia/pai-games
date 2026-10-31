@@ -37,7 +37,7 @@ Race 3 rival couriers and post the most parcels. Lead too fast and you overshoot
 - [ ] Description (아래 통째로 복사. 긴 설명 → How to play → Controls → Tools used 순서가 이미 맞춰져 있다):
 
 ```
-Off the Screen! — race three rival couriers across six bright paper-craft towns. The winner is not the last one standing but whoever DELIVERS the most parcels. When a red mailbox is on screen, the BOX button turns green: tap it and your parcel flies in. Each mailbox takes one parcel, first come first served — and the gold mailbox before the finish takes up to 3 parcels at once. Reach the finish line first for +1 more.
+Off the Screen! — race three rival couriers across six bright paper-craft towns. The winner is not the last one standing but whoever DELIVERS the most parcels. When a red mailbox is on screen, the BOX button turns green: tap it and your parcel flies in. Each mailbox takes one parcel, first come first served — and the gold mailbox before the finish is worth 3. Reach the finish line first for +1 more.
 
 The camera follows the leader and leans ahead as they speed up, and a dash shoves the view even further — so a reckless front-runner overshoots mailboxes while the couriers tucked in behind grab them. When to lead and when to follow is the whole race. Fall off the torn left edge of the page and you're "returned to sender": you drop a parcel and climb back in. Fall too far behind and a catch-up boost brings you back into the fight.
 
@@ -53,7 +53,7 @@ Theme: Speed — speed costs you: the leader can't see the mailboxes ahead, and 
 
 How to play
 
-Your courier wears a blue marker with your parcel count. Push the stick right to run, tap JUMP to hop. Win a round by DELIVERING the most parcels: when a red mailbox is on screen the BOX button turns green — tap it and your parcel flies in (each mailbox takes one parcel). The gold mailbox before the finish takes up to 3 parcels at once, and the first courier across the finish line gets +1. Tap BOX anywhere else to throw a parcel backward for a speed dash (0.9 s cooldown); thrown parcels land on the road for rivals to grab.
+Your courier wears a blue marker with your parcel count. Push the stick right to run, tap JUMP to hop. Win a round by DELIVERING the most parcels: when a red mailbox is on screen the BOX button turns green — tap it and your parcel flies in (each mailbox takes one parcel). The gold mailbox before the finish is worth 3, and the first courier across the finish line gets +1. Tap BOX anywhere else to throw a parcel backward for a speed dash (0.9 s cooldown); thrown parcels land on the road for rivals to grab.
 
 The camera follows the leader. Run fast in front and you see less ahead — easy to overshoot mailboxes. Following close behind shows you the mailboxes coming.
 

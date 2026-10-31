@@ -5,7 +5,7 @@ Off the Screen! / 화면 밖 경주
 Race 3 rival couriers and post the most parcels. Lead too fast and you overshoot the mailboxes.
 
 # Long description
-Off the Screen! — race three rival couriers across six bright paper-craft towns. The winner is not the last one standing but whoever DELIVERS the most parcels. When a red mailbox is on screen, the BOX button turns green: tap it and your parcel flies in. Each mailbox takes one parcel, first come first served — and the gold mailbox before the finish takes up to 3 parcels at once. Reach the finish line first for +1 more.
+Off the Screen! — race three rival couriers across six bright paper-craft towns. The winner is not the last one standing but whoever DELIVERS the most parcels. When a red mailbox is on screen, the BOX button turns green: tap it and your parcel flies in. Each mailbox takes one parcel, first come first served — and the gold mailbox before the finish is worth 3. Reach the finish line first for +1 more.
 
 The camera follows the leader and leans ahead as they speed up, and a dash shoves the view even further — so a reckless front-runner overshoots mailboxes while the couriers tucked in behind grab them. When to lead and when to follow is the whole race. Fall off the torn left edge of the page and you're "returned to sender": you drop a parcel and climb back in. Fall too far behind and a catch-up boost brings you back into the fight.
 
