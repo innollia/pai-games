@@ -4416,6 +4416,7 @@ func _line(k: int, part: String) -> String:
 ## 단독판 "처음부터"는 새 게임이 먼저 뜨고 옛 게임이 나중에 빠질 수 있어 쓰는 수를 센다.
 static var _tl: Translation
 static var _tl_n := 0
+static var _tl_ko: Translation
 var _tl_on := false
 
 
@@ -4428,8 +4429,28 @@ func _lang() -> void:
 		if str(JavaScriptBridge.eval("location.search.indexOf('lang=ko')>=0?'y':'n'", true)) == "y":
 			en = false
 	_en = en
+	# 한국어 = 원문 그대로인 ko 번역을 하나 올려 둔다. 없으면 ko 고를 때 대체 언어(en) 번역이 쓰여 영어가 나왔다
+	if _tl_ko == null:
+		var tk := Translation.new()
+		tk.locale = "ko"
+		for k: String in DL:
+			tk.add_message(str(DL[k][0]), str(DL[k][0]))
+		for k: String in EN_UI:
+			tk.add_message(k, k)
+		for k: String in UI_GD.EN:
+			tk.add_message(k, k)
+		for k: String in FX_GD.EN:
+			tk.add_message(k, k)
+		_tl_ko = tk
+		TranslationServer.add_translation(tk)
 	if not en:
-		TranslationServer.set_locale("ko")  # 영어 번역이 올라가 있어도 ko 에선 안 쓰인다
+		# 영어 번역을 내린다: 올려 두면 ko 번역이 없어서 대체 언어(en)로 영어가 그대로 나온다
+		# 이 판·지난 판 어느 쪽이 올렸든 통째로 내린다 (판이 바뀌면 _tl_on 이 새로 false 라 셈이 어긋났다)
+		if _tl != null:
+			TranslationServer.remove_translation(_tl)
+		_tl_on = false
+		_tl_n = 0
+		TranslationServer.set_locale("ko")
 		return
 	if _tl == null:
 		var tl := Translation.new()
