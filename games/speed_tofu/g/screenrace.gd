@@ -551,6 +551,7 @@ var tut_crate_x := -1.0  # > 0: the opening flat gets one practice crate at this
 var mailboxes: Array = []  # {x, y, full, owner, node, body, top, flag, parcel, t}
 var last_call := -1.0  # >= 0: 마감 임박 남은 시간
 var fin_n := 0
+var decided_note := false  # v18: 결승 가까이서 승부가 정해짐 -> 결승선까지 가고 마감은 짧게
 var course_got := 0  # 이번 코스에서 내가 배달한 짐 (메달)
 var wall_lv := PackedFloat32Array([0, 0, 0, 0])  # 짐 벽: 주자별 벽돌 수 (부드럽게)
 var wall_n := PackedInt32Array([0, 0, 0, 0])
@@ -2461,6 +2462,7 @@ func _start_round() -> void:
 	last_call = -1.0
 	end_t = -1.0
 	fin_n = 0
+	decided_note = false
 	giveup_on = false
 	idle_t = 0.0
 	move_t = 0.0
@@ -2636,20 +2638,21 @@ func _race(dt: float) -> void:
 			r.p.x = goal_x + 26.0  # 결승 뒤 마당 끝에서 멈춘다
 			r.v.x = minf(r.v.x, 0.0)
 	# v13: 우체통이 다 찼거나 승부가 정해지면 바로 판을 끝낸다 (뒤에서 못 이기는 판을 끝까지 달리지 않게)
-	if end_t < 0.0:
+	# v18: 결승이 화면 둘 안이면 일찍 끝내지 않는다 — 결승선까지 가서 끝난다 (금색 우체통이 결승 바로 앞이라
+	# 그게 차면 '모두 배달'로 결승 조금 앞에서 판이 끝나던 것). 결정된 판은 첫 도착 뒤 마감을 짧게.
+	# 판은 늘 결승선에서 끝난다. 승부가 정해지면 도장만 찍고, 첫 도착 뒤 마감을 짧게 (DECIDE_T).
+	# 가망 없는 판은 따라잡기·포기 버튼·안전 시간이 맡는다.
+	if not decided_note:
 		var why := _round_decided()
 		if why > 0:
-			end_t = DECIDE_T
+			decided_note = true
 			if why == 1:
-				_stamp("모두 배달", "ALL DELIVERED", ST_INK, null, 1.0)
+				_stamp("모두 배달 · 결승으로!", "ALL DELIVERED · TO THE FINISH!", ST_INK, null, 1.0)
 			else:
-				_stamp("승부 결정", "ROUND DECIDED", ST_INK, null, 1.0)
+				_stamp("승부 결정 · 결승으로!", "DECIDED · TO THE FINISH!", ST_INK, null, 1.0)
 			_sfx("bell", null, -4.0)
-	else:
-		end_t -= dt
-		if end_t <= 0.0:
-			_round_over(_round_winner())
-			return
+	if decided_note and last_call > DECIDE_T:
+		last_call = DECIDE_T
 	if last_call < 0.0 and (fin_n > 0 or rt > _round_cap()):
 		last_call = LAST_CALL * tn("last")
 		_stamp("마감 임박", "LAST CALL", ST_BAD, null, 1.2)
