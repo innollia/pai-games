@@ -143,8 +143,6 @@ var cp_s := 2.0
 var cp_score := 0
 # 설산·협곡
 var pads: Array = []   # [거리0, 거리1, 옆0, 옆1, "snow"/"sun"]
-var ropes: Array = []  # [거리0, 거리1, 버티는 크기] 흔들다리
-var crack_t := 0.0
 var pad_t := 0.0
 var shot: MeshInstance3D
 var shot_d := 0.0
@@ -209,8 +207,6 @@ var crumble: Array = []  # [거리, 조각] 고르지 않은 갈래 조각: 돌�
 var bump_t := 0.0  # 기둥에 튕긴 직후: 붉은 깜빡임 없이
 var look_soft := 0.0  # 갈래를 고른 직후 카메라를 천천히 돌린다
 var zone_queue: Array = []  # 나눠 짓는 중인 구역 (한 프레임에 한 조각)
-var bridge_signs: Array = []  # [원, 재질, 버티는 크기, 판]
-var bridge_parts: Array = []  # 흔들다리 판·발판 (무거우면 이 자리가 부서진다)
 var branch_nodes: Array = []  # 갈림길 갈래 길 노드 (고르면 다른 쪽을 지운다)
 var fork_rail_end := -1.0     # 이 거리까지 길 가장자리가 난간
 var cave_nodes: Array = []  # 동굴 장식: 떨어지기 전엔 숨겨 둔다
@@ -416,7 +412,7 @@ func _zones_list() -> Array:
 	if tutorial:
 		return _tutorial_list()
 	return [
-		{"msg": "신전 계곡", "mode": "back", "skill": "", "road": STONE, "floor": WATER, "accent": ROCK, "posts": false, "scen": "rock",
+		{"msg": "신전 계곡", "mode": "back", "skill": "", "road": STONE, "floor": WATER, "accent": ROCK, "scen": "rock",
 			# 숨은 길 1 (옛 배수로): 왼쪽 끝 차선에 바람 줄, 왼쪽 턱 줄이 끊긴 곳으로 꺾어 내려가면 오르막과 석상을 건너뛴다
 			"items": [{"legs": [[30, 0, 7], [88, -19.4, 7], [12, -2.6, 7, 0, "mouthL"]], "put": _cut(PUT1, 0, 130),
 					"say": [[2, "11개의 길 너머\n마지막 신전으로"], [24, "끌어서 항아리를 깔아봐"], [100, "빨간 기둥은 옆으로 피해"]]},
@@ -426,7 +422,7 @@ func _zones_list() -> Array:
 					"hidden": true, "pick_x": -4.0, "lane_x": -5.5, "name": "옛 배수로"},
 				{"legs": [[20, 0, 6], [100, -23, 4], [20, 5, 4, 0, "ramp"], [22, -10, 5, 0, "gap"], [28, 0, 5], [70, -4, 3.5, 0, "bridge"], [50, -10, 6], [60, 6, 6]],
 					"put": _cut(PUT1, 230, 9999), "say": [[92, "노란 경사대에서\n저절로 날아간다"], [180, "다리는 가운데로"]]}]},
-		{"msg": "수로 · 뛰기", "mode": "side", "skill": "jump", "road": STONE, "floor": GRASS, "accent": B, "posts": false, "scen": "aq",
+		{"msg": "수로 · 뛰기", "mode": "side", "skill": "jump", "road": STONE, "floor": GRASS, "accent": B, "scen": "aq",
 			# 뛰면 30m 가까이 난다: 틈 뒤에는 착지할 자리를 두고, 담은 착지 뒤 한참 지나서
 			"items": [{"legs": [[12, -2, 5], [13, -2, 2.2, 0, "aq"], [45, -6, 2.2, 0, "aq"], [10, -1, 2.2, 0, "gap"], [80, -10, 2.2, 0, "aq"],
 				[14, -1, 2.2, 0, "gap"], [80, -10, 2.2, 0, "aq"], [18, -2, 2.2, 0, "gap"], [60, -7, 2.2, 0, "aq"], [22, -2, 2.2, 0, "gap"],
@@ -440,7 +436,7 @@ func _zones_list() -> Array:
 					[12, -1, 2.2, 0, "gap"], [40, -6, 2.2, 0, "aq"], [15, 0, 4]],
 					"put": [["pot", 10, 0], ["pot", 18, 0], ["pot", 26, 0], ["statue", 62, 0], ["wall", 121, 0]],
 					"say": [[2, "섞기: 깔고 뛰기"], [46, "석상 뒤에 틈!\n깔고 뛰거나 넘거나"], [104, "담과 틈:\n한 번에!"]]}]},
-		{"msg": "갈림길 · 쪼개기", "mode": "back", "skill": "split", "road": GRASS, "floor": GRASS, "accent": A, "posts": true, "scen": "village",
+		{"msg": "갈림길 · 쪼개기", "mode": "back", "skill": "split", "road": GRASS, "floor": GRASS, "accent": A, "scen": "village",
 			"items": [
 				{"legs": [[30, -6, 7], [30, -5, 8]], "put": [["house", 18, -4.5], ["pot", 28, 2], ["pot", 32, 4], ["house", 45, 4], ["pot", 52, -2]],
 					"fence": [10], "say": [[6, "쪼개면 가볍고
@@ -464,7 +460,7 @@ func _zones_list() -> Array:
 				{"legs": [[20, -4, 7], [40, -8, 6, 70], [10, 4, 6, 0, "ramp"], [14, -4, 6, 0, "gap"], [30, -6, 7]],
 					"put": [["house", 6, -3], ["pot", 10, 0], ["house", 14, 3]],
 					"say": [[2, "섞기: 깔면 무거워\n회전에서 밀린다"], [22, "쪼개서 가볍게!"], [64, "뛰어!"]]}]},
-		{"msg": "절벽 · 버티기", "mode": "fall", "skill": "hold", "road": ROCK, "floor": WATER, "accent": WHITE, "posts": true, "scen": "cliff",
+		{"msg": "절벽 · 버티기", "mode": "fall", "skill": "hold", "road": ROCK, "floor": WATER, "accent": WHITE, "scen": "cliff",
 			"items": [
 				{"legs": [[40, -6, 7], [30, -5, 7]], "put": [["pot", 20, -2], ["pot", 25, 2]], "say": [[34, "떨어지며 조종"]]},
 				# 배우기: 24m 절벽. 버티기를 누르면 빨리 떨어져 약 10m 앞에 내려찍는다: 그 자리에 탑. 안 누르면 30m 날아가 탑을 놓친다
@@ -489,7 +485,7 @@ func _zones_list() -> Array:
 					"crack": [46, 64, -5.0, 5.0], "lane": [[22, 56, 0.0, 3.0]],
 					# from 34: 경사대에서 일찍 버텨 틈(30~46)에 짧게 떨어져도 판이 깨진 셈으로 방에 떨어진다 (_try_crack)
 					"under": {"from": 34, "to": 179, "depth": 22.0, "geyser": 158, "lo": 183, "hi": 209, "vmin": 38.0, "name": "숨은 저수조"}}]},
-		{"msg": "광장 · 위에서", "mode": "top", "skill": "", "road": SOFT, "floor": GRASS, "accent": C, "posts": false, "scen": "plaza",
+		{"msg": "광장 · 위에서", "mode": "top", "skill": "", "road": SOFT, "floor": GRASS, "accent": C, "scen": "plaza",
 			"items": [{"legs": [[25, -4, 7], [150, -15, 22, 0, "plaza"], [14, -1, 4, 0, "gate"], [25, -4, 6]],
 				"put": [["pillar", 55, -8], ["pillar", 55, 8], ["pillar", 70, 0], ["pillar", 88, -10], ["pillar", 88, 10],
 					["house", 62, -16], ["house", 76, -16], ["house", 90, -17],
@@ -501,7 +497,7 @@ func _zones_list() -> Array:
 				{"legs": [[20, -4, 8], [14, -1, 8], [30, -6, 8]], "put": [["house", 8, -3.5], ["house", 8, 3.5]],
 					"cam": [[0, "back"]]}]},
 		# 설산: 굴리는 길 자체가 자원. 흰 눈 줄에서 커지고(얼음벽을 깰 자격) 노란 길에서 녹는다(오르막을 넘을 가벼움).
-		{"msg": "설산 · 눈 굴리기", "mode": "iso", "skill": "", "road": ICE, "floor": Color("abcbd8"), "accent": B, "posts": false, "scen": "snow",
+		{"msg": "설산 · 눈 굴리기", "mode": "iso", "skill": "", "road": ICE, "floor": Color("abcbd8"), "accent": B, "scen": "snow",
 			"items": [{"legs": [[20, -3, 8], [130, -24, 9], [24, -1, 9], [58, -10.8, 9], [12, -2.2, 9, 0, "mouthL"]],
 				"snow": [[28, 142, -9, -1], [182, 240, -9, -1]],
 				"sun": [[182, 240, 1, 9]],
@@ -522,7 +518,7 @@ func _zones_list() -> Array:
 					"snow": [[2, 108, -9, 9]], "row": [[114, "ice"]], "put": [["pot", 40, 5], ["pot", 60, -5], ["pot", 80, 3]],
 					"say": [[2, "섞기: 눈으로 키워\n얼음벽 깨기"], [116, "무거운 몸으로\n뛰어!"], [150, "오르막!\n쪼개서 가볍게"]]}]},
 		# 협곡: 던지기(크기 1을 앞으로 던져 수정을 깬다). 흔들다리는 입구 기둥 높이보다 크면 끊어진다. 무게가 탄약이자 죄.
-		{"msg": "협곡 · 던지기", "mode": "low", "skill": "throw", "road": STONE, "floor": WATER, "accent": A, "posts": false, "scen": "canyon",
+		{"msg": "협곡 · 던지기", "mode": "low", "skill": "throw", "road": STONE, "floor": WATER, "accent": A, "scen": "canyon",
 			"items": [{"legs": [[20, -3, 7], [60, -10, 7], [20, -2, 7], [45, -3, 7], [15, -1, 7], [38, -6.84, 7], [12, -2.16, 7, 0, "mouthL"]],
 				"put": [["pot", 30, -3], ["pot", 34, 3], ["pot", 42, 0], ["statue", 52, -3], ["pot", 60, 3], ["pot", 66, -2], ["pot", 72, 2],
 					["pot", 165, -4], ["pot", 168, 0], ["pot", 171, 4], ["house", 182, -3.5], ["statue", 186, 3.5], ["pot", 194, -4], ["pot", 197, 0],
@@ -540,7 +536,7 @@ func _zones_list() -> Array:
 					"put": [["pot", 8, -3], ["pot", 12, 3], ["house", 30, -3], ["statue", 44, 3], ["pot", 50, 0]],
 					"row": [[66, "crystal"]],
 					"say": [[128, "뛰어!"]]}]},
-		{"msg": "해안 · 추격", "mode": "front", "skill": "", "road": STONE, "floor": WATER, "accent": B, "posts": true, "scen": "coast",
+		{"msg": "해안 · 추격", "mode": "front", "skill": "", "road": STONE, "floor": WATER, "accent": B, "scen": "coast",
 			"items": [
 				# 길이 좁아지면 빨강 돌을 피할 수 없다 → 쪼개기(떼어낸 덩이가 뒤 돌을 막는다)
 				{"legs": [[20, -4, 7], [140, -25, 7], [60, -11, 3.5], [60, -10, 7], [20, 0, 8]],
@@ -557,7 +553,7 @@ func _zones_list() -> Array:
 					"say": [[0, "해안 응용: 배운 것을 섞어!"], [20, "눈으로 키우고"], [150, "회전! 버티기"],
 						[200, "뛰어!"], [226, "구멍 피해\n내려찍기"]]}]},
 		# 물살은 지면 위에 있을 때만 몸을 옆으로 나른다. 작은 몸은 더 밀린다.
-		{"msg": "조수 정원 · 물살 타기", "mode": "iso", "skill": "", "road": STONE, "floor": WATER, "accent": B, "posts": false, "scen": "coast",
+		{"msg": "조수 정원 · 물살 타기", "mode": "iso", "skill": "", "road": STONE, "floor": WATER, "accent": B, "scen": "coast",
 			"objective": "화살표가 물살 방향 · 버티면 고정 / 뛰면 벗어남",
 			"items": [
 				{"legs": [[36, -5, 10], [72, -10, 11], [36, -4, 10], [72, -10, 11], [36, -4, 9]],
@@ -570,7 +566,7 @@ func _zones_list() -> Array:
 					"row": [[88, "crystal"]], "snow": [[2, 23, -9, 9]],
 					"say": [[2, "섞기: 눈으로 탄약 확보"], [22, "물살을 버티며\n초록이면 던져"], [88, "벽을 열고 물살 밖에서 뛰어!"], [130, "반대 물살 착지\n가운데로 조종"]]}]},
 		# 제동의 역할을 바꾼다: 발판에서 누르면 힘을 모으고, 떼면 크게 날아간다.
-		{"msg": "공명 제단 · 눌렀다 놓기", "mode": "back", "skill": "", "road": STONE, "floor": Color("b8cbd8"), "accent": D, "posts": true, "scen": "plaza",
+		{"msg": "공명 제단 · 눌렀다 놓기", "mode": "back", "skill": "", "road": STONE, "floor": Color("b8cbd8"), "accent": D, "scen": "plaza",
 			"objective": "황금 발판에서 버티기 → 힘이 차면 손을 떼 발사",
 			"items": [
 				{"legs": [[38, -6, 10], [50, -5, 10, 0, "drum"], [9, -1, 10, 0, "gap"]],
@@ -588,7 +584,7 @@ func _zones_list() -> Array:
 					"snow": [[2, 24, -9, 9]],
 					"put": [["house", 132, -5], ["house", 144, 5], ["pot", 152, 0]],
 					"say": [[2, "섞기: 눈으로 몸을 키워"], [24, "무거운 몸으로 발판 누르기\n초록에서 손을 떼!"], [118, "착지 후 수정을 던져 깨고"], [178, "마지막 신전이 보인다"]]}]},
-		{"msg": "바다 신전 · 마지막 도약", "mode": "back", "skill": "", "road": STONE, "floor": WATER, "accent": D, "posts": false, "scen": "coast",
+		{"msg": "바다 신전 · 마지막 도약", "mode": "back", "skill": "", "road": STONE, "floor": WATER, "accent": D, "scen": "coast",
 			"objective": "키우고 → 던지고 → 가볍게 날아 바다 신전까지",
 			"items": [
 				{"legs": [[24, -4, 10], [66, -10, 10], [18, -2, 9], [42, -4, 7], [42, -6, 10],
@@ -657,8 +653,6 @@ func _reset() -> void:
 	gates.clear()
 	Engine.time_scale = 1.0
 	dash_t = 0.0
-	bridge_parts.clear()
-	bridge_signs.clear()
 	zone_queue.clear()
 	crumble.clear()
 	branch_nodes.clear()
@@ -694,8 +688,6 @@ func _reset() -> void:
 	says.clear()
 	cams.clear()
 	pads.clear()
-	ropes.clear()
-	crack_t = 0.0
 	pad_t = 0.0
 	shot_t = 0.0
 	sq = 0.0
@@ -1103,7 +1095,6 @@ func _zone_items(z: Dictionary, step := 0) -> void:
 				z["bare"] = bool(it.get("hidden", false))
 				_draw_road(o, 0, o.px.size() - 1, z)
 				z.erase("bare")
-				_fork_arches(br, o, z)
 				# 안내 글은 고른 갈래 것만 (_choose 에서 등록)
 				var vis: Dictionary = br.duplicate()
 				vis.erase("say")
@@ -1136,12 +1127,6 @@ func _zone_items(z: Dictionary, step := 0) -> void:
 			# 수로 구역이 다 지어지면 구역 처음부터 끝까지 하나로 잇는다: 떨어지면 구역 끝 물기둥까지 아래 세상을 달린다
 			_build_tunnel(float(z.start), float(_len()), z.node, {"ext": 80.0, "updraft": true, "cave": true})
 			z.things.append_array(_under_things(float(z.start), float(_len()), z))
-		var acc := d1
-		for lg: Array in it.legs:
-			if lg.size() > 5 and str(lg[4]) == "rope":
-				ropes.append([acc, acc + float(lg[0]), float(lg[5])])
-				_arch(acc + 1.0, float(lg[5]), z.node)
-			acc += float(lg[0])
 		z.things.append_array(_make_things(it, pd, d1, d1, z))
 		if it.has("under") and not tutorial:
 			_hidden_chamber(it, d1, z)
@@ -1189,11 +1174,6 @@ func _choose(z: Dictionary) -> void:
 		(ars[1 - side] as Node3D).queue_free()
 	_extend(br.legs)
 	z.things.append_array(fk.things[side])
-	var acc := float(fk.at)
-	for lg: Array in br.legs:
-		if lg.size() > 5 and str(lg[4]) == "rope":
-			ropes.append([acc, acc + float(lg[0]), float(lg[5])])
-		acc += float(lg[0])
 	for sy: Array in br.get("say", []):
 		says.append([float(fk.at) + float(sy[0]), sy[1]])
 	z.fork = null
@@ -1224,15 +1204,6 @@ func _hidden_fork(it: Dictionary, d0: float, o0: Dictionary, z: Dictionary) -> v
 	_lane(pd, maxf(0.0, d0 - 36.0), d0 - 1.0, lx, ldy, z.node)
 	if not o0.is_empty():
 		_lane(o0, 1.0, 24.0, 0.0, ldy, (z.fork.nodes[0] as Node3D) if z.fork != null and z.fork.has("nodes") else z.node)  # 지름길 위 바람은 지름길과 함께 지워진다
-
-
-## 갈래 안 흔들다리 입구 기둥 (갈래 표본 o 위에)
-func _fork_arches(br: Dictionary, o: Dictionary, z: Dictionary) -> void:
-	var acc := 0.0
-	for lg: Array in br.legs:
-		if lg.size() > 5 and str(lg[4]) == "rope":
-			_arch_o(o, acc + 1.0, float(lg[5]), z.node)
-		acc += float(lg[0])
 
 
 ## 지름길을 찾았다: 새긴 지명판에 그곳 이름 (모으는 것·세는 것 없음)
@@ -1376,13 +1347,8 @@ func _draw_road(o: Dictionary, a: int, b: int, z: Dictionary) -> void:
 				col = D
 			"bridge":
 				col = A
-			"rope":
-				col = A
-				thick = 0.5
 		var m := box(Vector3.ZERO, Vector3.ONE, col, nd)
-		_apply_art(m, "plank" if tg in ["rope", "bridge"] else _ground_art(int(z.k)))
-		if tg == "rope":
-			bridge_parts.append(m)
+		_apply_art(m, "plank" if tg == "bridge" else _ground_art(int(z.k)))
 		m.basis = bs
 		m.scale = Vector3(hw * 2.0, thick, ln + 0.4 + hw * absf(o.yw[j] - o.yw[i]))
 		m.position = (p0 + p1) * 0.5 - up * thick * 0.5 + up * (0.025 * float(i % 3))  # 겹친 이음매가 깜빡이지 않게
@@ -1393,22 +1359,6 @@ func _draw_road(o: Dictionary, a: int, b: int, z: Dictionary) -> void:
 				w.basis = bs
 				w.scale = Vector3(hw, 0.1, ln + 0.4)
 				w.position = (p0 + p1) * 0.5 + up * 0.04
-			elif tg == "rope":
-				# 난간 밧줄 + 발판 줄무늬
-				for sd: float in [-1.0, 1.0]:
-					var e := box(Vector3.ZERO, Vector3.ONE, WHITE, nd)
-					_skin(e, "chip", Color("e9d3a6"))  # 삼끈 빛 밧줄
-					e.basis = bs
-					e.scale = Vector3(0.18, 0.18, ln + 0.4)
-					e.position = (p0 + p1) * 0.5 + rt * sd * (hw + 0.1) + up * 1.3
-				var nb := int(ln / 6.0)
-				for q in nb:
-					var e := box(Vector3.ZERO, Vector3.ONE, D, nd)
-					_apply_art(e, "plank")
-					e.basis = bs
-					e.scale = Vector3(hw * 2.0, 0.08, 0.7)
-					e.position = p0 + dir * ((q + 0.5) / nb) + up * 0.03
-					bridge_parts.append(e)
 			elif tg != "plaza":
 				for sd: float in [-1.0, 1.0]:
 					# 숨은 길 입구(mouthL/R): 그쪽 턱 줄이 끊겨 있다
@@ -1439,10 +1389,6 @@ func _draw_road(o: Dictionary, a: int, b: int, z: Dictionary) -> void:
 		var h: float = o.hh[q]
 		var tg: String = o.tg[q]
 		var fq := float(q)
-		if false and def.posts and q % 30 == 0:  # 길 옆 눈금 막대: 판 밖 허공에 떠 보여서 뺐다
-			var sd := 1.0 if (q / 30) % 2 == 0 else -1.0
-			var post := box(_opos(o, fq, sd * (hw + 1.2), h + 1.5), Vector3(0.8, 3.0, 0.8), WHITE, nd)
-			_apply_art(post, "pillar", WHITE if sd > 0.0 else def.accent.lightened(0.35))
 		match def.scen:
 			"rock":
 				if q % 40 == 20:
@@ -1492,10 +1438,6 @@ func _draw_road(o: Dictionary, a: int, b: int, z: Dictionary) -> void:
 					var sd := -1.0 if (q / 60) % 2 == 0 else 1.0
 					_column(o, fq, sd * (hw + rng.randf_range(14.0, 30.0)), h + rng.randf_range(6.0, 22.0), rng.randf_range(7.0, 12.0), [WHITE, ICEWALL].pick_random(), nd)
 			"canyon":
-				if tg == "rope" and q % 15 == 0:
-					for sd: float in [-1.0, 1.0]:
-						var rp := box(_opos(o, fq, sd * (hw + 0.1), h + 0.8), Vector3(0.5, 2.0, 0.5), D, nd)
-						_apply_art(rp, "plank")
 				if q % 30 == 15:
 					for sd: float in [-1.0, 1.0]:
 						_column(o, fq, sd * (hw + rng.randf_range(7.0, 16.0)), h + rng.randf_range(8.0, 28.0), rng.randf_range(6.0, 11.0), [A, ROCK, Color("ffc078")].pick_random(), nd)
@@ -1621,28 +1563,6 @@ func _plate(o: Dictionary, la: float, lb: float, x0: float, x1: float, col: Colo
 		d = next
 
 
-## 흔들다리 입구 기둥: 기둥 높이(빨간 머리 밑) = 버티는 크기. 돌이 기둥보다 크면 끊어진다.
-## (가로대를 두면 낮은 카메라가 그 속을 지나가 화면이 가려져서 기둥 두 개만 둔다)
-func _arch(d: float, lim: float, nd: Node3D) -> void:
-	_arch_o(pd, d, lim, nd)
-
-
-## _arch 를 아무 길 표본 o 위에 (갈림길 갈래는 고르기 전에 미리 그린다)
-func _arch_o(o: Dictionary, d: float, lim: float, nd: Node3D) -> void:
-	_bridge_sign(o, maxf(1.0, d - 24.0), lim, nd)
-	var hw: float = o.hw[_oi(o, d)]
-	var h := _oh(o, d)
-	var yw := _oyaw(o, d)
-	for sd: float in [-1.0, 1.0]:
-		var p := box(_opos(o, d, sd * (hw + 0.8), h + lim * 0.5), Vector3(1.0, lim, 1.0), D, nd)
-		_apply_art(p, "plank")  # 흔들다리 나무 기둥
-		p.rotation.y = yw
-		var cap := box(_opos(o, d, sd * (hw + 0.8), h + lim + 0.3), Vector3(1.6, 0.6, 1.6), BAD, nd)
-		_red(cap)
-		cap.rotation.y = yw
-
-
-
 ## 뒤집은 껍질 외곽선: 같은 메시를 조금 키워 앞면을 버리고 진한 색으로 (작은 것이 배경에 묻히지 않게)
 func _ink_outline(n: MeshInstance3D, col: Color) -> void:
 	var key := "outline" + col.to_html()
@@ -1659,89 +1579,6 @@ func _ink_outline(n: MeshInstance3D, col: Color) -> void:
 	o.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	n.add_child(o)
 
-
-## 흔들다리 앞 표지판: 나무 기둥 위 둥근 돌판에 고리(버티는 크기)와 내 돌 크기 원
-func _bridge_sign(o: Dictionary, d: float, lim: float, nd: Node3D) -> void:
-	var hw: float = o.hw[_oi(o, d)]
-	var h := _oh(o, d)
-	var x := hw + 2.2
-	var post := box(_opos(o, d, x, h + 2.2), Vector3(0.5, 4.4, 0.5), D, nd)
-	_apply_art(post, "plank")
-	var board := MeshInstance3D.new()
-	var disk := CylinderMesh.new()
-	disk.top_radius = 1.0
-	disk.bottom_radius = 1.0
-	disk.height = 0.2
-	disk.radial_segments = 16
-	board.mesh = disk
-	nd.add_child(board)
-	board.position = _opos(o, d, x, h + 5.4)
-	board.rotation = Vector3(PI * 0.5, _oyaw(o, d), 0.0)
-	board.scale = Vector3(2.0, 1.0, 2.0)
-	_skin(board, "wall", Color("fff3dc"))
-	var rim := MeshInstance3D.new()
-	var tor := TorusMesh.new()
-	tor.inner_radius = 0.86
-	tor.outer_radius = 1.04
-	tor.rings = 16
-	tor.ring_segments = 6
-	rim.mesh = tor
-	board.add_child(rim)
-	_red(rim)
-	# 글 대신 그림: 가운데 고리 = 다리가 버티는 크기, 안의 원 = 지금 내 돌 크기(실시간).
-	# 내 원이 고리 밖으로 넘치면 빨개진다 → 이대로 가면 다리가 끊어진다.
-	var fill := MeshInstance3D.new()
-	var fd := CylinderMesh.new()
-	fd.top_radius = 1.0
-	fd.bottom_radius = 1.0
-	fd.height = 0.28  # 판(0.2)보다 두꺼워 앞뒤 어느 쪽에서도 보인다
-	fd.radial_segments = 20
-	fill.mesh = fd
-	var fm := StandardMaterial3D.new()
-	fm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	fm.albedo_color = GOOD
-	fill.material_override = fm
-	board.add_child(fill)
-	var ring := MeshInstance3D.new()
-	var rt := TorusMesh.new()
-	rt.inner_radius = 0.5
-	rt.outer_radius = 0.6
-	rt.rings = 20
-	rt.ring_segments = 6
-	ring.mesh = rt
-	board.add_child(ring)
-	ring.scale = Vector3(1, 3.5, 1)
-	var rm := StandardMaterial3D.new()
-	rm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	rm.albedo_color = Color("5a2a1a")
-	ring.material_override = rm
-	bridge_signs.append([fill, fm, lim, board])
-
-
-## 표지판 안의 원을 지금 돌 크기에 맞춘다 (고리 = 버티는 크기)
-func _bridge_signs_tick() -> void:
-	for sg in bridge_signs:
-		var f: MeshInstance3D = sg[0]
-		if not is_instance_valid(f):
-			continue
-		var k := clampf(s_goal / float(sg[2]), 0.1, 1.6) * 0.55
-		f.scale = Vector3(k, 1, k)
-		var over := s_goal > float(sg[2]) + 0.05
-		(sg[1] as StandardMaterial3D).albedo_color = BAD if over else GOOD
-		var b: Node3D = sg[3]
-		b.position.x += (sin(clock * 40.0) * 0.04 if over else 0.0) - b.get_meta("wob", 0.0)
-		b.set_meta("wob", sin(clock * 40.0) * 0.04 if over else 0.0)
-
-
-## 다리가 부서진다: 돌 둘레 14m 발판·밧줄이 사라지고 나무 조각이 사방으로 튄다
-func _bridge_break(p: Vector3) -> void:
-	for n in bridge_parts:
-		if is_instance_valid(n) and (n as Node3D).visible and (n as Node3D).global_position.distance_to(p) < 14.0:
-			_burst((n as Node3D).global_position, A, 2, 10.0, 0.9)
-			(n as Node3D).visible = false
-	_burst(p, A, 12, 12.0, 1.0)
-	sfx("crush_m", 2.0, 0.8)
-	shake = maxf(shake, 0.9)
 
 func _thing(o: Dictionary, l: float, d: float, x: float, kind: String, z: Dictionary) -> Thing:
 	var th := Thing.new()
@@ -2397,24 +2234,6 @@ func _step(dt: float) -> void:
 	_aim()
 	if mode == "side":
 		x_goal = 0.0
-	var rope := _rope_at(dist)
-	if on_ground and rope.size() > 0:
-		# 흔들다리: 바람에 옆으로 흔들린다. 입구 기둥보다 크면 삐걱이다 끊어진다.
-		x_goal += sin(clock * 2.3) * 2.6 * dt
-		if s_goal > float(rope[2]) + 0.05:
-			crack_t += dt
-			shake = maxf(shake, 0.35)
-			if fmod(crack_t, 0.12) < dt:
-				sfx("creak", -2.0)
-			if crack_t > 0.4:
-				_bridge_break(_pos(dist, bx, by))
-				_fall("와장창!")
-				_place(dt)
-				return
-		else:
-			crack_t = maxf(0.0, crack_t - dt)
-	else:
-		crack_t = 0.0
 	if on_ground:
 		_pads(dt)
 	# 큰 회전: 무거울수록 빠를수록 바깥으로 밀린다 (버티면 덜)
@@ -2570,13 +2389,6 @@ func _step(dt: float) -> void:
 	_ram_gauge()
 	gauge(v / VMAX, col)
 	_place(dt)
-
-
-func _rope_at(d: float) -> Array:
-	for rp: Array in ropes:
-		if d > float(rp[0]) and d < float(rp[1]):
-			return rp
-	return []
 
 
 ## 설산: 흰 눈 줄 위면 커지고, 노란 길 위면 녹아 작아진다 (지나간 거리만큼)
@@ -4787,10 +4599,6 @@ func _process(dt: float) -> void:
 		if dist >= float(drum.a) and dist < float(drum.b) and on_ground:
 			action_label.text = tr("발판 힘 %d%% · %s") % [int(drum_charge * 100.0), tr("손을 떼서 발사!" if drum_charge >= 0.4 else "버티기를 길게 눌러")]
 			return
-	for rope: Array in ropes:
-		if float(rope[0]) - dist > 0.0 and float(rope[0]) - dist < 60.0:
-			action_label.text = tr("앞 다리 한계 %.1f / 내 몸 %.1f\n%s") % [float(rope[2]), s_goal, tr("더 쪼개서 가볍게!" if s_goal > float(rope[2]) else "가운데로 건너자")]
-			return
 	if k == 5 and not tutorial:
 		for th: Thing in things:
 			if not th.flat and th.kd == KIND.ice and th.d > dist and th.d - dist < 85.0:
@@ -5120,32 +4928,32 @@ func _gate_tick() -> void:
 
 func _tutorial_list() -> Array:
 	return [
-		{"msg": "연습 1 · 끌어서 조향", "mode": "back", "skill": "", "road": STONE, "floor": WATER, "accent": ROCK, "posts": false, "scen": "rock",
+		{"msg": "연습 1 · 끌어서 조향", "mode": "back", "skill": "", "road": STONE, "floor": WATER, "accent": ROCK, "scen": "rock",
 			"objective": "손가락을 좌우로 끌어 항아리를 깔아 봐",
 			"items": [{"legs": [[30, -4, 7], [100, -15, 7], [30, -4, 7]],
 				"put": [["pot", 28, -3], ["pot", 36, 3], ["pot", 44, -3], ["pot", 52, 3], ["pot", 60, 0], ["pot", 66, 0], ["pillar", 84, -3],
 					["pot", 90, 3], ["pot", 95, 3], ["pillar", 110, 3], ["pot", 116, -3], ["pot", 121, -3], ["pot", 132, 0], ["pot", 140, 0]],
 				"say": [[3, "손가락을 좌우로 끌어 봐"], [24, "항아리를 깔면 커진다"], [76, "빨간 기둥은 피해!"]]}]},
-		{"msg": "연습 2 · 뛰기", "mode": "side", "skill": "jump", "road": STONE, "floor": GRASS, "accent": B, "posts": false, "scen": "aq",
+		{"msg": "연습 2 · 뛰기", "mode": "side", "skill": "jump", "road": STONE, "floor": GRASS, "accent": B, "scen": "aq",
 			"objective": "틈 앞에서 뛰기",
 			"items": [{"legs": [[12, -2, 5], [34, -5, 2.2, 0, "aq"], [14, -1, 2.2, 0, "gap"], [44, -6, 2.2, 0, "aq"], [16, -1, 2.2, 0, "gap"], [36, -4, 2.2, 0, "aq"], [15, 0, 4]],
 				"put": [["pot", 20, 0], ["pot", 28, 0], ["pot", 70, 0]],
 				"gate": [[38, "jump", "지금 뛰기!"], [94, "jump", "한 번 더, 뛰기!"]],
 				"say": [[2, "앞에 틈이 있다"]]}]},
-		{"msg": "연습 3 · 쪼개기", "mode": "back", "skill": "split", "road": GRASS, "floor": GRASS, "accent": A, "posts": true, "scen": "village",
+		{"msg": "연습 3 · 쪼개기", "mode": "back", "skill": "split", "road": GRASS, "floor": GRASS, "accent": A, "scen": "village",
 			"objective": "쪼개면 가볍고 1초 동안 돌진한다",
 			"items": [{"legs": [[30, -5, 7], [70, -9, 7], [30, -4, 7]],
 				"put": [["pot", 6, -2], ["pot", 10, 2], ["pot", 14, -2], ["pot", 18, 2], ["pot", 22, 0], ["pot", 72, 0], ["pot", 80, 0]],
 				"row": [[56, "house"]],
 				"gate": [[40, "split", "쪼개기!\n돌진해서 집을 뚫어"]],
 				"say": [[2, "집은 너무 커서 못 깐다"]]}]},
-		{"msg": "연습 4 · 버티기", "mode": "fall", "skill": "hold", "road": ROCK, "floor": WATER, "accent": WHITE, "posts": true, "scen": "cliff",
+		{"msg": "연습 4 · 버티기", "mode": "fall", "skill": "hold", "road": ROCK, "floor": WATER, "accent": WHITE, "scen": "cliff",
 			"objective": "공중에서 버티기 = 내려찍기 · 땅에서는 제동",
 			"items": [{"legs": [[28, -5, 8], [3, -40, 8, 0, "drop"], [70, -8, 12], [30, -5, 7]],
 				"put": [["tower", 50, 0], ["tower", 58, -6], ["tower", 58, 6], ["tower", 68, 0], ["pot", 90, 0]],
 				"gate": [[33, "hold", "버티기를 꾹!\n파란 머리 탑을 쾅"]],
 				"say": [[2, "절벽이다"], [80, "탑을 부수면 빨라진다"]]}]},
-		{"msg": "연습 5 · 던지기", "mode": "low", "skill": "throw", "road": ICE, "floor": Color("abcbd8"), "accent": B, "posts": false, "scen": "snow",
+		{"msg": "연습 5 · 던지기", "mode": "low", "skill": "throw", "road": ICE, "floor": Color("abcbd8"), "accent": B, "scen": "snow",
 			"objective": "흰 눈으로 커지고 초록 점선이면 던지기",
 			"items": [{"legs": [[30, -4, 8], [90, -9, 8], [40, -4, 8]],
 				"snow": [[2, 34, -8, 8]], "row": [[80, "crystal"]],
@@ -5226,8 +5034,7 @@ const EN := {
 	"큰 돌은 무거워\n오르막 전엔 욕심내지 마": "Big = heavy\ndon't overeat before hills",
 	"노란 경사대에서\n저절로 날아간다": "Yellow ramp\nlaunches you",
 	"다리는 가운데로": "Stay center on bridges",
-	"틈! 뛰기": "Gap! JUMP", "담도 뛰어": "Jump the wall too", "석상!\n뛰거나 깔거나": "Statue!\njump or crush",
-	"섞기: 깔고 뛰기": "Mix: crush & jump", "석상 뒤에 틈!\n깔고 뛰거나 넘거나": "Gap behind the statue!\ncrush & jump, or leap over",
+	"틈! 뛰기": "Gap! JUMP", "담도 뛰어": "Jump the wall too", "석상!\n뛰거나 깔거나": "Statue!\njump or crush", "석상 뒤에 틈!\n깔고 뛰거나 넘거나": "Gap behind the statue!\ncrush & jump, or leap over",
 	"담과 틈:\n한 번에!": "Wall and gap:\nin one go!",
 	"쪼개면 가볍고\n잠깐 돌진: 집도 뚫는다": "SPLIT = lighter\n+ dash through houses",
 	"섞기: 깔면 무거워\n회전에서 밀린다": "Mix: crushing = heavy\nturns push you out",
@@ -5249,14 +5056,11 @@ const EN := {
 	"오르막!\n쪼개서 가볍게": "Hill!\nSPLIT to get light",
 	"던지기 = 내 몸 한 덩이를\n앞으로 (작아진다)": "THROW = toss a chunk of yourself\nforward (you shrink)",
 	"보라 벽은 몸으로 못 지나간다\n점선이 초록이면 던져": "Purple walls block you\nTHROW when the line is green",
-	"기둥보다 크면\n다리가 끊어진다": "Bigger than the posts\n= the bridge snaps",
-	"다시 키워": "Grow again", "빠를수록 멀리 닿는다": "Faster = longer throw", "더 좁은 다리": "Narrower bridge",
-	"섞기: 커지고, 던져서\n작아지고, 건너기": "Mix: grow, throw to\nshrink, then cross",
+	"다시 키워": "Grow again", "빠를수록 멀리 닿는다": "Faster = longer throw",
 	"노랑은 받고\n빨강은 피해": "Catch yellow\ndodge red",
 	"좁다! 빨강은\n쪼개서 막아": "Narrow! SPLIT\nto block red",
 	"해안 응용: 배운 것을 섞어!": "Coast: mix everything!",
 	"눈으로 키우고": "Grow in snow",
-	"수정은 던져\n작아져야 다리를 건넌다": "THROW at crystals\nshrink to cross the bridge",
 	"회전! 버티기": "Turn! HOLD", "구멍 피해\n내려찍기": "Avoid holes\nslam",
 	"물살은 몸을 옆으로!\n화살표를 봐": "Currents push you sideways!\nWatch the arrows",
 	"버티면 덜 밀린다": "HOLD = pushed less",
@@ -5273,7 +5077,6 @@ const EN := {
 	"착지 후 수정을 던져 깨고": "After landing, THROW at the crystal",
 	"마지막 신전이 보인다": "The last temple is in sight",
 	"마지막 응용\n눈으로 탄약을 만들고": "Final mix\nmake ammo in snow",
-	"던져 작아져야\n다리가 버틴다": "THROW to shrink\nor the bridge snaps",
 	"물살 뒤 황금 발판\n버티다가 손을 떼!": "Golden pad after the current\nHOLD, then release!",
 	"돌아왔다\n신전의 빛을 향해": "Home again\ntoward the temple light",
 	# 순간 글
@@ -5321,8 +5124,6 @@ const EN := {
 	"초록 점선에서 던져 수정에 통로를 열어": "THROW on the green line to open crystals",
 	"노란 돌은 받아 · 빨간 돌은 피해 / 쪼개서 막아": "Catch yellow rocks · dodge red / SPLIT to block",
 	"발판 힘 %d%% · %s": "Pad power %d%% · %s", "손을 떼서 발사!": "Let go to launch!", "버티기를 길게 눌러": "Keep holding HOLD",
-	"앞 다리 한계 %.1f / 내 몸 %.1f\n%s": "Bridge limit %.1f / you %.1f\n%s",
-	"더 쪼개서 가볍게!": "SPLIT to get lighter!", "가운데로 건너자": "Cross in the center",
 	"얼음벽 4.5 / 내 몸 %.1f\n%s": "Ice wall 4.5 / you %.1f\n%s",
 	"돌진 중! 그대로 뚫어": "Dashing! Smash through", "눈으로 키우거나 · 벽 앞에서 쪼개 돌진": "Grow in snow · or SPLIT-dash at the wall",
 	"충분히 커졌다 · 벽을 깨자": "Big enough · break the wall",
