@@ -2644,7 +2644,7 @@ func _start_round() -> void:
 		r.surge = false
 		r.stun = 0.0
 		# v22: 출발 변수. 넷이 완전히 겹쳐 달리지 않게 경쟁자마다 반응과 초반 속도가 다르다
-		r.start_d = randf_range(0.0, 0.6) if r.ai else 0.0
+		r.start_d = 0.5 if r.ai else 0.0  # v40: 경쟁자는 출발 0.5초 기다린다 (사용자 지시. 앞뒤 차이는 초반 속도 start_k 가 만든다)
 		r.start_k = randf_range(0.86, 1.06) if r.ai else 1.0
 		r.dash = 0.0
 		r.drop_cd = 0.0
