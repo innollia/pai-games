@@ -1578,3 +1578,6 @@ No text or labels.
 
 ## 도감 아이콘 16종 (v50, 2026-10-31)
 Codex(`codex exec`, 내장 이미지 생성) 한 번, 4x4 판 2048x2048. 프롬프트 원문은 `work/codex_icons/prompt.txt`, 참고 그림은 ui/icon_gate·icon_spring·icon_ice. 결과: KEPT(1회). `work/codex_icons/slice.py`로 잘라 `art/screenrace/ui/cx_*.png`.
+
+## 도감 화면 그림 (v51, 2026-10-31)
+Codex 한 번, 두 장(page.png 1024x1536, kit.png 1254x1254). 프롬프트 원문 `work/codex_ui/prompt.txt`, 참고 그림 logo·icon_gate·cx_book. 결과: KEPT(1회, WebSocket 끊김 뒤 HTTPS로 완료). `work/codex_ui/slice.py`로 `art/screenrace/ui/cxui_*.png`.

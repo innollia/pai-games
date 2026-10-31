@@ -8,9 +8,9 @@ signal closed
 const T = preload("res://g/sr_theme.gd")
 
 const TOP := 250.0  # 목록 시작 (머리 띠 + 탭 아래)
-const CARD_H := 156.0
+const CARD_H := 170.0
 const GAP := 16.0
-const PAD := 24.0
+const PAD := 38.0
 
 var game  # screenrace (L(), 코스·규칙 표)
 var K := {}  # screenrace 상수 표 (COURSES, SEG_RULES ...)
@@ -112,6 +112,8 @@ func _process(dt: float) -> void:
 		scroll = clampf(scroll + _vel * dt, 0.0, _max_scroll())
 		_vel *= exp(-5.0 * dt)
 		queue_redraw()
+		if _list:
+			_list.queue_redraw()
 
 
 func _gui_input(e: InputEvent) -> void:
@@ -149,7 +151,7 @@ func _tab_rect(i: int) -> Rect2:
 
 
 func _tap(p: Vector2) -> void:
-	if _close_rect().grow(10.0).has_point(p):
+	if _close_rect().grow(14.0).has_point(p):
 		if game:
 			game.play("tap")
 		close()
@@ -164,70 +166,120 @@ func _tap(p: Vector2) -> void:
 			return
 
 
+## 그림 (Codex, art/screenrace/ui/cxui_*.png). 없으면 예전 종이 상자로 그린다
+var _sb_card: StyleBoxTexture
+var _list: Control
+
+
+func _box(name: String, m: Vector4) -> StyleBoxTexture:
+	var tx := _ui(name)
+	if tx == null:
+		return null
+	var sb := StyleBoxTexture.new()
+	sb.texture = tx
+	sb.texture_margin_left = m.x
+	sb.texture_margin_top = m.y
+	sb.texture_margin_right = m.z
+	sb.texture_margin_bottom = m.w
+	return sb
+
+
 func _draw() -> void:
-	draw_rect(Rect2(Vector2.ZERO, size), T.CREAM)
-	T.draw_grain(self, Rect2(Vector2.ZERO, size), 0.1)
-	# 목록 (머리 띠 아래로 잘라 그린다)
-	var y0 := TOP - scroll + 16.0
-	for i in _items.size():
-		var y := y0 + i * (CARD_H + GAP)
-		if y > size.y or y + CARD_H < TOP - CARD_H:
-			continue
-		_card(_items[i], Rect2(PAD, y, size.x - PAD * 2.0, CARD_H))
-	# 머리 띠 + 탭 (목록 위에 덮는다)
-	draw_rect(Rect2(0, 0, size.x, TOP), T.CREAM)
-	draw_rect(Rect2(0, 0, size.x, 150), T.KRAFT)
-	T.draw_torn_edge(self, Vector2(0, 150), Vector2(size.x, 150), T.KRAFT, 10.0, 3)
+	if _list == null:
+		# 목록은 머리 띠 아래로 잘라 그리는 자식 (배경 그림이 머리 띠 뒤로 이어지게)
+		_list = _List.new()
+		_list.owner_c = self
+		_list.position = Vector2(0, TOP)
+		_list.size = Vector2(size.x, size.y - TOP)
+		_list.clip_contents = true
+		_list.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(_list)
+		_sb_card = _box("cxui_card", Vector4(80, 46, 80, 46))
+	_list.queue_redraw()
+	var page := _ui("cxui_page")
+	if page:
+		draw_texture_rect(page, Rect2(Vector2.ZERO, size), false)  # 종이결이라 세로로 조금 늘려도 티가 안 난다
+	else:
+		draw_rect(Rect2(Vector2.ZERO, size), T.CREAM)
+		T.draw_grain(self, Rect2(Vector2.ZERO, size), 0.1)
+	# 머리 띠: 리본 + 책 + 제목
+	var ban := _ui("cxui_banner")
+	if ban:
+		draw_texture_rect(ban, Rect2(14, 20, size.x - 28, 128), false)
+	else:
+		draw_rect(Rect2(0, 0, size.x, 150), T.KRAFT)
 	var book := _ui("cx_book")
 	if book:
-		draw_texture_rect(book, Rect2(26, 22, 108, 108), false)
-	else:
-		T.draw_parcel_icon(self, Vector2(80, 76), 70.0, true)
-	T.draw_text_center(self, _L("도감", "Field Guide"), Vector2(360, 78), 54, T.NAVY, 420.0)
+		draw_texture_rect(book, Rect2(40, 26, 104, 104), false)
+	T.draw_text_center(self, _L("도감", "Field Guide"), Vector2(360, 82), 52, T.NAVY, 400.0, 10, T.WHITE)
 	var cr := _close_rect()
-	draw_circle(cr.get_center() + Vector2(0, 5), 44.0, T.SHADOW)
-	draw_circle(cr.get_center(), 44.0, T.WHITE)
-	draw_circle(cr.get_center(), 39.0, T.CREAM)
-	T.draw_text_center(self, "✕", cr.get_center(), 40, T.NAVY)
+	var cl := _ui("cxui_close")
+	if cl:
+		draw_texture_rect(cl, cr.grow(6.0), false)
+	else:
+		draw_circle(cr.get_center(), 44.0, T.WHITE)
+		T.draw_text_center(self, "✕", cr.get_center(), 40, T.NAVY)
 	for i in 2:
 		var r := _tab_rect(i)
 		var on := tab == i
-		T.draw_paper_rect(self, r, T.GOLD if on else T.WHITE, T.WHITE, 4.0 if on else 6.0, 36.0)
+		var tt := _ui("cxui_tab_on" if on else "cxui_tab_off")
+		if tt:
+			draw_texture_rect(tt, r.grow(6.0) if on else r, false)
+		else:
+			T.draw_paper_rect(self, r, T.GOLD if on else T.WHITE, T.WHITE, 4.0, 36.0)
 		var label := _L("동네 6곳", "6 Towns") if i == 0 else _L("길 · 기물", "Roads & Things")
-		T.draw_text_center(self, label, r.get_center(), 32, T.NAVY, r.size.x - 20.0)
-	draw_line(Vector2(PAD, TOP - 2), Vector2(size.x - PAD, TOP - 2), T.EMPTY_SLOT, 3.0)
+		T.draw_text_center(self, label, r.get_center() + Vector2(0, -2), 32, T.NAVY, r.size.x - 40.0)
 	# 넘길 수 있다는 표 (오른쪽 얇은 막대)
 	var ms := _max_scroll()
 	if ms > 0.0:
 		var vh := size.y - TOP
 		var bh := maxf(vh * vh / _content_h(), 60.0)
 		var by := TOP + (vh - bh) * (scroll / ms)
-		draw_rect(Rect2(size.x - 10, by, 5, bh), Color(T.NAVY, 0.25))
+		draw_rect(Rect2(size.x - 12, by, 6, bh), Color(T.NAVY, 0.3))
 
 
-func _card(it: Dictionary, r: Rect2) -> void:
-	T.draw_paper_rect(self, r, T.WHITE, T.WHITE, 6.0, 16.0)
-	draw_rect(Rect2(r.position + Vector2(0, 14), Vector2(8, r.size.y - 28)), it.accent)
+class _List extends Control:
+	var owner_c
+
+	func _draw() -> void:
+		var c = owner_c
+		var y0: float = 16.0 - c.scroll
+		for i in c._items.size():
+			var y: float = y0 + i * (c.CARD_H + c.GAP)
+			if y > size.y or y + c.CARD_H < 0.0:
+				continue
+			c._card(self, c._items[i], Rect2(c.PAD, y, size.x - c.PAD * 2.0, c.CARD_H))
+
+
+func _card(ci: CanvasItem, it: Dictionary, r: Rect2) -> void:
+	if _sb_card:
+		ci.draw_style_box(_sb_card, r.grow_individual(6, 4, 6, 8))
+	else:
+		T.draw_paper_rect(ci, r, T.WHITE, T.WHITE, 6.0, 16.0)
 	var tex: Texture2D = it.get("tex")
-	var th := r.size.y - 28.0
-	var tr := Rect2(r.position + Vector2(22, 14), Vector2(th * (1.5 if it.get("wide", false) else 1.0), th))
+	var th := r.size.y - 36.0
+	var wide: bool = it.get("wide", false)
+	var tr := Rect2(r.position + Vector2(30, 18), Vector2(th * (1.45 if wide else 1.0), th))
+	var fr := _ui("cxui_frame")
+	if fr:
+		# 폴라로이드 틀 안에 그림 (틀 창 = 안쪽 12%)
+		ci.draw_texture_rect(fr, tr.grow(8.0), false)
+		tr = tr.grow(-th * 0.1)
 	if tex != null:
-		if it.get("wide", false):
+		if wide:
 			# 배경 그림 가운데 아래쪽(거리)을 잘라 보인다
 			var tw := float(tex.get_width())
 			var tht := float(tex.get_height())
 			var rw := tw * 0.42
-			var rh := rw / 1.5
-			var src := Rect2((tw - rw) * 0.5, tht * 0.62 - rh * 0.5, rw, rh)
-			draw_texture_rect_region(tex, tr, src)
-			draw_rect(tr, T.WHITE, false, 4.0)
+			var rh := rw / (tr.size.x / tr.size.y)
+			ci.draw_texture_rect_region(tex, tr, Rect2((tw - rw) * 0.5, tht * 0.62 - rh * 0.5, rw, rh))
 		else:
-			draw_rect(tr, T.CREAM)
-			draw_texture_rect(tex, tr.grow(-6.0), false)
+			ci.draw_texture_rect(tex, tr.grow(4.0), false)
 	else:
-		draw_rect(tr, T.CREAM)
-		T.draw_parcel_icon(self, tr.get_center(), th * 0.55, true)
-	var tx := tr.end.x + 20.0
-	var w := r.end.x - tx - 16.0
-	T.draw_text_block(self, it.name, Vector2(tx, r.position.y + 16), w, 32, T.NAVY, HORIZONTAL_ALIGNMENT_LEFT, 1)
-	T.draw_text_block(self, it.desc, Vector2(tx, r.position.y + 62), w, 24, T.MUTED.darkened(0.25), HORIZONTAL_ALIGNMENT_LEFT, 3)
+		T.draw_parcel_icon(ci, tr.get_center(), th * 0.5, true)
+	# 이름 옆 색 점 (동네 색·기물 색)
+	var tx := r.position.x + 30.0 + th * (1.45 if wide else 1.0) + 34.0
+	var w := r.end.x - tx - 24.0
+	ci.draw_circle(Vector2(tx + 8.0, r.position.y + 38.0), 8.0, it.accent)
+	T.draw_text_block(ci, it.name, Vector2(tx + 24.0, r.position.y + 18), w - 24.0, 32, T.NAVY, HORIZONTAL_ALIGNMENT_LEFT, 1)
+	T.draw_text_block(ci, it.desc, Vector2(tx, r.position.y + 64), w, 24, Color("4A4E63"), HORIZONTAL_ALIGNMENT_LEFT, 3)

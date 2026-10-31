@@ -1,0 +1,13 @@
+Make TWO images with your built-in image generation tool and save them in this folder (C:\projects\pai-games\games\speed_tofu\submit\screenrace\work\codex_ui):
+
+Style for both: the cozy cut-paper / cardboard craft look of the reference images here (ref_logo.png, ref_icon.png, ref_book.png): kraft cardboard browns (#D99B5B, #E3BA88), manila cream paper (#FFFDF5), post red (#E85244), gold (#F7B336), dark navy outlines (#2A2C44), soft paper grain, slight hand-cut edges, small soft drop shadows. NO text, NO letters, NO numbers anywhere.
+
+1) page.png, portrait 1024x1536: the inside page of a courier's field guide / scrapbook, seen flat from the front. Warm kraft cardboard background filling the whole image edge to edge, a faint dotted stitch border near the edges, a few tiny parcel-stamp doodles only in the corners. The middle must be calm and mostly empty (UI cards will be drawn on top). Top 12% is a plain darker kraft strip where a title will go.
+
+2) kit.png, square 2048x2048, plain flat light cream background (#FFFDF5), a 4-row layout, each item centered in its row with generous empty space around it:
+ Row 1 (top quarter): one wide horizontal torn-edge manila paper slip, about 1800 wide x 380 tall, with two small pieces of red washi tape on its top-left and top-right corners, empty (no drawing inside), soft shadow.
+ Row 2: one wide horizontal cardboard ribbon banner with notched ends, about 1800 x 300, gold/kraft, empty.
+ Row 3: two bookmark-style tab labels side by side, each about 850 x 260: left one bright gold paper tab (selected), right one plain cream paper tab (not selected), both empty.
+ Row 4: left half: a round red rubber-stamp style close button with a cream cross mark (an X shape drawn as two crossed paper strips, not a letter), about 400 x 400; right half: a square polaroid-style cream photo frame with a slightly darker empty window, about 450 x 450.
+
+Only make the images. Do not write code.
