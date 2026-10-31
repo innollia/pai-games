@@ -1749,7 +1749,8 @@ func _build_course() -> void:
 	_place_mailboxes()
 	_build_backdrop()
 	# 뒤 건물 (원근 때문에 느리게 지나간다)
-	var bx := -40.0
+	# v29: 그린 배경이 있으면 종이 상자 건물·먼 실루엣은 만들지 않는다 ("배경 일부는 민트 건물이 지나가고 일부는 이미지")
+	var bx := -40.0 if backdrop == null else gx + 1.0e6
 	var bld: Array = cdef.bld
 	while bx < gx + 60.0:
 		var w := gen.randf_range(4.0, 8.0)
@@ -1758,7 +1759,7 @@ func _build_course() -> void:
 		_vbox(Vector3(bx + w * 0.5, h * 0.5 - 14.0, -12.0 - gen.randf() * 3.0), Vector3(w, h, 3.0), c)
 		bx += w + gen.randf_range(0.5, 2.5)
 	# 먼 산·건물 실루엣 (아주 느리게 지나간다)
-	var fx := -60.0
+	var fx := -60.0 if backdrop == null else gx + 1.0e6
 	var farc: Color = cdef.far
 	while fx < gx + 120.0:
 		var w := gen.randf_range(10.0, 22.0)
