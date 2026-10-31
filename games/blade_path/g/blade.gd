@@ -50,9 +50,6 @@ const BLOCK_SND := [preload("res://sfx/block_thrust.mp3"), preload("res://sfx/bl
 const BOSS_AT := 8  # 이 번째(0부터)부터 끝판왕
 const BOSS_HP := 9999
 const SLOW := 0.3
-const FIELD := Color("b8b07a")
-const REED := Color("c9b98a")
-const PLUME := Color("efe6d0")
 const FILE := "user://blade_path.json"
 ## 검객 종류 > 단 > [쉼, 빈틈, 연속기 목록]. 연속기 = [보이는 쪽, 진짜 쪽, 예비 시간]의 줄. 보이는 쪽≠진짜 쪽이면 반쯤에 바뀌는 속임수.
 const PAT := [
@@ -151,6 +148,8 @@ var eyes: Array[MeshInstance3D] = []
 var hp_fill: MeshInstance3D
 var hp_back: MeshInstance3D
 var floor_m: MeshInstance3D
+var _floor_mats := {}
+const BG_PIC := preload("res://art/field_bg.jpg")
 var mark: Node3D
 var ind: Array[Node3D] = []  # 빈틈 표시: 검은 테두리 + 초록 면
 var ghosts: Array[MeshInstance3D] = []  # 적 칼이 지나갈 길 (흐린 잔상 셋 + 두 번째 칼)
@@ -646,7 +645,7 @@ func _to_lobby(t: int) -> void:
 	set_box.visible = false
 	slow = 0.0
 	stun = 0.0
-	floor_m.material_override = mat(SOFT)
+	_floor(SOFT)
 	_set_tab(t)
 
 
@@ -726,42 +725,35 @@ func _begin_tut() -> void:
 	tut_l.text = _s("tut_look")
 
 
+## 배경 = 파이가 보낸 그림(하늘·갈대밭·모랫길, 10/31). 3D 뒤 캔버스에 화면 가득 깐다.
+## 바닥 상자는 평소엔 안 보이고, 헛공격(빨강)·간파(파랑) 때만 반투명으로 깔린다(_floor).
 func _scenery() -> void:
 	floor_m = box(Vector3(0, -1.9, -1), Vector3(8, 0.3, 8), SOFT)
-	for s in [-1.0, 1.0]:
-		box(Vector3(s * 2.8, 0.2, -3.5), Vector3(0.35, 4.2, 0.35), BAD)
-	box(Vector3(0, 2.4, -3.5), Vector3(7.0, 0.35, 0.5), BAD)
-	box(Vector3(0, 1.8, -3.5), Vector3(6.0, 0.2, 0.3), INK)
-	box(Vector3(0, -5.1, 0), Vector3(24, 6, 24), FIELD)
-	_reeds()
-	for m: Vector3 in [Vector3(-12, 6, -45), Vector3(6, 10, -52), Vector3(20, 4, -42)]:
-		box(m, Vector3(16, m.y * 2.0 + 6.0, 4), B)
-		box(m + Vector3(0, m.y + 3.0, 0.2), Vector3(6, 2, 4), WHITE)
+	_floor(SOFT)
+	for c in get_children():
+		if c is WorldEnvironment:
+			(c as WorldEnvironment).environment.background_mode = Environment.BG_CANVAS
+	var back := CanvasLayer.new()
+	back.layer = -1
+	add_child(back)
+	var pic := TextureRect.new()
+	pic.texture = BG_PIC
+	pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	pic.set_anchors_preset(Control.PRESET_FULL_RECT)
+	pic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	back.add_child(pic)
 
 
-## 갈대밭: 가운데 싸우는 자리는 비우고, 옅은 색 가는 줄기 + 이삭만. 칼 상자(빨강·초록)보다 눈에 안 띄게.
-func _reeds() -> void:
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 7
-	# 외곽선 없는 재질: 가는 줄기에 검은 테두리가 붙으면 오히려 어지럽다
-	var stalk := StandardMaterial3D.new()
-	stalk.albedo_color = REED
-	var plume := StandardMaterial3D.new()
-	plume.albedo_color = PLUME
-	var placed := 0
-	while placed < 110:
-		var x := rng.randf_range(-11.0, 11.0)
-		var z := rng.randf_range(-14.0, 1.5)
-		if absf(x) < 3.4 and z > -5.0:
-			continue
-		placed += 1
-		var h := rng.randf_range(1.2, 2.4)
-		var r := Node3D.new()
-		r.position = Vector3(x, -2.1, z)
-		r.rotation.z = rng.randf_range(-0.18, 0.18)
-		world.add_child(r)
-		box(Vector3(0, h * 0.5, 0), Vector3(0.06, h, 0.06), REED, r).material_override = stalk
-		box(Vector3(0, h + 0.2, 0), Vector3(0.14, 0.4, 0.14), PLUME, r).material_override = plume
+func _floor(c: Color) -> void:
+	floor_m.visible = c != SOFT
+	if not _floor_mats.has(c):
+		var m := StandardMaterial3D.new()
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		m.albedo_color = Color(c, 0.35)
+		_floor_mats[c] = m
+	floor_m.material_override = _floor_mats[c]
 
 
 ## n번째 검객을 만든다. 종류는 번갈아, 뒤로 갈수록 몸이 어둡고 머리 위 금장식이 늘어난다.
@@ -974,7 +966,7 @@ func _start_run() -> void:
 	stun = 0.0
 	pend.clear()
 	slow = 0.0
-	floor_m.material_override = mat(SOFT)
+	_floor(SOFT)
 	_spawn(0)
 	_clear()
 	stance = -1
@@ -1118,13 +1110,13 @@ func _step(dt: float) -> void:
 		slow -= dt
 		fdt = dt * SLOW
 		if slow <= 0.0:
-			floor_m.material_override = mat(SOFT)
+			_floor(SOFT)
 	if stun > 0.0:
 		stun -= dt
 	if whiff_t > 0.0:
 		whiff_t -= dt
 		if whiff_t <= 0.0:
-			floor_m.material_override = mat(B if slow > 0.0 else SOFT)
+			_floor(B if slow > 0.0 else SOFT)
 	mode_t -= dt
 	# 버튼: 누르고 밀면 _btn_drag 에서 바로, 안 밀고 떼거나 잠깐 누르고 있으면 잡아 둔 방향으로
 	for k in ["guard", "cut"]:
@@ -1422,7 +1414,7 @@ func _whiff(wrong := false) -> void:
 	msg(_s("whiff_steady") if steady else _s("whiff"), 0.9)
 	stun = 0.55
 	whiff_t = 0.35
-	floor_m.material_override = mat(BAD)
+	_floor(BAD)
 	if fs != 1:
 		ci = (ci + 1) % _pat()[2].size()
 		mi = 0
@@ -1515,7 +1507,7 @@ func _lose_chance() -> void:
 	msg(_s("lose"), 0.6)
 	gp = false
 	slow = 0.0
-	floor_m.material_override = mat(SOFT)
+	_floor(SOFT)
 	_rest(0.12)
 
 
@@ -1566,7 +1558,7 @@ func _parry(perfect: bool) -> void:
 		msg(_s("parry_twice"), 0.7)
 	elif perfect:
 		slow = 0.7
-		floor_m.material_override = mat(B)
+		_floor(B)
 		if tut < 0:
 			msg(_s("parry_go"), 0.8)
 	# 간파하면 연속기 중간이라도 끊고 내가 벨 차례 (초록 상자)
