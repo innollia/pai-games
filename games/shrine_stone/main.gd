@@ -3,7 +3,7 @@ extends Node
 ## 새 게임의 기반으로 쓸 때: g/boulder.gd 를 고치거나, g/ 에 Tofu 를 extends 한 새 파일을 만들고 GAME 을 바꾼다.
 
 const GAME := "boulder"
-const GVER := 25  # speed_tofu main.gd GAME_VER["boulder"] (tools/sync.ps1 이 맞춘다). 평가 ver = "v<GVER> <빌드>"
+const GVER := 26  # speed_tofu main.gd GAME_VER["boulder"] (tools/sync.ps1 이 맞춘다). 평가 ver = "v<GVER> <빌드>"
 
 var game: Tofu
 var from_tofu := false  # SPEED 두부 목록(?from=tofu)에서 왔으면 "<" 가 목록으로 돌아간다
@@ -66,9 +66,11 @@ func _title_open() -> void:
 	lintel = null
 	game.set_process_unhandled_input(false)  # 버튼을 누른 터치가 게임 시작으로 새지 않게
 	_back_label(false)  # 타이틀 위에서는 '< 처음부터' 를 숨긴다
-	if game._howto_box:  # 설명 카드가 떠 있는 동안 게임이 멈춘다: 카드는 투명하게 두고 멈춤만 쓴다
-		game._howto_box.visible = true
-		game._howto_box.modulate.a = 0.0
+	game.process_mode = Node.PROCESS_MODE_DISABLED  # 타이틀이 떠 있는 동안 뒤 장면은 그려지기만 하고 멈춘다
+	for nm: String in ["_score_l", "route_label", "_rate_btn_l", "_time_l"]:  # 멈춘 동안 게임 글판이 타이틀 위에 남지 않게
+		var l = game.get(nm)
+		if l is CanvasItem:
+			(l as CanvasItem).visible = false
 	title = CanvasLayer.new()
 	title.layer = 20
 	add_child(title)
@@ -258,8 +260,7 @@ func _title_close() -> void:
 	title_tws.clear()
 	game.set_process_unhandled_input(true)
 	_back_label(true)
-	if game._howto_box:
-		game._howto_box.visible = false
+	game.process_mode = Node.PROCESS_MODE_PAUSABLE
 	game.play("tap")
 	# 글·버튼은 흐려지고 상인방은 위로 빠져나간다
 	var tw := old.create_tween().set_parallel()

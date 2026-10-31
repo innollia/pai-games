@@ -332,10 +332,9 @@ func _setup() -> void:
 	cam.near = 0.4
 	cam.far = 1500.0
 	_lang()
-	howto = "굴러라 신전석\n끌어서 조향 · 느려지면 끝\n바다 신전까지 굴러가자!"
+	# 시작 설명 카드는 없다: 제목은 타이틀 화면이, 조작·실패 규칙은 첫 길 위 안내가 맡는다
+	howto = ""
 	time_limit = 0.0
-	if TranslationServer.get_locale() == "en":
-		howto = HOWTO_EN
 	_load_art()
 	# 돌 몸에 먹선 테두리 (눈 구역에서만 크림색으로 바꾼다)
 	hero_rim = OUTLINE.duplicate() as ShaderMaterial
@@ -424,7 +423,7 @@ func _zones_list() -> Array:
 		{"msg": "신전 계곡", "mode": "back", "skill": "", "road": STONE, "floor": WATER, "accent": ROCK, "scen": "rock",
 			# 숨은 길 1 (옛 배수로): 왼쪽 끝 차선에 바람 줄, 왼쪽 턱 줄이 끊긴 곳으로 꺾어 내려가면 오르막과 석상을 건너뛴다
 			"items": [{"legs": [[30, 0, 7], [88, -19.4, 7], [12, -2.6, 7, 0, "mouthL"]], "put": _cut(PUT1, 0, 130),
-					"say": [[2, "11개의 길 너머\n마지막 신전으로"], [24, "끌어서 항아리를 깔아봐"], [100, "빨간 기둥은 옆으로 피해"]]},
+					"say": [[2, "끌어서 조향\n느려지면 끝"], [24, "끌어서 항아리를 깔아봐"], [100, "빨간 기둥은 옆으로 피해"]]},
 				{"fork": [
 					{"legs": [[14, -0.7, 7, 32], [10, -2, 5], [54, -9, 4.5, -32], [12, 0, 4.5]], "put": [["pot", 30, 0], ["pot", 46, 0], ["pot", 62, 0]]},
 					{"legs": [[40, -2, 7], [60, 8, 6]], "put": _cut(PUT1, 130, 230), "say": [[30, "큰 돌은 무거워\n오르막 전엔 욕심내지 마"]]}],
@@ -448,8 +447,7 @@ func _zones_list() -> Array:
 		{"msg": "갈림길 · 쪼개기", "mode": "back", "skill": "split", "road": GRASS, "floor": GRASS, "accent": A, "scen": "village",
 			"items": [
 				{"legs": [[30, -6, 7], [30, -5, 8]], "put": [["house", 18, -4.5], ["pot", 28, 2], ["pot", 32, 4], ["house", 45, 4], ["pot", 52, -2]],
-					"fence": [10], "say": [[6, "쪼개면 가볍고
-잠깐 돌진: 집도 뚫는다"]]},
+					"fence": [10], "say": [[6, "쪼개면 가볍고\n잠깐 돌진: 집도 뚫는다"]]},
 				{"fork": [
 					{"legs": [[26, -3, 6, 35], [70, -12, 7]], "put": [["house", 34, -3], ["pot", 40, 3], ["house", 48, 3], ["pot", 56, -3],
 						["house", 62, -3], ["house", 76, 3], ["pot", 84, 0]], "fence": [92]},
@@ -3504,7 +3502,7 @@ func _under_things(a: float, b: float, z: Dictionary) -> Array:
 					put = [[0.0, 0.0, "statue"], [6.0, -3.0, "pot"], [6.0, 3.0, "pot"], [12.0, 0.0, "statue"]]
 		for pt: Array in put:
 			var dd := d + float(pt[0])
-			var th := _thing(pd, dd, dd, clampf(float(pt[1]), -_cave_hw(dd) + 1.0, _cave_hw(dd) - 1.0), str(pt[2]), z)
+			var th := _thing(pd, dd, dd, _cave_cx(dd) + clampf(float(pt[1]), -_cave_hw(dd) + 1.0, _cave_hw(dd) - 1.0), str(pt[2]), z)
 			th.base -= DEEP
 			th.n.position.y -= DEEP
 			out.append(th)
@@ -3521,6 +3519,8 @@ func _build_tunnel(a: float, b: float, nd: Node3D, opt := {}) -> Array:
 	tunnels.append(route)
 	if bool(opt.get("cave", false)):
 		cave_span = [a, b]
+	if bool(opt.get("updraft", false)):
+		_build_updraft(a, b, dp, nd)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = int(a) * 7 + 3
 	var glow := [Color("ffb347"), Color("ff7a2a"), Color("ffd27a"), Color("ff5a3a")] if bool(opt.get("cave", false)) else [Color("7ff0ff"), Color("ffd27a"), C.lightened(0.35), Color("9cf2c4")]
@@ -3532,8 +3532,8 @@ func _build_tunnel(a: float, b: float, nd: Node3D, opt := {}) -> Array:
 	var d := a
 	while d < b + ext:
 		var end_d := minf(d + 12.0, b + ext)  # 12m 판: 바닥 조각 수를 1/3 로
-		var p0 := _pos(d, 0.0, _h(d) - dp) if d <= e else _pos(e, 0.0, _h(e) - dp) + fwe * (d - e)
-		var p1 := _pos(end_d, 0.0, _h(end_d) - dp) if end_d <= e else _pos(e, 0.0, _h(e) - dp) + fwe * (end_d - e)
+		var p0 := _pos(d, _cave_cx(d), _h(d) - dp) if d <= e else _pos(e, 0.0, _h(e) - dp) + fwe * (d - e)
+		var p1 := _pos(end_d, _cave_cx(end_d), _h(end_d) - dp) if end_d <= e else _pos(e, 0.0, _h(e) - dp) + fwe * (end_d - e)
 		var bs := Basis.looking_at((p1 - p0).normalized(), Vector3.UP)
 		var fk := "f%d" % int((d - a) / 60.0)
 		var fc := floor_root.get_node_or_null(fk) as Node3D
@@ -3576,7 +3576,7 @@ func _build_tunnel(a: float, b: float, nd: Node3D, opt := {}) -> Array:
 		if int(d - a) % 18 == 4:
 			for sd: float in [-1.0, 1.0]:
 				if rng.randf() < 0.6:
-					var cr := box(_pos(d + rng.randf_range(-3.0, 3.0), sd * rng.randf_range(7.0, 11.0), fl), Vector3.ONE, WHITE, nd)
+					var cr := box(_pos(d + rng.randf_range(-3.0, 3.0), _cave_cx(d) + sd * rng.randf_range(7.0, 11.0) * (_cave_hw(d) / 11.0 + 0.4), fl), Vector3.ONE, WHITE, nd)
 					# 잠든 수정: 제 재질을 따로 갖고(깨어날 때 빛이 바뀐다) 처음엔 흐릿하다
 					var gc: Color = glow.pick_random()
 					_apply_art(cr, "crystal")
@@ -3591,7 +3591,7 @@ func _build_tunnel(a: float, b: float, nd: Node3D, opt := {}) -> Array:
 		# 보석: 바닥에 하나, 뛰어야 닿는 높이에 하나씩 번갈아
 		if bool(opt.get("gems", true)) and int(d - a) % 16 < 8 and d > a + 20.0 and d < b - 50.0 and int(d) % 8 == 0:
 			var up := 1.6 if int(d / 16.0) % 2 == 0 else 7.0
-			var gm := box(_pos(d, 0.0, fl + up), Vector3(1.2, 1.8, 1.2), WHITE, nd)
+			var gm := box(_pos(d, _cave_cx(d), fl + up), Vector3(1.2, 1.8, 1.2), WHITE, nd)
 			_apply_art(gm, "crystal", glow[int(d) % glow.size()])
 			gems.append([d, up, gm])
 		d += 1.0
@@ -3633,10 +3633,7 @@ func _build_tunnel(a: float, b: float, nd: Node3D, opt := {}) -> Array:
 		ring.mesh = cyl
 		_skin(ring, "snowfield")  # 물거품 고리
 	geysers.append([gd, gy])
-	if bool(opt.get("updraft", false)):
-		_build_updraft(a, b, dp, nd)
 	if bool(opt.get("cave", false)):
-		cave_span = [a, b]
 		_build_cave(a, b, dp, nd)
 	return route
 
@@ -3702,7 +3699,7 @@ func _build_cave(a: float, b: float, dp: float, nd: Node3D) -> void:
 	var st := Node3D.new()  # 용암·띠는 MultiMesh 로 묶는다 (60m 마다 한 덩이)
 	nd.add_child(st)
 	var bucket := {}
-	var seg := 20.0
+	var seg := 10.0  # 짧게: 구불구불한 길 가장자리를 따라간다 (MultiMesh 로 묶여 그리기 횟수는 그대로)
 	var d := a
 	while d < b + 70.0:
 		var mid := d + seg * 0.5
@@ -3717,10 +3714,11 @@ func _build_cave(a: float, b: float, dp: float, nd: Node3D) -> void:
 				bn.set_meta("ci", ck)
 				st.add_child(bn)
 				bucket[ck] = bn
-			var lv := box(_pos(dd, sd * (hw + 40.0), fl - 2.5), Vector3(80.0, 0.5, seg + 0.6), WHITE, bucket[ck])
+			var cx := _cave_cx(mid)
+			var lv := box(_pos(dd, cx + sd * (hw + 40.0), fl - 2.5), Vector3(80.0, 0.5, seg + 0.6), WHITE, bucket[ck])
 			lv.material_override = lava
 			lv.rotation.y = yw
-			var eg := box(_pos(dd, sd * (hw + 0.15), fl - 0.4), Vector3(0.5, 1.0, seg + 0.6), WHITE, bucket[ck])
+			var eg := box(_pos(dd, cx + sd * (hw + 0.15), fl - 0.4), Vector3(0.5, 1.0, seg + 0.6), WHITE, bucket[ck])
 			eg.material_override = rim
 			eg.rotation.y = yw
 		d += seg
@@ -3728,15 +3726,27 @@ func _build_cave(a: float, b: float, dp: float, nd: Node3D) -> void:
 	lava_mats.append(lava)
 
 
-## 동굴 안 거리 d 에서 몸이 벽에 걸리지 않게 좌우를 막는다 (굴길로 들어서면 벽이 몸을 가운데로 민다)
+## 지옥 협곡 길은 좌우로 굽이친다 (양옆 용암). 처음 30m 와 순풍 길 앞은 곧게 펴서 떨어져 내리는 자리와 바람 기둥을 맞춘다
+func _cave_cx(d: float) -> float:
+	if cave_span.size() < 2:
+		return 0.0
+	var a := float(cave_span[0])
+	var end := float(updraft[0]) - 10.0 if updraft.size() >= 5 else float(cave_span[1])
+	var k := clampf((d - a) / 30.0, 0.0, 1.0) * clampf((end - d) / 40.0, 0.0, 1.0)
+	return 7.5 * sin((d - a) * TAU / 150.0) * k * k * (3.0 - 2.0 * k)
+
+
+## 지옥 협곡: 길 밖으로 굴러 나가면 용암에 빠진다. 떨어지는 동안은 길 위로 몸이 흘러가게 해 착지 자리를 맞춘다
 func _cave_clamp() -> void:
-	if cave_span.size() < 2 or not underground or dist < float(cave_span[0]) or dist > float(cave_span[1]) + 70.0:
+	if cave_span.size() < 2 or not underground or dist < float(cave_span[0]) or dist > float(cave_span[1]) + 70.0 or wind_on:
 		return
-	var lim := maxf(0.5, _cave_hw(dist) - s * 0.5)
-	if absf(bx) > lim:
-		bx = move_toward(bx, signf(bx) * lim, 40.0 * get_process_delta_time())
-		v *= 0.985  # 벽에 쓸리면 조금 느려진다
-	x_goal = clampf(x_goal, -lim, lim)
+	var cx := _cave_cx(dist)
+	if not on_ground and not deep_landed:
+		x_goal = _cave_cx(dist + 25.0)
+		return
+	if on_ground and absf(bx - cx) > _cave_hw(dist) + s * 0.3 and not fallen:
+		_burst(pivot.position, Color("ff7a2a"), 14, 10.0, 0.8)
+		_fall("치익!")
 
 
 ## 순풍 길: 동굴 뒤쪽 바닥에서 바람결이 비스듬히 위로 감아 올라가 수로 틈으로 빠져나간다.
@@ -5214,60 +5224,6 @@ func _flow_arrow() -> ArrayMesh:
 	return arrow_mesh
 
 
-## 설명 카드 = 크림 돌판 + 금 띠 제목 + 색 점 세 줄 (조향 · 멈춤 · 목표). Tofu 것을 쓰지 않는다
-func _howto_card() -> Control:
-	var top := CanvasLayer.new()
-	top.layer = 10
-	add_child(top)
-	var card := ui_panel(top, Vector2(60, 330), Vector2(600, 560), ui_stone(STONE, "card"))
-	var band := ui_box(D, 0, 0, false)
-	band.corner_radius_top_left = 24
-	band.corner_radius_top_right = 24
-	ui_panel(card, Vector2(3, 3), Vector2(594, 104), band)
-	var lines := howto.split("\n")
-	if lines.size() < 3:
-		var body := _howto_text(card, howto, 34, Vector2(40, 130), Vector2(520, 320))
-		body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	else:
-		var head := _howto_text(card, lines[0], fit_fs(lines[0], 48, 560), Vector2(0, 3), Vector2(600, 104))
-		head.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		var rows := Array(lines[1].split(" · ")) + [lines[2]]
-		for i in mini(rows.size(), 3):
-			var dot: Color = [ME, BAD, D][i]
-			ui_panel(card, Vector2(40, 140 + i * 100), Vector2(56, 56), ui_box(dot, 28, 4))
-			var row := _howto_text(card, str(rows[i]), 34, Vector2(120, 142 + i * 100), Vector2(440, 56))
-			row.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	var go := _howto_text(card, "탭해서 시작", 40, Vector2(0, 470), Vector2(600, 60))
-	go.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	go.label_settings.font_color = ME
-	var blink := go.create_tween().set_ignore_time_scale(true).set_loops()
-	blink.tween_property(go, "modulate:a", 0.4, 0.6).set_trans(Tween.TRANS_SINE)
-	blink.tween_property(go, "modulate:a", 1.0, 0.6).set_trans(Tween.TRANS_SINE)
-	card.visibility_changed.connect(func() -> void:
-		if card.visible:
-			card.pivot_offset = card.size * 0.5
-			card.scale = Vector2.ONE * 1.15
-			card.create_tween().set_ignore_time_scale(true).tween_property(card, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT))
-	return card
-
-
-func _howto_text(parent: Control, txt: String, fs: int, pos: Vector2, size: Vector2) -> Label:
-	var ls := LabelSettings.new()
-	ls.font = _font
-	ls.font_size = fs
-	ls.font_color = INK
-	var l := Label.new()
-	l.label_settings = ls
-	l.text = txt
-	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	l.position = pos
-	l.size = size
-	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	parent.add_child(l)
-	return l
-
-
 # ---- 튜토리얼 ----
 ## 타이틀의 [튜토리얼] 버튼: 짧은 연습 코스로 다시 시작한다. 끝 신전에 닿으면 진짜 길 처음으로.
 func start_tutorial() -> void:
@@ -5363,7 +5319,6 @@ func _lang() -> void:
 	TranslationServer.set_locale("en")
 
 
-const HOWTO_EN := "ROCK AND STONE\nDrag to steer · too slow = out\nRoll all the way to the sea temple!"
 
 const EN := {
 	"MAX": "MAX",
@@ -5486,6 +5441,8 @@ const EN := {
 THROW to lighten",
 	"방파제가 좁아진다": "The breakwater narrows", "뛰어 건너!": "Jump across!",
 	"구역 · 지름길로 가기": "Go to stage · shortcut",
+	"끌어서 조향\n느려지면 끝": "Drag to steer\nToo slow = out", "섞기: 깔고 뛰기": "Mix: crush then jump",
+	"치익!": "Sizzle!",
 	"지름길!": "Shortcut!", "옛 배수로": "Old Drain", "깊은 물길": "Deep Current", "순풍 길": "Tailwind Draft", "뒷골목": "Back Alley",
 	"숨은 저수조": "Hidden Cistern", "얼음 골짜기": "Ice Gully", "수정 맥 길": "Crystal Vein Cut", "하늘 수로": "Sky Aqueduct",
 	"쪼개서 돌진!\n아니면 더 빨리": "SPLIT-dash it!\nOr come in faster",
