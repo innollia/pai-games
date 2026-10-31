@@ -4003,7 +4003,7 @@ func _score_chip(at: Vector3, col: Color, gem := false) -> void:
 # ---- UI 디자인 시스템 ----
 # 새긴 돌 한 벌: 알약 버튼(반지름 = 높이/2, 테 5), 카드 반지름 24, 돌판 반지름 14 + 아래 두께 12, 그림자는 곧게 아래로.
 # main.gd 도 game.call 로 이 함수들을 쓴다.
-## 신전 돌결 판 (art/boulder/ui/*.png: 신전 모델 그림의 크림 돌 면을 잘라 구운 9-patch, submit/boulder/build_ui_tex.py).
+## 신전 돌결 판 (art/boulder/ui_gpt/*.png: Codex 가 GPT 로 그린 9-patch UI, submit/boulder/UI_ART.md).
 ## 그림은 색이 빠진 밝은 돌결이고 modulate 로 색을 입힌다. 테두리·아래 두께는 그림에 들어 있다.
 ## kind: slab(새긴 판, 안쪽 파인 테), card(큰 카드), btn / btn_dn(버튼 평소·눌림). half 1 = 왼쪽 반, 2 = 오른쪽 반.
 var _ui_tex := {}

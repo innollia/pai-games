@@ -1,6 +1,6 @@
-Drag to steer; the temple stone rolls automatically. Crush pots to grow. Extra weight makes climbs, turns and jumps harder. Staying below the red speed mark for 1.5 seconds ends the run.
+Drag to steer; the temple stone rolls automatically. At a fork, the glowing gold arrow shows the branch you will take. Crush pots to grow. Extra weight makes climbs, turns and jumps harder. Staying below the red speed mark for 1.5 seconds ends the run.
 
-Buttons unlock along the journey: jump, split, hold to brake or dive, and throw. Split sheds weight and dashes through houses, statues and ice walls. Hold while falling to slam blue-capped towers and golden idols for a speed boost. Throw when the aiming line turns green to open purple crystal walls. Snow grows you; yellow sun lanes melt you. Fall off the aqueduct and you drop all the way to a sleeping temple far below; ride its water column back up. Split before fragile bridges.
+Buttons unlock along the journey: jump, split, hold to brake or dive, and throw. Split sheds weight and dashes through houses, statues and ice walls. Hold while falling to slam blue-capped towers and golden idols for a speed boost. Throw when the aiming line turns green to open purple crystal walls. Snow grows you; yellow sun lanes melt you. Fall off the aqueduct and you drop all the way to a sleeping temple far below; ride its water column back up. Each rope bridge has a MAX sign: if you are bigger than that number the planks break, so split or throw first.
 
 In the Tide Garden, arrows show sideways currents. Hold to resist them or jump out; smaller stones drift more. Its mixing section combines currents with snow, throwing and gap jumps.
 
