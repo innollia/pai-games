@@ -204,6 +204,11 @@ var arrow_mesh: ArrayMesh
 # v7: 쪼개기 돌진, 수로 밑 수정 동굴(떨어지면 딴 세상)
 var dash_t := 0.0
 var crumble: Array = []  # [거리, 조각] 고르지 않은 갈래 조각: 돌이 다가가면 무너진다
+var warp_menu: Control       # 비밀 구역·지름길 고르기 창 (스와이프 → ← ← ↑)
+var warp_to := 0.0           # 이 거리까지 빨리 감는다 (지름길 앞으로)
+var swipe_seq: Array = []    # 최근 스와이프 방향과 시각
+var swipe_from := Vector2.ZERO
+var swipe_at := -1.0
 var stall_d := 0.0  # 멈춤 검사: 마지막으로 앞으로 나아간 자리
 var stall_t := 0.0
 var bump_t := 0.0  # 기둥에 튕긴 직후: 붉은 깜빡임 없이
@@ -2228,6 +2233,10 @@ func _wind_stream() -> AudioStreamWAV:
 
 # ---- 판 ----
 func _step(dt: float) -> void:
+	if warp_menu and warp_menu.visible:
+		return  # 구역 고르기 창이 떠 있는 동안 판을 멈춘다
+	if warp_to > 0.0:
+		_warp_tick()
 	# 멈칫·느린 동작: 실제 초로 세고, 판 안의 dt 만 줄인다
 	var real_dt := dt / maxf(Engine.time_scale, 0.05)
 	if hs_t > 0.0:
@@ -2378,7 +2387,7 @@ func _step(dt: float) -> void:
 	# 깔기 / 부딪힘 (빠르게 떨어지는 중이면 무엇이든 깐다)
 	var diving := not on_ground and vy < -12.0
 	for th: Thing in things:
-		if th.flat:
+		if th.flat or warp_to > 0.0:  # 빨리 감는 동안은 부딪히지 않는다
 			continue
 		var dd := th.d - dist
 		if absf(dd) > 14.0:
@@ -4673,6 +4682,145 @@ func gauge(frac: float, color: Color) -> void:
 	_bar_bg.scale = GAUGE_S * Vector2(1.0 + gauge_kick * 0.04, 1.0 + gauge_kick * 0.45)
 
 
+# ---- 비밀 구역·지름길 고르기: 화면을 오른쪽 → 왼쪽 → 왼쪽 → 위로 쓸면 창이 뜬다 (확인·연습용) ----
+const SWIPE_SEQ := ["R", "L", "L", "U"]
+
+func _input(event: InputEvent) -> void:
+	var pressed := false
+	var released := false
+	var pos := Vector2.ZERO
+	if event is InputEventScreenTouch:
+		pressed = event.pressed
+		released = not event.pressed
+		pos = event.position
+	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		pressed = event.pressed
+		released = not event.pressed
+		pos = event.position
+	else:
+		return
+	var now := Time.get_ticks_msec() * 0.001
+	if pressed:
+		swipe_from = pos
+		swipe_at = now
+	elif released and swipe_at > 0.0:
+		var dv := pos - swipe_from
+		swipe_at = -1.0
+		if dv.length() < 90.0:
+			return
+		var dir := ("R" if dv.x > 0.0 else "L") if absf(dv.x) > absf(dv.y) else ("D" if dv.y > 0.0 else "U")
+		swipe_seq.append([dir, now])
+		while swipe_seq.size() > SWIPE_SEQ.size():
+			swipe_seq.pop_front()
+		if swipe_seq.size() == SWIPE_SEQ.size() and now - float(swipe_seq[0][1]) < 4.0:
+			var ok := true
+			for i in SWIPE_SEQ.size():
+				if swipe_seq[i][0] != SWIPE_SEQ[i]:
+					ok = false
+			if ok:
+				swipe_seq.clear()
+				_warp_open()
+
+
+## 구역 k 안의 지름길(숨은 갈림길·깨는 바닥판) 이름과 구역 시작부터의 거리 (큰길 쪽 갈래 길이로 센다)
+func _warp_spots() -> Array:
+	var out := []
+	for k in Z.size():
+		var acc := 0.0
+		for it: Dictionary in Z[k].items:
+			if it.has("fork"):
+				if bool(it.get("hidden", false)) and it.has("name"):
+					out.append([k, acc - 60.0, str(it.name)])
+				for lg: Array in it.fork[1].legs:
+					acc += float(lg[0])
+				continue
+			if it.has("under") and it.has("crack"):
+				out.append([k, acc + float(it.crack[0]) - 45.0, str(it.under.name)])
+			for lg: Array in it.legs:
+				acc += float(lg[0])
+	return out
+
+
+func _warp_open() -> void:
+	if warp_menu:
+		warp_menu.visible = true
+		return
+	var layer := CanvasLayer.new()
+	layer.layer = 9
+	add_child(layer)
+	warp_menu = Control.new()
+	warp_menu.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	layer.add_child(warp_menu)
+	var dim := ColorRect.new()
+	dim.color = Color(INK, 0.55)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	warp_menu.add_child(dim)
+	ui_panel(warp_menu, Vector2(30, 120), Vector2(660, 1040), ui_box(STONE, 22, 4))
+	var title := Label.new()
+	title.text = tr("구역 · 지름길로 가기")
+	title.add_theme_font_override("font", _font)
+	title.add_theme_font_size_override("font_size", 34)
+	title.add_theme_color_override("font_color", INK)
+	title.position = Vector2(60, 145)
+	warp_menu.add_child(title)
+	var y := 205.0
+	for k in Z.size():
+		var b := _warp_button("%d  %s" % [k + 1, tr(str(Z[k].msg))], Vector2(60 + (k % 2) * 305, y + float(k / 2) * 66), Vector2(295, 58), WHITE)
+		b.pressed.connect(_warp_go.bind(k, 0.0))
+	y += float((Z.size() + 1) / 2) * 66 + 16.0
+	for sp: Array in _warp_spots():
+		var b := _warp_button("%d  %s" % [int(sp[0]) + 1, tr(str(sp[2]))], Vector2(60 + 0, y), Vector2(600, 54), D)
+		b.pressed.connect(_warp_go.bind(int(sp[0]), float(sp[1])))
+		y += 60.0
+	var close := _warp_button(tr("닫기"), Vector2(220, y + 10.0), Vector2(280, 58), WHITE)
+	close.pressed.connect(func() -> void: warp_menu.visible = false)
+
+
+func _warp_button(text: String, pos: Vector2, size: Vector2, fill: Color) -> Button:
+	var b := Button.new()
+	b.text = text
+	b.position = pos
+	b.size = size
+	b.add_theme_font_override("font", _font)
+	b.add_theme_font_size_override("font_size", 24)
+	ui_button_styles(b, fill)
+	warp_menu.add_child(b)
+	return b
+
+
+## 구역 k 처음에서 다시 시작하고, at > 0 이면 그 거리(지름길 입구 조금 앞)까지 빨리 감는다
+func _warp_go(k: int, at: float) -> void:
+	if warp_menu:
+		warp_menu.visible = false
+	cp_k = k
+	cp_st = {"x": 0.0, "z": 0.0, "yw": 0.0, "h": 200.0}
+	cp_s = maxf(s_goal, 2.6)
+	if k == 0:
+		cp_k = 0
+	fresh_run = true
+	restart()
+	warp_to = float(zones[0].start) + at if at > 0.0 else 0.0
+
+
+## 빨리 감기: 길 위에 붙인 채 한 프레임에 6m 씩. 앞 길이 아직 안 지어졌으면 기다린다. 갈림길은 큰길로
+func _warp_tick() -> void:
+	if fallen or won:
+		warp_to = 0.0
+		return
+	if dist < _len() - 3.0:  # 갈림길 끝까지 가야 큰길이 골라져 이어진다
+		dist = minf(warp_to, dist + 6.0)
+	bx = 0.0
+	x_goal = 0.0
+	by = _h(dist) + 0.05
+	vy = 0.0
+	on_ground = true
+	v = 28.0
+	hurt = 0.3
+	cam_y = by
+	if dist >= warp_to:
+		warp_to = 0.0
+
+
 ## 키트 버튼 = GPT 가 그린 팔각 새김 돌 메달(ui_gpt/seal.png)에 기술 색을 물들인 것: 아래 먹 그림자, 누르면 가라앉아 어두워짐,
 ## 먹 글자. 새로 열리면 톡 튀어나온다 (기본 원·테 도형은 쓰지 않는다)
 var seal_tex: Texture2D
@@ -5260,6 +5408,7 @@ const EN := {
 던져서 가볍게": "Heavy = pushed out on turns
 THROW to lighten",
 	"방파제가 좁아진다": "The breakwater narrows", "뛰어 건너!": "Jump across!",
+	"구역 · 지름길로 가기": "Go to stage · shortcut",
 	"지름길!": "Shortcut!", "옛 배수로": "Old Drain", "깊은 물길": "Deep Current", "순풍 길": "Tailwind Draft", "뒷골목": "Back Alley",
 	"숨은 저수조": "Hidden Cistern", "얼음 골짜기": "Ice Gully", "수정 맥 길": "Crystal Vein Cut", "하늘 수로": "Sky Aqueduct",
 	"쪼개서 돌진!\n아니면 더 빨리": "SPLIT-dash it!\nOr come in faster",
