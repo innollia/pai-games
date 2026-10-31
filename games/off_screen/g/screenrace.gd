@@ -2644,7 +2644,7 @@ func _start_round() -> void:
 			for g in r.meshes:
 				g.material_overlay = null
 		if r.ai:
-			var lv := ci * 0.6  # 코스 6개를 예전 4개 난이도 폭에 맞춘다
+			var lv := ci * 0.45  # v35: 0.6 -> 0.45 (뒤 동네로 갈수록 오르는 폭을 줄임)
 			r.skill = AI_SKILL0 - _ai_ease() + 0.025 * lv + (runners.find(r) - 2) * 0.02
 			r.err = 0.2 - 0.03 * lv + _ai_ease()
 			r.dive = randf() < 0.45
@@ -3037,9 +3037,9 @@ func _race(dt: float) -> void:
 ## 야시장: 6초마다 1.6초 정전. 꺼지면 1등 앞이 모두에게 가려진다
 func _dark(dt: float) -> void:
 	dark_t += dt
-	var cyc := fmod(dark_t, 6.0)
-	var warn := cyc > 3.6 and cyc < 4.4
-	var now := cyc >= 4.4
+	var cyc := fmod(dark_t, 7.0)  # v35: 6초마다 1.6초 -> 7초마다 1.4초, 예고 0.8 -> 1초
+	var warn := cyc > 4.6 and cyc < 5.6
+	var now := cyc >= 5.6
 	if warn and not dark_warn:
 		beep(520.0, 0.08, 0.0, 0.16)
 	if warn and fmod(cyc, 0.2) < dt:
@@ -3097,7 +3097,7 @@ func _trains(dt: float) -> void:
 func _train_hit(r: Courier) -> void:
 	var k := knock_mul if r == pl else 1.0
 	r.v = Vector2(-17.0 * k, 7.0)
-	r.stun = 0.55 * k
+	r.stun = 0.4 * k  # v35: 0.55 -> 0.4
 	r.immune = 0.9
 	r.grounded = false
 	r.sq = -0.4
@@ -3394,7 +3394,7 @@ func _round_decided() -> int:
 
 ## v20: 첫 동네는 경쟁자를 느리고 서툴게 (폰 평가 "처음 할 때 상대가 너무 잘해"). 둘째 동네는 반, 셋째부터 예전 그대로.
 func _ai_ease() -> float:
-	return [0.12, 0.06][ci] if ci < 2 else 0.0
+	return [0.12, 0.09, 0.07, 0.05, 0.03, 0.02][clampi(ci, 0, 5)]  # v35: 셋째·넷째 동네(건널목·야시장)에서 확 어려워지던 것 -> 천천히
 
 
 ## 따라잡기 (v13): 선두보다 뒤일수록 최고 속도 보너스 (CATCH_NEAR 안이면 0, 반 화면 = hwv 뒤면 CATCH_MAX).
@@ -4054,7 +4054,7 @@ func _ai(r: Courier, dt: float) -> void:
 			var mb: Dictionary = mailboxes[mi]
 			if r.mb_seen != mi:
 				r.mb_seen = mi
-				var p := clampf(0.55 + 2.0 * (r.skill - AI_SKILL0), 0.35 if ci < 2 else 0.5, 0.7) * tn("ai")  # v14: 기술만큼 55 ~ 70% (v20: 첫 두 동네는 35%까지)
+				var p := clampf(0.55 + 2.0 * (r.skill - AI_SKILL0), minf(0.35 + 0.03 * ci, 0.5), 0.7) * tn("ai")  # v14: 기술만큼 55 ~ 70% (v20: 첫 두 동네는 35%까지)
 				var fast := clampf((absf(r.v.x) - RUN_MAX * 0.7) / (RUN_MAX * 0.4), 0.0, 1.0)
 				if _leader() == r:
 					p -= 0.35 * fast + 0.1
