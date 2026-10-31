@@ -3,7 +3,7 @@ extends Node
 ## 새 게임의 기반으로 쓸 때: g/boulder.gd 를 고치거나, g/ 에 Tofu 를 extends 한 새 파일을 만들고 GAME 을 바꾼다.
 
 const GAME := "boulder"
-const GVER := 31  # speed_tofu main.gd GAME_VER["boulder"] (tools/sync.ps1 이 맞춘다). 평가 ver = "v<GVER> <빌드>"
+const GVER := 32  # speed_tofu main.gd GAME_VER["boulder"] (tools/sync.ps1 이 맞춘다). 평가 ver = "v<GVER> <빌드>"
 
 var game: Tofu
 var from_tofu := false  # SPEED 두부 목록(?from=tofu)에서 왔으면 "<" 가 목록으로 돌아간다
@@ -102,7 +102,7 @@ func _title_open() -> void:
 	if ui:
 		# 제목 = 신전 문 위 돌 상인방: 위에서 떨어져 쿵 박히고 천천히 흔들린다
 		lintel = Control.new()
-		lintel.position = Vector2(10, 120)
+		lintel.position = Vector2(10, 70)
 		lintel.size = Vector2(700, 360)
 		lintel.pivot_offset = Vector2(350, 180)
 		lintel.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -134,13 +134,13 @@ func _title_open() -> void:
 		lintel.position.y = -280.0
 		var tw := lintel.create_tween()
 		tw.tween_interval(0.1)
-		tw.tween_property(lintel, "position:y", 120.0, 0.6).set_trans(Tween.TRANS_BOUNCE).set_ease(Tween.EASE_OUT)
+		tw.tween_property(lintel, "position:y", 70.0, 0.6).set_trans(Tween.TRANS_BOUNCE).set_ease(Tween.EASE_OUT)
 		tw.tween_callback(func() -> void:
 			if game and game.has_method("sfx"):
 				game.call("sfx", "bonk", 2.0, 0.7)
 			var bob := li.create_tween().set_loops()
-			bob.tween_property(li, "position:y", 132.0, 1.4).set_trans(Tween.TRANS_SINE)
-			bob.tween_property(li, "position:y", 120.0, 1.4).set_trans(Tween.TRANS_SINE)
+			bob.tween_property(li, "position:y", 82.0, 1.4).set_trans(Tween.TRANS_SINE)
+			bob.tween_property(li, "position:y", 70.0, 1.4).set_trans(Tween.TRANS_SINE)
 			var rot := li.create_tween().set_loops()
 			rot.tween_property(li, "rotation", -0.02, 2.1).set_trans(Tween.TRANS_SINE)
 			rot.tween_property(li, "rotation", 0.02, 2.1).set_trans(Tween.TRANS_SINE)

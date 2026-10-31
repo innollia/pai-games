@@ -7,7 +7,7 @@ $src = Join-Path (Split-Path -Parent $kit) 'speed_tofu'
 $utf8 = New-Object Text.UTF8Encoding $false
 Copy-Item (Join-Path $src 'g\boulder.gd') (Join-Path $kit 'g\boulder.gd') -Force
 Copy-Item (Join-Path $src 'tools\tofu_fb.js') (Join-Path $kit 'tools\tofu_fb.js') -Force
-$t = [IO.File]::ReadAllText((Join-Path $src 'tofu.gd'), $utf8).Replace('"< 메뉴"', '"< 처음부터"').Replace('const _RATE_BTN := Rect2(620, 0, 100, 100)', "var _RATE_BTN := Rect2(620, 0, 100, 100)`nvar back_on := true  # 단독판: 목록에서 왔을 때만 왼쪽 위 '<' 가 돈다").Replace('if p.x < 180.0 and p.y < 100.0:', 'if back_on and p.x < 180.0 and p.y < 100.0:')
+$t = [IO.File]::ReadAllText((Join-Path $src 'tofu.gd'), $utf8).Replace('"< 메뉴"', '"< 처음부터"').Replace('const _RATE_BTN := Rect2(620, 0, 100, 100)', "var _RATE_BTN := Rect2(620, 0, 100, 100)`nvar back_on := true  # 단독판: 목록에서 왔을 때만 왼쪽 위 '<' 가 돈다").Replace('if p.x < 180.0 and p.y < 100.0:', 'if back_on and p.x < 180.0 and p.y < 100.0:').Replace('_rate_btn_l.visible = not over and not _rating', '_rate_btn_l.visible = not over and not _rating and _RATE_BTN.size.x > 0.0')
 [IO.File]::WriteAllText((Join-Path $kit 'tofu.gd'), $t, $utf8)
 $art = Join-Path $src 'art\boulder'
 $dst = Join-Path $kit 'art\boulder'

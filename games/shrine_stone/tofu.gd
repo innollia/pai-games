@@ -466,7 +466,7 @@ func _process(dt: float) -> void:
 		_rate_btn_l.visible = false
 		_kit_frame()
 		return
-	_rate_btn_l.visible = not over and not _rating
+	_rate_btn_l.visible = not over and not _rating and _RATE_BTN.size.x > 0.0
 	if _rating:  # 언제든 평가 카드: 시간·_step 멈춤
 		_msg_l.visible = false
 		_rate_poll()

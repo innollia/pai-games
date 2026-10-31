@@ -1169,13 +1169,25 @@ func _zone_items(z: Dictionary, step := 0) -> void:
 		_extend(it.legs)
 		_draw_road(pd, int(d1), _len(), z)
 		if int(z.k) == 1 and not tutorial and int(z.item) + 1 == items.size():
-			# 수로 구역이 다 지어지면 구역 처음부터 끝까지 하나로 잇는다: 떨어지면 구역 끝 물기둥까지 아래 세상을 달린다
-			_build_tunnel(float(z.start), float(_len()), z.node, {"ext": 80.0, "updraft": true, "cave": true})
-			z.things.append_array(_under_things(float(z.start), float(_len()), z))
+			# 수로 구역이 다 지어지면 구역 처음부터 끝까지 하나로 잇는다: 떨어지면 구역 끝 물기둥까지 아래 세상을 달린다 (무거워서 다음 프레임에)
+			z["tunnel"] = true
 		z.things.append_array(_make_things(it, pd, d1, d1, z))
 		if it.has("under") and not tutorial:
 			_hidden_chamber(it, d1, z)
 		z.item += 1
+	# 무거운 마무리(아래 협곡 전체, 구역 끝 장식)는 길 조각을 지은 프레임과 따로, 하나씩 다음 프레임에 (폰에서 멈칫)
+	if step > 0 and n > 0:
+		zone_queue.append(z)
+		_relist()
+		return
+	if z.get("tunnel", false):
+		z.erase("tunnel")
+		_build_tunnel(float(z.start), float(_len()), z.node, {"ext": 80.0, "updraft": true, "cave": true})
+		z.things.append_array(_under_things(float(z.start), float(_len()), z))
+		_relist()
+		if step > 0:
+			zone_queue.append(z)
+			return
 	z.end = float(_len())
 	_extras(z)
 	_cull_far(z.node)
