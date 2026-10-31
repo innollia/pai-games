@@ -32,6 +32,7 @@ const BX0 := -60.0
 const BK := 6.0
 const WIDE := 12.5  # 짐이 다 있을 때 화면 반폭
 const NARROW := 5.5  # 짐이 다 없어지면 이만큼
+const ATTRACT_W := 6.5  # v21: 제목 화면 뒤 경주의 화면 반폭
 const LOAD0 := 8  # 판마다 출발 짐 (v13: 실험판 짐 x2를 사용자가 골랐다, 4 -> 8)
 const LOAD_MAX := 10
 const HEAVY_N := 6  # 무거운 쪽 규칙 (저울 위로): 짐 이만큼 이상 (v12 3 -> v13 6, 출발 짐 두 배)
@@ -515,6 +516,9 @@ var tell_s := ""  # calm rule line shown on route_l for tell_t seconds
 var tell_t := 0.0
 var tut_skipped := false  # left the practice with SKIP: the opening gets the one edge-rule line
 var tut_step_max := -1  # furthest practice step seen (sr_front.step)
+var attract_on := false  # v21: 제목 화면 뒤에서 넷이 알아서 경주한다 (나도 경쟁자처럼 AI). 이동안 경기 소리·도장은 끈다
+var attract_t := 0.0
+var ui_sfx := false  # play() 로 부른 화면 버튼 소리는 제목 경주 중에도 난다
 var skip_title := false  # PLAY AGAIN: restart without flashing the title
 var stamps: Array = []  # pooled paper stamps {panel, label, age, life, base}
 var stamp_last := {}  # text -> msec shown (no repeats within ST_REPEAT)
@@ -652,12 +656,16 @@ func msg(s: String, dur := 0.6) -> void:
 
 
 func _stamp(ko: String, en: String, kind := ST_INK, who: Courier = null, dur := 0.8) -> void:
+	if attract_on:
+		return
 	if _stamp_show(L(ko, en), kind, who, dur):
 		_sfx("stamp", null, -8.0)
 
 
 ## 효과음 (nkido로 구운 art/screenrace/sfx/*.wav). r이 있으면 내 배달부는 크게, 화면 안 상대는 작게, 화면 밖은 안 난다
 func _sfx(name: String, r: Courier = null, db := 0.0, force := false) -> void:
+	if attract_on and not ui_sfx:
+		return
 	if r != null and r != pl and not force:
 		if not r.alive or absf(r.p.x - camx) >= hwv:
 			return
@@ -703,12 +711,16 @@ func beep(freq: float, dur := 0.08, to := 0.0, vol := 0.2) -> void:
 	if now - int(beep_last.get(k, -100000)) < 70:
 		return
 	beep_last[k] = now
+	if attract_on:
+		return
 	super.beep(freq, dur, to, vol)
 
 
 ## tofu.gd 의 기본 삑 소리 대신 같은 이름의 종이 소리
 func play(name: String) -> void:
+	ui_sfx = true
 	_sfx({"win": "delivered", "good": "pickup", "bad": "lost", "tap": "stamp"}.get(name, name))
+	ui_sfx = false
 
 
 func _stamp_setup() -> void:
@@ -2561,10 +2573,7 @@ func _step(dt: float) -> void:
 			if pt <= 0.0:
 				_after_round()
 		"title":
-			# couriers jog in place behind the logo
-			var tj := Time.get_ticks_msec() * 0.012
-			for r in runners:
-				r.sq = 0.06 * sin(tj + r.col.r * 9.0)
+			_attract(dt)
 		"tutorial":
 			pl.mx = kit_move.x
 			pl.i_jump = kit_just("jump")
@@ -2578,6 +2587,8 @@ func _step(dt: float) -> void:
 				pl.v = Vector2.ZERO
 		"perk", "mode", "route":
 			pass  # the paper cards (sr_menus) emit the choice
+	if attract_on and phase != "title":
+		_attract_end()
 	_update_parcels(dt)
 	_mb_tick(dt)
 	if mode == "lantern" and phase != "mode" and phase != "title" and phase != "tutorial":
@@ -2591,6 +2602,44 @@ func _step(dt: float) -> void:
 	_update_content_hud()
 	if phase != "perk" and phase != "route" and phase != "mode" and _btns.has("drop"):
 		_btns["drop"].label = L("짐 %d", "Box %d") % pl.cargo
+
+
+## v21: 제목 화면 뒤 경주. 넷 다 경쟁자 AI 로 달리고 밀치고 던진다. 반송·탈락·판 끝 없이,
+## 뒤처지거나 떨어지면 화면 왼쪽에 다시 놓고, 결승 가까이 가거나 50초가 지나면 출발선부터 다시.
+func _attract(dt: float) -> void:
+	if not attract_on:
+		attract_on = true
+		attract_t = 0.0
+		pl.ai = true
+	attract_t += dt
+	_catchup(dt)
+	for r in runners:
+		if r.alive:
+			_ai(r, dt)
+	_slipstream()
+	_mechanisms(dt)
+	for r in runners:
+		if r.alive:
+			_runner(r, dt)
+	_pickups()
+	if not boards.is_empty():
+		_boards(dt)
+	var left := camx - hwv
+	for r in runners:
+		if r.alive and (r.p.y < kill_y or r.p.x < left - 1.0):
+			var x := left + 1.0
+			r.p = Vector2(x, _floor_top(x, 60.0) + 0.05)
+			r.v = Vector2.ZERO
+	var ld := _leader()
+	if attract_t > 50.0 or (ld != null and ld.p.x > goal_x - 4.0):
+		attract_t = 0.0
+		_start_round()
+		_cam_snap()
+
+
+func _attract_end() -> void:
+	attract_on = false
+	pl.ai = false
 
 
 func _race(dt: float) -> void:
@@ -3824,6 +3873,8 @@ func _camera(dt: float) -> void:
 	if phase == "race":
 		# 화면 폭 = 모두가 든 짐의 합
 		hwv = lerpf(hwv, _want_w(), 1.0 - exp(-1.5 * dt))
+	elif attract_on:
+		hwv = lerpf(hwv, ATTRACT_W, 1.0 - exp(-1.5 * dt))  # v21: 제목 경주는 가까이 (넷이 크게 보이게)
 	vhv = hwv * asp * _wall_k()
 	var lead := _leader()
 	if lead and phase != "perk":
@@ -4120,9 +4171,7 @@ func _draw_all() -> void:
 func _anim_tick(r: Courier, spd: float, fdt: float) -> void:
 	var t := r.anim_t
 	var stops: Array = []
-	if phase == "title":
-		t += fdt
-	elif not r.grounded:
+	if not r.grounded:
 		stops = ANIM_STRIDE
 	elif spd < 0.8:
 		stops = ANIM_NEUTRAL

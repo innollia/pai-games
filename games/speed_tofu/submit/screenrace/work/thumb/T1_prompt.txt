@@ -1,0 +1,37 @@
+[IMAGE] Single game title illustration of three paper-toy couriers running right through a daytime paper market street as the coral leader tosses one parcel into a red mailbox, landscape 4:3, full-bleed.
+[SCENE] Side view at the coral courier's waist height, medium-wide framing. The coral leader occupies x=48-70% and y=28-88%, entirely inside the image, with the head and body spanning 60% of image height. The torso leans right; the right leg reaches forward, the left leg bends behind; the right mitten hand extends toward the mailbox after releasing one parcel, and the left arm bends backward. The released parcel hangs halfway through the mailbox opening at x=80%, y=49%. Three separate parcels remain in one vertical column on the leader's back, behind the head. The blue courier at x=29-45% and the mint courier at x=10-26% chase from behind, each carrying four countable parcels in one tall vertical back stack; their forward legs extend right, rear legs bend left, and arms counter-swing. The red mailbox stands at x=77-88%, its opening facing left. The daytime paper market street spans the background as a few flat folded silhouettes. Warm daylight comes from the upper left.
+[RENDERING] Every shape is cut or folded colored paper or cardboard with a thin white paper edge.
+Shapes overlap in a few flat layers forming a shallow paper diorama, with small soft contact shadows beneath layers.
+Matte gouache and watercolor washes use only a few broad confident brush marks per shape.
+Couriers have big heads, rectangular folded-paper caps with short brims, peach faces, one dark dot eye in profile, small forward noses, short jackets, navy trousers, mitten hands, and chunky brown running shoes.
+The leader's cap and jacket are coral #E86758; the two followers wear blue #508CC8 and mint #62AD91 respectively.
+All three couriers share the same peach skin and brown shoes.
+Separate cardboard parcels #DDA56A carry red tape crosses and form countable single-column back stacks behind the heads.
+The mailbox is a red paper box on a navy post with a small blank cream address label.
+All couriers face and run right in profile.
+Warm upper bevels and cool lower folds express the upper-left daylight.
+Marks concentrate on the couriers, parcel stacks, and mailbox; the market street remains a few simplified paper shapes.
+Foreground layers separate clearly from the quieter background in bright cheerful daylight.
+[EMPTY] The sky across the upper background is flat warm cream paper. Gaps between the couriers and around the airborne parcel remain blank cream. Background street planes are flat muted apricot and sage, without surface marks.
+[PALETTE] Warm paper cream #FFF0D5, cardboard #DDA56A, pale tape #F8D58A, dark ink #34334B, coral #E86758, blue #508CC8, mint #62AD91, red, peach, brown, muted apricot, sage. Red tape crosses sit over pale tape strips. Foreground colors are more saturated than background colors.
+[NEGATIVE]
+No over-rendering: no painted texture on every surface, no object-by-object drawing of foliage, rocks, water, sky or background.
+No hyper-detailed fur, bark, stone, or leaf rendering; a few confident marks stand for each.
+No sky gradients, no cloud detail, no glow around the sun, moon, or lights.
+No glossy digital painting, no airbrushed smooth gradients, no plastic or waxy skin.
+No bloom, lens flare, god rays, or haze unless the subject asks for them.
+No shallow depth of field, bokeh, or photographic blur.
+No 3D render look, no subsurface skin sheen, no CGI lighting.
+No evenly spread detail; detail sits in one or two places only.
+No perfectly symmetrical faces, poses, or compositions.
+No generic fantasy decoration: floating particles, sparkles, magic circles, random runes or glyphs.
+No extra eyes, mouths, faces, limbs, or tentacles; no melted or fused anatomy; hands have the correct number of fingers.
+No characters, animals, or props that the subject did not ask for.
+No text, letters, captions, title, signature, monogram, watermark, logo, frame, or border.
+No oversaturated or neon color unless the style card asks for it.
+No muddy, smeared, or noisy surface texture.
+No realistic human proportions; couriers stay big-headed paper toys.
+No glossy plastic toy look or clay look.
+No photographic paper texture or random fine paper noise.
+No dark or night lighting.
+No parcels baked into the courier's body; parcels sit as separate boxes on the back.
