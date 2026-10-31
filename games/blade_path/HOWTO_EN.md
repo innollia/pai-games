@@ -12,3 +12,4 @@
    - Yellow blade behind a white one = a CHAIN attack. Wait for it.
 6. **Pick a skill** after every win. HP does not refill on its own, so choose between healing and getting stronger.
 7. The 9th foe, the Sword Demon, cannot be beaten. Survive as long as you can and pile up damage.
+8. **Upgrade.** Defeated swordsmen give coins. Spend them in the lobby's Upgrade tab on permanent upgrades. Each one costs more than the last.

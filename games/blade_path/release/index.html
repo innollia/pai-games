@@ -1,0 +1,94 @@
+<!doctype html><html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Blade Path 제출 꾸러미</title>
+<style>body{font-family:sans-serif;max-width:860px;margin:24px auto;padding:0 14px;background:#1b1712;color:#eee}a.btn{display:inline-block;background:#e8b13a;color:#111;padding:14px 22px;border-radius:10px;font-weight:bold;text-decoration:none;font-size:20px}pre{white-space:pre-wrap;background:#2a241c;padding:12px;border-radius:8px}h2{color:#e8b13a}</style>
+<h1>Blade Path (일격의 길) 제출 꾸러미</h1>
+<p><a class="btn" href="blade_path_itch.zip" download>itch용 zip 받기 (11.7MB)</a></p>
+<p>이 zip을 itch.io에 그대로 올리면 돼요(개발 도구 없는 판, 10/31 21:03 빌드). 아래 글은 itch 페이지에 복사해 붙이면 돼요.</p>
+<h2>itch 페이지 글</h2><pre># Title
+Blade Path
+
+# Short description
+One road, nine swordsmen. Read the blade, parry at the last instant, and strike before the opening closes.
+
+# Long description
+A one-on-one sword duel game about speed of reading and reaction. Each swordsman telegraphs where the blade will come from: watch it, swipe toward it and BLOCK. Wait until the last instant — when the blade turns red — and your block becomes a PARRY: time slows, the opening stays longer, and your counter-strike deals double damage.
+
+Every foe fights differently. The Thrust Swordsman lunges straight in. The Feint Swordsman&#x27;s blade trembles when it is about to switch sides. The Twin-Cut Swordsman strikes the same side twice, and only parrying both cuts opens a real gap. The Iai Swordsman stands still, flashes his eyes, draws in an instant, then keeps slashing until one of you lands a hit and he sheathes again. Directions are shuffled every combo, so you cannot memorize — you have to read.
+
+Every run starts bare-handed. HP never refills on its own: after each win, pick one of three skills for this run only (more HP, a heavier strike, a wider parry window, healing...). Survive eight swordsmen and face the Sword Demon, who cannot be beaten — only endured. How much damage can you pile up?
+
+Every swordsman you defeat drops coins (nyang). Spend them in the Upgrade tab of the lobby on a permanent skill tree — Body, Blade and Eye, three tiers each. Every upgrade costs much more than the last, so choose carefully.
+
+# Controls
+Two buttons: BLOCK and STRIKE. Hold a button and swipe toward the blade (left/right/up/down) to aim and act. Block when the blade arrives, parry when it turns red, then STRIKE the green opening. Best on a phone in portrait with two thumbs. Keyboard: arrow keys / WASD to aim, J = Block, K = Strike. Sound on!
+Language button (top right of the lobby): English / 한국어. Settings: sound and vibration (Android only).
+
+# Tools used / AI disclosure
+Made by 핸섬가이즈 (파이) with AI tools.
+Tools used: Godot 4.7, Claude (Anthropic) for code, planning and text. [파이 확인: 배경 그림·효과음 9개·거합 소리 2개를 어디서 만들었는지 — 예: &quot;Background painting generated with ___&quot;, &quot;Sound effects from ___&quot;]
+Font: Pretendard (SIL Open Font License). The game sends no data anywhere; records are saved only in your browser.
+
+# Page settings
+Kind: HTML. Classification: Games. Genre: Action (Fighting). Comments: enabled.
+Embed: 360 × 640 (portrait), Mobile friendly, Orientation Portrait, Fullscreen button on.
+
+# Tags
+ai, mobile, portrait, touch, slapjam, speed, action, sword, parry, duel
+</pre>
+<h2>How to play</h2><pre># How to play
+
+1. **Watch the blade.** The swordsman raises his blade toward one side. Faint ghost blades show the path it will take.
+2. **BLOCK.** Hold [BLOCK] and swipe toward the blade (← → ↑ ↓). A block opens a green box: the opening.
+3. **STRIKE.** Hold [STRIKE] and swipe toward the green box before it closes. Striking when there is no opening is a WHIFF: you lose 1 HP and freeze for a moment.
+4. **PARRY.** The blade turns **red** when it is close enough. Block while it is red to PARRY: time slows, the opening lasts longer and your next strike deals **x2** damage. Blocking an empty opening after a parry wastes it.
+5. **Read each swordsman.**
+   - Thrust: straight lunges.
+   - Feint: a trembling blade switches sides halfway. Watch it to the end.
+   - Twin-Cut: two cuts to the same side. Parry **both** to open a real gap.
+   - Iai: eyes flash, then an instant draw. Striking first is a whiff. Once drawn he keeps slashing until someone lands a hit.
+   - Yellow blade behind a white one = a CHAIN attack. Wait for it.
+6. **Pick a skill** after every win. HP does not refill on its own, so choose between healing and getting stronger.
+7. The 9th foe, the Sword Demon, cannot be beaten. Survive as long as you can and pile up damage.
+8. **Upgrade.** Defeated swordsmen give coins. Spend them in the lobby&#x27;s Upgrade tab on permanent upgrades. Each one costs more than the last.
+</pre>
+<h2>제출 순서표</h2><pre># 잼 제출 체크리스트 — 일격의 길 (Blade Path)
+
+돌굴리기(Rock and Stone) 체크리스트를 본떠 만들었다(10/31 인계).
+마감: **2026-11-01(일) 00:00 KST**. 마감 뒤에는 못 고치니 **10/31(토) 20~21시에 미리 제출**한다.
+itch 글은 `ITCH_PAGE.md`, &quot;How to play&quot;는 `HOWTO_EN.md`.
+
+## 언어 (영어 기본)
+- 영어가 본 게임. 로비 [설정] → &quot;한국어로 바꾸기&quot; / &quot;Switch to English&quot; (저장됨).
+- 번역표: `g/blade.gd` 의 `const EN := {&quot;한국어 원문&quot;: &quot;English&quot;}`. **새 글을 넣으면 EN 에도 넣는다**(없으면 영어판에 한국어가 뜬다). 같은 키 두 번 = 파싱 오류.
+- 서식 글(%d)은 `tr(&quot;...%d...&quot;) % 값`. Label 에 그대로 넣는 글은 저절로 번역된다.
+- 개발 도구 [대사 편집]은 지금 언어판의 글만 고친다(영어판 → `BAKED_TEXT_EN`, 한국어판 → `BAKED_TEXT`). 비워 두면 빈 글이 된다.
+
+## 올릴 파일
+1. 고친 뒤: `powershell -ExecutionPolicy Bypass -File tools\build.ps1` → commit·push → 폰 링크로 한 판 확인
+   (`https://innollia.github.io/pai-games/games/blade_path/web/`, Ctrl+F5).
+2. itch zip: `powershell -ExecutionPolicy Bypass -File tools\itch_zip.ps1` → `blade_path_itch.zip`.
+   **개발 도구(g/dev.gd)를 뺀 빌드**라서 [개발] 버튼이 없다. web/ (Pages 판)은 개발 버튼이 그대로 남는다. zip 은 git 에 안 넣는다.
+3. 그 전에 파이가 [내보내기]한 글·UI 자리가 있으면 `BAKED_TEXT` / `BAKED_TEXT_EN` / `BAKED_UI` 에 넣고 빌드.
+
+## 제출 전 확인 (게임)
+- [ ] 영어판 첫 화면·튜토리얼·전투·능력 카드·로비 3탭·설정에 한국어가 안 남았는지
+- [ ] 한국어로 바꾸면 전부 한국어로 돌아오는지
+- [ ] zip 판에 [개발] 버튼이 없는지
+- [ ] ITCH_PAGE.md 가 지금 게임 내용과 맞는지(바뀐 기능이 있으면 글도 고친다)
+- [ ] ITCH_PAGE.md 의 [파이 확인] 칸(배경 그림·효과음 출처) 채우기
+
+## itch.io에서 사람이 할 일 (계정이 필요해서 에이전트가 대신 못 함)
+1. [ ] itch.io → Upload new project
+2. [ ] Title: `Blade Path`. Short description은 ITCH_PAGE.md 것
+3. [ ] Kind of project: **HTML**. zip 업로드 후 **&quot;This file will be played in the browser&quot;** 체크
+4. [ ] Embed: **360 × 640**(세로), **Mobile friendly**, Orientation **Portrait**, Fullscreen button 켬
+5. [ ] Classification: Games. Genre: Action. Tags: ITCH_PAGE.md 것
+6. [ ] Description: Long description + HOWTO_EN.md + Controls + Tools used
+7. [ ] 표지(630×500) + 스크린샷 3장 이상: **폰에서 직접 캡처**(간파 금빛 충격파, 능력 카드, 끝판왕)
+8. [ ] Comments 켜기. Visibility **Public**으로 Save
+9. [ ] 잼 페이지 → **Submit your project** → 이 프로젝트
+10. [ ] 사용 도구 체크: Claude, Godot 4.7, 그 밖에 배경·소리에 쓴 도구(없는 칸은 Other). 설명란 Tools used와 같게
+11. [ ] 상금 연락처 이메일은 비공개 칸에 본인이 직접(설명란에 쓰지 않는다)
+12. [ ] 제출 후 잼 목록에 보이는지, 폰에서 itch 페이지로 한 판 확인
+</pre>
+</html>

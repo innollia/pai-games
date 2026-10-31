@@ -11,9 +11,11 @@ Every foe fights differently. The Thrust Swordsman lunges straight in. The Feint
 
 Every run starts bare-handed. HP never refills on its own: after each win, pick one of three skills for this run only (more HP, a heavier strike, a wider parry window, healing...). Survive eight swordsmen and face the Sword Demon, who cannot be beaten — only endured. How much damage can you pile up?
 
+Every swordsman you defeat drops coins (nyang). Spend them in the Upgrade tab of the lobby on a permanent skill tree — Body, Blade and Eye, three tiers each. Every upgrade costs much more than the last, so choose carefully.
+
 # Controls
 Two buttons: BLOCK and STRIKE. Hold a button and swipe toward the blade (left/right/up/down) to aim and act. Block when the blade arrives, parry when it turns red, then STRIKE the green opening. Best on a phone in portrait with two thumbs. Keyboard: arrow keys / WASD to aim, J = Block, K = Strike. Sound on!
-Settings (top right of the lobby): sound, vibration (Android only), and language (English / 한국어).
+Language button (top right of the lobby): English / 한국어. Settings: sound and vibration (Android only).
 
 # Tools used / AI disclosure
 Made by 핸섬가이즈 (파이) with AI tools.
