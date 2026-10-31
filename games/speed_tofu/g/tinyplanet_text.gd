@@ -19,6 +19,8 @@ const TEXT := {
 	"ui.jump": ["점프", "Jump"],  # 늘 있는 점프 버튼 | -
 	"ui.drop": ["놓기", "Drop"],  # 물건을 들고 있을 때 버튼 | -
 	"ui.sail": ["날다리", "Glide"],  # 구식 날다리가 있고 날고 있고 공중 한 번이 남았을 때 버튼 | -
+	"ui.wind": ["바람", "Wind"],  # 풍차 부탁 진행 막대 이름표 (풍차 그림 옆) | -
+	"ui.sunset": ["노을", "Sunset"],  # 노을 띠 부탁 진행 막대 이름표 (해 그림 옆) | -
 	"who.me": ["너?", "You?"],  # 혼잣말·엔딩 말풍선의 이름 | 너?
 
 	# ---- 별·주민 이름 ----
@@ -66,7 +68,7 @@ const TEXT := {
 
 	# ---- 별 1 풍차의 별 ----
 	"p1.ask": ["오, 마침 잘 됐군. 자네 다리가 튼실해 보이는데 나 좀 도와주게나.|바람이 멎어 풍차가 잠들었네. 이 별을 뛰어다녀 바람을 만들어주게나.", "Oh, just in time. Those legs of yours look sturdy. Lend an old man a hand.|The wind has stopped and the windmill fell asleep. Run around this planet and make me some wind."],  # 풍차지기 5m 안에 처음 갔을 때 (말풍선 둘) | 풍차지기
-	"p1.hint": ["뜨기 직전이 제일 센 바람이지.|발이 뜨면 바람이 끊기니 땅에 붙어 달리게나.", "The wind is strongest just before liftoff.|It stops when your feet leave the ground, so stay low."],  # 부탁 바로 뒤, 또 바람 막대 15% 미만이면 40초마다 | 풍차지기
+	"p1.hint": ["조이스틱 끝까지 말고 조금만 덜 밀게나. 끝까지 밀면 붕 뜬다네.|점프 버튼 둘레 초록 칸에 맞춰 달리면 바람이 인다네.", "Don't push the joystick all the way, just a touch less. Full tilt sends you floating.|Keep the ring around Jump in the green, and the wind will rise."],  # 부탁 바로 뒤, 또 바람 막대 15% 미만이면 40초마다 | 풍차지기
 	"p1.thanks": ["고마우이, 구식 날다리를 받게나.|배달 일이라면 우편의 별, 보라색 별로 가면 되겠군 그래.", "Much obliged. Take this Old Glidewing.|If it's delivery work you're after, the Post Planet is the purple one."],  # 바람 막대 100% (말풍선 둘) | 풍차지기
 	"p1.thanks2": ["날다가 한번 더 뛰면 조이스틱 방향으로 방향을 튼다네.", "Jump once more in flight, and you'll turn toward your joystick."],  # thanks 바로 뒤 | 풍차지기
 	"banner.sail": ["구식 날다리! 날 때 '날다리' 버튼을 한 번 누르면 조이스틱 쪽으로 방향을 튼다.", "Old Glidewing! In flight, tap 'Glide' once to turn toward your joystick."],  # 바람 막대 100% (위쪽 띠 5초) | -
@@ -153,9 +155,9 @@ const TEXT := {
 	"help.idle1": ["조이스틱을 밀어 달려 봐", "Push the joystick to run"],  # 거의 안 달려 본 채 8초 가만히 | -
 	"help.idle2": ["왼쪽 아래 조이스틱을 손가락으로 밀어 봐", "Drag the joystick at the bottom left with your finger"],  # 또 그럴 때 (조이스틱 자리에 손가락 그림 깜빡) | -
 	"help.lift1": ["조이스틱을 끝까지 밀어 더 빨리 달려", "Push the joystick all the way to run faster"],  # 달리는데 이륙선 60%를 못 넘은 채 20초 | -
-	"help.lift2": ["끝까지 밀고 계속 달려. 위 막대가 끝까지 차오르게", "Keep it pushed and keep running. Fill the bar at the top"],  # 또 그럴 때 (위 막대 둘레 깜빡) | -
-	"help.jump1": ["위 막대가 초록일 때 점프하면 별을 떠나", "Jump when the top bar is green to leave the planet"],  # 갈 곳이 다른 별인데 뛰어도 4번(또는 30초) 못 떠남 | -
-	"help.jump2": ["지금은 막대가 금방 초록이 돼. 힘껏 달리다 점프!", "The bar turns green sooner for now. Sprint, then jump!"],  # 또 그럴 때 (25초 동안 떠나기 도와주기 더 너그럽게) | -
+	"help.lift2": ["끝까지 밀고 계속 달려. 점프 버튼 둘레 고리가 다 차오르게", "Keep it pushed and keep running. Fill the ring around Jump"],  # 또 그럴 때 (점프 버튼 고리 둘레 깜빡) | -
+	"help.jump1": ["점프 버튼 둘레 고리가 초록일 때 뛰면 별을 떠나", "Jump when the ring around Jump turns green to leave the planet"],  # 갈 곳이 다른 별인데 뛰어도 4번(또는 30초) 못 떠남 | -
+	"help.jump2": ["지금은 고리가 금방 초록이 돼. 힘껏 달리다 점프!", "The ring turns green sooner for now. Sprint, then jump!"],  # 또 그럴 때 (25초 동안 떠나기 도와주기 더 너그럽게) | -
 	"help.lost1": ["점선이 초록일 때 뛰면 다른 별에 닿아", "Jump when the dots are green to reach another planet"],  # 우주 미아(끌려 돌아옴·떠내려감) 2번 | -
 	"help.lost2": ["잠깐 별들이 더 세게 끌어 줘. 초록 점선을 보고 뛰어!", "Planets pull harder for a while. Jump on green dots!"],  # 또 그럴 때 (25초 동안 끌어주기 세게) | -
 	"help.goal1": ["어디로 갈지 모르겠으면 왼쪽 위 할 일 목록을 눌러 봐 · 노란 화살표를 따라가", "Lost? Tap the to-do list at the top left · follow the yellow arrow"],  # 갈 곳 별에 90초 못 감 (할 일 버튼 숨쉼·화살표 크게) | -

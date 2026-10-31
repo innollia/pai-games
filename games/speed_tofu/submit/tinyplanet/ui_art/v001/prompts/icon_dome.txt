@@ -1,0 +1,34 @@
+[IMAGE] Single illustration, flat 2D, front view, one sky-blue glass bell dome with a white rim, aspect ratio 1:1 square.
+[SCENE] One sky-blue glass bell dome with a rounded top and a white rim along its open bottom edge, centered, filling about 80% of the frame height and width. The dome is empty inside. Close front view. Light comes from the top-left. Isolated on a plain flat pure white #ffffff background with nothing else.
+[RENDERING] Thick dark-navy #2b2d42 hand-inked contours around every shape, slightly uneven brush-pen line weight.
+One or two flat matte gouache tones per shape, with soft visible brush edges.
+Simple rounded chunky, slightly lopsided hand-cut shapes.
+Shadows use one flat darker tone.
+Faint paper tooth only inside large flat areas.
+Planets are simple round balls with two flat tones.
+Thin pale highlight strokes on upper-left object edges.
+Depth comes only from overlap and size.
+Detail sits on the mailbox; the background uses large flat color fields.
+[EMPTY] The dome's broad central area is flat sky blue and empty. All surrounding space is pure white #ffffff.
+[PALETTE] Sky blue #9fd3ff, darker sky blue shadow, white rim, pale cream highlight, ink navy #2b2d42; bright soft colors.
+[NEGATIVE]
+No over-rendering: no painted texture on every surface, no object-by-object drawing of foliage, rocks, water, sky or background.
+No hyper-detailed fur, bark, stone, or leaf rendering; a few confident marks stand for each.
+No sky gradients, no cloud detail, no glow around the sun, moon, or lights.
+No glossy digital painting, no airbrushed smooth gradients, no plastic or waxy skin.
+No bloom, lens flare, god rays, or haze unless the subject asks for them.
+No shallow depth of field, bokeh, or photographic blur.
+No 3D render look, no subsurface skin sheen, no CGI lighting.
+No evenly spread detail; detail sits in one or two places only.
+No perfectly symmetrical faces, poses, or compositions.
+No generic fantasy decoration: floating particles, sparkles, magic circles, random runes or glyphs.
+No extra eyes, mouths, faces, limbs, or tentacles; no melted or fused anatomy; hands have the correct number of fingers.
+No characters, animals, or props that the subject did not ask for.
+No text, letters, captions, title, signature, monogram, watermark, logo, frame, or border.
+No oversaturated or neon color unless the style card asks for it.
+No muddy, smeared, or noisy surface texture.
+No vector-clean perfect shapes, no app-icon gloss, no bevel or emboss effect.
+No drop-shadow blur, no inner glow, no gradient fills.
+No 3D render look, no clay or plastic material.
+No anime eyes, no realistic faces.
+No letters, numbers or symbols that look like writing.

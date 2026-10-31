@@ -36,14 +36,17 @@ const CFG := "user://tinyplanet.cfg"
 const BACK_RECT := Rect2(0, 0, 180, 100)  # tofu "< 메뉴"
 const NPOP := 8
 const ROW_COLS := ["mint", "sky", "lav", "accent"]
-const STAR_SPOTS := [Vector2(78, 150), Vector2(648, 128), Vector2(56, 690), Vector2(668, 650), Vector2(96, 900), Vector2(628, 880)]
-const START_RECT := Rect2(140, 965, 440, 110)  # 납작하고 넓은 시작 버튼 (가운데 y 1020)
-const LANG_RECT := Rect2(470, 1180, 226, 64)  # 오른쪽 아래 "EN | 한국어"
-const LOGO_PIVOT := Vector2(360, 420)
-const PLANET_AT := Vector2(360, 236)
-const BIG_Y := 404.0  # 큰 제목 글자 칸 위
+## v12 손그림 UI (art/tinyplanet/ui, submit/tinyplanet/ui_art/ASSETS.md). 그림이 없으면 예전 코드 그림으로 돈다.
+const ART := "res://art/tinyplanet/ui/"
+const ICON_FILE := {"wind": "icon_wind.png", "pkg": "icon_parcel.png", "flower": "icon_flower.png", "band": "icon_sunset.png", "dome": "icon_dome.png"}
+const PAPER_M := 48  # panel.png 9칸 여백 (우표 구멍 가장자리)
+const START_RECT := Rect2(140, 1024, 440, 126)  # 그린 시작 버튼 (480x137 비율, 아래 16% 는 두께)
+const LANG_RECT := Rect2(250, 1184, 220, 60)  # 시작 버튼 밑 가운데 "EN | 한국어"
+const LOGO_PIVOT := Vector2(360, 330)
+const PLATE_RECT := Rect2(90, 180, 540, 129)  # 리본 종이 (600x143 비율)
+const BIG_Y := 290.0  # 큰 제목 글자 칸 위
 const BIG_H := 200.0
-const EXTRUDE := 12.0  # 큰 제목 두께(잉크 판)
+const TITLE_TILT := -0.035  # 손으로 붙인 듯 -2도
 const KEY_EDGE := 10.0  # 버튼 아래 진한 노랑 두께
 
 
@@ -94,6 +97,8 @@ class _Btn extends Control:
 	var sb := StyleBoxFlat.new()
 	var glow_c: _Glow  # v8: 숨쉬는 빛 고리만 따로 (매 프레임 다시 그리는 건 이것뿐, 버튼 몸통은 눌릴 때만)
 	var glow_was := false
+	var tex: Texture2D  # v12: 손으로 그린 버튼 그림(start_button.png). 있으면 그림 + 잉크 글자, 눌리면 가라앉고 어두워짐
+	var sink_max := 6.0
 
 	func _ready() -> void:
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -114,6 +119,8 @@ class _Btn extends Control:
 		draw_style_box(sb, r)
 
 	func draw_glow(c: Control) -> void:
+		if tex != null:
+			return
 		var w := size.x
 		var h := size.y
 		for i in 2:
@@ -131,14 +138,17 @@ class _Btn extends Control:
 	func _draw() -> void:
 		var w := size.x
 		var h := size.y
+		if seg >= 0:
+			_draw_seg(Rect2(0.0, sink, w, h))  # v12: 납작한 크림 종이 알약 (그림자·두께 없음)
+			return
+		if tex != null:
+			_draw_tex(w, h)
+			return
 		# (빛 고리는 glow_c 가 몸통 뒤에 그린다)
 		# 그림자 → 아래 두께 → 몸통 (몸통이 sink 만큼 내려가 두께를 덮는다)
 		_stadium(Rect2(0.0, edge + 8.0, w, h), Color(ink.r, ink.g, ink.b, 0.4), 0, ink)
-		_stadium(Rect2(0.0, edge, w, h), dark if seg < 0 else Color("e9dcc4"), 6, ink)
+		_stadium(Rect2(0.0, edge, w, h), dark, 6, ink)
 		var top := Rect2(0.0, sink, w, h)
-		if seg >= 0:
-			_draw_seg(top)
-			return
 		_stadium(top, fill, 6, ink)
 		# 위쪽 밝은 띠
 		_stadium(Rect2(20.0, sink + 11.0, w - 40.0, h * 0.27), Color(1, 1, 1, 0.5), 0, ink)
@@ -155,6 +165,17 @@ class _Btn extends Control:
 		draw_string_outline(font, tp, text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 12, ink)
 		draw_string(font, tp, text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, cream)
 
+	## 그린 버튼: 그림 한 장(두께는 그림 아래 16%) + 가운데 잉크 글자. 눌리면 sink 만큼 내려가고 18% 어두워진다
+	func _draw_tex(w: float, h: float) -> void:
+		var k := clampf(sink / maxf(sink_max, 0.01), 0.0, 1.0)
+		var d := 1.0 - 0.18 * k
+		draw_texture_rect(tex, Rect2(0.0, sink, w, h), false, Color(d, d, d, 1.0))
+		var tw := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+		var cy := sink + h * 0.42
+		var base := cy + (font.get_ascent(fs) - font.get_descent(fs)) * 0.5
+		var tc := Color(ink.r * d, ink.g * d, ink.b * d, 1.0)
+		draw_string(font, Vector2((w - tw) * 0.5, base), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, tc)
+
 	func _draw_glyph(c: Vector2, r: float) -> void:
 		draw_circle(c, r, ink)
 		if glyph == 1:
@@ -168,9 +189,9 @@ class _Btn extends Control:
 
 	func _draw_seg(r: Rect2) -> void:
 		var half := r.size.x * 0.42
-		_stadium(r, cream, 6, ink)
-		var on := Rect2(r.position + Vector2(7, 7), Vector2(half - 7.0, r.size.y - 14.0)) if seg == 0 \
-			else Rect2(r.position + Vector2(half, 7), Vector2(r.size.x - half - 7.0, r.size.y - 14.0))
+		_stadium(r, cream, 4, ink)
+		var on := Rect2(r.position + Vector2(6, 6), Vector2(half - 6.0, r.size.y - 12.0)) if seg == 0 \
+			else Rect2(r.position + Vector2(half, 6), Vector2(r.size.x - half - 6.0, r.size.y - 12.0))
 		_stadium(on, fill, 3, ink)
 		var fsz := fs
 		var labels := ["EN", "한국어"]
@@ -208,12 +229,7 @@ var _keyed: Array = []  # [Label, 한국어 키] — 언어가 바뀌면 다시 
 var _pending := Callable()
 var _pending_t := 0.0
 var _clock := 0.0
-var _star := PackedVector2Array()
-var _star_line := PackedVector2Array()
-var _seal := PackedVector2Array()
-var _ring_back := PackedVector2Array()
-var _ring_front := PackedVector2Array()
-var _env_v := PackedVector2Array([Vector2(-22, -15), Vector2(0, 3), Vector2(22, -15)])
+var _tex_cache := {}
 # 언어
 var _ko := false
 var _lang_pick := -1  # 저장된 선택: -1 없음, 0 영어, 1 한국어
@@ -221,13 +237,10 @@ var _my_tl: Translation
 var _my_tl_ko: Translation
 # 시작 화면
 var _title_root: Control
-var _title_deco: _Canvas
 var _logo: Control
-var _logo_fx: _Canvas
-var _ribbon: _Box
+var _plate: Control
 var _ribbon_l: Label
 var _big: Label
-var _big_back: Label
 var _start_b: _Btn
 var _lang_b: _Btn
 var _title_on := false
@@ -245,8 +258,8 @@ var _was_over := false
 # 끝 화면
 var _end_root: Control
 var _end_dim: ColorRect
-var _end_panel: _Box
-var _end_ribbon: _Box
+var _end_panel: Control
+var _end_ribbon: Control
 var _end_head: Label
 var _end_msg: Label
 var _row_k: Array[Label] = []
@@ -276,7 +289,6 @@ func setup(game: Node) -> void:
 	_font = game.get("_font") as Font
 	if _font == null:
 		_font = ThemeDB.fallback_font
-	_shapes()
 	_load_cfg()
 	_init_lang()
 	_build_end()
@@ -324,7 +336,7 @@ func show_title(on_start: Callable) -> void:
 	_title_root.visible = true
 	_title_root.modulate.a = 1.0
 	_title_root.position = Vector2.ZERO
-	_start_b.glow = true
+	_start_b.glow = _start_b.tex == null
 	_lang_b.seg = 1 if _ko else 0
 	_lang_b.queue_redraw()
 
@@ -556,7 +568,7 @@ func _buttons_anim(dt: float) -> void:
 			b.sq = maxf(b.sq - dt, 0.0)
 			k = b.sq / float(DS.press_t)
 			k *= k
-		var s := lerpf(1.0, float(DS.press), k)
+		var s := lerpf(1.0, float(DS.press), k) if b.tex == null else 1.0  # 그린 버튼은 줄지 않고 가라앉기만
 		b.scale = Vector2(s, s)
 		var sink := float(DS.press_sink) * k
 		if b.glow or b.glow_was:
@@ -644,12 +656,99 @@ func _btn(parent: Control, rect: Rect2, key: String, glyph: int, act: Callable) 
 	b.text = tr(key) if key != "" else ""
 	b.glyph = glyph
 	b.act = act
+	if key != "":  # 글 버튼(시작·다시)은 손그림 노랑 알약 키. 언어 알약(key "")은 코드 종이 알약
+		b.tex = _tex("start_button.png")
+		if b.tex != null:
+			b.edge = 0.0
+			b.glyph = 0
+			b.sink_max = float(DS.press_sink)
 	b.position = rect.position
 	b.size = rect.size
 	b.pivot_offset = rect.size * 0.5
 	parent.add_child(b)
 	_btns.append(b)
 	return b
+
+
+## 손그림 하나 (art/tinyplanet/ui/<nm>). 없으면 null — 부르는 쪽이 예전 코드 그림으로 돌아간다
+func _tex(nm: String) -> Texture2D:
+	if nm == "":
+		return null
+	if _tex_cache.has(nm):
+		return _tex_cache[nm] as Texture2D
+	var p := ART + nm
+	var t: Texture2D = null
+	if ResourceLoader.exists(p):
+		t = load(p) as Texture2D
+	_tex_cache[nm] = t
+	return t
+
+
+## 그림을 rect 안에 비율 지켜 가운데 놓는 TextureRect
+func _pic(parent: Control, tex: Texture2D, rect: Rect2) -> TextureRect:
+	var r := TextureRect.new()
+	r.texture = tex
+	r.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	r.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	r.position = rect.position
+	r.size = rect.size
+	r.pivot_offset = rect.size * 0.5
+	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(r)
+	return r
+
+
+## 그림이 box 크기 정사각 안에 비율 지켜 들어가는 자리 (가운데 o)
+func _fit(tex: Texture2D, o: Vector2, box: float) -> Rect2:
+	var ts := tex.get_size()
+	var k := box / maxf(maxf(ts.x, ts.y), 1.0)
+	var sz := ts * k
+	return Rect2(o - sz * 0.5, sz)
+
+
+## 우표 종이 판: panel.png 9칸(여백 48, 가장자리 구멍은 늘이지 않고 반복). 그림이 없으면 DS 크림 상자
+func _paper(parent: Control, rect: Rect2) -> Control:
+	var tex := _tex("panel.png")
+	if tex == null:
+		return _box(parent, rect, DS.cream)
+	var np := NinePatchRect.new()
+	np.texture = tex
+	np.patch_margin_left = PAPER_M
+	np.patch_margin_top = PAPER_M
+	np.patch_margin_right = PAPER_M
+	np.patch_margin_bottom = PAPER_M
+	np.axis_stretch_horizontal = NinePatchRect.AXIS_STRETCH_MODE_TILE_FIT
+	np.axis_stretch_vertical = NinePatchRect.AXIS_STRETCH_MODE_TILE_FIT
+	np.position = rect.position
+	np.size = rect.size
+	np.pivot_offset = rect.size * 0.5
+	np.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(np)
+	return np
+
+
+## 크림 종이 리본 (title_plate.png). 그림이 없으면 fill 색 DS 상자
+func _plate_node(parent: Control, rect: Rect2, fill: Color) -> Control:
+	var tex := _tex("title_plate.png")
+	if tex == null:
+		return _box(parent, rect, fill)
+	var r := TextureRect.new()
+	r.texture = tex
+	r.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	r.stretch_mode = TextureRect.STRETCH_SCALE
+	r.position = rect.position
+	r.size = rect.size
+	r.pivot_offset = rect.size * 0.5
+	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(r)
+	return r
+
+
+## 한 줄 글자가 칸보다 넓으면 글씨를 줄인다 (리본 띠 안에 들어가게)
+func _shrink_to(l: Label, base_fs: int) -> void:
+	var w := _font.get_string_size(l.text, HORIZONTAL_ALIGNMENT_LEFT, -1, base_fs).x
+	var room := l.size.x - 8.0
+	l.label_settings.font_size = base_fs if w <= room else maxi(int(float(base_fs) * room / w), 16)
 
 
 func _canvas(parent: Control, rect: Rect2, fn: Callable) -> _Canvas:
@@ -678,23 +777,6 @@ func _fmt_time(sec: float) -> String:
 	return "%d:%02d" % [s / 60, s % 60]
 
 
-## 모양을 한 번만 만든다 (그릴 때 매 프레임 새로 만들지 않게)
-func _shapes() -> void:
-	for i in 8:
-		var a := float(i) * TAU / 8.0 - PI * 0.5
-		var r := 1.0 if i % 2 == 0 else 0.42
-		_star.append(Vector2(cos(a), sin(a)) * r)
-	_star_line = _star.duplicate()
-	_star_line.append(_star[0])
-	for v in _star:
-		_seal.append(v * 9.0 + Vector2(0, 3))  # 편지 봉인 작은 별
-	# 행성 고리(납작한 타원): 뒤쪽 반(위)과 앞쪽 반(아래)
-	for i in 25:
-		var a := PI + PI * float(i) / 24.0
-		_ring_back.append(Vector2(cos(a) * 104.0, sin(a) * 104.0 * 0.32))
-		_ring_front.append(Vector2(cos(a - PI) * 104.0, sin(a - PI) * 104.0 * 0.32))
-
-
 # ---- 저장 (user://tinyplanet.cfg) ----
 func _load_cfg() -> void:
 	var cf := ConfigFile.new()
@@ -717,47 +799,48 @@ func _save_cfg() -> void:
 
 
 # ---- 시작 화면 ----
-## 로고(작은 행성 + 도는 편지 + 리본 "The Little" + 두꺼운 "Courier"), 아래쪽 납작한 시작 버튼, 오른쪽 아래 언어 알약
+## v12 손그림 시작 화면: 과슈 배경 한 장(title_bg) 위에 크림 종이 리본(title_plate) + "The Little"/"어린",
+## 그 밑 큰 "Courier"/"배달부"(노랑 + 잉크 외곽선, -2도), 아래 노랑 알약 키(start_button), 그 밑 언어 종이 알약.
+## 빛 고리·반짝 별·벡터 행성은 없다. 움직임은 제목이 살짝 떠오르는 것뿐.
 func _build_title() -> void:
 	_title_root = _root(12)
-	_title_deco = _canvas(_title_root, Rect2(0, 0, 720, 1280), Callable())
-	_build_title_deco()
+	var bg := _tex("title_bg.jpg")
+	if bg != null:
+		var bgr := TextureRect.new()
+		bgr.texture = bg
+		bgr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		bgr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		bgr.size = Vector2(720, 1280)
+		bgr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_title_root.add_child(bgr)
 	_logo = Control.new()
 	_logo.size = Vector2(720, 640)
 	_logo.pivot_offset = LOGO_PIVOT
+	_logo.rotation = TITLE_TILT
 	_logo.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_title_root.add_child(_logo)
-	_logo_fx = _canvas(_logo, Rect2(0, 0, 720, 640), Callable())
-	_build_logo_fx()
 	var ink: Color = DS.ink
-	# 큰 글자: 뒤에 잉크 두께판(+부드러운 그림자), 앞에 노랑 + 굵은 잉크 외곽선
-	var back := LabelSettings.new()
-	back.font = _font
-	back.font_color = ink
-	back.outline_size = 18
-	back.outline_color = ink
-	back.shadow_color = Color(ink.r, ink.g, ink.b, 0.22)
-	back.shadow_offset = Vector2(0, 12)
-	back.shadow_size = 30
-	_big_back = _lab(_logo, "", Rect2(0, BIG_Y + EXTRUDE, 720, BIG_H), back)
-	_big_back.autowrap_mode = TextServer.AUTOWRAP_OFF
+	# 리본 종이 + 잉크 글자 (리본 띠는 그림 위쪽 60% 쯤)
+	_plate = _plate_node(_logo, PLATE_RECT, DS.lav)
+	var rib_fill: Color = ink if _tex("title_plate.png") != null else DS.cream
+	_ribbon_l = _lab(_plate, "", Rect2(80, 6, PLATE_RECT.size.x - 160.0, 84), _ls(50, rib_fill, rib_fill != ink))
+	_ribbon_l.autowrap_mode = TextServer.AUTOWRAP_OFF
+	# 큰 글자: 노랑 + 굵은 잉크 외곽선 + 아래로 단단한 잉크 그림자(번짐·광택 없음)
 	var front := LabelSettings.new()
 	front.font = _font
 	front.font_color = DS.accent
 	front.outline_size = 18
 	front.outline_color = ink
+	front.shadow_color = Color(ink.r, ink.g, ink.b, 0.35)
+	front.shadow_offset = Vector2(0, 8)
+	front.shadow_size = 18
 	_big = _lab(_logo, "", Rect2(0, BIG_Y, 720, BIG_H), front)
 	_big.autowrap_mode = TextServer.AUTOWRAP_OFF
-	# 리본: 라벤더 띠 위 크림 글자
-	_ribbon = _box(_logo, Rect2(220, 352, 280, 76), DS.lav)
-	_ribbon.rotation = -0.04
-	_ribbon_l = _lab(_ribbon, "", Rect2(0, -3, 280, 76), _ls(46, DS.cream, true))
-	_ribbon_l.autowrap_mode = TextServer.AUTOWRAP_OFF
 	_set_title_text()
 	_start_b = _btn(_title_root, START_RECT, "ui.start", 1, _title_go.bind(false))
 	_lang_b = _btn(_title_root, LANG_RECT, "", 0, _toggle_lang)
 	_lang_b.fs = int(DS.fs_small)
-	_lang_b.edge = 6.0
+	_lang_b.edge = 0.0
 	_lang_b.seg = 1 if _ko else 0
 	_title_root.visible = false
 
@@ -773,16 +856,13 @@ func _set_title_text() -> void:
 	if w > 640.0:
 		fs = int(float(fs) * 640.0 / w)
 	_big.label_settings.font_size = fs
-	_big_back.label_settings.font_size = fs
 	_big.text = big
-	_big_back.text = big
-	_ribbon.visible = small != ""
-	var rw := _font.get_string_size(small, HORIZONTAL_ALIGNMENT_LEFT, -1, 46).x + 96.0
-	rw = clampf(rw, 200.0, 560.0)
-	_ribbon.size = Vector2(rw, 76)
-	_ribbon.position = Vector2(360.0 - rw * 0.5, 352)
-	_ribbon.pivot_offset = _ribbon.size * 0.5
-	_ribbon_l.size = Vector2(rw, 76)
+	_plate.visible = small != ""
+	var rfs := 50
+	var rw := _font.get_string_size(small, HORIZONTAL_ALIGNMENT_LEFT, -1, rfs).x
+	if rw > _ribbon_l.size.x - 10.0:
+		rfs = int(float(rfs) * (_ribbon_l.size.x - 10.0) / rw)
+	_ribbon_l.label_settings.font_size = rfs
 	_ribbon_l.text = small
 
 
@@ -813,13 +893,9 @@ func _title_anim(dt: float) -> void:
 	var lk := maxf(_back_out(clampf(_title_in / 0.75, 0.0, 1.0)), 0.01)
 	var bk := _back_out(clampf((_title_in - 0.25) / 0.75, 0.0, 1.0))
 	_logo.scale = Vector2(lk, lk)
-	_logo.position.y = sin(t * 1.6) * 9.0
-	_logo.rotation = sin(t * 1.1) * 0.015
-	_ribbon.rotation = -0.04 + sin(t * 2.0) * 0.012
+	_logo.position.y = sin(t * 1.4) * 6.0
 	_start_b.position.y = START_RECT.position.y + (1.0 - bk) * 320.0
 	_lang_b.modulate.a = clampf(_title_in * 2.0 - 1.0, 0.0, 1.0)
-	_title_deco_anim()
-	_logo_fx_anim()
 	if _title_out < 0.0:
 		return
 	_title_out += dt
@@ -835,173 +911,6 @@ func _title_anim(dt: float) -> void:
 			_on_start.call()
 
 
-## v8 성능: 시작 화면 그림은 매 프레임 다시 그리지 않는다 (웹 호환 렌더러는 다각형·안티에일리어스 선·원을 그릴 때마다
-## GPU 버퍼를 새로 만들어 이 화면 하나가 한 프레임에 15ms 넘게 먹었다). 모양은 한 번 만든 Polygon2D·Line2D 노드로 두고
-## 매 프레임 위치·회전·크기·투명도만 바꾼다 (모양·색·움직임은 예전 그리기와 같다).
-var _deco_sh: Array[Node2D] = []  # 반짝 별 그림자
-var _deco_st: Array[Node2D] = []  # 반짝 별
-var _deco_ell: Node2D  # 로고 아래 옅은 그림자 (타원 넷)
-var _lf_root: Node2D  # 로고 행성 (가운데 = 행성)
-var _lf_env_back: Node2D
-var _lf_env_front: Node2D
-var _lf_star_a: Node2D
-var _lf_star_b: Node2D
-var _circ := PackedVector2Array()  # 단위 원 (draw_circle 과 같은 64 조각)
-
-
-func _unit_circle() -> PackedVector2Array:
-	if _circ.is_empty():
-		for i in 64:
-			var a := TAU * float(i) / 64.0
-			_circ.append(Vector2(cos(a), sin(a)))
-	return _circ
-
-
-func _poly(parent: Node, pts: PackedVector2Array, col: Color, at := Vector2.ZERO, sc := 1.0) -> Polygon2D:
-	var pg := Polygon2D.new()
-	var q := PackedVector2Array()
-	q.resize(pts.size())
-	for i in pts.size():
-		q[i] = at + pts[i] * sc
-	pg.polygon = q
-	pg.color = col
-	parent.add_child(pg)
-	return pg
-
-
-func _line(parent: Node, pts: PackedVector2Array, col: Color, w: float, aa: bool, closed := false) -> Line2D:
-	var ln := Line2D.new()
-	ln.points = pts
-	ln.default_color = col
-	ln.width = w
-	ln.antialiased = aa
-	ln.closed = closed
-	ln.joint_mode = Line2D.LINE_JOINT_SHARP
-	ln.sharp_limit = 8.0
-	parent.add_child(ln)
-	return ln
-
-
-## 단위 별 (가운데 원점, 반지름 1). line.a > 0 이면 잉크 외곽선 (화면에서 5px 가 되게 r0 기준 두께)
-func _star_node(parent: Node, fill: Color, line: Color, r0: float) -> Node2D:
-	var n := Node2D.new()
-	parent.add_child(n)
-	_poly(n, _star, fill)
-	if line.a > 0.0:
-		_line(n, _star_line, line, 5.0 / r0, true)
-	return n
-
-
-func _build_title_deco() -> void:
-	var ink: Color = DS.ink
-	var sh := Color(ink.r, ink.g, ink.b, float(DS.shadow_a))
-	for i in STAR_SPOTS.size():
-		var col: Color = DS.accent if i % 2 == 0 else DS.cream
-		var r0 := 20.0 + 6.0 * float(i % 3)
-		_deco_sh.append(_star_node(_title_deco, sh, Color(0, 0, 0, 0), r0))
-		_deco_st.append(_star_node(_title_deco, col, ink, r0))
-	_deco_ell = Node2D.new()
-	_deco_ell.position = Vector2(360, 636)
-	_title_deco.add_child(_deco_ell)
-	for i in 4:
-		_poly(_deco_ell, _unit_circle(), Color(ink.r, ink.g, ink.b, 0.05), Vector2.ZERO, 250.0 - 45.0 * float(i))
-	_title_deco_anim()
-
-
-## 뒤 배경: 반짝이는 별 몇 개 + 떠 있는 로고 아래 옅은 그림자
-func _title_deco_anim() -> void:
-	for i in STAR_SPOTS.size():
-		var at: Vector2 = STAR_SPOTS[i]
-		var r := (20.0 + 6.0 * float(i % 3)) * (1.0 + 0.22 * sin(_clock * 2.3 + float(i) * 1.7))
-		var rot := sin(_clock * 0.6 + float(i)) * 0.3
-		var a := _deco_sh[i]
-		a.position = at + Vector2(0, 6)
-		a.rotation = rot
-		a.scale = Vector2(r, r)
-		var b := _deco_st[i]
-		b.position = at
-		b.rotation = rot
-		b.scale = Vector2(r, r)
-	# 로고가 위로 뜨면 그림자가 작고 옅어진다
-	var up := 0.5 - 0.5 * sin(_clock * 1.6)
-	var sk := 1.0 - 0.12 * up
-	_deco_ell.scale = Vector2(sk, 0.16 * sk)
-	_deco_ell.modulate.a = 1.0 - 0.4 * up
-
-
-func _envelope_node(parent: Node) -> Node2D:
-	var ink: Color = DS.ink
-	var n := Node2D.new()
-	parent.add_child(n)
-	var rc := PackedVector2Array([Vector2(-22, -15), Vector2(22, -15), Vector2(22, 15), Vector2(-22, 15)])
-	_poly(n, rc, Color(ink.r, ink.g, ink.b, float(DS.shadow_a)), Vector2(0, 6))
-	_poly(n, rc, DS.cream)
-	_line(n, rc, ink, 4.0, false, true)
-	_line(n, _env_v, ink, 4.0, false)
-	_poly(n, _seal, DS.accent)
-	return n
-
-
-func _ring_node(parent: Node, pts: PackedVector2Array, tilt: float) -> void:
-	var n := Node2D.new()
-	n.rotation = tilt
-	parent.add_child(n)
-	_line(n, pts, DS.ink, 24.0, true)
-	_line(n, pts, DS.lav, 12.0, true)
-
-
-func _build_logo_fx() -> void:
-	var ink: Color = DS.ink
-	var sh := Color(ink.r, ink.g, ink.b, float(DS.shadow_a))
-	var tilt := -0.28
-	_lf_root = Node2D.new()
-	_logo_fx.add_child(_lf_root)
-	# 고리 뒤쪽 + 뒤로 간 편지
-	_ring_node(_lf_root, _ring_back, tilt)
-	_lf_env_back = _envelope_node(_lf_root)
-	# 행성
-	var uc := _unit_circle()
-	_poly(_lf_root, uc, sh, Vector2(0, 8), 62.0)
-	_poly(_lf_root, uc, ink, Vector2.ZERO, 62.0)
-	_poly(_lf_root, uc, DS.mint, Vector2.ZERO, 55.0)
-	_poly(_lf_root, uc, Color("6fcfab"), Vector2(14, 16), 15.0)
-	_poly(_lf_root, uc, Color("6fcfab"), Vector2(-24, 22), 8.0)
-	_poly(_lf_root, uc, DS.cream, Vector2(-20, -22), 13.0)
-	# 고리 앞쪽 + 앞으로 온 편지
-	_ring_node(_lf_root, _ring_front, tilt)
-	_lf_env_front = _envelope_node(_lf_root)
-	# 반짝 별
-	_lf_star_a = _star_node(_lf_root, DS.accent, ink, 22.0)
-	_lf_star_a.position = Vector2(96, -70)
-	_lf_star_b = _star_node(_lf_root, DS.cream, ink, 12.0)
-	_lf_star_b.position = Vector2(-110, -38)
-	_logo_fx_anim()
-
-
-## 로고 그림: 고리 두른 작은 행성, 고리를 따라 도는 편지(별 봉인), 반짝이는 작은 별
-func _logo_fx_anim() -> void:
-	var pc := PLANET_AT + Vector2(0, sin(_clock * 1.3) * 5.0)
-	var tilt := -0.28
-	var ang := _clock * 1.1
-	var env_front := sin(ang) > 0.0
-	_lf_root.position = pc
-	var ep := Vector2(cos(ang) * 104.0, sin(ang) * 104.0 * 0.32).rotated(tilt)
-	var esc := 0.8 + 0.2 * (1.0 + sin(ang))
-	var env := _lf_env_front if env_front else _lf_env_back
-	_lf_env_front.visible = env_front
-	_lf_env_back.visible = not env_front
-	env.position = ep
-	env.rotation = sin(ang * 2.0) * 0.25
-	env.scale = Vector2(esc, esc)
-	var tw := 0.75 + 0.35 * maxf(sin(_clock * 3.1), 0.0)
-	var ra := 22.0 * tw
-	_lf_star_a.scale = Vector2(ra, ra)
-	_lf_star_a.rotation = _clock * 0.8
-	var rb := 12.0 * (1.6 - tw)
-	_lf_star_b.scale = Vector2(rb, rb)
-	_lf_star_b.rotation = -_clock * 0.6
-
-
 # ---- 게임오버 · 엔딩 ----
 func _build_end() -> void:
 	_end_root = _root(8)
@@ -1011,9 +920,15 @@ func _build_end() -> void:
 	_end_dim.size = Vector2(720, 1280)
 	_end_dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_end_root.add_child(_end_dim)
-	_end_panel = _box(_end_root, Rect2(60, 214, 600, 640), DS.cream)
-	_end_ribbon = _box(_end_panel, Rect2(80, -46, 440, 104), DS.accent)
-	_end_head = _lab(_end_ribbon, "", Rect2(0, -3, 440, 104), _ls(int(DS.fs_btn), DS.cream, true))
+	_end_panel = _paper(_end_root, Rect2(60, 214, 600, 640))  # v12 우표 종이 판
+	var plate_art := _tex("title_plate.png") != null
+	if plate_art:  # 크림 종이 리본 + 잉크 글자 (띠 안쪽에만 글)
+		_end_ribbon = _plate_node(_end_panel, Rect2(70, -58, 460, 110), DS.accent)
+		_end_head = _lab(_end_ribbon, "", Rect2(76, 2, 308, 74), _ls(int(DS.fs_body) + 8, ink, false))
+		_end_head.autowrap_mode = TextServer.AUTOWRAP_OFF
+	else:
+		_end_ribbon = _box(_end_panel, Rect2(80, -46, 440, 104), DS.accent)
+		_end_head = _lab(_end_ribbon, "", Rect2(0, -3, 440, 104), _ls(int(DS.fs_btn), DS.cream, true))
 	_end_msg = _lab(_end_panel, "", Rect2(30, 70, 540, 56), _ls(int(DS.fs_small), Color(ink.r, ink.g, ink.b, 0.75), false))
 	for i in 4:
 		var y := 136.0 + float(i) * 80.0
@@ -1023,7 +938,7 @@ func _build_end() -> void:
 		_row_v.append(_lab(_end_panel, "", Rect2(330, y, 240, 68), _ls(int(DS.fs_btn), ink, false), HORIZONTAL_ALIGNMENT_RIGHT))
 	_new_b = _box(_end_panel, Rect2(272, 136.0 + 3.0 * 80.0 + 10.0, 160, 50), DS.accent)
 	_klab(_new_b, "end.new_best", Rect2(0, -2, 160, 50), _ls(int(DS.fs_small), ink, false))
-	_again_end = _btn(_end_panel, Rect2(80, 492, 440, 110), "end.again", 1, _again)
+	_again_end = _btn(_end_panel, Rect2(80, 486, 440, 126), "end.again", 1, _again)
 	_end_root.visible = false
 
 
@@ -1044,9 +959,14 @@ func _on_over() -> void:
 		if not _end_win:
 			_new_rec = true
 	_save_cfg()
-	_end_ribbon.paint(DS.accent if _end_win else DS.lav, DS)
+	if _end_ribbon is _Box:
+		(_end_ribbon as _Box).paint(DS.accent if _end_win else DS.lav, DS)
+	else:  # 그린 리본: 끝까지 가면 종이 그대로, 지면 살짝 라벤더 물
+		_end_ribbon.self_modulate = Color.WHITE if _end_win else Color(0.86, 0.84, 1.0)
 	_end_head.text = tr("end.win_head") if _end_win else tr("end.lose_head")
 	_end_msg.text = tr("end.win_msg") if _end_win else tr("end.lose_msg")
+	if _end_head.autowrap_mode == TextServer.AUTOWRAP_OFF:
+		_shrink_to(_end_head, int(DS.fs_body) + 8)
 	var keys := ["end.delivered", "end.time" if _end_win else "end.survived", "end.slings", "end.best_time" if _end_win else "end.best_count"]
 	_row_target[0] = float(deliv)
 	_row_target[1] = _time
@@ -1109,7 +1029,7 @@ func _end_anim(dt: float) -> void:
 		var nk := maxf(_back_out(clampf((_end_t - t_new) / 0.3, 0.0, 1.0)), 0.01)
 		_new_b.scale = Vector2(nk, nk)
 		_new_b.rotation = sin(_clock * 5.0) * 0.06
-	_again_end.glow = _end_t > 1.4
+	_again_end.glow = _end_t > 1.4 and _again_end.tex == null
 
 
 # ---- v9 할 일 목록: 왼쪽 위 작은 버튼(목록 그림 + "2/5") → 누르면 판이 떠서 놀이가 멈춘다. 아무 데나 누르면 닫힘 ----
@@ -1119,10 +1039,10 @@ const TODO_PANEL := Rect2(40, 196, 640, 800)
 const TODO_ROW_Y := 70.0
 const TODO_ROW_H := 112.0
 var _todo_root: Control
-var _todo_btn: _Box
+var _todo_btn: Control
 var _todo_btn_l: Label
 var _todo_dim: ColorRect
-var _todo_panel: _Box
+var _todo_panel: Control
 var _todo_head: Label
 var _todo_canvas: _Canvas
 var _todo_who: Array[Label] = []
@@ -1154,10 +1074,21 @@ func todo_nudge(on: bool) -> void:
 func _build_todo() -> void:
 	_todo_root = _root(6)  # 본체 HUD(4)·조작 키트(5) 위, 끝 화면(8) 아래
 	var ink: Color = DS.ink
-	# 버튼: 크림 판 + 목록 그림 + 끝낸 수
-	_todo_btn = _box(_todo_root, TODO_RECT, DS.cream)
-	_canvas(_todo_btn, Rect2(12, 9, 48, 48), _todo_btn_draw)
-	_todo_btn_l = _lab(_todo_btn, "0/5", Rect2(60, 0, 68, 66), _ls(30, ink, false), HORIZONTAL_ALIGNMENT_LEFT)
+	# 버튼: v12 손그림 클립보드(icon_list) + 끝낸 수 (크림 글자 + 잉크 외곽선). 그림이 없으면 크림 판 + 코드 목록 그림
+	var list_tex := _tex("icon_list.png")
+	if list_tex != null:
+		_todo_btn = Control.new()
+		_todo_btn.position = TODO_RECT.position
+		_todo_btn.size = TODO_RECT.size
+		_todo_btn.pivot_offset = TODO_RECT.size * 0.5
+		_todo_btn.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_todo_root.add_child(_todo_btn)
+		_pic(_todo_btn, list_tex, Rect2(0, -6, 60, 78))
+		_todo_btn_l = _lab(_todo_btn, "0/5", Rect2(62, 0, 74, 66), _ls(34, DS.cream, true), HORIZONTAL_ALIGNMENT_LEFT)
+	else:
+		_todo_btn = _box(_todo_root, TODO_RECT, DS.cream)
+		_canvas(_todo_btn, Rect2(12, 9, 48, 48), _todo_btn_draw)
+		_todo_btn_l = _lab(_todo_btn, "0/5", Rect2(60, 0, 68, 66), _ls(30, ink, false), HORIZONTAL_ALIGNMENT_LEFT)
 	_todo_btn_l.autowrap_mode = TextServer.AUTOWRAP_OFF
 	_todo_btn.visible = false
 	# 판
@@ -1167,11 +1098,18 @@ func _build_todo() -> void:
 	_todo_dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_todo_dim.visible = false
 	_todo_root.add_child(_todo_dim)
-	_todo_panel = _box(_todo_root, TODO_PANEL, DS.cream)
+	_todo_panel = _paper(_todo_root, TODO_PANEL)  # v12 우표 종이 판
 	_todo_panel.visible = false
-	var rib := _box(_todo_panel, Rect2(150, -42, 340, 90), DS.accent)
-	_todo_head = _lab(rib, "", Rect2(0, -3, 340, 90), _ls(int(DS.fs_body) + 6, DS.cream, true))
+	if _tex("title_plate.png") != null:  # 크림 종이 리본 + 잉크 글자
+		var rib := _plate_node(_todo_panel, Rect2(130, -60, 380, 91), DS.accent)
+		_todo_head = _lab(rib, "", Rect2(64, 0, 252, 62), _ls(int(DS.fs_body) + 4, DS.ink, false))
+	else:
+		var rib := _box(_todo_panel, Rect2(150, -42, 340, 90), DS.accent)
+		_todo_head = _lab(rib, "", Rect2(0, -3, 340, 90), _ls(int(DS.fs_body) + 6, DS.cream, true))
 	_todo_head.autowrap_mode = TextServer.AUTOWRAP_OFF
+	var close_tex := _tex("icon_close.png")
+	if close_tex != null:  # 닫기 표시: 오른쪽 위 우표 단추 (판 아무 데나 눌러도 닫힌다)
+		_pic(_todo_panel, close_tex, Rect2(TODO_PANEL.size.x - 78.0, -22, 84, 84))
 	_todo_canvas = _canvas(_todo_panel, Rect2(0, 0, TODO_PANEL.size.x, TODO_PANEL.size.y), _todo_draw)
 	for i in 5:
 		var y := TODO_ROW_Y + float(i) * TODO_ROW_H
@@ -1230,6 +1168,12 @@ func _todo_draw(c: Control) -> void:
 
 func _todo_badge(c: Control, o: Vector2, kind: String, dim: bool, pc := Color.TRANSPARENT) -> void:
 	var ink: Color = DS.ink
+	var tex := _tex(str(ICON_FILE.get(kind, "")))
+	if tex != null:  # v12 손그림 아이콘. 별 색은 뒤에 옅은 동그라미로 (하늘 이름표와 같은 색)
+		if pc.a > 0.0:
+			c.draw_circle(o, 38.0, Color(pc.r, pc.g, pc.b, 0.5))
+		c.draw_texture_rect(tex, _fit(tex, o, 70.0), false, Color(1, 1, 1, 0.45 if dim else 1.0))
+		return
 	c.draw_circle(o + Vector2(0, 4), 32.0, Color(ink.r, ink.g, ink.b, 0.4))
 	c.draw_circle(o, 32.0, ink)
 	var ic_s := 0.85
