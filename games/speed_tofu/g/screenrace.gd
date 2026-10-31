@@ -92,6 +92,7 @@ const RECORDS := "user://screenrace_v12.cfg"  # v12: 배달 규칙이 바뀌어 
 const SrFront = preload("res://g/sr_front.gd")
 const SrMenus = preload("res://g/sr_menus.gd")
 const SR_HUD = preload("res://g/sr_hud.gd")
+const SrTheme = preload("res://g/sr_theme.gd")
 const MODE_KIT := {"base": "jump", "lantern": "drop", "over": "mode_over"}  # _pick_mode takes the old kit names
 const KIT_PHASES := ["count", "race", "roundend", "tutorial"]  # the stick and buttons only work here
 const BACK_ARM_PHASES := ["race", "count", "perk", "route", "roundend"]
@@ -260,8 +261,8 @@ const FAR_T := 4.0  # 이만큼 있으면 왼쪽 끝으로 다시 들어온다
 const DECIDE_T := 1.0  # 승부가 정해지면 이만큼 뒤 판 끝 (도장을 읽을 틈)
 const ROUND_CAP := 120.0  # 안전 마감: 코스 길이 420 기준 이 초가 지나면 LAST CALL
 # run_loop (courier_*.glb, 24fps 16프레임 0.042..0.708 s): 다리가 모이는 때 / 가장 벌어진 때
-const ANIM_NEUTRAL := [0.042, 0.375]
-const ANIM_STRIDE := [0.208, 0.542]
+const ANIM_NEUTRAL := [0.167, 0.5]  # v31: 새 달리기(무릎 접힘)에서 두 다리가 모이는 때
+const ANIM_STRIDE := [0.01, 0.333]  # v31: 보폭이 가장 넓은 때
 
 
 ## One screen-space overlay for speed lines, the torn page edge and floating numbers.
@@ -485,7 +486,7 @@ var bridge_said := false
 var bits: Array = []  # 파편 (돌려 쓴다)
 var bit_i := 0
 var clouds: Array = []
-var winds: Array[MeshInstance3D] = []
+var winds: Array[Node3D] = []  # v31: 그림 바람(ui/icon_wind) 조각. 그림이 없으면 예전 흰 막대
 var wind_x := 0.0
 # 모드
 var mode := "base"
@@ -524,6 +525,8 @@ var tell_t := 0.0
 var tut_skipped := false  # left the practice with SKIP: the opening gets the one edge-rule line
 var tut_step_max := -1  # furthest practice step seen (sr_front.step)
 var quick_ok := false  # v22: 이번 판 빠른 출발을 아직 노릴 수 있다
+var goal_l: Label  # v31: 출발 때 이기는 법 한 줄 (초보가 승리 조건을 몰랐다)
+var goal_t := 0.0
 var attract_on := false  # v21: 제목 화면 뒤에서 넷이 알아서 경주한다 (나도 경쟁자처럼 AI). 이동안 경기 소리·도장은 끈다
 var attract_t := 0.0
 var long_course := false  # v24: 제목 경주용 긴 길 (ATTRACT_LEN) 을 만든다
@@ -885,6 +888,7 @@ func _kit_live(on: bool) -> void:
 
 
 func _open_mode_select() -> void:
+	_attract_end()
 	tut_crate_x = -1.0
 	if front and front.state == "title":
 		front.hide_title()
@@ -903,6 +907,7 @@ func _open_title() -> void:
 
 ## sr_front: course 1 opening flat as an empty practice yard (no rivals, one crate).
 func tutorial_begin() -> void:
+	_attract_end()  # v31: 제목 경주 중 나는 AI 다. 끝내지 않으면 아래에서 경쟁자와 함께 숨겨져(alive=false) 연습 화면이 안 따라왔다
 	menus.hide_all()
 	ci = 0
 	rnd = 0
@@ -1400,6 +1405,16 @@ func _setup() -> void:
 		t.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		t.size.x = 700
 	mode_l = _label(layer, 28, 130, 64)
+	var gl_layer := CanvasLayer.new()
+	gl_layer.layer = 30
+	add_child(gl_layer)
+	goal_l = SrTheme.make_label("", 40, SrTheme.NAVY, 12, SrTheme.WHITE)
+	goal_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	goal_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	goal_l.position = Vector2(40, 735)  # 경주 줄 아래 땅 띠 (배달부를 가리지 않게)
+	goal_l.size = Vector2(640, 140)
+	goal_l.visible = false
+	gl_layer.add_child(goal_l)
 	route_l = _label(layer, 30, 250, 160)
 	result_l = _label(layer, 30, 240, 570)
 	result_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -1532,8 +1547,20 @@ func _reset() -> void:
 		bits.append({"node": m, "v": Vector3.ZERO, "life": 0.0})
 	clouds.clear()  # no slab clouds: the watercolor backdrop has its own (slabs read as stray UI tabs)
 	winds.clear()
+	var wt: Texture2D = load("res://art/screenrace/ui/icon_wind.png") if ResourceLoader.exists("res://art/screenrace/ui/icon_wind.png") else null
 	for i in 5:
-		var m := box(Vector3(0, -80, 4.0), Vector3(2.5, 0.06, 0.06), WHITE)
+		var m: Node3D
+		if wt:
+			var sp := Sprite3D.new()
+			sp.texture = wt
+			sp.pixel_size = 1.6 / float(wt.get_width())
+			sp.shaded = false
+			sp.flip_h = true  # 바람은 왼쪽으로 분다 (달리는 쪽의 반대)
+			sp.modulate = Color(1, 1, 1, 0.32)  # v31: 흐리게 ("바람 너무 선명")
+			world.add_child(sp)
+			m = sp
+		else:
+			m = box(Vector3(0, -80, 4.0), Vector3(2.5, 0.06, 0.06), WHITE)
 		m.visible = false
 		winds.append(m)
 	lantern = Node3D.new()
@@ -1573,6 +1600,7 @@ func _reset() -> void:
 
 
 func _pick_mode(n: String) -> void:
+	_attract_end()
 	mode = "base" if n == "jump" else ("lantern" if n == "drop" else "over")
 	tut_crate_x = -1.0
 	if front and front.state == "title":
@@ -2620,6 +2648,16 @@ func _start_round() -> void:
 	_cam_snap()
 	phase = "count"
 	pt = 1.4
+	# v31: 코스 첫 판마다 이기는 법을 크게. 맨 처음 판은 읽을 시간을 더 준다
+	goal_t = 0.0
+	if rnd == 1 and not finale:
+		goal_t = 4.5
+		if ci == 0:
+			pt = 2.6
+	if goal_l:
+		goal_l.text = L("우체통에 짐을 넣어라!
+가장 많이 넣은 사람이 이긴다", "Post boxes into mailboxes!
+Most deliveries wins")
 	if menus:
 		menus.countdown_tick(0)
 	danger = false
@@ -2687,6 +2725,10 @@ func _step(dt: float) -> void:
 			pass  # the paper cards (sr_menus) emit the choice
 	if attract_on and not _title_idle():
 		_attract_end()
+	if goal_l:
+		goal_t = maxf(goal_t - dt, 0.0) if phase == "race" or phase == "count" else 0.0
+		goal_l.visible = goal_t > 0.0 and not attract_on
+		goal_l.modulate.a = clampf(goal_t / 0.6, 0.0, 1.0)
 	_update_parcels(dt)
 	_mb_tick(dt)
 	if mode == "lantern" and phase != "mode" and phase != "title" and phase != "tutorial":
@@ -2753,8 +2795,11 @@ func _title_idle() -> bool:
 
 
 func _attract_end() -> void:
+	if not attract_on:
+		return
 	attract_on = false
 	pl.ai = false
+	pl.alive = true
 
 
 func _race(dt: float) -> void:
@@ -4274,12 +4319,15 @@ func _draw_all() -> void:
 	wind_x += dt * ls * 2.2
 	var wk := (CAM_D - 4.0) / CAM_D
 	for k in winds.size():
-		var w: MeshInstance3D = winds[k]
+		var w: Node3D = winds[k]
 		w.visible = ls > 7.5
 		if w.visible:
 			var ww := hwv * wk * 2.0 + 6.0
 			w.position = Vector3(camx + hwv * wk + 3.0 - fposmod(wind_x + k * 7.3, ww), camy + vhv * wk * (0.75 - k * 0.33), 4.0)
-			w.scale = Vector3(1.0 + (ls - 7.5) * 0.6, 0.06, 0.06)
+			if w is Sprite3D:
+				w.scale = Vector3.ONE * (0.8 + clampf((ls - 7.5) * 0.04, 0.0, 0.5))  # 빠를수록 조금 크게 (늘이지 않는다)
+			else:
+				w.scale = Vector3(1.0 + (ls - 7.5) * 0.6, 0.06, 0.06)
 	_vis()
 	_draw_lantern()
 	if backdrop:

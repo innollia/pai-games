@@ -179,16 +179,19 @@ def courier(team):
         p('cargo_strap_'+str(side),'cream',(.032,.012,.24),(-.055,side*.149,.6),12,.002)
     p('back_harness','brown',(.038,.25,.185),(-.162,0,.588),10,.006)
     pivots=[]
-    # Wide mid-stride legs, sturdy brown shoes with thick paper soles.
-    for i,(side,knee,ankle,shoe_rot) in enumerate([
-        (-.087,(.17,-.087,.27),(.30,-.087,.11),-18),
-        (.087,(-.21,.087,.28),(-.32,.087,.20),30)]):
+    knees=[]
+    # v31: straight legs with a real knee joint (hip pivot -> thigh, knee pivot -> shin + shoe).
+    # The stride comes from the run_loop keys below, so the shin can fold back ("다리를 굽히는 게 없어").
+    for i,side in enumerate([-.087,.087]):
+        knee=(0,side,.29); ankle=(0,side,.11)
         pivot=empty('leg_'+str(i),pivot=(0,side,.475)); pivots.append(pivot)
-        legparts=[seg('thigh_'+str(i),'navy',(-.025,side,.48),knee,.147,.162),
-                  seg('shin_'+str(i),'navy',knee,ankle,.142,.162),
-                  p('shoe_'+str(i),'brown',(.24,.19,.112),(ankle[0]+.025,side,ankle[2]-.037),shoe_rot,.012),
-                  p('sole_'+str(i),'cream',(.249,.196,.027),(ankle[0]+.034,side,ankle[2]-.095),shoe_rot,.003)]
-        for o in legparts: parent_keep(o,pivot)
+        thigh=seg('thigh_'+str(i),'navy',(0,side,.48),knee,.147,.162)
+        parent_keep(thigh,pivot)
+        kp=empty('knee_'+str(i),pivot=knee); parent_keep(kp,pivot); knees.append(kp)
+        for o in [seg('shin_'+str(i),'navy',knee,ankle,.142,.162),
+                  p('shoe_'+str(i),'brown',(.24,.19,.112),(ankle[0]+.045,side,ankle[2]-.037),0,.012),
+                  p('sole_'+str(i),'cream',(.249,.196,.027),(ankle[0]+.054,side,ankle[2]-.095),0,.003)]:
+            parent_keep(o,kp)
     # Near arm swept back, far arm pumping forwards; no crossed forearms.
     for i,(side,elbow,hand) in enumerate([
         (-.205,(-.205,-.205,.605),(-.294,-.205,.679)),
@@ -198,14 +201,31 @@ def courier(team):
                    seg('forearm_'+str(i),team,elbow,hand,.112,.127),
                    p('mitten_'+str(i),'skin',(.117,.137,.126),hand,-15 if i else 20,.025)]
         for o in arm_parts: parent_keep(o,pivot)
-    objects=ground_center(parts+pivots,1.0)
     sc=bpy.context.scene; sc.frame_start=1; sc.frame_end=17; sc.render.fps=24
-    # Preserve existing named limb hooks and run_loop export pipeline.
-    for i,pivot in enumerate(pivots):
-        for frame,delta in [(1,0),(5,.18),(9,0),(13,-.18),(17,0)]:
-            pivot.rotation_euler.y=delta*(1 if i%2 else -1)
-            pivot.keyframe_insert(data_path='rotation_euler',frame=frame,group='run')
-        pivot.animation_data.action.name='run'
+    # v31 run cycle (17 frames, loops): phase p of leg 0; leg 1 is half a cycle later.
+    # hip: foot forward (-) at contact p=0, behind (+) at toe-off p=0.5. knee: small bend in stance, big fold while the leg swings forward.
+    def hip(p): return -0.58*math.cos(2*math.pi*p)
+    def kneef(p):
+        q=(p-0.45)%1.0
+        return 0.18+0.12*math.sin(math.pi*min(p,0.4)/0.4) if q>0.5 else 0.18+1.25*math.sin(math.pi*q/0.5)
+    legs=pivots[:2]; arms=pivots[2:]
+    for frame in range(1,18):
+        ph=(frame-1)/16.0
+        for i in range(2):
+            pp=(ph+0.5*i)%1.0
+            legs[i].rotation_euler.y=hip(pp)
+            legs[i].keyframe_insert(data_path='rotation_euler',frame=frame,group='run')
+            knees[i].rotation_euler.y=kneef(pp)
+            knees[i].keyframe_insert(data_path='rotation_euler',frame=frame,group='run')
+            # arm swings against the leg on the same side
+            arms[i].rotation_euler.y=-0.55*hip(pp)/0.58
+            arms[i].keyframe_insert(data_path='rotation_euler',frame=frame,group='run')
+    for o in legs+knees+arms:
+        o.animation_data.action.name='run'
+        for fc in getattr(o.animation_data.action,'fcurves',[]):
+            for kp_ in fc.keyframe_points: kp_.interpolation='LINEAR'
+    sc.frame_set(1)
+    objects=ground_center(parts+pivots,1.0)  # v31: grounded in the first run pose, not the rest pose
     sc.frame_set(1); emit('courier_'+team,objects)
 
 def parcel():
@@ -278,6 +298,6 @@ def board():
     emit('bridge_board',ground_center(objs))
 
 for team in ['coral','blue','mint','gold']: courier(team)
-parcel(); train(); board()
+if '--couriers-only' not in sys.argv: parcel(); train(); board()
 (W/'remodel_stats.json').write_text(json.dumps(STATS,indent=2),encoding='utf-8')
 print('REMODEL_STATS',json.dumps(STATS))
