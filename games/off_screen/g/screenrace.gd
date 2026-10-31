@@ -367,6 +367,7 @@ class Courier:
 	var i_drop := false
 	# v12 배달
 	var got := 0  # 이번 판 배달한 짐
+	var throws := 0  # 던진 짐 (연습 던지기 단계가 센다)
 	var back_t := 0.0  # > 0: 화면 밖에 반송돼 다시 들어오기를 기다린다
 	var fin := -1  # 결승 도착 순서 (0 = 처음)
 	var mb_seen := -1  # 경쟁자: 마지막으로 판단한 우체통
@@ -2143,6 +2144,24 @@ func _add_mailbox(x: float, y: float, gold := false) -> void:
 		"flag": flag, "cloth": cloth, "parcel": pc, "t": 0.0, "val": GOLD_VAL if gold else 1, "col": col, "first": null, "sub": sub_l})
 
 
+## 연습: 배달 단계에서 연습 우체통을 지나쳤으면 배달부 앞(연습 마당 끝 벽 x 80 안)으로 옮긴다.
+## 친구 평가: 오른쪽으로 쭉 가면 우체통을 지나 끝 벽에 막히고, 거기서 짐을 누르면 던지기만 돼 연습이 멈췄다.
+func tut_mailbox_ahead() -> void:
+	if mailboxes.is_empty() or mailboxes[0].full:
+		return
+	var mb: Dictionary = mailboxes[0]
+	if pl.p.x < float(mb.x) + 1.5:
+		return
+	var x := minf(pl.p.x + 9.0, 78.5)
+	var y := _floor_top(x, 60.0)
+	if y < -50.0:
+		return
+	mb.x = x
+	mb.y = y
+	(mb.node as Node3D).position = Vector3(x, y, -0.75)
+	_burst(Vector3(x, y + 1.4, 0.6), 4, MB_FREE)
+
+
 func _mb_reset() -> void:
 	for mb in mailboxes:
 		mb.full = false
@@ -3275,6 +3294,7 @@ func _runner(r: Courier, dt: float) -> void:
 ## 짐 하나를 뒤에 내려놓고 튀어나간다 (다른 사람이 주워 갈 수 있다)
 func _drop(r: Courier) -> void:
 	r.cargo -= 1
+	r.throws += 1
 	r.drop_cd = 0.15
 	# v14: 던지기 사이 DASH_CD. 낮은 문 바로 앞에서 짐을 줄일 때만 짧게 (문 앞에 오래 서 있지 않게)
 	var at_gate := false

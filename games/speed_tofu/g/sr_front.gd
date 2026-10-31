@@ -62,6 +62,8 @@ var _tt := 0.0
 var _between := 0.0
 var _x0 := 0.0
 var _cargo0 := 0
+var _throws0 := 0
+const STUCK_T := 15.0  # 한 단계에서 이만큼 못 넘기면 넘겨 준다 (막혀서 연습이 멈추지 않게)
 var _got0 := 0
 var _was_g := true
 var _jumped := false
@@ -382,6 +384,7 @@ func _enter(i: int) -> void:
 	_x0 = float(pl.p.x)
 	_cargo0 = int(pl.cargo)
 	_got0 = int(pl.got)
+	_throws0 = int(pl.throws)
 	_edge_x = float(game.camx) - float(game.hwv)
 	_eaten = false
 	_pin_x = float(pl.p.x)
@@ -469,6 +472,9 @@ func _tut_tick(dt: float) -> void:
 		return
 	var pl = game.pl
 	var g := bool(pl.grounded)
+	if step >= 0 and step < 4 and _tt > STUCK_T:
+		_ok()
+		return
 	match step:
 		0:
 			if float(pl.p.x) - _x0 > RUN_GOAL:
@@ -485,11 +491,14 @@ func _tut_tick(dt: float) -> void:
 		2:
 			if int(pl.got) > _got0:
 				_ok()
-			elif int(pl.cargo) <= 0:
-				pl.cargo = 2  # 우체통 밖에서 다 던졌다: 다시 채워 준다
+			else:
+				if int(pl.cargo) <= 0:
+					pl.cargo = 2  # 우체통 밖에서 다 던졌다: 다시 채워 준다
+				if game.has_method("tut_mailbox_ahead"):
+					game.tut_mailbox_ahead()  # 지나쳤으면 앞으로 옮긴다 (끝 벽에 막혀 멈추지 않게)
 		3:
-			if int(pl.cargo) < _cargo0 and int(pl.got) == _got0:
-				_ok()  # 던졌다 (연습 우체통은 이미 찼으니 짐이 준 건 던진 것)
+			if int(pl.throws) > _throws0:
+				_ok()  # 던졌다 (벽에 막혀 대시가 안 나가도 던진 것으로 친다)
 		4:
 			_edge_tick(dt)
 		_:
