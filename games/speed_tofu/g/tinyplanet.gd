@@ -16,9 +16,13 @@ const GREY := Color("c9ccd1")
 const NM := 4  # 운석 칸
 const ND := 24  # 앞길 점선 칸 (v6: 18 → 24, 5.5초 앞까지)
 const CRUISE := 9.5  # v6: 높이 떠서 날 때 이 빠르기 밑으로는 안 느려진다
-const HOME_A := 2.8  # v6 1.8 → v7 4.5 → v8 2.8 (너무 잘 착지해서 반쯤 되돌림): 앞으로 가장 가까이 지나갈 별 쪽으로 끄는 힘 (속도 크기는 그대로, 방향만)
-const CAP_T := 0.5  # v7 0.9 → v8 0.5 잡기: 다른 별 둘레 안에서 옆 속도를 초당 이만큼 깎는다 (안쪽일수록 세게)
+const HOME_A := 1.8  # v6 1.8 → v7 4.5 → v8 2.8 → v11 1.8 지금 갈 곳(ob_k) 쪽만 (아무 별이나 끌던 것 없앰, 도움 힌트 as_home 때만 모든 별): 방향만 튼다
+const CAP_T := 0.5  # v7 0.9 → v8 0.5 잡기: 다른 별 둘레 안에서 옆 속도를 초당 이만큼 깎는다 (안쪽일수록 세게). v11: 지금 갈 곳·도움 힌트 때만 이 값
+const CAP_T_LO := 0.25  # v11 갈 곳이 아닌 별: 덜 잡는다 (아무 데나 날다 내려앉지 않게)
 const CAP_R := 1.7  # v7 3.0 → v8 1.7 잡기: 그 별 쪽으로 더 끄는 힘 (이미 빨리 내려가면 안 끈다)
+const CAP_R_LO := 0.9  # v11 갈 곳이 아닌 별
+const HOME_Q := 1.3  # v11 끌어주기 둘레: 비켜 지나는 거리 / (끄는 둘레 × 이 값 + 6) (v8 ×2 + 10)
+const DROP_SLOW := 0.9  # v11 소포를 들고 굴뚝 달 둘레 안: 옆 속도를 초당 이만큼 더 깎는다 (굴뚝 위에서 놓을 시간)
 const LAND_VMAX := 5.5  # v7 4.0 → v8 5.5 (세게 꽂으면 유리가 깨질 수 있게) 잡기: 다른 별 대기 안에서 내려가는 빠르기 한도 (유리는 3 넘으면 금이 조금)
 const SAIL_ADD := 2.5  # v7 돛: 틀면서 조금 빨라진다
 const SAIL_TURN := 0.62  # v7 돛: 스틱 없이 쓰면 갈 곳 쪽으로 이만큼(라디안)까지 튼다
@@ -51,28 +55,29 @@ const DANGER := Color("e8453c")  # 빨강은 위험에만
 const SKIN := Color("ffe3c7")
 const ITEM_ART := {"pkg": "parcel", "flower": "glass_flower", "dome": "glass_dome"}
 # 별: 0~4 부탁 별, 5 굴뚝 달, 6 친구 달, 7 불 별. 모두 y=0 평면 위.
+# v11 별 구별: c0 = 그 별의 주인 색 (초록 풍차 · 보라 우편 · 청록 유리꽃 · 주황 노을 · 분홍 장미 · 갈색 굴뚝 · 하늘 친구 · 빨강 불). 이름표·칩·할 일 목록 고리도 이 색
 const BD := [
 	{"name": "name.windmill", "r": 12.0, "g": 8.0, "grip": 1.19, "acc": 1.0, "at": Vector3(0, 0, 0), "kind": "planet",
-		"c0": Color("bfe3a0"), "c1": Color("e6f5d4"), "sky": Color("d6ecff"), "who": "who.windmill", "body": Color("8fbf5a"), "hat": A, "id": "p1"},
+		"c0": Color("8fd16a"), "c1": Color("c9efa8"), "sky": Color("d6ecff"), "who": "who.windmill", "body": Color("8fbf5a"), "hat": A, "id": "p1"},
 	{"name": "name.post", "r": 8.0, "g": 8.0, "grip": 1.19, "acc": 1.0, "at": Vector3(26, 0, -26), "kind": "planet",
-		"c0": Color("d9ccf5"), "c1": Color("f3edff"), "sky": Color("e6dcff"), "who": "who.post", "body": B, "hat": BAD, "id": "p2"},
+		"c0": Color("a98ff0"), "c1": Color("d9ccff"), "sky": Color("e6dcff"), "who": "who.post", "body": B, "hat": BAD, "id": "p2"},
 	{"name": "name.glass", "r": 10.0, "g": 9.0, "grip": 1.19, "acc": 1.0, "at": Vector3(70, 0, -16), "kind": "planet",
-		"c0": Color("bdebd8"), "c1": Color("e6f8f0"), "sky": Color("d6f5ea"), "who": "who.glass", "body": GOOD, "hat": D, "id": "p3"},
+		"c0": Color("5fd8bf"), "c1": Color("b8f2e4"), "sky": Color("d6f5ea"), "who": "who.glass", "body": GOOD, "hat": D, "id": "p3"},
 	{"name": "name.sunset", "r": 7.0, "g": 8.0, "grip": -0.8, "acc": 0.6, "at": Vector3(100, 0, 36), "kind": "planet",
-		"c0": Color("c9e3fa"), "c1": Color("eef6ff"), "sky": Color("ffe0c2"), "who": "who.sunset", "body": C, "hat": A, "id": "p4"},
+		"c0": Color("ffa463"), "c1": Color("ffe0c2"), "sky": Color("ffe0c2"), "who": "who.sunset", "body": C, "hat": A, "id": "p4"},
 	{"name": "name.rose", "r": 6.0, "g": 7.0, "grip": 1.19, "acc": 1.0, "at": Vector3(50, 0, 48), "kind": "planet",
-		"c0": Color("f7d3dc"), "c1": Color("fff4f6"), "sky": Color("ffe3ec"), "who": "who.rose", "body": BAD, "hat": GOOD, "id": "p5"},
+		"c0": Color("f58bab"), "c1": Color("ffd3e0"), "sky": Color("ffe3ec"), "who": "who.rose", "body": BAD, "hat": GOOD, "id": "p5"},
 	{"name": "name.chimney_moon", "r": 3.5, "g": 6.0, "grip": 1.19, "acc": 1.0, "at": Vector3(52, 0, -40), "kind": "moon",
-		"c0": Color("e9e4d4"), "c1": Color("fffaf0"), "sky": Color("efe8ff"), "who": "who.chimney", "body": WHITE, "hat": WHITE, "id": ""},
+		"c0": Color("c9a27e"), "c1": Color("efdcc4"), "sky": Color("efe8ff"), "who": "who.chimney", "body": WHITE, "hat": WHITE, "id": ""},
 	{"name": "name.friend_moon", "r": 3.5, "g": 6.0, "grip": 1.19, "acc": 1.0, "at": Vector3(90, 0, 8), "kind": "moon",
-		"c0": Color("a8ecd2"), "c1": Color("e8fff6"), "sky": Color("e0fff4"), "who": "who.friend", "body": WHITE, "hat": WHITE, "id": ""},
+		"c0": Color("7cc4ff"), "c1": Color("cfe9ff"), "sky": Color("e0fff4"), "who": "who.friend", "body": WHITE, "hat": WHITE, "id": ""},
 	{"name": "name.fire", "r": 3.0, "g": 40.0, "grip": 1.19, "acc": 1.0, "at": Vector3(78, 0, 60), "kind": "fire",
 		"c0": BAD, "c1": A, "sky": Color("ffe8d6"), "who": "", "body": WHITE, "hat": WHITE, "id": ""},
 ]
 # 부탁 (별 번호 = 부탁 번호). 물건은 src 별 HOME_D 에서 받아 tgt 별 tdir 로.
 const JOB := [
 	{},
-	{"item": "pkg", "src": 1, "tgt": 5, "tdir": Vector3(-1, 0.3, 0.35), "tr": 1.3, "frag": false},
+	{"item": "pkg", "src": 1, "tgt": 5, "tdir": Vector3(-1, 0.3, 0.35), "tr": 2.1, "frag": false},
 	{"item": "flower", "src": 2, "tgt": 6, "tdir": Vector3(-0.4, 0.5, -1), "tr": 1.6, "frag": true},
 	{},
 	{"item": "dome", "src": 3, "tgt": 4, "tdir": Vector3(-1, 0.3, -0.25), "tr": 1.1, "frag": true},
@@ -115,6 +120,9 @@ var item_b: MeshInstance3D
 var sail_b: MeshInstance3D
 var bag_b: MeshInstance3D
 var mark_b: MeshInstance3D  # 공중에서 놓으면 떨어질 자리
+var zone_b: MeshInstance3D  # v11 굴뚝 달: 소포를 놓을 노란 동그라미 (들고 있을 때)
+var drop_k := -1  # v11 소포를 들고 있으면 굴뚝 달 번호 (그 둘레에서 옆 속도를 더 깎는다), 아니면 -1
+var over_tg := false  # v11 지금 놓으면 받을 곳에 떨어진다
 var dots: Array[MeshInstance3D] = []
 var p := Vector3.ZERO  # 발밑 별 가운데 기준 위치
 var vel := Vector3.ZERO
@@ -250,7 +258,16 @@ var chip_l: Label
 var chip_ic: Control
 var _chip_code := -2
 var _chip_icon := ""
+var _chip_pk := -1  # v11 칩이 가리키는 별 (그림 고리 색)
 var chip_age := 9.0
+# v11 별 이름표: 발밑 별이 아닌 별 위에 작은 이름표 (별 색 고리 + 할 일 그림 + 이름), 멀거나 가깝거나 화면 가운데면 옅어짐
+const TAG_IC := ["wind", "pkg", "flower", "band", "dome", "pkg", "flower", "fire"]
+var tag_n: Array[Control] = []
+var tag_l: Array[Label] = []
+var tag_bg: Array[Panel] = []
+var tag_sh: Array[Panel] = []
+var tag_ic: Array[Control] = []
+var tag_w := PackedFloat32Array()
 var arrow: Control
 var _arrow_on := false
 var _arrow_p := Vector2.ZERO
@@ -346,6 +363,7 @@ func _setup() -> void:
 	pbar_sb = pbar.get_theme_stylebox("panel") as StyleBoxFlat
 	pbar_bg.visible = false
 	_bub_build()
+	_tags_build()
 	_v7_hud_build()
 	_dbg_build()
 
@@ -650,6 +668,9 @@ func _reset() -> void:
 	bag_b.visible = false
 	mark_b = _ushape("disc", D, here)
 	mark_b.visible = false
+	over_tg = false
+	drop_k = -1
+	zone_b = null  # _build 가 굴뚝 달에 새로 짓는다
 	# 앞길 점선: 점 24개를 MultiMesh 하나로 (그리기 2번: 점 + 구운 외곽선)
 	dots.clear()
 	dots_mm = MultiMesh.new()
@@ -759,6 +780,7 @@ func _build() -> void:
 	deco_n.clear()
 	deco_on.clear()
 	spin = null
+	smoke_n = null
 	for k in BD.size():
 		var d: Dictionary = BD[k]
 		var n := Node3D.new()
@@ -776,17 +798,19 @@ func _build() -> void:
 		match k:
 			0:
 				# 북극의 큰 풍차 (v6: 적도의 바위 일곱은 뺐다 — 걸려 느려지는 게 불쾌)
-				_stand("windmill_tower", Vector3.UP, 1.0)
-				_shadow_q(0, Vector3.UP, 2.2)
+				# v11 별 구별: 풍차를 1.5배 (다른 별에서도 풍차가 보이게)
+				_stand("windmill_tower", Vector3.UP, WM_SC)
+				_shadow_q(0, Vector3.UP, 2.2 * WM_SC)
 				blades = Node3D.new()
 				n.add_child(blades)
-				blades.position = Vector3(0, _sr(0, Vector3.UP) + 8.2, 0.7)
+				blades.position = Vector3(0, _sr(0, Vector3.UP) + 8.2 * WM_SC, 0.7 * WM_SC)
+				blades.scale = Vector3.ONE * WM_SC
 				_art("windmill_blades", Callable(), blades)
 			3:
 				# 노을 아이의 의자와 노을 띠
 				_stand("stool", NPC_D + Vector3(0, 0, 0.12), 1.0)
 				for j in 5:
-					band_bs.append(_sbox(Vector3.RIGHT, 0.2, Vector3.ONE, A))
+					band_bs.append(_sbox(Vector3.RIGHT, 0.2, Vector3.ONE, WHITE))
 			4:
 				# 담 안의 장미 (담은 돌고 틈이 하나), 탑
 				var c: Vector3 = (JOB[4].tdir as Vector3).normalized()
@@ -805,16 +829,19 @@ func _build() -> void:
 				_stand("tower", tower_d, TOWER_H / 2.5)
 				_shadow_q(4, tower_d, 1.0)
 			5:
-				# 굴뚝 집과 높은 담
+				# 굴뚝 집과 담. v11 "굴뚝 너무 어려워": 담을 넓고 낮게(1.8/2.6 → 2.7/1.3), 틈 하나(제자리) — 내려서 걸어 들어가도 된다.
+				# 놓을 자리(노란 동그라미, 소포를 들 때만)는 tr 2.1 로 넓혔다
 				var c: Vector3 = (JOB[1].tdir as Vector3).normalized()
 				_stand("chimney_house", c, 1.0)
 				_shadow_q(5, c, 1.5)
-				_ring(5, c, 1.8, false, 2.6)
+				_ring(5, c, 2.7, true, 1.3, false)
+				_zone(5, c, float(JOB[1].tr), n)
 			6:
 				# 꽃 친구
 				npcs[6] = _person(JOB[2].tdir, Color("f783ac"), C)
 				npc_mark.visible = false
 				_shadow_q(6, JOB[2].tdir, 0.7)
+		_landmark(k, n)
 		_deco(k, n)
 	# v7 지뢰 울타리 (옛 빨간 바위 띠): 노을 별 → 장미 별 곧은 길을 막는다. 덩어리로 뭉쳐 "끌지 않는 빨간 별"처럼 보이던 것을
 	# 띄엄띄엄 떨어진 가시 지뢰 18개(3층 × 6줄, MultiMesh 하나) + 그 사이를 잇는 가는 빨간 줄(한 메시)로. 줄 사이도 닿으면 죽는 칸이다
@@ -838,9 +865,7 @@ func _build() -> void:
 			if j < 5:
 				var b := nodes_f[(j + 1) * 3 + l]
 				_cyl(a, b - a, 0.07, 0.07, a.distance_to(b), 4, DANGER, DANGER)
-			if l < 2:
-				var c := nodes_f[j * 3 + l + 1]
-				_cyl(a, c - a, 0.06, 0.06, a.distance_to(c), 4, DANGER.lightened(0.15), DANGER)
+			# v11 지도 정리: 세로 줄은 뺐다 (가로 줄 셋 + 지뢰만, 막힌 곳은 그대로)
 	var fence := MeshInstance3D.new()
 	fence.mesh = _end_mesh()
 	fence.material_override = _vc(false)
@@ -892,11 +917,11 @@ func _switch(k: int) -> void:
 		msh[i].visible = false
 
 
-func _ring(k: int, c: Vector3, rr: float, gap: bool, h: float) -> void:
+func _ring(k: int, c: Vector3, rr: float, gap: bool, h: float, spin := true) -> void:
 	var bs := _basis(c)
 	var cnt := NW - 1 if gap else NW + 2
-	# v6: 담 조각을 MultiMesh 하나로 (별의 자식이라 별 기준 좌표)
-	rings[k] = {"c": c, "r": rr, "gap": gap, "e1": bs.x, "e2": bs.z, "mm": _mm("wall", cnt, pl), "n": cnt, "h": h}
+	# v6: 담 조각을 MultiMesh 하나로 (별의 자식이라 별 기준 좌표). v11 spin = false 면 틈이 제자리 (굴뚝 달)
+	rings[k] = {"c": c, "r": rr, "gap": gap, "e1": bs.x, "e2": bs.z, "mm": _mm("wall", cnt, pl), "n": cnt, "h": h, "spin": spin}
 	_place_walls(k)
 
 
@@ -933,7 +958,7 @@ func _place_walls(k: int) -> void:
 	var e1: Vector3 = rg.e1
 	var e2: Vector3 = rg.e2
 	for j in cnt:
-		var th := (gap_a if rg.gap else 0.0) + (j + 0.5) * step
+		var th := (gap_a if rg.gap and rg.spin else 0.0) + (j + 0.5) * step
 		var d := _ring_pt(rg, rk, th)
 		var tang := e2 * cos(th) - e1 * sin(th)
 		tang = (tang - d * tang.dot(d)).normalized()
@@ -1146,9 +1171,11 @@ func _assist(w: Vector3, v: Vector3, dm: int, src: int, h: float) -> Vector3:
 			var vr := v.dot(up)
 			var tanv := v - up * vr
 			var k := clampf((bsoi[dm] - r) / (bsoi[dm] * 0.5), 0.0, 1.0)  # 둘레 가장자리 0 → 안쪽 1
-			tanv *= maxf(0.0, 1.0 - CAP_T * k * h)
+			var aim := dm == ob_k or as_home > 0.0  # v11: 지금 갈 곳(또는 도움 힌트 중)만 원래만큼 잡는다
+			var ct := (CAP_T if aim else CAP_T_LO) + (DROP_SLOW if dm == drop_k else 0.0)
+			tanv *= maxf(0.0, 1.0 - ct * k * h)
 			if vr > -2.0:
-				vr -= CAP_R * k * h
+				vr -= (CAP_R if aim else CAP_R_LO) * k * h
 			if r < batm[dm]:
 				vr = maxf(vr, -LAND_VMAX * (1.0 - 0.5 * as_vmax))  # v10 as_vmax: 유리 도움 (2.75 밑이면 금이 안 간다)
 			return tanv + up * vr
@@ -1160,6 +1187,10 @@ func _assist(w: Vector3, v: Vector3, dm: int, src: int, h: float) -> Vector3:
 	if dm >= 0 and dm == src and not free:
 		return v
 	# 가장 가까이 지나갈 별: q 가 가장 작은 별부터 지뢰 울타리 검사 (예전처럼 별마다 검사하지 않는다 — 고르는 별은 같다)
+	# v11: 보통은 지금 갈 곳(ob_k) 하나만 끈다 (아무 별이나 지나가면 끌려 내려앉던 것 없앰). 도움 힌트(as_home) 중엔 예전처럼 모든 별
+	var any := as_home > 0.0
+	if not any and (ob_k < 0 or ob_k == src):
+		return v
 	var best := -1
 	var bm := 1.0
 	var bmv := Vector3.ZERO
@@ -1169,14 +1200,14 @@ func _assist(w: Vector3, v: Vector3, dm: int, src: int, h: float) -> Vector3:
 		var cq := 1.0
 		var cm := Vector3.ZERO
 		for j in bc.size():
-			if ((blocked >> j) & 1) == 1 or bfire[j] == 1 or (j == src and dm == src):
+			if ((blocked >> j) & 1) == 1 or bfire[j] == 1 or (j == src and dm == src) or (not any and j != ob_k):
 				continue
 			var rel := bc[j] - w
 			var t := rel.dot(vh)
 			if t <= 0.0:
 				continue
 			var m := rel - vh * t
-			var q := m.length() / (bsoi[j] * 2.0 + 10.0)
+			var q := m.length() / (bsoi[j] * (HOME_Q + 0.7 * as_home) + 6.0 + 4.0 * as_home)
 			if j == ob_k:
 				q *= 0.6  # 지금 갈 곳은 더 잘 끈다
 			if q < cq:
@@ -1194,7 +1225,7 @@ func _assist(w: Vector3, v: Vector3, dm: int, src: int, h: float) -> Vector3:
 	if best >= 0:
 		var ml := bmv.length()
 		if ml > br[best] * 0.5:
-			v += bmv / ml * (HOME_A * (1.0 + 1.2 * as_home) * clampf((1.0 - bm) * 2.0, 0.0, 1.0) * h)  # v10 as_home: 도움 힌트 끌어주기
+			v += bmv / ml * (HOME_A * (1.0 + 2.0 * as_home) * clampf((1.0 - bm) * 2.0, 0.0, 1.0) * h)  # v10 as_home: 도움 힌트 끌어주기
 			v = v.normalized() * spd
 	return v
 
@@ -1513,7 +1544,7 @@ func todo_rows() -> Array:
 		var task := _tx("todo.p%d" % (k + 1))
 		if k == 4 and js[3] < 2:
 			task = _tx("todo.p5_wait")
-		out.append({"who": tr(BD[k].who), "planet": tr(BD[k].name), "task": task, "st": js[k], "icon": TODO_IC[k]})
+		out.append({"who": tr(BD[k].who), "planet": tr(BD[k].name), "task": task, "st": js[k], "icon": TODO_IC[k], "pcol": _pcol(k)})
 	return out
 
 
@@ -1563,6 +1594,7 @@ func set_lang(ko: bool) -> void:
 	if _btns.has("sail"):
 		_btns["sail"].label = _tx("ui.sail")
 	_chip_code = -2
+	_tags_text()
 	ban_t = 0.0
 	if bub and bub_t > 0.0:
 		bub_t = 0.0
@@ -1888,7 +1920,7 @@ func _collide(up: Vector3) -> void:
 		if rg.gap:
 			var v := up - rc * up.dot(rc)
 			var th := atan2(v.dot(rg.e2), v.dot(rg.e1))
-			var gc := gap_a + (NW - 0.5) * TAU / NW
+			var gc := (gap_a if rg.spin else 0.0) + (NW - 0.5) * TAU / NW
 			pass_ = absf(wrapf(th - gc, -PI, PI)) < 0.3
 		if not pass_:
 			var axis := rc.cross(up)
@@ -2046,6 +2078,10 @@ func _items(dt: float, up: Vector3) -> void:
 	pick_cd -= dt
 	if ij < 0:
 		mark_b.visible = false
+		drop_k = -1
+		over_tg = false
+		if zone_b:
+			zone_b.visible = false
 		return
 	var J: Dictionary = JOB[ij]
 	if fall_on:
@@ -2083,10 +2119,25 @@ func _items(dt: float, up: Vector3) -> void:
 		elif grounded and cur == int(J.tgt) and p.distance_to(tg * R) < float(J.tr) + 0.6:
 			_deliver()
 	# 들고 날면 떨어질 자리를 보여 준다
+	# v11 굴뚝: 소포를 들면 굴뚝 달 둘레에서 천천히 돌고(drop_k), 놓을 노란 동그라미가 보이고, 그 위면 점이 초록·'놓기'가 숨쉰다
+	var tk := int(J.tgt)
+	drop_k = tk if item == "pkg" else -1
+	if zone_b:
+		zone_b.visible = item == "pkg" or (fall_on and ij == 1)
+	var tgd: Vector3 = (J.tdir as Vector3).normalized()
+	var was := over_tg
+	over_tg = item != "" and not grounded and cur == tk and up.angle_to(tgd) * br[tk] < float(J.tr)
 	mark_b.visible = item != "" and not grounded
 	if mark_b.visible:
-		var km := 1.0 + 1.2 * _cue("mark")  # v10 도움 힌트: 떨어질 자리 크게
+		var km := (1.0 + 1.2 * _cue("mark")) * (1.6 if over_tg else 1.2)  # v10 도움 힌트: 떨어질 자리 크게
 		_orient(mark_b, up * (_sr(cur, up) + 0.2), up, Vector3(km, 0.15, km))
+	if over_tg != was:
+		mark_b.material_override = _pm(GOOD if over_tg else D)
+		if over_tg:
+			sfx("ui_tap", -6.0, 1.6)
+	if _btns.has("drop"):
+		_btns["drop"].r = 90.0 + (24.0 * (0.5 + 0.5 * sin(clock * 9.0)) if over_tg else 0.0)
+		_btns["drop"].color = GOOD if over_tg else B
 
 
 func _drop_btn(on: bool) -> void:
@@ -2126,6 +2177,8 @@ func _item_landed() -> void:
 	ig_pl = fall_pl
 	ig_dir = fall_dir
 	msg(_tx("msg.missed_drop"), 1.0)
+	if ij == 1:
+		h_drop += 8.0
 
 
 func _break() -> void:
@@ -2275,7 +2328,7 @@ func _tick(dt: float, up: Vector3, lf: float) -> void:
 	if inb != _band_on:
 		_band_on = inb
 		for bb in band_bs:
-			bb.material_override = _pm(D if inb else A)
+			bb.material_override = _pm(GOOD if inb else WHITE)  # v11: 노을 별이 주황이 되어 띠는 흰색 (올라서면 초록)
 	if js[3] == 1 and cur == 3:
 		_help_band(inb, dt)
 		bprog = clampf(bprog + (dt / 14.0 if inb else -0.04 * dt), 0.0, 1.0)
@@ -2388,6 +2441,7 @@ func _hud(dt: float) -> void:
 	_bub_anim(dt)
 	_ban_anim(dt)
 	_chip_update(dt)
+	_tags_update()
 	_arrow_update()
 	var show := false
 	if js[0] == 1 and cur == 0:
@@ -2812,6 +2866,7 @@ func _chip_set(st: int, J: Dictionary) -> void:
 		_:
 			tx = _tx("goal.band")
 			_chip_icon = "band"
+	_chip_pk = ob_k if ob_k >= 0 else fj
 	chip_l.text = tx
 	var tw := _font.get_string_size(tx, HORIZONTAL_ALIGNMENT_LEFT, -1, 26).x
 	var w := minf(tw + 56.0 + 22.0, 680.0)
@@ -2826,7 +2881,107 @@ func _chip_set(st: int, J: Dictionary) -> void:
 
 
 func _chip_icon_draw() -> void:
-	_icon(chip_ic, Vector2(20, 20), 1.0, _chip_icon)
+	if _chip_pk >= 0:
+		chip_ic.draw_circle(Vector2(20, 20), 21.0, _pcol(_chip_pk))  # v11: 갈 별의 색 고리 (이름표·할 일 목록과 같은 색)
+		chip_ic.draw_circle(Vector2(20, 20), 16.5, CREAM)
+	_icon(chip_ic, Vector2(20, 20), 0.85, _chip_icon)
+
+
+## v11 별의 주인 색 (이름표·칩·할 일 목록 고리). 불 별은 위험 빨강
+func _pcol(k: int) -> Color:
+	if k < 0 or k >= BD.size():
+		return NAVY
+	if str(BD[k].kind) == "fire":
+		return DANGER
+	return (BD[k].c0 as Color).darkened(0.12)
+
+
+## v11 별 이름표 짓기 (한 번, hud2 에 칩·화살표보다 아래)
+func _tags_build() -> void:
+	tag_n.clear()
+	tag_l.clear()
+	tag_bg.clear()
+	tag_sh.clear()
+	tag_ic.clear()
+	tag_w.resize(BD.size())
+	for k in BD.size():
+		var t := Control.new()
+		t.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		t.visible = false
+		hud2.add_child(t)
+		var sh := _capsule(t, Rect2(0, 4, 100, 40), Color(NAVY, 0.4), 0, NAVY)
+		var bgp := _capsule(t, Rect2(0, 0, 100, 40), CREAM, 3, NAVY)
+		var ic := Control.new()
+		ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		ic.position = Vector2(4, 2)
+		ic.size = Vector2(36, 36)
+		ic.draw.connect(_tag_icon_draw.bind(k))
+		t.add_child(ic)
+		var l := _hud_label(t, 22, NAVY)
+		l.position = Vector2(44, 6)
+		tag_n.append(t)
+		tag_sh.append(sh)
+		tag_bg.append(bgp)
+		tag_ic.append(ic)
+		tag_l.append(l)
+	_tags_text()
+
+
+func _tags_text() -> void:
+	for k in tag_n.size():
+		var tx := tr(str(BD[k].name))
+		tag_l[k].text = tx
+		var w := _font.get_string_size(tx, HORIZONTAL_ALIGNMENT_LEFT, -1, 22).x + 44.0 + 16.0
+		tag_w[k] = w
+		tag_l[k].size = Vector2(w - 52.0, 28)
+		tag_bg[k].size = Vector2(w, 40)
+		tag_sh[k].size = Vector2(w, 40)
+		tag_n[k].size = Vector2(w, 40)
+		tag_ic[k].queue_redraw()
+
+
+func _tag_icon_draw(k: int) -> void:
+	var c := tag_ic[k]
+	var o := Vector2(18, 18)
+	c.draw_circle(o, 17.0, _pcol(k))
+	c.draw_circle(o, 12.5, Color("ffd166"))
+	_icon(c, o, 0.5, str(TAG_IC[k]))
+
+
+## 매 프레임: 이름표를 별 위(화면 위쪽)에 놓고 옅게. 발밑 별, 카메라 뒤, 발밑 별에 가림, 아주 멀거나(110~150) 아주 가깝거나,
+## 화면 가운데(나 둘레)·위 HUD·아래 버튼 칸이면 숨긴다
+func _tags_update() -> void:
+	if tag_n.is_empty() or cam == null:
+		return
+	var off := ui.title_visible() or die_t > 0.0 or fin_t > 0.0 or tow_t > 0.0 or not hud2.visible
+	var cp := cam.global_position
+	var cu := cam.global_basis.y
+	var ctr := Vector2(360.0, 620.0)
+	for k in tag_n.size():
+		var t := tag_n[k]
+		var al := 0.0
+		if not off and k != cur:
+			var tp := bc[k] + cu * (br[k] + 2.5)
+			var dd := cp.distance_to(bc[k])
+			if not cam.is_position_behind(tp):
+				var sp := cam.unproject_position(tp)
+				al = 1.0 - smoothstep(110.0, 150.0, dd)
+				al *= smoothstep(br[k] + 9.0, br[k] + 18.0, dd)
+				al *= smoothstep(110.0, 190.0, sp.distance_to(ctr))
+				al *= smoothstep(300.0, 330.0, sp.y) * (1.0 - smoothstep(930.0, 960.0, sp.y))
+				if al > 0.03:
+					var dv := tp - cp
+					var ln := dv.length()
+					if ln > 0.01 and _occ1(cp, dv / ln, ln, cur):
+						al = 0.0
+				if al > 0.03:
+					var w := tag_w[k]
+					t.position = Vector2(clampf(sp.x - w * 0.5, 8.0, 712.0 - w), sp.y - 44.0)
+		if al > 0.03:
+			t.visible = true
+			t.modulate.a = al
+		elif t.visible:
+			t.visible = false
 
 
 ## 할 일 그림 (가운데 o, 크기 배수 s): 말 걸기 "!", 바람, 소포, 유리꽃, 유리 덮개, 노을. bgc = 그림 뒤 바탕색
@@ -2861,6 +3016,13 @@ func _icon(c: CanvasItem, o: Vector2, s: float, kind: String) -> void:
 			c.draw_circle(o + Vector2(0, 5.0) * s, 14.0 * s, Color("9fd3ff"))
 			c.draw_rect(Rect2(o + Vector2(-16.0, 5.0) * s, Vector2(32.0, 12.0) * s), bgc)
 			c.draw_rect(Rect2(o + Vector2(-15.0, 5.0) * s, Vector2(30.0, 4.0) * s), NAVY)
+		"fire":
+			_tri3[0] = o + Vector2(0, -15.0) * s
+			_tri3[1] = o + Vector2(15.0, 12.0) * s
+			_tri3[2] = o + Vector2(-15.0, 12.0) * s
+			c.draw_colored_polygon(_tri3, DANGER)
+			c.draw_rect(Rect2(o + Vector2(-2.5, -6.0) * s, Vector2(5.0, 10.0) * s), WHITE)
+			c.draw_circle(o + Vector2(0, 8.0) * s, 2.5 * s, WHITE)
 		"band":
 			c.draw_circle(o + Vector2(0, 5.0) * s, 13.0 * s, Color("ff922b"))
 			c.draw_rect(Rect2(o + Vector2(-17.0, 6.0) * s, Vector2(34.0, 12.0) * s), bgc)
@@ -2971,6 +3133,10 @@ func _vis(dt: float) -> void:
 		(marks[mk] as MeshInstance3D).rotation.y = clock * 2.5
 	if spin:
 		spin.rotate_y(dt * 0.5)
+	if smoke_n and is_instance_valid(smoke_n):
+		smoke_n.rotate_object_local(Vector3.UP, dt * 0.6)
+		var sb := 1.0 + 0.08 * sin(clock * 2.2)
+		smoke_n.scale = Vector3(sb, 1.0 + 0.12 * sin(clock * 2.2 + 0.8), sb)
 	# 바람: 풍차 부탁 중 힘껏 달리면 크게, 날 때는 빠르기만큼
 	var want := -60.0
 	if die_t <= 0.0 and fin_t <= 0.0:
@@ -3626,6 +3792,149 @@ func _planet(k: int, n: Node3D) -> void:
 	n.add_child(m)
 
 
+## v11 별 구별: 멀리서 한눈에 알아보는 큰 표지 (장식과 달리 멀어도 안 숨긴다). 별마다 메시 하나 + 구운 외곽선
+## 우편 = 높은 우편탑 위 큰 편지 둘(엇갈려) · 유리꽃 = 큰 유리꽃 · 노을 = 기운 노을 고리 · 장미 = 탑 꼭대기 큰 장미 · 굴뚝 = 연기 · 친구 = 큰 꽃
+const WM_SC := 1.5  # 풍차 크기 배수
+const LM_POST := Vector3(-0.35, 0.8, 0.45)
+const LM_GLASS := Vector3(-0.5, 0.75, 0.45)
+const LM_FRIEND := Vector3(0.6, 0.55, 0.55)
+var smoke_n: Node3D  # 굴뚝 연기 (천천히 돌며 숨쉰다)
+
+
+func _landmark(k: int, n: Node3D) -> void:
+	var col: Color = BD[k].c0
+	var r2 := RandomNumberGenerator.new()
+	r2.seed = 1300 + k
+	_begin()
+	var s0 := 0
+	match k:
+		1:
+			var d := LM_POST.normalized()
+			var bs := _basis(d)
+			var b := d * (_sr(1, d) - 0.1)
+			s0 = _tv.size()
+			_cyl(b, d, 0.6, 0.42, 6.2, 6, CREAM, CREAM)
+			_cyl(b + d * 6.2, d, 0.75, 0.75, 0.35, 6, col.darkened(0.25), col)
+			_hull(s0, b + d * 3.0, 0.07)
+			for i in 2:
+				var ex := (bs.x if i == 0 else bs.z) * 1.9
+				var ez := (bs.z if i == 0 else -bs.x) * 0.16
+				var c := b + d * 7.9
+				s0 = _tv.size()
+				_slab(c, ex, d * 1.25, ez, WHITE)
+				for sg: float in [1.0, -1.0]:
+					var f := c + ez.normalized() * (0.17 * sg)
+					var o := ez.normalized() * sg
+					_tri(f + ex * 0.98 + d * 1.2, f - ex * 0.98 + d * 1.2, f - d * 0.15, col.darkened(0.15), o)
+					_tri(f + d * 0.1 + ex * 0.2, f + d * 0.1 - ex * 0.2, f - d * 0.35, DANGER, o)
+				_hull(s0, c, 0.07)
+		2:
+			var d := LM_GLASS.normalized()
+			var bs := _basis(d)
+			var b := d * (_sr(2, d) - 0.1)
+			s0 = _tv.size()
+			_cyl(b, d, 0.28, 0.2, 5.4, 5, Color("2f9e6f"), Color("2f9e6f"))
+			_dia(b + d * 2.2 + bs.x * 0.7, 0.2, 0.8, Color("37b24d"), d + bs.x)
+			_dia(b + d * 3.2 - bs.z * 0.7, 0.2, 0.8, Color("37b24d"), d - bs.z)
+			_hull(s0, b + d * 2.7, 0.06)
+			var top := b + d * 5.8
+			s0 = _tv.size()
+			for i in 6:
+				var a := TAU * i / 6.0
+				var rd := (bs.x * cos(a) + bs.z * sin(a)).normalized()
+				var pd := (rd + d * 0.55).normalized()
+				_dia(top + pd * 1.5, 0.75, 1.5, Color("c3fbef") if i % 2 == 0 else Color("8ae9d2"), pd, a)
+			_ico(top, Vector3.ONE * 0.6, 1, Color("ffd166"), Color("fff0a6"), r2)
+			_hull(s0, top, 0.07)
+		3:
+			# 노을 고리: 별을 비스듬히 두른 주황→노랑 띠 (토성 고리처럼)
+			var nrm := Vector3(0.28, 1.0, 0.18).normalized()
+			var u := _basis(nrm).x
+			var w := nrm.cross(u)
+			var rr := br[3] + 4.6
+			s0 = _tv.size()
+			for i in 30:
+				var a := TAU * i / 30.0
+				var rd := u * cos(a) + w * sin(a)
+				var tg := (w * cos(a) - u * sin(a)).normalized()
+				var cc: Color = Color("ff6b4a").lerp(Color("ffd166"), 0.5 + 0.5 * sin(a * 2.0))
+				_dia(rd * rr, 0.42, 0.95, cc, tg, 0.0)
+			_hull(s0, Vector3.ZERO, 0.05)
+		4:
+			# 탑 꼭대기 큰 장미 (멀리서 장미의 별)
+			var d := tower_d
+			var c := d * (_sr(4, d) + TOWER_H + 1.3)
+			s0 = _tv.size()
+			_ico(c, Vector3(1.25, 1.05, 1.25), 1, Color("e64980"), Color("f783ac"), r2)
+			_ico(c + d * 0.55, Vector3.ONE * 0.6, 1, Color("c2255c"), Color("e64980"), r2)
+			var bs := _basis(d)
+			for i in 4:
+				var a := TAU * i / 4.0 + 0.4
+				var ld := (bs.x * cos(a) + bs.z * sin(a)).normalized()
+				_dia(c - d * 0.7 + ld * 1.0, 0.45, 0.9, Color("37b24d"), (ld + d * -0.3).normalized())
+			_hull(s0, c, 0.07)
+		5:
+			# 굴뚝 연기: 집 위로 오르는 구름 셋 (smoke_n 이 천천히 돌며 숨쉰다)
+			var c: Vector3 = (JOB[1].tdir as Vector3).normalized()
+			smoke_n = Node3D.new()
+			n.add_child(smoke_n)
+			smoke_n.transform = Transform3D(_basis(c), c * (_sr(5, c) + 2.6))
+			for i in 3:
+				var o := Vector3(0.35 * float(i % 2) - 0.1, 0.6 + 1.25 * i, 0.15 * i)
+				var rr := 0.55 + 0.28 * i
+				s0 = _tv.size()
+				_ico(o, Vector3(rr, rr * 0.8, rr), 1, Color("f1f3f5"), Color("dee2e6"), r2)
+				_hull(s0, o, 0.06)
+			var sm := MeshInstance3D.new()
+			sm.mesh = _end_mesh()
+			sm.material_override = _vc(true)
+			sm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			smoke_n.add_child(sm)
+			return
+		6:
+			# 친구 달의 큰 꽃
+			var d := LM_FRIEND.normalized()
+			var bs := _basis(d)
+			var b := d * (_sr(6, d) - 0.1)
+			s0 = _tv.size()
+			_cyl(b, d, 0.22, 0.16, 3.4, 5, Color("2f9e6f"), Color("2f9e6f"))
+			_dia(b + d * 1.4 + bs.x * 0.55, 0.18, 0.65, Color("37b24d"), d + bs.x)
+			_hull(s0, b + d * 1.7, 0.06)
+			var top := b + d * 3.7
+			s0 = _tv.size()
+			for i in 5:
+				var a := TAU * i / 5.0
+				var rd := (bs.x * cos(a) + bs.z * sin(a)).normalized()
+				var pd := (rd + d * 0.35).normalized()
+				_dia(top + pd * 1.0, 0.6, 1.0, Color("f783ac") if i % 2 == 0 else Color("faa2c1"), pd, a)
+			_ico(top, Vector3.ONE * 0.5, 1, Color("ffd166"), Color("fff0a6"), r2)
+			_hull(s0, top, 0.07)
+		_:
+			return
+	var m := MeshInstance3D.new()
+	m.mesh = _end_mesh()
+	m.material_override = _vc(true)
+	m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	n.add_child(m)
+
+
+## v11 굴뚝 달: 소포를 놓을 자리 = 노란 점 고리 (지름 tr 호 길이). 소포를 들 때만 보인다 (_items)
+func _zone(k: int, c: Vector3, tr_: float, n: Node3D) -> void:
+	var bs := _basis(c)
+	var al := tr_ / br[k]
+	_begin()
+	for i in 14:
+		var th := TAU * i / 14.0
+		var d := (c * cos(al) + (bs.x * cos(th) + bs.z * sin(th)) * sin(al)).normalized()
+		_dia(d * (_sr(k, d) + 0.08), 0.3, 0.07, D, d, th)
+	zone_b = MeshInstance3D.new()
+	zone_b.mesh = _end_mesh()
+	zone_b.material_override = _vc(false)
+	zone_b.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	zone_b.visible = false
+	n.add_child(zone_b)
+
+
 ## 불 별: 빛나는 가시와 둘레를 도는 불씨 (돈다, 위험 = 빨강)
 func _fire_deco(k: int, n: Node3D) -> void:
 	var r2 := RandomNumberGenerator.new()
@@ -3668,7 +3977,7 @@ func _deco(k: int, n: Node3D) -> void:
 	r2.seed = 500 + k * 31
 	_rs.seed = 900 + k
 	var rr := br[k]
-	var cnt := int(rr * rr * 0.75) + 8
+	var cnt := int(rr * rr * 0.45) + 5  # v11 지도 정리: 장식 약 60% (0.75R² + 8 → 0.45R² + 5)
 	var te := _art_entry("tree", Callable())
 	var tree_art: bool = te[1]
 	var trees: Array = []
@@ -3828,13 +4137,13 @@ func _free_spot(k: int, dir: Vector3, clr: float) -> bool:
 		keep.append([HOME_D.normalized(), 1.6])
 	match k:
 		0:
-			keep.append([Vector3.UP, 2.4])
+			keep.append([Vector3.UP, 2.4 * WM_SC])
 			keep.append([START, 1.2])
 		4:
 			keep.append([(JOB[4].tdir as Vector3).normalized(), 3.0])
 			keep.append([tower_d, 1.6])
 		5:
-			keep.append([(JOB[1].tdir as Vector3).normalized(), 2.6])
+			keep.append([(JOB[1].tdir as Vector3).normalized(), 3.4])
 		6:
 			keep.append([(JOB[2].tdir as Vector3).normalized(), 1.6])
 	for kp: Array in keep:
@@ -3861,7 +4170,7 @@ func _sky() -> void:
 	m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	world.add_child(m)
 	_begin()
-	for i in 16:
+	for i in 9:  # v11 지도 정리: 먼 구름 무리 16 → 9
 		var d := Vector3(r2.randf_range(-1, 1), r2.randf_range(-0.4, 0.3), r2.randf_range(-1, 1)).normalized()
 		var c := MID + d * r2.randf_range(170.0, 220.0)
 		for j in r2.randi_range(4, 7):
@@ -4893,9 +5202,11 @@ func _help_tick(dt: float) -> void:
 			_cue_on("sling", 40.0)
 		if lv > 0:
 			return
-	if h_drop >= 40.0:
+	if h_drop >= 15.0:  # v11 "굴뚝 너무 어려워": 40초 → 15초 (빗나간 놓기는 한 번에 8초)
 		h_drop = 0.0
 		lv = _help("drop")
+		if lv == 1:
+			_cue_on("mark", 15.0)
 		if lv == 2:
 			_cue_on("mark", 30.0)
 		if lv > 0:

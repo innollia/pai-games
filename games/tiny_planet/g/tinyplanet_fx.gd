@@ -194,9 +194,9 @@ func set_bodies(centers: PackedVector3Array, radii: PackedFloat32Array) -> void:
 		var r: float = _br[b]
 		if r <= 0.0:
 			continue
-		var nc := 3 if r < 5.0 else (4 if r < 9.0 else 5)
+		var nc := 1 if r < 5.0 else 2  # v11 지도 정리: 별 사이 구름 3~5 → 1~2 (길이 잘 보이게)
 		if low:
-			nc = 2 if r < 9.0 else 3
+			nc = 1
 		var sgn := 1.0 if _rng.randf() < 0.5 else -1.0
 		for k in nc:
 			var ax := _rand_unit()

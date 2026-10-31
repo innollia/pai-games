@@ -1123,6 +1123,7 @@ var _todo_on := false
 var _todo_n := -1
 var _todo_t := 0.0
 var _todo_ic: Array[String] = ["", "", "", "", ""]
+var _todo_pc: Array[Color] = [Color.TRANSPARENT, Color.TRANSPARENT, Color.TRANSPARENT, Color.TRANSPARENT, Color.TRANSPARENT]  # v11 줄마다 별 색 (이름표·칩 고리와 같은 색)
 var _todo_st := PackedInt32Array([0, 0, 0, 0, 0])
 var _todo_hk := ""  # 든 물건 그림 이름
 var todo_seen := 0  # v10: 이번 실행에 할 일 목록을 연 수 (본체 도움 힌트가 읽는다)
@@ -1194,7 +1195,7 @@ func _todo_draw(c: Control) -> void:
 		var y := TODO_ROW_Y + float(i) * TODO_ROW_H
 		if i > 0:
 			c.draw_line(Vector2(30, y), Vector2(610, y), line, 2.0)
-		_todo_badge(c, Vector2(58, y + 56), _todo_ic[i], _todo_st[i] == 2)
+		_todo_badge(c, Vector2(58, y + 56), _todo_ic[i], _todo_st[i] == 2, _todo_pc[i])
 		var g := Vector2(565, y + 38)
 		match _todo_st[i]:
 			2:
@@ -1215,13 +1216,19 @@ func _todo_draw(c: Control) -> void:
 		c.draw_arc(Vector2(58, hy + 46), 28.0, 0.0, TAU, 28, Color(ink.r, ink.g, ink.b, 0.3), 3.0)
 
 
-func _todo_badge(c: Control, o: Vector2, kind: String, dim: bool) -> void:
+func _todo_badge(c: Control, o: Vector2, kind: String, dim: bool, pc := Color.TRANSPARENT) -> void:
 	var ink: Color = DS.ink
 	c.draw_circle(o + Vector2(0, 4), 32.0, Color(ink.r, ink.g, ink.b, 0.4))
 	c.draw_circle(o, 32.0, ink)
-	c.draw_circle(o, 28.0, DS.accent)
+	var ic_s := 0.85
+	if pc.a > 0.0:
+		c.draw_circle(o, 28.0, pc)  # v11: 별 색 고리 (하늘의 이름표와 같은 색·그림)
+		c.draw_circle(o, 21.0, DS.accent)
+		ic_s = 0.7
+	else:
+		c.draw_circle(o, 28.0, DS.accent)
 	if kind != "" and _game.has_method("todo_icon"):
-		_game.call("todo_icon", c, o, 0.85, kind)
+		_game.call("todo_icon", c, o, ic_s, kind)
 	if dim:
 		c.draw_circle(o, 28.0, Color(1, 1, 1, 0.45))
 
@@ -1238,6 +1245,8 @@ func _todo_fill() -> void:
 		var st := int(r.get("st", 0))
 		_todo_st[i] = st
 		_todo_ic[i] = str(r.get("icon", ""))
+		var pcv: Variant = r.get("pcol", Color.TRANSPARENT)
+		_todo_pc[i] = pcv if pcv is Color else Color.TRANSPARENT
 		if st == 2:
 			n += 1
 		_todo_who[i].text = "%s · %s" % [str(r.get("who", "")), str(r.get("planet", ""))]
