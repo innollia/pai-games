@@ -170,6 +170,8 @@ const EN := {
 	"%d단": "Rank %d",
 	"승리!  능력을 하나 골라요\n체력 %d/%d": "VICTORY!  Pick one skill\nHP %d/%d",
 	"고른 능력 없음": "No skills picked", "능력: ": "Skills: ",
+	"검객별 기록": "Records by swordsman", "%s\n쓰러뜨림 %d번 · 죽음 %d번": "%s\nDefeated %d · Died %d",
+	"%s\n최고 피해 %d · 죽음 %d번": "%s\nBest damage %d · Died %d", "???\n아직 못 만났어요": "???\nNot met yet",
 }
 
 ## 아래 탭 줄 (칸 번호 = tab)
@@ -181,6 +183,7 @@ const NAV_Y := 1150.0
 var tut_done := false
 var seen := [0, 0, 0, 0, 0]  # 도감: 종류별 만난 수
 var kills := [0, 0, 0, 0, 0]
+var deaths := [0, 0, 0, 0, 0]  # 종류별 이 검객에게 쓰러진 수 (10/31)
 var runs := 0
 var blocks := 0
 var perfects := 0
@@ -297,6 +300,7 @@ var play_bg: ColorRect
 var play_edge: ColorRect
 var tut_again: Label
 var char_l: Label
+var fixed_l := {}  # 대사 키 -> 늘 떠 있는 글들 (설정 창 등). 글을 고치면 _apply_text 가 다시 넣는다
 var dex_bg: Array[ColorRect] = []
 var dex_l: Array[Label] = []
 var dex_card: Label
@@ -365,11 +369,11 @@ func _load_save() -> void:
 	runs = int(d.get("runs", 0))
 	blocks = int(d.get("blocks", 0))
 	perfects = int(d.get("perfects", 0))
-	for key in ["seen", "kills"]:
+	for key in ["seen", "kills", "deaths"]:
 		var a: Variant = d.get(key, [])
 		if a is Array:
 			for i in mini(a.size(), 5):
-				(seen if key == "seen" else kills)[i] = int(a[i])
+				({"seen": seen, "kills": kills, "deaths": deaths}[key] as Array)[i] = int(a[i])
 	best_n = int(d.get("best", 0))
 	best_dmg = int(d.get("dmg", 0))
 	vol = clampi(int(d.get("vol", 8)), 0, 10)
@@ -380,7 +384,7 @@ func _load_save() -> void:
 func _save() -> void:
 	var f := FileAccess.open(FILE, FileAccess.WRITE)
 	if f:
-		f.store_string(JSON.stringify({"best": best_n, "dmg": best_dmg, "tut": tut_done, "runs": runs, "blocks": blocks, "perfects": perfects, "seen": seen, "kills": kills, "vol": vol, "vib": vib, "lang": lang}))
+		f.store_string(JSON.stringify({"best": best_n, "dmg": best_dmg, "tut": tut_done, "runs": runs, "blocks": blocks, "perfects": perfects, "seen": seen, "kills": kills, "deaths": deaths, "vol": vol, "vib": vib, "lang": lang}))
 
 
 # ---- 능력치 ----
@@ -473,12 +477,49 @@ func _default_say() -> void:
 		"cut": "베기!", "x2": "간파 일격! x2", "link": "연격!", "whiff": "헛공격!  체력 -1\n빈틈을 보였어요",
 		"whiff_steady": "헛공격!\n빈틈을 보였어요", "eguard": "헛막기", "lose": "간파 놓침", "no_gap": "막았지만 빈틈이 없어요
 두 칼 다 간파해야 해요", "win": "승리!", "dead": "쓰러짐"})
+	# 10/31: 화면에 뜨는 나머지 글도 전부 여기서 고칠 수 있게 (%d·%s = 숫자·글이 들어가는 자리)
+	say.merge({"foe_intro": "%d번째 상대\n체력 %s · 공격 %d", "hurt": "맞음 -%d", "rank": "%d단",
+		"tut_dir": "버튼을 누른 채 %s 쪽으로 밀어요!", "tut_btn": "[%s]를 눌러요!",
+		"pick_head": "승리!  능력을 하나 골라요\n체력 %d/%d",
+		"info": "나 %d/%d   ·   %d번째 %d/%d · 공격 %d", "info_boss": "나 %d/%d   ·   %d번째 · 준 피해 %d · 공격 %d",
+		"stance_none": "버튼을 누른 채 칼이 오는 쪽으로 밀기", "stance": "버튼을 밀어 방향 · 지금 %s",
+		"btn_guard": "막기", "btn_cut": "베기",
+		"best": "최고 %d명 쓰러뜨림", "home": "매 판 맨몸으로 시작해요\n검객을 쓰러뜨릴 때마다 능력을 하나 골라요",
+		"home_dmg": "\n끝판왕 최고 피해 %d", "last_dmg": "지난 판: %d번째 상대에게 %d 피해\n%s",
+		"last_dead": "지난 판: %d번째 상대에게 쓰러짐\n%s", "no_perk": "고른 능력 없음", "perks": "능력: ",
+		"char_head": "검객별 기록", "char_row": "%s\n쓰러뜨림 %d번 · 죽음 %d번", "char_boss": "%s\n최고 피해 %d · 죽음 %d번",
+		"char_unknown": "???\n아직 못 만났어요",
+		"dex_none": "???\n아직 못 만났어요\n싸우다 보면 열려요", "dex_rec": "만남 %d번 · 쓰러뜨림 %d번",
+		"dex_rec_boss": "만남 %d번 · 준 피해 최고 %d",
+		"set": "설정", "set_vol": "소리 크기", "set_vib": "진동 세기", "close": "닫기", "off": "끔",
+		"vib_note": "진동은 안드로이드 폰에서만 울려요\n0이면 꺼져요"})
+	for i in TABS.size():
+		say["tab%d" % i] = TABS[i]
+	for i in DEX.size():
+		say["dex%d" % i] = DEX[i]
 
 
 func _s(k: String) -> String:
 	if lang == "en" and say_en.has(k):
 		return say_en[k]
 	return tr(say.get(k, k))
+
+
+## 숫자가 들어가는 글: %d·%s 자리에 차례로 넣는다. 대사 편집에서 자리를 지우거나 늘려도 멈추지 않는다
+func _f(k: String, a: Array) -> String:
+	var s := _s(k)
+	var out := ""
+	var i := 0
+	var j := 0
+	while j < s.length():
+		if s[j] == "%" and j + 1 < s.length() and (s[j + 1] == "d" or s[j + 1] == "s"):
+			out += str(a[i]) if i < a.size() else ""
+			i += 1
+			j += 2
+			continue
+		out += s[j]
+		j += 1
+	return out
 
 
 ## 언어 정하기: 영어 번역표를 한 번 넣고 locale 을 바꾼다. Label 은 저절로 바뀌고, 서식 글은 tr() 로 감싼다
@@ -502,6 +543,12 @@ func _apply_text() -> void:
 	(play_bg.get_child(0) as Label).text = _s("play")
 	tut_again.text = _s("tut_again")
 	lang_top_l.text = "한국어" if lang == "en" else "English"
+	for k in fixed_l:
+		for l: Label in fixed_l[k]:
+			l.text = _s(k)
+	if _btns.has("guard"):
+		_btns.guard.label = _s("btn_guard")
+		_btns.cut.label = _s("btn_cut")
 	if lobby.visible:
 		_lobby_refresh()
 
@@ -532,6 +579,12 @@ func _panel(parent: Node, r: Rect2, c: Color) -> ColorRect:
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	parent.add_child(bg)
 	return bg
+
+
+func _fixed(k: String, l: Label) -> void:
+	if not fixed_l.has(k):
+		fixed_l[k] = []
+	fixed_l[k].append(l)
 
 
 func _white(l: Label) -> Label:
@@ -575,23 +628,11 @@ func _lobby_ui() -> void:
 	tut_again.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	tut_again.position.x = TUT_R.position.x
 	tut_again.size.x = TUT_R.size.x
-	# 1 캐릭터: 상자 검객 그림 + 능력치 + 기록
+	# 1 캐릭터: 검객별로 몇 번 쓰러뜨리고 몇 번 죽었는지만 (10/31)
 	_panel(pages[1], Rect2(0, 194, 720, NAV_Y - 194), Color(0.12, 0.08, 0.05, 0.8))
-	var fig := Control.new()
-	fig.position = Vector2(310, 220)
-	fig.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	pages[1].add_child(fig)
-	var sw := _panel(fig, Rect2(118, -10, 16, 190), WHITE)
-	sw.rotation = 0.5
-	_panel(fig, Rect2(10, 40, 60, 56), Color("3b2a20"))
-	_panel(fig, Rect2(-6, 26, 92, 20), INK)
-	_panel(fig, Rect2(-10, 96, 100, 120), ME)
-	_panel(fig, Rect2(-10, 150, 100, 14), INK)
-	_panel(fig, Rect2(4, 216, 30, 44), INK)
-	_panel(fig, Rect2(46, 216, 30, 44), INK)
-	_panel(fig, Rect2(90, 120, 40, 26), ME)
-	char_l = _white(_label(pages[1], 32, 500, 640))
-	char_l.label_settings.line_spacing = 4
+	char_l = _white(_label(pages[1], 38, 214, NAV_Y - 234))
+	char_l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	char_l.label_settings.line_spacing = 6
 	# 2 도감: 위 칩 다섯, 가운데 검객(3D), 아래 설명 카드
 	for i in 5:
 		var bg := _panel(pages[2], _dex_r(i), SOFT)
@@ -615,14 +656,13 @@ func _lobby_ui() -> void:
 		var l := _white(_label(bg, 32, 0, r.size.y - 8))
 		l.size.x = r.size.x - 8
 		l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		l.text = TABS[i]
 		nav_l.append(l)
 	# 위 띠 오른쪽 [설정] → 소리·진동 창
 	set_btn = _panel(lobby, SET_R, Color("5a4632"))
 	var sl2 := _white(_label(set_btn, 30, 0, SET_R.size.y))
 	sl2.size.x = SET_R.size.x
 	sl2.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	sl2.text = "설정"
+	_fixed("set", sl2)
 	lang_btn = _panel(lobby, LANG_R, Color("5a4632"))
 	lang_top_l = _white(_label(lang_btn, 28, 0, LANG_R.size.y))
 	lang_top_l.size.x = LANG_R.size.x
@@ -631,11 +671,11 @@ func _lobby_ui() -> void:
 	set_box = _panel(lobby, Rect2(0, 194, 720, NAV_Y - 194), Color(0.08, 0.05, 0.03, 0.94))
 	set_box.visible = false
 	var st := _white(_label(set_box, 48, 120, 90))
-	st.text = "설정"
+	_fixed("set", st)
 	for i in 2:
 		var y := 470.0 + i * 200.0 - 194.0
 		var nm := _white(_label(set_box, 34, y - 70, 60))
-		nm.text = ["소리 크기", "진동 세기"][i]
+		_fixed(["set_vol", "set_vib"][i], nm)
 		for plus in [false, true]:
 			var r := _set_r(i, plus)
 			var b := _panel(set_box, Rect2(r.position - Vector2(0, 194), r.size), D)
@@ -653,7 +693,7 @@ func _lobby_ui() -> void:
 	var cl := _white(_label(close, 38, 0, SET_CLOSE.size.y))
 	cl.size.x = SET_CLOSE.size.x
 	cl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	cl.text = "닫기"
+	_fixed("close", cl)
 	var lb := _panel(set_box, Rect2(SET_LANG.position - Vector2(0, 194), SET_LANG.size), D)
 	lang_l = _label(lb, 34, 0, SET_LANG.size.y)
 	lang_l.size.x = SET_LANG.size.x
@@ -661,8 +701,7 @@ func _lobby_ui() -> void:
 	lang_l.label_settings.outline_size = 0
 	lang_l.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 	var sh := _white(_label(set_box, 28, 1064 - 194, 80))
-	sh.text = "진동은 안드로이드 폰에서만 울려요
-0이면 꺼져요"
+	_fixed("vib_note", sh)
 	# 검객을 쓰러뜨리면 뜨는 능력 고르기 (카드 셋)
 	var pl2 := CanvasLayer.new()
 	pl2.layer = 5
@@ -689,7 +728,7 @@ func _set_refresh() -> void:
 	for i in 2:
 		var v: int = vol if i == 0 else vib
 		set_fill[i].size.x = 360.0 * v / 10.0
-		set_val[i].text = "끔" if v == 0 else "%d%%" % (v * 10)
+		set_val[i].text = _s("off") if v == 0 else "%d%%" % (v * 10)
 	lang_l.text = "한국어로 바꾸기" if lang == "en" else "Switch to English"
 	lang_top_l.text = "한국어" if lang == "en" else "English"
 
@@ -710,34 +749,42 @@ func _buzz(ms: int, amp: float) -> void:
 
 ## 막기·베기 버튼 (여러 손가락: 한 손가락으로 밀면서 다른 손가락으로 누른다). 상점에서는 뺀다.
 func _buttons() -> void:
-	kit_button("guard", "막기", btn_at.guard, btn_r.guard, B)
-	kit_button("cut", "베기", btn_at.cut, btn_r.cut, A)
+	kit_button("guard", _s("btn_guard"), btn_at.guard, btn_r.guard, B)
+	kit_button("cut", _s("btn_cut"), btn_at.cut, btn_r.cut, A)
 
 
 func _lobby_refresh() -> void:
-	top_l.text = tr("최고 %d명 쓰러뜨림") % best_n
+	top_l.text = _f("best", [best_n])
 	for i in TABS.size():
+		nav_l[i].text = _s("tab%d" % i)
 		pages[i].visible = i == tab
 		nav_bg[i].color = D if i == tab else Color("5a4632")
 		nav_l[i].label_settings.font_size = 36 if i == tab else 30
 	match tab:
 		0:
-			var h := last_run if last_run != "" else tr("매 판 맨몸으로 시작해요\n검객을 쓰러뜨릴 때마다 능력을 하나 골라요")
+			var h := last_run if last_run != "" else _s("home")
 			if best_dmg > 0:
-				h += tr("\n끝판왕 최고 피해 %d") % best_dmg
+				h += _f("home_dmg", [best_dmg])
 			home_l.text = h
 		1:
-			char_l.text = tr("나 · 떠돌이 검객\n\n체력 6 · 베기 힘 1 · 간파 0.15초\n(판마다 맨몸으로 시작,\n검객을 쓰러뜨리면 능력을 골라요)\n\n— 기록 —\n최고 %d명 쓰러뜨림 · 끝판왕 최고 피해 %d\n싸운 판 %d · 막기 %d · 간파 %d") % [
-				best_n, best_dmg, runs, blocks, perfects]
+			var rows: Array = [_s("char_head")]
+			for i in 5:
+				if seen[i] == 0:
+					rows.append(_s("char_unknown"))
+				elif i < 4:
+					rows.append(_f("char_row", [_s("name%d" % i), kills[i], deaths[i]]))
+				else:
+					rows.append(_f("char_boss", [_s("name%d" % i), best_dmg, deaths[i]]))
+			char_l.text = "\n\n".join(rows)
 		2:
 			for i in 5:
-				dex_l[i].text = DEX[i] if seen[i] > 0 else "???"
+				dex_l[i].text = _s("dex%d" % i) if seen[i] > 0 else "???"
 				dex_bg[i].color = D if i == dex_pick else (SOFT if seen[i] > 0 else Color("8a7a66"))
 			var i := dex_pick
 			if seen[i] == 0:
-				dex_card.text = tr("???\n아직 못 만났어요\n싸우다 보면 열려요")
+				dex_card.text = _s("dex_none")
 			else:
-				var rec := tr("만남 %d번 · 쓰러뜨림 %d번") % [seen[i], kills[i]] if i < 4 else tr("만남 %d번 · 준 피해 최고 %d") % [seen[i], best_dmg]
+				var rec := _f("dex_rec", [seen[i], kills[i]]) if i < 4 else _f("dex_rec_boss", [seen[i], best_dmg])
 				dex_card.text = "%s\n%s\n%s" % [_s("name%d" % i), _s("tip%d" % i).replace("\n", " "), rec]
 
 
@@ -1014,6 +1061,12 @@ func _spawn_rest(k: int, hp_y: float) -> void:
 	_hp_bar()
 
 
+## 검객 전체 투명도 (0 = 안 보임, 1 = 다 보임). 등장할 때 페이드인
+func _fade(a: float) -> void:
+	for m in piv.find_children("*", "GeometryInstance3D", true, false):
+		(m as GeometryInstance3D).transparency = 1.0 - a
+
+
 func _eyes() -> void:
 	var c := BAD if ph == 2 or ftype == 4 else INK
 	for e in eyes:
@@ -1041,7 +1094,7 @@ func _intro() -> void:
 		mode_t = 2.6
 		var hp_s := "∞" if ftype == 4 else str(foe_max)
 		# 상대가 누구인지는 글로 알려 주지 않는다 (로비 도감에서만)
-		msg(tr("%d번째 상대\n체력 %s · 공격 %d") % [n + 1, hp_s, foe_atk], 2.0)
+		msg(_f("foe_intro", [n + 1, hp_s, foe_atk]), 2.0)
 
 
 func _start_run() -> void:
@@ -1067,6 +1120,7 @@ func _start_run() -> void:
 	stance = -1
 	_buttons()
 	fl = Vector3(0, 0, -10)
+	_fade(0.0)
 	mode = "enter"
 	mode_t = 1.0
 
@@ -1243,14 +1297,16 @@ func _step(dt: float) -> void:
 			_relax(dt)
 		"enter":
 			fl = fl.lerp(Vector3.ZERO, minf(1.0, dt * 4.0))
+			_fade(clampf(1.0 - mode_t, 0.0, 1.0))  # 적이 스르륵 나타난다 (10/31)
 			if mode_t <= 0.0:
+				_fade(1.0)
 				_intro()
 		"dead":
 			if mode_t <= 0.0:
 				if ftype == 4:
-					last_run = tr("지난 판: %d번째 상대에게 %d 피해\n%s") % [n + 1, boss_dmg, _perk_text()]
+					last_run = _f("last_dmg", [n + 1, boss_dmg, _perk_text()])
 				else:
-					last_run = tr("지난 판: %d번째 상대에게 쓰러짐\n%s") % [n + 1, _perk_text()]
+					last_run = _f("last_dead", [n + 1, _perk_text()])
 				lobby_k = n
 				_to_lobby(0)
 	piv.position = fl
@@ -1261,7 +1317,7 @@ func _step(dt: float) -> void:
 	mark.rotation.z = piv.rotation.z
 	stance_l.visible = mode != "lobby"
 	_score_l.visible = mode != "lobby"
-	stance_l.text = tr("버튼을 누른 채 칼이 오는 쪽으로 밀기") if stance < 0 else tr("버튼을 밀어 방향 · 지금 %s") % ARROW[stance]
+	stance_l.text = _s("stance_none") if stance < 0 else _f("stance", [ARROW[stance]])
 	if flash_t > 0.0:
 		flash_t -= dt
 		if flash_t <= 0.0:
@@ -1282,9 +1338,9 @@ func _step(dt: float) -> void:
 	else:
 		gauge(float(life) / float(max_life), GOOD if life > foe_atk else BAD)
 		if ftype == 4:
-			info_l.text = tr("나 %d/%d   ·   %d번째 · 준 피해 %d · 공격 %d") % [maxi(life, 0), max_life, n + 1, boss_dmg, foe_atk]
+			info_l.text = _f("info_boss", [maxi(life, 0), max_life, n + 1, boss_dmg, foe_atk])
 		else:
-			info_l.text = tr("나 %d/%d   ·   %d번째 %d/%d · 공격 %d") % [maxi(life, 0), max_life, n + 1, maxi(foe_hp, 0), foe_max, foe_atk]
+			info_l.text = _f("info", [maxi(life, 0), max_life, n + 1, maxi(foe_hp, 0), foe_max, foe_atk])
 
 
 func _fight(dt: float) -> void:
@@ -1485,7 +1541,7 @@ func _twice_next() -> bool:
 
 
 func _hurt() -> void:
-	msg(tr("맞음 -%d") % foe_atk, 0.5)
+	msg(_f("hurt", [foe_atk]), 0.5)
 	sfx(SND["hit"], 0.72)  # 내가 맞음: 적중 소리를 낮게 (10/31)
 	_hold(false)
 	if fx:
@@ -1507,6 +1563,7 @@ func _damage(v: int) -> void:
 		mode = "dead"
 		mode_t = 1.4
 		msg(_s("dead"), 1.4)
+		deaths[ftype] += 1
 		best_n = maxi(best_n, n)
 		if ftype == 4:
 			best_dmg = maxi(best_dmg, boss_dmg)
@@ -1557,10 +1614,10 @@ func _act(a: int) -> void:
 		var want: int = rdir if fs == 1 else odir
 		var want_a := 0 if fs == 1 else 1
 		if d != want:
-			msg(tr("버튼을 누른 채 %s 쪽으로 밀어요!") % ARROW[want], 0.8)
+			msg(_f("tut_dir", [ARROW[want]]), 0.8)
 			return
 		if a != want_a:
-			msg(tr("[%s]를 눌러요!") % tr(ACT[want_a]), 0.8)
+			msg(_f("tut_btn", [_s(["btn_guard", "btn_cut"][want_a])]), 0.8)
 			return
 		hold = false
 		tut += 1
@@ -1742,7 +1799,7 @@ func _cut() -> void:
 		mi = 0
 		mode = "shift"
 		mode_t = 1.2
-		msg(tr("%d단") % (ph + 1), 1.0)
+		msg(_f("rank", [ph + 1]), 1.0)
 		_eyes()
 
 
@@ -1766,7 +1823,7 @@ func _open_pick() -> void:
 	mode_t = 0.45  # 베기를 연타하다 카드를 잘못 누르지 않게 잠깐 막는다
 	_btns.clear()
 	pend.clear()
-	pick_head.text = tr("승리!  능력을 하나 골라요\n체력 %d/%d") % [life, max_life]
+	pick_head.text = _f("pick_head", [life, max_life])
 	for i in 3:
 		pick_bg[i].visible = i < pick.size()
 		if i < pick.size():
@@ -1795,6 +1852,7 @@ func _next_foe() -> void:
 	_buttons()
 	_spawn(n)
 	fl = Vector3(0, 0, -10)
+	_fade(0.0)
 	mode = "enter"
 	mode_t = 1.2
 
@@ -1839,7 +1897,7 @@ func _perk_text() -> String:
 		var lv := _lv(p[0])
 		if lv > 0:
 			s.append(_s("pk_" + p[0]) if lv == 1 else "%s+%d" % [_s("pk_" + p[0]), lv])
-	return tr("고른 능력 없음") if s.is_empty() else tr("능력: ") + ", ".join(s)
+	return _s("no_perk") if s.is_empty() else _s("perks") + ", ".join(s)
 
 
 func _lobby_tap(p: Vector2) -> void:
