@@ -41,6 +41,8 @@ const MID := Vector3(50, 0, 10)  # 하늘 가운데
 const BOUND := 78.0  # 어느 별에도 안 끌린 채 여기 밖이면 떠내려간다 (+10이면 끝)
 const BELT_A := Vector3(73.2, 0, 44.4)  # 빨간 바위 띠 (노을 별 → 장미 별 곧은 길을 막는다)
 const BELT_B := Vector3(69.0, 0, 27.0)
+const BELT_LO := Vector2(69.0 - 3.4, 27.0 - 3.4)  # 지뢰 울타리 상자 (x, z) - 3.4 (_seg_belt 빠른 거름)
+const BELT_HI := Vector2(73.2 + 3.4, 44.4 + 3.4)
 const ART := "res://art/tinyplanet/"
 const SFX := "res://art/tinyplanet_sfx/"
 const CREAM := Color("fff6e6")
@@ -271,9 +273,22 @@ var main_lost := false
 var tip_t := 0.0
 var _sail_shown := false
 var _tri3 := PackedVector2Array([Vector2.ZERO, Vector2.ZERO, Vector2.ZERO])
+# ---- ?debug=1 성능 표 (웹 주소에 debug=1 이 있을 때만) ----
+var _dbg: Label
+var _dbg_win := 0.0  # 표를 고치는 0.5초 구간
+var _dbg_n := 0  # 구간 프레임 수
+var _dbg_last := 0  # 지난 _process 시각 (usec)
+var _dbg_fmax := 0  # 구간 최대 프레임 간격 (usec)
+var _dbg_sum := {}  # 이름 -> 구간 합 (usec)
+var _dbg_max := {}  # 이름 -> 구간 최대 (usec)
+var _dbg_txt := ""
+var _dbg_cb: JavaScriptObject  # window.tpcmd("...") 로 실험 (list·vis·ol·s3d·launch·tp)
+var _dbg_nodes: Array = []
+var _dbg_np := {}  # 외곽선 끈 재질 -> 원래 next_pass
 
 
 func _setup() -> void:
+	_dpr_cap()
 	_lang()
 	time_limit = 0.0
 	howto = ""  # 설명 카드·튜토리얼 없음 (v6: 첫 판에만 말풍선 안내 한 줄)
@@ -325,6 +340,27 @@ func _setup() -> void:
 	pbar_bg.visible = false
 	_bub_build()
 	_v7_hud_build()
+	_dbg_build()
+
+
+## v8 성능 (웹): 고해상도 폰(devicePixelRatio 3 등)은 화면 픽셀을 다 그리면 GPU 가 벅차다.
+## 놀이 화면 폭이 약 800px(설계 720px 보다 조금 크게)을 넘지 않게 브라우저가 알려 주는 픽셀 배율을 낮춘다.
+## Godot 웹은 매 프레임 이 값으로 캔버스 크기를 정한다. 주소에 hires=1 이면 그대로.
+func _dpr_cap() -> void:
+	if not OS.has_feature("web"):
+		return
+	JavaScriptBridge.eval("""(function(){
+	if (window.__tpDpr || location.search.indexOf('hires=1') >= 0) return;
+	var ds = Object.getOwnPropertyDescriptor(window, 'devicePixelRatio') || Object.getOwnPropertyDescriptor(Window.prototype, 'devicePixelRatio');
+	if (!ds || !ds.get) return;
+	var g = ds.get;
+	window.__tpDpr = true;
+	Object.defineProperty(window, 'devicePixelRatio', {configurable: true, get: function(){
+		var d = g.call(window) || 1;
+		var gw = Math.min(window.innerWidth, window.innerHeight * 0.5625);
+		return Math.min(d, Math.max(1, 800 / Math.max(gw, 1)));
+	}});
+})();""", true)
 
 
 ## 둥근 판 (모서리 = 높이/2 → 캡슐). bw > 0 이면 잉크 테두리
@@ -434,7 +470,7 @@ func _person(dir: Vector3, body: Color, hat: Color) -> Node3D:
 		pu.scale = Vector3.ONE * er * 0.5
 		pu.position = (e[0] as Vector3) + Vector3(0, 0, -er * 0.6)
 		vil_pupils.append([pu, e[0], er, vb])
-	vil_bobs.append([vb, lift, float(bk) * 1.7])
+	vil_bobs.append([vb, lift, float(bk) * 1.7, bk])  # [3] = 별 번호 (멀면 숨김, _lod)
 	npc_mark = _ushape("gem", D, n)
 	npc_mark.position = Vector3(0, 2.9, 0)
 	npc_mark.scale = Vector3(0.45, 0.95, 0.45)
@@ -618,6 +654,7 @@ func _reset() -> void:
 	world.add_child(gmi)
 	sim_cd = 0
 	sim_show = false
+	_dot_tmp.resize(ND)
 	sail_open = 0.0
 	sail_used = false
 	sail_hinted = false
@@ -697,6 +734,8 @@ func _build() -> void:
 	belt.clear()
 	vil_pupils.clear()
 	vil_bobs.clear()
+	deco_n.clear()
+	deco_on.clear()
 	spin = null
 	for k in BD.size():
 		var d: Dictionary = BD[k]
@@ -1092,24 +1131,38 @@ func _assist(w: Vector3, v: Vector3, dm: int, src: int, h: float) -> Vector3:
 		v = vh * spd
 	if dm >= 0 and dm == src and not free:
 		return v
+	# 가장 가까이 지나갈 별: q 가 가장 작은 별부터 지뢰 울타리 검사 (예전처럼 별마다 검사하지 않는다 — 고르는 별은 같다)
 	var best := -1
 	var bm := 1.0
 	var bmv := Vector3.ZERO
-	for j in bc.size():
-		if bfire[j] == 1 or (j == src and dm == src):
-			continue
-		var rel := bc[j] - w
-		var t := rel.dot(vh)
-		if t <= 0.0:
-			continue
-		var m := rel - vh * t
-		var q := m.length() / (bsoi[j] * 2.0 + 10.0)
-		if j == ob_k:
-			q *= 0.6  # 지금 갈 곳은 더 잘 끈다
-		if q < bm and not _seg_belt(w, bc[j]):
-			bm = q
-			best = j
-			bmv = m
+	var blocked := 0
+	while true:
+		var cand := -1
+		var cq := 1.0
+		var cm := Vector3.ZERO
+		for j in bc.size():
+			if ((blocked >> j) & 1) == 1 or bfire[j] == 1 or (j == src and dm == src):
+				continue
+			var rel := bc[j] - w
+			var t := rel.dot(vh)
+			if t <= 0.0:
+				continue
+			var m := rel - vh * t
+			var q := m.length() / (bsoi[j] * 2.0 + 10.0)
+			if j == ob_k:
+				q *= 0.6  # 지금 갈 곳은 더 잘 끈다
+			if q < cq:
+				cq = q
+				cand = j
+				cm = m
+		if cand < 0:
+			break
+		if not _seg_belt(w, bc[cand]):
+			best = cand
+			bm = cq
+			bmv = cm
+			break
+		blocked |= 1 << cand
 	if best >= 0:
 		var ml := bmv.length()
 		if ml > br[best] * 0.5:
@@ -1130,6 +1183,9 @@ func _is_free(w: Vector3, spd: float, dm: int) -> bool:
 func _seg_belt(a: Vector3, b: Vector3) -> bool:
 	if minf(absf(a.y), absf(b.y)) > 8.0 and a.y * b.y > 0.0:
 		return false
+	# 빠른 거름: 두 선분의 상자(3.4 넓힘)가 안 겹치면 가까이 지날 수 없다 (점선 계산이 매 단계 부른다)
+	if maxf(a.x, b.x) < BELT_LO.x or minf(a.x, b.x) > BELT_HI.x or maxf(a.z, b.z) < BELT_LO.y or minf(a.z, b.z) > BELT_HI.y:
+		return false
 	var p1 := Vector2(a.x, a.z)
 	var p2 := Vector2(b.x, b.z)
 	var q1 := Vector2(BELT_A.x, BELT_A.z)
@@ -1146,32 +1202,58 @@ func _seg_belt(a: Vector3, b: Vector3) -> bool:
 	return q2.distance_squared_to(Geometry2D.get_closest_point_to_segment(q2, p1, p2)) < lim
 
 
-func _sim(w: Vector3, v: Vector3, k: int, at: float, secs: float, h: float, out: PackedVector3Array, src := -1) -> int:
+## fine = true 면 out 에 처음 위치와 매 단계 위치를 다 넣는다 (점선을 매 프레임 그 길 위로 부드럽게 옮길 때)
+func _sim(w: Vector3, v: Vector3, k: int, at: float, secs: float, h: float, out: PackedVector3Array, src := -1, fine := false) -> int:
 	var n := int(secs / h)
 	var every := maxi(1, n / ND)
 	out.clear()
 	sim_why = 0
 	if src < 0:
 		src = k
+	if fine:
+		out.append(w)
+	var nb := bc.size()
 	for i in n:
-		v += _gacc(w) * h
-		var dm := _dominant(w)
+		# _gacc + _dominant 를 한 번에 (같은 계산, 별을 한 바퀴만 돈다)
+		var acc := Vector3.ZERO
+		var dm := -1
+		var bf := 0.0
+		for j in nb:
+			var d := bc[j] - w
+			var r := d.length()
+			var so := bsoi[j]
+			if r >= so:
+				continue
+			var f := clampf((so - r) / (0.25 * so), 0.0, 1.0)
+			if r >= 0.01:
+				acc += d / r * (bmu[j] / (r * r) * f)
+			var fd := f * bmu[j] / maxf(r * r, 0.01)
+			if fd > bf:
+				bf = fd
+				dm = j
+		v += acc * h
 		if dm >= 0:
 			k = dm
 		var rel := w - bc[k]
-		if batm[k] > 0.0 and rel.length() < batm[k] and v.dot(rel) < 0.5 * rel.length():
-			at += h
-		v = _air_drag(v, k, rel, at, h)
+		if batm[k] > 0.0:
+			var rl := rel.length()
+			if rl < batm[k]:
+				if v.dot(rel) < 0.5 * rl:
+					at += h
+				v = _air_drag(v, k, rel, at, h)  # 대기 밖이면 _air_drag 는 아무것도 안 한다 (부르지 않는다)
 		v = _assist(w, v, dm, src, h)
 		w += v * h
-		if i % every == every - 1 and out.size() < ND:
+		if fine:
+			out.append(w)
+		elif i % every == every - 1 and out.size() < ND:
 			out.append(w)
 		if (w - bc[k]).length() <= br[k]:
 			if bfire[k] == 1:
 				sim_why = 2
 				return -2
 			return k
-		if _in_belt(w):
+		# 지뢰 울타리 둘레 상자 밖이면 _in_belt 를 부르지 않는다 (울타리 길이 8% 더 + 2.3 = 3.7 < 4)
+		if absf(w.y) <= 6.0 and w.x > BELT_LO.x - 0.6 and w.x < BELT_HI.x + 0.6 and w.z > BELT_LO.y - 0.6 and w.z < BELT_HI.y + 0.6 and _in_belt(w):
 			sim_why = 2
 			return -2
 		if dm < 0 and (w - MID).length() > BOUND + 10.0:
@@ -1181,8 +1263,17 @@ func _sim(w: Vector3, v: Vector3, k: int, at: float, secs: float, h: float, out:
 
 
 ## 앞길 점선: 땅에선 "지금 점프하면", 날 땐 지금 길. 다른 별 초록, 위험 빨강, 제 별로 돌아오면 흰색.
-## v6: 계산은 3프레임에 한 번 (날기↔땅이 바뀌면 바로), 점 24개는 MultiMesh 하나. 다른 별에 닿으면 끝 점이 크다.
-## v7: 점 78% 크기. 날 때 공중 한 번(돛·공중 점프)이 남았으면 "지금 쓰면 갈 길"을 작고 옅은 점선으로 (점선 다음 프레임에 계산)
+## 점 24개는 MultiMesh 하나. 다른 별에 닿으면 끝 점이 크다. v7: 점 78% 크기.
+## 날 때 공중 한 번(돛·공중 점프)이 남았으면 "지금 쓰면 갈 길"을 작고 옅은 점선으로.
+## 부드럽게 (v8 성능): 땅에선 매 프레임 계산 (달리면 길 모양이 바뀐다). 날 땐 길 전체(1/30초 단계)를 4프레임에 한 번 계산해 두고,
+## 매 프레임 날아간 시간만큼 그 길 위로 점을 옮긴다 (날기와 같은 계산이라 다시 계산해도 안 튄다). 연한 점선은 매 프레임.
+const SIM_H := 1.0 / 30.0
+const SIM_SECS := 5.5
+var sim_fine := PackedVector3Array()  # 날 때 지금 길: [0] = 계산한 순간 위치, [i] = i 단계 뒤
+var sim_age := 0.0  # 그 길을 계산한 뒤 날아간 (빨리 감기 포함) 시간
+var fly_adv := 0.0  # 이번 프레임 날기에 쓴 시간 (_play 가 넣는다)
+
+
 func _dots_update(up: Vector3, lift: float) -> void:
 	var show := false
 	if die_t <= 0.0 and fin_t <= 0.0 and tow_t <= 0.0:
@@ -1190,20 +1281,50 @@ func _dots_update(up: Vector3, lift: float) -> void:
 	if not show:
 		_dots_off()
 		return
-	sim_cd -= 1
 	var w := bc[cur] + p
 	var lb := cur if grounded else from_b
-	if sim_cd == 1 and sim_show:
-		_ghost_update(w, up, lb)
-	if sim_show and sim_cd > 0:
-		return
-	sim_cd = 3
-	sim_show = true
 	if grounded:
-		sim_res = _sim(w + up * 0.1, _jump_v(up, vel + up * JUMP), cur, 0.0, 5.5, 1.0 / 30.0, sim_pts, cur)
-	else:
-		sim_res = _sim(w, vel, cur, atm_t, 5.5, 1.0 / 30.0, sim_pts, from_b)
-	_dots_fill(dots_mm, sim_pts, _dot_col(sim_res, lb), DOT_SC)
+		sim_show = true
+		sim_cd = 0
+		sim_res = _sim(w + up * 0.1, _jump_v(up, vel + up * JUMP), cur, 0.0, SIM_SECS, SIM_H, sim_pts, cur)
+		_dots_fill(dots_mm, sim_pts, _dot_col(sim_res, lb), DOT_SC)
+		if ghost_mm:
+			ghost_mm.visible_instance_count = 0
+		return
+	sim_age += fly_adv
+	sim_cd -= 1
+	if not sim_show or sim_cd <= 0:
+		sim_cd = 4
+		sim_show = true
+		sim_age = 0.0
+		sim_res = _sim(w, vel, cur, atm_t, SIM_SECS, SIM_H, sim_fine, from_b, true)
+	_dots_along(dots_mm, sim_fine, sim_age, _dot_col(sim_res, lb), DOT_SC)
+	_ghost_update(w, up, lb)
+
+
+## 미리 계산한 길(fine) 위에서 age 초 뒤부터 점 간격(_sim 과 같은 시간)마다 점을 놓는다 (사이는 이어서)
+func _dots_along(mm: MultiMesh, fine: PackedVector3Array, age: float, col: Color, sc0: float) -> void:
+	var n := int(SIM_SECS / SIM_H)
+	var gap := float(maxi(1, n / ND)) * SIM_H
+	var last := fine.size() - 1
+	var cnt := 0
+	for m in ND:
+		var f := (age + gap * float(m + 1)) / SIM_H
+		if f > float(last) + 0.001 or last < 1:
+			break
+		var i0 := mini(int(f), last - 1)
+		_dot_tmp[m] = fine[i0].lerp(fine[i0 + 1], clampf(f - float(i0), 0.0, 1.0))
+		cnt += 1
+	mm.visible_instance_count = cnt
+	for i in cnt:
+		var sc := sc0
+		if i == cnt - 1 and col == GOOD:
+			sc = sc0 * 1.9
+		mm.set_instance_transform(i, Transform3D(Basis.IDENTITY.scaled(Vector3(sc, sc, sc)), _dot_tmp[i]))
+		mm.set_instance_color(i, col)
+
+
+var _dot_tmp := PackedVector3Array()
 
 
 ## 점선 색: 닿는 별이 다른 별이면 초록, 위험 빨강, 그 밖(제 별로 돌아옴·아직 날고 있음) 흰색
@@ -1301,18 +1422,24 @@ func _turn(a: Vector3, b: Vector3, t: float) -> Vector3:
 ## 매 프레임: 시작 화면이면 하늘을 천천히 돌고, 아니면 놀이. 끝에 ui·fx 에 상태를 넘긴다 (fx 는 _camera 뒤)
 func _step(dt: float) -> void:
 	_stepped = true
+	var t0 := Time.get_ticks_usec() if _dbg else 0
 	if ui.title_visible():
 		clock += dt
 		_title_cam(dt)
 	else:
 		_play(dt)
+	_lod()
 	_post(dt)
+	_dbg_add("step", t0)
 
 
 func _post(dt: float) -> void:
 	var s := _state()
+	var t0 := Time.get_ticks_usec() if _dbg else 0
 	ui.tick(dt, s)
+	t0 = _dbg_add("ui.tick", t0)
 	fx.tick(dt, s)
+	_dbg_add("fx.tick", t0)
 
 
 ## 시작 화면 카메라: 하늘 가운데(MID)를 높이 떠서 천천히 돈다 (별들이 한눈에)
@@ -1394,8 +1521,11 @@ func is_korean() -> bool:
 
 func _play(dt: float) -> void:
 	clock += dt
+	var t0 := Time.get_ticks_usec() if _dbg else 0
 	_hud(dt)
+	t0 = _dbg_add("hud", t0)
 	_vis(dt)
+	_dbg_add("vis+posty", t0)
 	_sail_btn(dt)
 	if fin_t > 0.0:
 		fin_t -= dt
@@ -1432,6 +1562,7 @@ func _play(dt: float) -> void:
 		var w0 := bc[cur] + p
 		var fast := fly_t > 0.6 and not main_lost and _is_free(w0, vel.length(), _dominant(w0))
 		ff = move_toward(ff, 2.2 if fast else 1.0, dt * 3.0)
+		fly_adv = dt * ff
 		if _fly(dt * ff):
 			return
 		if grounded:
@@ -1453,9 +1584,12 @@ func _play(dt: float) -> void:
 	_place_me()
 	_gauge_now(up)
 	_items(dt, up)
+	var t2 := Time.get_ticks_usec() if _dbg else 0
 	_tick(dt, up, vel.length() / lift)
+	t2 = _dbg_add("tick", t2)
 	_meteors(dt, up)
 	_dots_update(up, lift)
+	_dbg_add("sim", t2)
 	_camera(dt)
 
 
@@ -1525,6 +1659,7 @@ func _liftoff() -> void:
 	drift_said = false
 	lost_t = 0.0
 	lost_cd = 0.5
+	_lost_r2 = false
 	lost_now = false
 	air_tip = false
 	sail_open = 0.0
@@ -2023,7 +2158,8 @@ func _tick(dt: float, up: Vector3, lf: float) -> void:
 			_done()
 	# 장미 별의 도는 담
 	gap_a += 0.8 * dt
-	_place_walls(4)
+	if deco_on.size() <= 4 or deco_on[4] == 1:
+		_place_walls(4)  # 멀어서 장식을 숨긴 동안은 안 고친다 (각도는 gap_a 라 다시 보이면 제자리)
 	# 갈 곳 빛기둥 (다른 별 위에서도 보이게 길게)
 	_obj()
 	beacon.visible = ob_k >= 0 and fin_t <= 0.0
@@ -2253,25 +2389,33 @@ func _air_v(w: Vector3, v: Vector3, up: Vector3) -> Vector3:
 
 ## 우주 미아: 0.3초마다 12초 앞까지 본다. 지금 길이 어느 별에도 안 닿고(떠내려감·아직 날고 있음) 공중 한 번으로도 못 고치면
 ## 0.9초 뒤, 공중 한 번으로 고칠 수 있는데 안 쓰면 2.5초 뒤(하늘 끝 가까이면 바로) 마지막 별로 끌려 돌아간다 (바라만 보는 시간 없음)
+var _lost_r2 := false
+
+
 func _lost_check(dt: float) -> void:
 	if fly_t < 0.4 or die_t > 0.0 or fin_t > 0.0:
 		lost_t = 0.0
 		tip_t = 0.0
 		return
 	lost_cd -= dt
-	if lost_cd <= 0.0:
-		lost_cd = 0.3
-		var w := bc[cur] + p
-		var r1 := _sim(w, vel, cur, atm_t, 12.0, 1.0 / 12.0, _lost_pts, from_b)
-		main_lost = r1 == -1 or (r1 == -2 and sim_why == 1)
-		lost_now = main_lost
+	if _lost_r2:
+		# 공중 한 번으로 고칠 수 있나는 다음 프레임에 (한 프레임에 긴 계산 둘이 몰리지 않게)
+		_lost_r2 = false
 		if main_lost and not airjump:
-			var r2 := _sim(w, _air_v(w, vel, p.normalized()), cur, atm_t, 12.0, 1.0 / 12.0, _lost_pts, from_b)
+			var w2 := bc[cur] + p
+			var r2 := _sim(w2, _air_v(w2, vel, p.normalized()), cur, atm_t, 12.0, 1.0 / 12.0, _lost_pts, from_b)
 			if not (r2 == -1 or (r2 == -2 and sim_why == 1)):
 				lost_now = false
 				if not air_tip:
 					air_tip = true
 					msg(_tx("msg.use_sail" if has_sail else "msg.use_air"), 1.6)
+	elif lost_cd <= 0.0:
+		lost_cd = 0.3
+		var w := bc[cur] + p
+		var r1 := _sim(w, vel, cur, atm_t, 12.0, 1.0 / 12.0, _lost_pts, from_b)
+		main_lost = r1 == -1 or (r1 == -2 and sim_why == 1)
+		lost_now = main_lost
+		_lost_r2 = main_lost and not airjump
 	lost_t = lost_t + dt if lost_now else 0.0
 	tip_t = tip_t + dt if main_lost else 0.0
 	# 하늘 끝(떠내려가 죽는 선) 가까이면 기다리지 않는다
@@ -2710,6 +2854,8 @@ func _posty_anim(dt: float, spd: float, k: float) -> void:
 	# 주민: 숨쉬듯 들썩, 눈동자는 나를 본다
 	for b: Array in vil_bobs:
 		var vb: Node3D = b[0]
+		if not vb.visible:
+			continue  # 먼 주민은 숨겨 두고 움직이지도 않는다 (_lod)
 		var ph2: float = b[2]
 		vb.position.y = float(b[1]) + absf(sin(clock * 2.2 + ph2)) * 0.05
 		vb.scale = Vector3(1.0 + 0.02 * sin(clock * 4.4 + ph2), 1.0 - 0.02 * sin(clock * 4.4 + ph2), 1.0 + 0.02 * sin(clock * 4.4 + ph2))
@@ -3368,6 +3514,7 @@ func _deco(k: int, n: Node3D) -> void:
 		(m.mesh as ArrayMesh).surface_set_material(0, _vc(true))
 	m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	n.add_child(m)
+	_deco_add(k, m)
 	if trees.is_empty():
 		return
 	# 그림 나무: 한 별의 나무를 한 메시로, 외곽선 껍질도 한 메시로
@@ -3391,6 +3538,46 @@ func _deco(k: int, n: Node3D) -> void:
 	hm.mesh = _end_mesh()
 	hm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	n.add_child(hm)
+	_deco_add(k, tmi)
+	_deco_add(k, hm)
+
+
+## v8 성능: 별마다 작은 장식(풀·꽃·돌·나무와 외곽선) 메시를 모아 둔다 — 놀이 중 멀리 있는 별은 통째로 숨긴다 (_lod)
+var deco_n: Array = []  # 별 번호 -> [MeshInstance3D...]
+var deco_on := PackedByteArray()
+const DECO_FAR := 80.0  # 카메라에서 별 겉면까지 이보다 멀면 장식을 숨긴다 (멀어도 시작 화면에선 다 보인다)
+const VIL_NEAR := 30.0  # 주민은 발밑 별이고 카메라에서 이 안일 때만 보인다
+
+
+func _deco_add(k: int, m: Node3D) -> void:
+	while deco_n.size() <= k:
+		deco_n.append([])
+	(deco_n[k] as Array).append(m)
+
+
+## 매 프레임 (시작 화면 포함): 먼 별 장식·먼 주민 숨기기. 숨긴 주민은 눈동자·들썩임도 안 고친다 (_posty_anim)
+func _lod() -> void:
+	if cam == null or nodes.is_empty():
+		return
+	var cp := cam.global_position
+	var title: bool = ui.title_visible()
+	if deco_on.size() != deco_n.size():
+		deco_on.resize(deco_n.size())
+		deco_on.fill(1)
+	for k in deco_n.size():
+		var far := cp.distance_to(bc[k]) - br[k]
+		var lim := DECO_FAR + (2.0 if deco_on[k] == 1 else -2.0)
+		var on := 1 if (title or far < lim) else 0
+		if on != deco_on[k]:
+			deco_on[k] = on
+			for m: Node3D in deco_n[k]:
+				m.visible = on == 1
+	for b: Array in vil_bobs:
+		var vb: Node3D = b[0]
+		var lim2 := VIL_NEAR + (2.0 if vb.visible else -2.0)
+		var on2 := not title and int(b[3]) == cur and cp.distance_to(vb.global_position) < lim2
+		if on2 != vb.visible:
+			vb.visible = on2
 
 
 ## 별마다 장식 고르기 (roll 0~1)
@@ -3841,7 +4028,11 @@ func play(nm: String) -> void:
 ## 게임 끝 글 (tofu.gd 의 "최고"·"탭해서 다시"를 영어로)
 func _process(dt: float) -> void:
 	_stepped = false
+	var tp0 := Time.get_ticks_usec() if _dbg else 0
 	super(dt)
+	if _dbg:
+		_dbg_add("game._process", tp0)
+		_dbg_frame(dt)
 	# 평가 카드·끝 화면에선 _step 이 안 돈다: ui·fx 는 멈춘 상태(paused)로 계속 받는다
 	if not _stepped and ui and me:
 		_post(dt)
@@ -3887,6 +4078,285 @@ func _unhandled_input(event: InputEvent) -> void:
 		if at.x >= 0.0 and at.x < 180.0 and at.y >= 0.0 and at.y < 100.0:
 			return
 	super(event)
+
+
+## ?debug=1 (웹) 이면 왼쪽 위에 성능 표: FPS·프레임 간격, 그리기 수, 물체 수, 삼각형 수, 무거운 블록 시간(평균/최대 usec)
+func _dbg_build() -> void:
+	var on := OS.get_cmdline_user_args().has("debug")
+	if OS.has_feature("web"):
+		on = str(JavaScriptBridge.eval("location.search.indexOf('debug=1')>=0?'y':'n'", true)) == "y"
+	if not on:
+		return
+	var cl := CanvasLayer.new()
+	cl.layer = 120
+	add_child(cl)
+	var bg := ColorRect.new()
+	bg.color = Color(0, 0, 0, 0.55)
+	bg.position = Vector2(4, 104)
+	bg.size = Vector2(470, 470)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cl.add_child(bg)
+	_dbg = Label.new()
+	_dbg.position = Vector2(10, 4)
+	_dbg.add_theme_font_size_override("font_size", 19)
+	_dbg.add_theme_color_override("font_color", Color.WHITE)
+	_dbg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bg.add_child(_dbg)
+	_dbg_last = Time.get_ticks_usec()
+	if fx:
+		fx.dbg = true
+	if ui:
+		ui.dbg = true
+	if OS.has_feature("web"):
+		_dbg_cb = JavaScriptBridge.create_callback(_dbg_js)
+		JavaScriptBridge.get_interface("window").set("tpcmd", _dbg_cb)
+
+
+## 브라우저 콘솔 실험: 결과는 window.tpout 에
+func _dbg_js(args: Array) -> void:
+	var out := _dbg_cmd(str(args[0]) if args.size() > 0 else "")
+	JavaScriptBridge.eval("window.tpout=" + JSON.stringify(out), true)
+
+
+func _dbg_cmd(cmd: String) -> String:
+	var a := cmd.split(" ", false)
+	if a.is_empty():
+		return "?"
+	match a[0]:
+		"list":
+			_dbg_nodes.clear()
+			var rows: Array = []
+			_dbg_walk(self, rows, a.size() > 1)
+			return "
+".join(rows)
+		"vis":
+			var gi: Node3D = _dbg_nodes[int(a[1])]
+			gi.visible = a[2] == "1"
+			return "ok"
+		"ol":
+			if a[1] == "0":
+				for m: Variant in _mats3.values():
+					if m is BaseMaterial3D and (m as BaseMaterial3D).next_pass:
+						_dbg_np[m] = (m as BaseMaterial3D).next_pass
+						(m as BaseMaterial3D).next_pass = null
+			else:
+				for m: Variant in _dbg_np:
+					(m as BaseMaterial3D).next_pass = _dbg_np[m]
+				_dbg_np.clear()
+			return "ok"
+		"cv":
+			var n := 0
+			for c in _dbg_layers(self, []):
+				if c != _dbg.get_parent().get_parent():
+					(c as CanvasLayer).visible = a[1] == "1"
+					n += 1
+			return "layers %d" % n
+		"uivis":
+			(ui.get(a[1]) as CanvasItem).visible = a[2] == "1"
+			return "ok"
+		"all3d":
+			world.visible = a[1] == "1"
+			(fx.get("_root") as Node3D).visible = a[1] == "1"
+			return "ok"
+		"simbench":
+			var w := bc[cur] + p
+			var up := p.normalized()
+			var v0 := _jump_v(up, vel + up * JUMP) if grounded else vel
+			if v0.length() < 1.0:
+				v0 = _flat(fwd, up) * 9.0 + up * JUMP
+			var tb := Time.get_ticks_usec()
+			var res := 0
+			for i in 50:
+				res = _sim(w + up * 0.1, v0, cur, 0.0, SIM_SECS, SIM_H, _lost_pts, cur)
+			return "sim %d us/run res %d pts %d" % [(Time.get_ticks_usec() - tb) / 50, res, _lost_pts.size()]
+		"maxfps":
+			Engine.max_fps = int(a[1])
+			return "ok"
+		"s3d":
+			get_viewport().scaling_3d_scale = float(a[1])
+			return "ok"
+		"launch":
+			var up := p.normalized()
+			_liftoff()
+			vel = _flat(fwd, up) * sqrt(maxf(gp + 1.19, 0.5) * R) * float(a[1] if a.size() > 1 else "1.1") + up * JUMP
+			return "ok"
+	return "?"
+
+
+func _dbg_layers(n: Node, acc: Array) -> Array:
+	for ch in n.get_children():
+		if ch is CanvasLayer:
+			acc.append(ch)
+		_dbg_layers(ch, acc)
+	return acc
+
+
+func _dbg_walk(n: Node, rows: Array, all: bool) -> void:
+	for ch in n.get_children():
+		if ch is GeometryInstance3D and (ch as GeometryInstance3D).is_visible_in_tree():
+			var gi := ch as GeometryInstance3D
+			var mesh: Mesh = null
+			var inst := 1
+			if gi is MeshInstance3D:
+				mesh = (gi as MeshInstance3D).mesh
+			elif gi is MultiMeshInstance3D and (gi as MultiMeshInstance3D).multimesh:
+				var mm := (gi as MultiMeshInstance3D).multimesh
+				mesh = mm.mesh
+				inst = mm.visible_instance_count if mm.visible_instance_count >= 0 else mm.instance_count
+			elif gi is CPUParticles3D:
+				mesh = (gi as CPUParticles3D).mesh
+				inst = (gi as CPUParticles3D).amount
+			var tris := 0
+			var passes := 0
+			if mesh:
+				for si in mesh.get_surface_count():
+					var m: Material = gi.material_override if gi.material_override else mesh.surface_get_material(si)
+					passes += 1
+					while m and m.next_pass:
+						passes += 1
+						m = m.next_pass
+					if mesh is ArrayMesh:
+						var il := (mesh as ArrayMesh).surface_get_array_index_len(si)
+						tris += (il if il > 0 else (mesh as ArrayMesh).surface_get_array_len(si)) / 3
+			var ab := gi.global_transform * gi.get_aabb()
+			var inf := true
+			for pln in cam.get_frustum():
+				var c := ab.get_center()
+				var e := ab.size * 0.5
+				var r := absf(pln.normal.x) * e.x + absf(pln.normal.y) * e.y + absf(pln.normal.z) * e.z
+				if pln.distance_to(c) > r:
+					inf = false
+					break
+			if inf or all:
+				var i := _dbg_nodes.size()
+				_dbg_nodes.append(gi)
+				rows.append("%d %s/%s inf=%s d=%.0f aabb=%.0f tri=%d x%d pass=%d" % [i, str(gi.get_parent().name), gi.get_class(), inf, cam.global_position.distance_to(ab.get_center()), ab.size.length(), tris, inst, passes])
+		_dbg_walk(ch, rows, all)
+
+
+## 구간 합·최대에 더하고 지금 시각을 돌려준다 (다음 블록 시작으로 쓴다)
+func _dbg_add(nm: String, t0: int) -> int:
+	if _dbg == null:
+		return 0
+	var t1 := Time.get_ticks_usec()
+	var us := t1 - t0
+	_dbg_sum[nm] = int(_dbg_sum.get(nm, 0)) + us
+	if us > int(_dbg_max.get(nm, 0)):
+		_dbg_max[nm] = us
+	return t1
+
+
+func _dbg_frame(_dt: float) -> void:
+	var now := Time.get_ticks_usec()
+	var gap := now - _dbg_last
+	_dbg_last = now
+	_dbg_fmax = maxi(_dbg_fmax, gap)
+	_dbg_n += 1
+	_dbg_sum["frame"] = int(_dbg_sum.get("frame", 0)) + gap
+	if fx:
+		_dbg_sum["fx.clouds"] = int(_dbg_sum.get("fx.clouds", 0)) + fx.dbg_cl
+		_dbg_max["fx.clouds"] = maxi(int(_dbg_max.get("fx.clouds", 0)), fx.dbg_cl)
+		_dbg_sum["fx.overlay"] = int(_dbg_sum.get("fx.overlay", 0)) + fx.dbg_ov
+		_dbg_max["fx.overlay"] = maxi(int(_dbg_max.get("fx.overlay", 0)), fx.dbg_ov)
+		fx.dbg_cl = 0
+		fx.dbg_ov = 0
+	if ui:
+		_dbg_sum["ui._process"] = int(_dbg_sum.get("ui._process", 0)) + ui.dbg_us
+		_dbg_max["ui._process"] = maxi(int(_dbg_max.get("ui._process", 0)), ui.dbg_us)
+		ui.dbg_us = 0
+	_dbg_win += float(gap) / 1000000.0
+	if _dbg_win < 0.5:
+		return
+	var n := maxi(_dbg_n, 1)
+	var mode := "title" if ui.title_visible() else ("ground p%d" % cur if grounded else "fly p%d" % cur)
+	var vs := get_viewport().get_visible_rect().size
+	var ws := DisplayServer.window_get_size()
+	var t := "FPS %d  frame %.1f ms (max %.1f)  %s
+" % [Engine.get_frames_per_second(), float(_dbg_sum["frame"]) / n / 1000.0, _dbg_fmax / 1000.0, mode]
+	t += "draws %d  objs %d  prims %dk
+" % [Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME), Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME), int(Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME) / 1000.0)]
+	t += "proc %.2f ms  win %dx%d  vp %dx%d  sc %.2f
+" % [Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0, ws.x, ws.y, int(vs.x), int(vs.y), get_viewport().scaling_3d_scale]
+	t += "block      avg us   max us
+"
+	for nm: String in ["game._process", "step", "hud", "vis+posty", "tick", "sim", "ui.tick", "fx.tick", "fx.clouds", "fx.overlay", "ui._process"]:
+		t += "%-12s %6d  %6d
+" % [nm, int(_dbg_sum.get(nm, 0)) / n, int(_dbg_max.get(nm, 0))]
+	_dbg_txt = t
+	_dbg.text = t
+	if OS.has_feature("web"):
+		JavaScriptBridge.eval("window.tpdbg=" + JSON.stringify(t), true)  # 브라우저 콘솔에서 읽기
+	_dbg_win = 0.0
+	_dbg_n = 0
+	_dbg_fmax = 0
+	_dbg_sum.clear()
+	_dbg_max.clear()
+
+
+## v8 성능: 조작판(스틱·버튼)은 tofu 가 매 프레임 다시 그린다. tofu 의 draw_circle·draw_arc 는 웹 호환 렌더러에서 부를 때마다
+## GPU 버퍼를 새로 만들어서, 같은 모양을 한 번 만든 2D 메시로 그린다 (모양·색·크기는 tofu _kit_draw 와 같다)
+var _kd_disc: ArrayMesh
+var _kd_rings := {}  # 반지름 -> 두께 6 고리 메시
+
+
+func _kit_draw(c: Control) -> void:
+	if _stick_zone.has_area():
+		var o := _st_o if _stick_on else _st_home
+		_kd_circle(c, o, _STICK_R, Color(1, 1, 1, 0.45))
+		_kd_ring(c, o, _STICK_R, ME)
+		_kd_circle(c, o + kit_move * _STICK_R, 48.0, ME)
+	for n: String in _btns:
+		var b: Dictionary = _btns[n]
+		var r: float = b.r * (0.92 if b.down else 1.0)
+		var col: Color = b.color
+		_kd_circle(c, b.pos, r, col.lightened(0.35) if b.down else col)
+		_kd_ring(c, b.pos, r, WHITE)
+		var fs := int(clampf(b.r * 0.42, 22.0, 44.0))
+		c.draw_string(_font, b.pos + Vector2(-r, fs * 0.35), b.label, HORIZONTAL_ALIGNMENT_CENTER, r * 2.0, fs, WHITE)
+
+
+func _kd_mesh(vs: PackedVector2Array, ix: PackedInt32Array) -> ArrayMesh:
+	var cs := PackedColorArray()
+	cs.resize(vs.size())
+	cs.fill(Color.WHITE)
+	var arr := []
+	arr.resize(Mesh.ARRAY_MAX)
+	arr[Mesh.ARRAY_VERTEX] = vs
+	arr[Mesh.ARRAY_COLOR] = cs
+	arr[Mesh.ARRAY_INDEX] = ix
+	var am := ArrayMesh.new()
+	am.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
+	return am
+
+
+## 꽉 찬 원 (draw_circle 처럼 64 조각, 단위 원을 r 배)
+func _kd_circle(c: Control, o: Vector2, r: float, col: Color) -> void:
+	if _kd_disc == null:
+		var vs := PackedVector2Array([Vector2.ZERO])
+		var ix := PackedInt32Array()
+		for i in 64:
+			var a := TAU * float(i) / 64.0
+			vs.append(Vector2(cos(a), sin(a)))
+			ix.append_array([0, 1 + i, 1 + (i + 1) % 64])
+		_kd_disc = _kd_mesh(vs, ix)
+	c.draw_mesh(_kd_disc, null, Transform2D(0.0, Vector2(r, r), 0.0, o), col)
+
+
+## 두께 6 고리 (draw_arc(o, r, 0, TAU, 48, col, 6.0) 처럼 반지름 r 을 가운데로 안팎 3)
+func _kd_ring(c: Control, o: Vector2, r: float, col: Color) -> void:
+	var key := snappedf(r, 0.01)
+	if not _kd_rings.has(key):
+		var vs := PackedVector2Array()
+		var ix := PackedInt32Array()
+		for i in 48:
+			var a := TAU * float(i) / 48.0
+			var d := Vector2(cos(a), sin(a))
+			vs.append(d * (r - 3.0))
+			vs.append(d * (r + 3.0))
+			var j := (i + 1) % 48
+			ix.append_array([i * 2, i * 2 + 1, j * 2 + 1, i * 2, j * 2 + 1, j * 2])
+		_kd_rings[key] = _kd_mesh(vs, ix)
+	c.draw_mesh(_kd_rings[key], null, Transform2D(0.0, o), col)
 
 
 ## smoke(화면 없음)에서 한 번: 그리는 것 수를 센다 (MeshInstance3D·MultiMesh, 재질의 next_pass 외곽선까지 = 대략 그리기 수)

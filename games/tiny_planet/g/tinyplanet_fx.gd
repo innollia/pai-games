@@ -127,6 +127,10 @@ var _cl_groups := 2  # 구름을 몇 무리로 나눠 한 프레임에 한 무�
 var _cl_frame := 0
 var _cl_clock := 0.0
 var _cl_last := PackedFloat32Array()
+## ?debug=1 성능 표: 본체가 켜면 _process 안 구름·겹 그림 시간(usec)을 남긴다
+var dbg := false
+var dbg_cl := 0
+var dbg_ov := 0
 
 
 func setup(g: Node) -> void:
@@ -464,8 +468,15 @@ func _process(delta: float) -> void:
 			_end_slowmo()
 		else:
 			_esc_step(rdt)
+	var t0 := Time.get_ticks_usec() if dbg else 0
 	_clouds_step(delta)
+	if dbg:
+		var t1 := Time.get_ticks_usec()
+		dbg_cl += t1 - t0
+		t0 = t1
 	_overlay_step(rdt)
+	if dbg:
+		dbg_ov += Time.get_ticks_usec() - t0
 	_cam_step(rdt)
 
 

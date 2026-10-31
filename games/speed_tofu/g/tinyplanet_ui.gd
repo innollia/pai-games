@@ -89,11 +89,18 @@ class _Btn extends Control:
 	var seg := -1
 	var act := Callable()
 	var sb := StyleBoxFlat.new()
+	var glow_c: _Glow  # v8: 숨쉬는 빛 고리만 따로 (매 프레임 다시 그리는 건 이것뿐, 버튼 몸통은 눌릴 때만)
+	var glow_was := false
 
 	func _ready() -> void:
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
 		sb.anti_aliasing = true
 		sb.corner_detail = 16
+		glow_c = _Glow.new()
+		glow_c.b = self
+		glow_c.show_behind_parent = true
+		glow_c.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(glow_c)
 
 	func _stadium(r: Rect2, col: Color, border: int, bcol: Color, center := true, rad := -1.0) -> void:
 		sb.bg_color = col
@@ -103,15 +110,25 @@ class _Btn extends Control:
 		sb.set_corner_radius_all(int(r.size.y * 0.5 if rad < 0.0 else rad))
 		draw_style_box(sb, r)
 
+	func draw_glow(c: Control) -> void:
+		var w := size.x
+		var h := size.y
+		for i in 2:
+			var p := fmod(t * 0.8 + 0.5 * float(i), 1.0)
+			var g := 6.0 + 22.0 * p
+			var a := 0.6 * (1.0 - p) * (1.0 - p)
+			sb.bg_color = Color(0, 0, 0, 0)
+			sb.draw_center = false
+			sb.border_color = Color(fill.r, fill.g, fill.b, a)
+			sb.set_border_width_all(6)
+			var r := Rect2(-g, -g + edge * 0.5, w + g * 2.0, h + g * 2.0)
+			sb.set_corner_radius_all(int(r.size.y * 0.5))
+			c.draw_style_box(sb, r)
+
 	func _draw() -> void:
 		var w := size.x
 		var h := size.y
-		if glow:
-			for i in 2:
-				var p := fmod(t * 0.8 + 0.5 * float(i), 1.0)
-				var g := 6.0 + 22.0 * p
-				var a := 0.6 * (1.0 - p) * (1.0 - p)
-				_stadium(Rect2(-g, -g + edge * 0.5, w + g * 2.0, h + g * 2.0), Color(0, 0, 0, 0), 6, Color(fill.r, fill.g, fill.b, a), false)
+		# (빛 고리는 glow_c 가 몸통 뒤에 그린다)
 		# 그림자 → 아래 두께 → 몸통 (몸통이 sink 만큼 내려가 두께를 덮는다)
 		_stadium(Rect2(0.0, edge + 8.0, w, h), Color(ink.r, ink.g, ink.b, 0.4), 0, ink)
 		_stadium(Rect2(0.0, edge, w, h), dark if seg < 0 else Color("e9dcc4"), 6, ink)
@@ -161,6 +178,15 @@ class _Btn extends Control:
 			var base := r.position.y + r.size.y * 0.5 + (font.get_ascent(fsz) - font.get_descent(fsz)) * 0.5
 			var col := ink if i == seg else Color(ink.r, ink.g, ink.b, 0.55)
 			draw_string(font, Vector2(float(cx[i]) - sw * 0.5, base), s, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, col)
+
+
+## 버튼 뒤 빛 고리 (버튼이 glow 일 때만 그린다)
+class _Glow extends Control:
+	var b: _Btn
+
+	func _draw() -> void:
+		if b and b.glow:
+			b.draw_glow(self)
 
 
 ## 그리기 함수를 빌려 쓰는 빈 Control
@@ -455,9 +481,22 @@ func _press(b: _Btn) -> void:
 
 
 # ---- 매 프레임 (게임이 끝나 _step 이 멈춰도 돈다) ----
+var dbg := false  # ?debug=1: _process 시간(usec)을 본체 성능 표에 남긴다
+var dbg_us := 0
+
+
 func _process(dt: float) -> void:
 	if _game == null:
 		return
+	if dbg:
+		var t0 := Time.get_ticks_usec()
+		_process_body(dt)
+		dbg_us += Time.get_ticks_usec() - t0
+	else:
+		_process_body(dt)
+
+
+func _process_body(dt: float) -> void:
 	var rdt := dt / maxf(Engine.time_scale, 0.05)  # 슬로모션 중에도 UI 는 제 속도
 	_clock += rdt
 	_buttons_anim(rdt)
@@ -493,9 +532,12 @@ func _buttons_anim(dt: float) -> void:
 		var s := lerpf(1.0, float(DS.press), k)
 		b.scale = Vector2(s, s)
 		var sink := float(DS.press_sink) * k
-		if b.glow or sink != b.sink:
-			b.sink = sink
+		if b.glow or b.glow_was:
 			b.t = _clock
+			b.glow_c.queue_redraw()
+			b.glow_was = b.glow
+		if sink != b.sink:
+			b.sink = sink
 			b.queue_redraw()
 
 
@@ -651,13 +693,15 @@ func _save_cfg() -> void:
 ## 로고(작은 행성 + 도는 편지 + 리본 "The Little" + 두꺼운 "Courier"), 아래쪽 납작한 시작 버튼, 오른쪽 아래 언어 알약
 func _build_title() -> void:
 	_title_root = _root(12)
-	_title_deco = _canvas(_title_root, Rect2(0, 0, 720, 1280), _draw_title_deco)
+	_title_deco = _canvas(_title_root, Rect2(0, 0, 720, 1280), Callable())
+	_build_title_deco()
 	_logo = Control.new()
 	_logo.size = Vector2(720, 640)
 	_logo.pivot_offset = LOGO_PIVOT
 	_logo.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_title_root.add_child(_logo)
-	_logo_fx = _canvas(_logo, Rect2(0, 0, 720, 640), _draw_logo_fx)
+	_logo_fx = _canvas(_logo, Rect2(0, 0, 720, 640), Callable())
+	_build_logo_fx()
 	var ink: Color = DS.ink
 	# 큰 글자: 뒤에 잉크 두께판(+부드러운 그림자), 앞에 노랑 + 굵은 잉크 외곽선
 	var back := LabelSettings.new()
@@ -735,8 +779,8 @@ func _title_anim(dt: float) -> void:
 	_ribbon.rotation = -0.04 + sin(t * 2.0) * 0.012
 	_start_b.position.y = START_RECT.position.y + (1.0 - bk) * 320.0
 	_lang_b.modulate.a = clampf(_title_in * 2.0 - 1.0, 0.0, 1.0)
-	_title_deco.queue_redraw()
-	_logo_fx.queue_redraw()
+	_title_deco_anim()
+	_logo_fx_anim()
 	if _title_out < 0.0:
 		return
 	_title_out += dt
@@ -752,81 +796,171 @@ func _title_anim(dt: float) -> void:
 			_on_start.call()
 
 
-## 뒤 배경: 반짝이는 별 몇 개 + 떠 있는 로고 아래 옅은 그림자
-func _draw_title_deco(c: Control) -> void:
+## v8 성능: 시작 화면 그림은 매 프레임 다시 그리지 않는다 (웹 호환 렌더러는 다각형·안티에일리어스 선·원을 그릴 때마다
+## GPU 버퍼를 새로 만들어 이 화면 하나가 한 프레임에 15ms 넘게 먹었다). 모양은 한 번 만든 Polygon2D·Line2D 노드로 두고
+## 매 프레임 위치·회전·크기·투명도만 바꾼다 (모양·색·움직임은 예전 그리기와 같다).
+var _deco_sh: Array[Node2D] = []  # 반짝 별 그림자
+var _deco_st: Array[Node2D] = []  # 반짝 별
+var _deco_ell: Node2D  # 로고 아래 옅은 그림자 (타원 넷)
+var _lf_root: Node2D  # 로고 행성 (가운데 = 행성)
+var _lf_env_back: Node2D
+var _lf_env_front: Node2D
+var _lf_star_a: Node2D
+var _lf_star_b: Node2D
+var _circ := PackedVector2Array()  # 단위 원 (draw_circle 과 같은 64 조각)
+
+
+func _unit_circle() -> PackedVector2Array:
+	if _circ.is_empty():
+		for i in 64:
+			var a := TAU * float(i) / 64.0
+			_circ.append(Vector2(cos(a), sin(a)))
+	return _circ
+
+
+func _poly(parent: Node, pts: PackedVector2Array, col: Color, at := Vector2.ZERO, sc := 1.0) -> Polygon2D:
+	var pg := Polygon2D.new()
+	var q := PackedVector2Array()
+	q.resize(pts.size())
+	for i in pts.size():
+		q[i] = at + pts[i] * sc
+	pg.polygon = q
+	pg.color = col
+	parent.add_child(pg)
+	return pg
+
+
+func _line(parent: Node, pts: PackedVector2Array, col: Color, w: float, aa: bool, closed := false) -> Line2D:
+	var ln := Line2D.new()
+	ln.points = pts
+	ln.default_color = col
+	ln.width = w
+	ln.antialiased = aa
+	ln.closed = closed
+	ln.joint_mode = Line2D.LINE_JOINT_SHARP
+	ln.sharp_limit = 8.0
+	parent.add_child(ln)
+	return ln
+
+
+## 단위 별 (가운데 원점, 반지름 1). line.a > 0 이면 잉크 외곽선 (화면에서 5px 가 되게 r0 기준 두께)
+func _star_node(parent: Node, fill: Color, line: Color, r0: float) -> Node2D:
+	var n := Node2D.new()
+	parent.add_child(n)
+	_poly(n, _star, fill)
+	if line.a > 0.0:
+		_line(n, _star_line, line, 5.0 / r0, true)
+	return n
+
+
+func _build_title_deco() -> void:
 	var ink: Color = DS.ink
 	var sh := Color(ink.r, ink.g, ink.b, float(DS.shadow_a))
 	for i in STAR_SPOTS.size():
+		var col: Color = DS.accent if i % 2 == 0 else DS.cream
+		var r0 := 20.0 + 6.0 * float(i % 3)
+		_deco_sh.append(_star_node(_title_deco, sh, Color(0, 0, 0, 0), r0))
+		_deco_st.append(_star_node(_title_deco, col, ink, r0))
+	_deco_ell = Node2D.new()
+	_deco_ell.position = Vector2(360, 636)
+	_title_deco.add_child(_deco_ell)
+	for i in 4:
+		_poly(_deco_ell, _unit_circle(), Color(ink.r, ink.g, ink.b, 0.05), Vector2.ZERO, 250.0 - 45.0 * float(i))
+	_title_deco_anim()
+
+
+## 뒤 배경: 반짝이는 별 몇 개 + 떠 있는 로고 아래 옅은 그림자
+func _title_deco_anim() -> void:
+	for i in STAR_SPOTS.size():
 		var at: Vector2 = STAR_SPOTS[i]
 		var r := (20.0 + 6.0 * float(i % 3)) * (1.0 + 0.22 * sin(_clock * 2.3 + float(i) * 1.7))
-		var col: Color = DS.accent if i % 2 == 0 else DS.cream
-		_draw_star(c, at + Vector2(0, 6), r, sh, Color(0, 0, 0, 0), sin(_clock * 0.6 + float(i)) * 0.3)
-		_draw_star(c, at, r, col, ink, sin(_clock * 0.6 + float(i)) * 0.3)
+		var rot := sin(_clock * 0.6 + float(i)) * 0.3
+		var a := _deco_sh[i]
+		a.position = at + Vector2(0, 6)
+		a.rotation = rot
+		a.scale = Vector2(r, r)
+		var b := _deco_st[i]
+		b.position = at
+		b.rotation = rot
+		b.scale = Vector2(r, r)
 	# 로고가 위로 뜨면 그림자가 작고 옅어진다
 	var up := 0.5 - 0.5 * sin(_clock * 1.6)
 	var sk := 1.0 - 0.12 * up
-	c.draw_set_transform(Vector2(360, 636), 0.0, Vector2(sk, 0.16 * sk))
-	for i in 4:
-		c.draw_circle(Vector2.ZERO, 250.0 - 45.0 * float(i), Color(ink.r, ink.g, ink.b, 0.05 * (1.0 - 0.4 * up)))
-	c.draw_set_transform(Vector2.ZERO)
+	_deco_ell.scale = Vector2(sk, 0.16 * sk)
+	_deco_ell.modulate.a = 1.0 - 0.4 * up
+
+
+func _envelope_node(parent: Node) -> Node2D:
+	var ink: Color = DS.ink
+	var n := Node2D.new()
+	parent.add_child(n)
+	var rc := PackedVector2Array([Vector2(-22, -15), Vector2(22, -15), Vector2(22, 15), Vector2(-22, 15)])
+	_poly(n, rc, Color(ink.r, ink.g, ink.b, float(DS.shadow_a)), Vector2(0, 6))
+	_poly(n, rc, DS.cream)
+	_line(n, rc, ink, 4.0, false, true)
+	_line(n, _env_v, ink, 4.0, false)
+	_poly(n, _seal, DS.accent)
+	return n
+
+
+func _ring_node(parent: Node, pts: PackedVector2Array, tilt: float) -> void:
+	var n := Node2D.new()
+	n.rotation = tilt
+	parent.add_child(n)
+	_line(n, pts, DS.ink, 24.0, true)
+	_line(n, pts, DS.lav, 12.0, true)
+
+
+func _build_logo_fx() -> void:
+	var ink: Color = DS.ink
+	var sh := Color(ink.r, ink.g, ink.b, float(DS.shadow_a))
+	var tilt := -0.28
+	_lf_root = Node2D.new()
+	_logo_fx.add_child(_lf_root)
+	# 고리 뒤쪽 + 뒤로 간 편지
+	_ring_node(_lf_root, _ring_back, tilt)
+	_lf_env_back = _envelope_node(_lf_root)
+	# 행성
+	var uc := _unit_circle()
+	_poly(_lf_root, uc, sh, Vector2(0, 8), 62.0)
+	_poly(_lf_root, uc, ink, Vector2.ZERO, 62.0)
+	_poly(_lf_root, uc, DS.mint, Vector2.ZERO, 55.0)
+	_poly(_lf_root, uc, Color("6fcfab"), Vector2(14, 16), 15.0)
+	_poly(_lf_root, uc, Color("6fcfab"), Vector2(-24, 22), 8.0)
+	_poly(_lf_root, uc, DS.cream, Vector2(-20, -22), 13.0)
+	# 고리 앞쪽 + 앞으로 온 편지
+	_ring_node(_lf_root, _ring_front, tilt)
+	_lf_env_front = _envelope_node(_lf_root)
+	# 반짝 별
+	_lf_star_a = _star_node(_lf_root, DS.accent, ink, 22.0)
+	_lf_star_a.position = Vector2(96, -70)
+	_lf_star_b = _star_node(_lf_root, DS.cream, ink, 12.0)
+	_lf_star_b.position = Vector2(-110, -38)
+	_logo_fx_anim()
 
 
 ## 로고 그림: 고리 두른 작은 행성, 고리를 따라 도는 편지(별 봉인), 반짝이는 작은 별
-func _draw_logo_fx(c: Control) -> void:
-	var ink: Color = DS.ink
-	var sh := Color(ink.r, ink.g, ink.b, float(DS.shadow_a))
+func _logo_fx_anim() -> void:
 	var pc := PLANET_AT + Vector2(0, sin(_clock * 1.3) * 5.0)
 	var tilt := -0.28
 	var ang := _clock * 1.1
 	var env_front := sin(ang) > 0.0
-	var ep := pc + Vector2(cos(ang) * 104.0, sin(ang) * 104.0 * 0.32).rotated(tilt)
-	# 고리 뒤쪽 + 뒤로 간 편지
-	_ring(c, pc, tilt, false)
-	if not env_front:
-		_envelope(c, ep, sin(ang * 2.0) * 0.25, 0.8 + 0.2 * (1.0 + sin(ang)))
-	# 행성
-	c.draw_circle(pc + Vector2(0, 8), 62.0, sh)
-	c.draw_circle(pc, 62.0, ink)
-	c.draw_circle(pc, 55.0, DS.mint)
-	c.draw_circle(pc + Vector2(14, 16), 15.0, Color("6fcfab"))
-	c.draw_circle(pc + Vector2(-24, 22), 8.0, Color("6fcfab"))
-	c.draw_circle(pc + Vector2(-20, -22), 13.0, DS.cream)
-	# 고리 앞쪽 + 앞으로 온 편지
-	_ring(c, pc, tilt, true)
-	if env_front:
-		_envelope(c, ep, sin(ang * 2.0) * 0.25, 0.8 + 0.2 * (1.0 + sin(ang)))
-	# 반짝 별
+	_lf_root.position = pc
+	var ep := Vector2(cos(ang) * 104.0, sin(ang) * 104.0 * 0.32).rotated(tilt)
+	var esc := 0.8 + 0.2 * (1.0 + sin(ang))
+	var env := _lf_env_front if env_front else _lf_env_back
+	_lf_env_front.visible = env_front
+	_lf_env_back.visible = not env_front
+	env.position = ep
+	env.rotation = sin(ang * 2.0) * 0.25
+	env.scale = Vector2(esc, esc)
 	var tw := 0.75 + 0.35 * maxf(sin(_clock * 3.1), 0.0)
-	_draw_star(c, pc + Vector2(96, -70), 22.0 * tw, DS.accent, ink, _clock * 0.8)
-	_draw_star(c, pc + Vector2(-110, -38), 12.0 * (1.6 - tw), DS.cream, ink, -_clock * 0.6)
-
-
-func _ring(c: Control, at: Vector2, tilt: float, front: bool) -> void:
-	var ink: Color = DS.ink
-	var pts := _ring_front if front else _ring_back
-	c.draw_set_transform(at, tilt)
-	c.draw_polyline(pts, ink, 24.0, true)
-	c.draw_polyline(pts, DS.lav, 12.0, true)
-	c.draw_set_transform(Vector2.ZERO)
-
-
-func _envelope(c: Control, at: Vector2, rot: float, sc: float) -> void:
-	var ink: Color = DS.ink
-	c.draw_set_transform(at, rot, Vector2(sc, sc))
-	c.draw_rect(Rect2(-22, -15 + 6, 44, 30), Color(ink.r, ink.g, ink.b, float(DS.shadow_a)))
-	c.draw_rect(Rect2(-22, -15, 44, 30), DS.cream)
-	c.draw_rect(Rect2(-22, -15, 44, 30), ink, false, 4.0)
-	c.draw_polyline(_env_v, ink, 4.0)
-	c.draw_colored_polygon(_seal, DS.accent)
-	c.draw_set_transform(Vector2.ZERO)
-
-
-func _draw_star(c: Control, at: Vector2, r: float, fill: Color, line: Color, rot: float) -> void:
-	c.draw_set_transform(at, rot, Vector2(r, r))
-	c.draw_colored_polygon(_star, fill)
-	if line.a > 0.0:
-		c.draw_polyline(_star_line, line, 5.0 / r, true)
-	c.draw_set_transform(Vector2.ZERO)
+	var ra := 22.0 * tw
+	_lf_star_a.scale = Vector2(ra, ra)
+	_lf_star_a.rotation = _clock * 0.8
+	var rb := 12.0 * (1.6 - tw)
+	_lf_star_b.scale = Vector2(rb, rb)
+	_lf_star_b.rotation = -_clock * 0.6
 
 
 # ---- 게임오버 · 엔딩 ----
