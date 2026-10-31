@@ -46,7 +46,7 @@ const KIND := {
 	"vein": {"size": Vector3(3.6, 3.2, 1.2), "need": 99.0, "pts": 4, "grow": 0.0, "mass": 0.0, "col": [C], "nodive": true, "shot": true, "soft": true},
 }
 const DASH_T := 1.3  # 쪼갠 뒤 돌진 시간: 집·석상·얼음벽을 크기와 상관없이 뚫는다
-# 수로 밑 협곡: 떨어지면 공간이 이어진 채 DEEP 아래 "잠든 지하 신전"에 닿는다
+# 수로 밑 협곡: 떨어지면 공간이 이어진 채 DEEP 아래 "낮잠자는 지하 신전"에 닿는다
 const DEEP := 90.0
 const UNDER_SKY := Color("9cc3d6")
 # 신전 계곡 깔 것 [종류, 거리, 길 가운데에서 옆으로]
@@ -432,10 +432,10 @@ func _zones_list() -> Array:
 		{"msg": "신전 계곡", "mode": "back", "skill": "", "road": STONE, "floor": WATER, "accent": ROCK, "scen": "rock",
 			# 숨은 길 1 (옛 배수로): 왼쪽 끝 차선에 바람 줄, 왼쪽 턱 줄이 끊긴 곳으로 꺾어 내려가면 오르막과 석상을 건너뛴다
 			"items": [{"legs": [[30, 0, 7], [88, -19.4, 7], [12, -2.6, 7, 0, "mouthL"]], "put": _cut(PUT1, 0, 130),
-					"say": [[2, "끌어서 조향\n느려지면 끝"], [24, "끌어서 항아리를 깔아봐"], [100, "빨간 기둥은 옆으로 피해"]]},
+					"say": [[2, "끌어서 조향"], [24, "끌어서 항아리를 깔아봐"], [100, "빨간 기둥은 옆으로 피해"]]},
 				{"fork": [
 					{"legs": [[14, -0.7, 7, 32], [10, -2, 5], [54, -9, 4.5, -32], [12, 0, 4.5]], "put": [["pot", 30, 0], ["pot", 46, 0], ["pot", 62, 0]]},
-					{"legs": [[40, -2, 7], [60, 8, 6]], "put": _cut(PUT1, 130, 230), "say": [[30, "큰 돌은 무거워\n오르막 전엔 욕심내지 마"]]}],
+					{"legs": [[40, -2, 7], [60, 8, 6]], "put": _cut(PUT1, 130, 230), "say": [[30, "큼 = 무거움"]]}],
 					"hidden": true, "pick_x": -4.0, "lane_x": -5.5, "name": "옛 배수로"},
 				{"legs": [[20, 0, 6], [100, -23, 4], [20, 5, 4, 0, "ramp"], [22, -10, 5, 0, "gap"], [28, 0, 5], [70, -4, 3.5, 0, "bridge"], [50, -10, 6], [60, 6, 6]],
 					"put": _cut(PUT1, 230, 9999), "say": [[92, "노란 경사대에서\n저절로 날아간다"], [180, "다리는 가운데로"]]}]},
@@ -559,8 +559,7 @@ func _zones_list() -> Array:
 					"snow": [[4, 56, -8, -0.5], [80, 132, -8, -0.5]],
 					"row": [[70, "crystal"], [146, "crystal"]],
 					"put": [["pot", 20, 4], ["pot", 30, 4], ["pot", 96, 4], ["pot", 106, 4], ["statue", 120, 4]],
-					"say": [[2, "던지고, 눈으로 다시 채우고"], [178, "무거우면 회전에서 밀린다
-던져서 가볍게"]]},
+					"say": [[2, "던지고, 눈으로 다시 채우고"], [178, "무거우면 회전에서 밀린다\n던져서 가볍게"]]},
 				{"legs": [[40, -7, 7], [20, -1, 7]], "put": [["pot", 10, 0]]},
 				# 섞기: 깔아서 커지고 → 수정에 던지면 작아져 → 바로 뒤 좁은 흔들다리를 건넌다 → 경사대 틈 뛰기
 				{"legs": [[20, -4, 7], [40, -8, 7], [16, -1, 7], [45, -3, 7], [12, -1, 7], [10, 4, 6, 0, "ramp"], [14, -4, 6, 0, "gap"], [30, -5, 7]],
@@ -2426,8 +2425,8 @@ func _step(dt: float) -> void:
 						_hitstop(0.15, -12.0)
 						_ring(_pos(dist, bx, g + 0.3), DUST, 16.0, 0.5)
 						_wake(dist, 45.0, 60.0)
-						var rname := str(under_route[7]) if under_route.size() > 7 else "잠든 지하 신전"
-						if rname == "잠든 지하 신전":
+						var rname := str(under_route[7]) if under_route.size() > 7 else "낮잠자는 지하 신전"
+						if rname == "낮잠자는 지하 신전":
 							_plaque(rname, tr("지하 90m"), C, 2.2)
 						else:
 							_secret(rname)  # 숨은 방: 그곳 이름을 새긴 지명판
@@ -2493,8 +2492,7 @@ func _step(dt: float) -> void:
 					shake = 0.3
 					sfx("crush_s", -2.0, 0.7)
 					_stamp(tr("드르륵"), 2, _pos(dist + s, bx, by + s), GLYPH, 1.0)
-					msg("기와에 긁혀 느려졌다
-떨어질 때 버티기 = 깨고 가속", 1.4)
+					msg("기와에 긁혀 느려졌다\n떨어질 때 버티기 = 깨고 가속", 1.4)
 			elif hurt <= 0.0 and bump_t <= 0.0:
 				_bonk(th)
 			elif bool(th.kd.get("soft", false)):
@@ -2559,8 +2557,7 @@ func _pads(dt: float) -> void:
 					_burst(_pos(dist - s * 0.4, bx + randf_range(-0.5, 0.5) * s, by + 0.2), WHITE, 2, 5.0, 0.6)
 				if not snow_told:
 					snow_told = true
-					guide("눈 위를 구르면
-몸이 커진다!")
+					guide("눈 위를 구르면\n몸이 커진다!")
 				if floori(s_goal * 2.0) > before:
 					sfx("snow", -6.0)
 					sq = maxf(sq, 0.22)
@@ -3545,7 +3542,7 @@ func _under_things(a: float, b: float, z: Dictionary) -> Array:
 func _build_tunnel(a: float, b: float, nd: Node3D, opt := {}) -> Array:
 	var dp := float(opt.get("depth", DEEP))
 	var ext := float(opt.get("ext", 80.0))
-	var route := [a, b, dp, float(opt.get("gd", b - 40.0)), float(opt.get("lo", -1.0)), float(opt.get("hi", -1.0)), bool(opt.get("open", true)), str(opt.get("name", "잠든 지하 신전")), float(opt.get("vmin", 30.0))]
+	var route := [a, b, dp, float(opt.get("gd", b - 40.0)), float(opt.get("lo", -1.0)), float(opt.get("hi", -1.0)), bool(opt.get("open", true)), str(opt.get("name", "낮잠자는 지하 신전")), float(opt.get("vmin", 30.0))]
 	tunnels.append(route)
 	if bool(opt.get("cave", false)):
 		cave_span = [a, b]
@@ -5368,36 +5365,36 @@ func _lang() -> void:
 const EN := {
 	"MAX": "MAX",
 	# 실패 의성어
-	"와장창!": "Crash!",
+	"와장창!": "Smash!",
 	"퐁당!": "Plop!",
-	"데구루루~": "Whoops~",
-	"턱!": "Bonk!",
-	"털썩…": "Thud…",
+	"데구루루~": "Roll-roll~",
+	"턱!": "Thunk!",
+	"털썩…": "Flop…",
 	"띵!": "Clink!",
-	"꽝!": "Bonk!",
-	"쩡!": "Clank!",
+	"꽝!": "Bang!",
+	"쩡!": "Crack!",
 	# 새긴 돌판 도장·지명판
-	"와르르!": "CRUMBLE!", "번쩍!": "GLEAM!", "쿠웅!": "THOOM!", "쩌억!": "CRACK!", "푸화악!": "WHOOSH!", "휘오오!": "WHOOO!", "바다다!": "THE SEA!",
-	"지하 90m": "90 m below", "%s에서 이어서": "Continue from %s",
+	"와르르!": "CRUMBLE!", "번쩍!": "GLEAM!", "쿠웅!": "THOOM!", "쩌억!": "CRRACK!", "푸화악!": "WHOOSH!", "휘오오!": "Whooo!", "바다다!": "The sea!",
+	"지하 90m": "90 m underground", "%s에서 이어서": "Continue from %s",
 	# 타이틀·튜토리얼
-	"굴러라 신전석": "ROCK AND\nSTONE", "신전에서 풀려난 돌,\n바다까지 멈추지 말고 굴러라": "A temple stone breaks free.\nDon't stop until the sea!",
-	"최고 완주 %s": "Best run %s", "▶  시작": "▶  Play", "튜토리얼": "Tutorial",
-	"튜토리얼 끝!\n이제 진짜 길로": "Tutorial done!\nNow the real road",
-	"연습 1 · 끌어서 조향": "Practice 1 · Steer", "연습 2 · 뛰기": "Practice 2 · JUMP", "연습 3 · 쪼개기": "Practice 3 · SPLIT",
+	"굴러라 신전석": "ROCK AND\nSTONE", "신전에서 풀려난 돌,\n바다까지 멈추지 말고 굴러라": "A stone freed from the temple,\nroll to the sea without stopping",
+	"최고 완주 %s": "Best finish %s", "▶  시작": "▶  Start", "튜토리얼": "Tutorial",
+	"튜토리얼 끝!\n이제 진짜 길로": "Tutorial over!\nNow the real road",
+	"연습 1 · 끌어서 조향": "Practice 1 · Drag to steer", "연습 2 · 뛰기": "Practice 2 · JUMP", "연습 3 · 쪼개기": "Practice 3 · SPLIT",
 	"연습 4 · 버티기": "Practice 4 · HOLD", "연습 5 · 던지기": "Practice 5 · THROW",
-	"손가락을 좌우로 끌어 항아리를 깔아 봐": "Drag left and right to crush pots", "손가락을 좌우로 끌어 봐": "Drag left and right",
+	"손가락을 좌우로 끌어 항아리를 깔아 봐": "Drag your finger left and right to crush pots", "손가락을 좌우로 끌어 봐": "Drag your finger left and right",
 	"항아리를 깔면 커진다": "Crushing pots makes you bigger", "빨간 기둥은 피해!": "Dodge the red pillars!",
-	"틈 앞에서 뛰기": "JUMP before the gap", "앞에 틈이 있다": "A gap ahead", "지금 뛰기!": "JUMP now!", "한 번 더, 뛰기!": "Again, JUMP!",
-	"쪼개면 가볍고 1초 동안 돌진한다": "SPLIT = lighter + 1s dash", "집은 너무 커서 못 깐다": "Houses are too big to crush",
-	"쪼개기!\n돌진해서 집을 뚫어": "SPLIT!\nDash through the houses",
+	"틈 앞에서 뛰기": "JUMP in front of the gap", "앞에 틈이 있다": "There's a gap ahead", "지금 뛰기!": "JUMP now!", "한 번 더, 뛰기!": "Again, JUMP!",
+	"쪼개면 가볍고 1초 동안 돌진한다": "SPLIT makes you lighter and you dash for 1 second", "집은 너무 커서 못 깐다": "Houses are too big to crush",
+	"쪼개기!\n돌진해서 집을 뚫어": "SPLIT!\nDash and break through the house",
 	"공중에서 버티기 = 내려찍기 · 땅에서는 제동": "HOLD in the air = slam · on the ground = brake", "절벽이다": "A cliff",
-	"버티기를 꾹!\n파란 머리 탑을 쾅": "Press and keep HOLD!\nSlam the blue-capped tower",
-	"흰 눈으로 커지고 초록 점선이면 던지기": "Grow in white snow, THROW when the line is green",
-	"흰 눈 위를 굴러 커져": "Roll on white snow to grow", "보라 수정은 몸으로 못 지나간다": "Purple crystal blocks your body",
-	"초록 점선!\n던지기": "Green line!\nTHROW",
+	"버티기를 꾹!\n파란 머리 탑을 쾅": "Press HOLD hard!\nSlam the blue-roofed tower",
+	"흰 눈으로 커지고 초록 점선이면 던지기": "Grow in white snow, THROW on the green dotted line",
+	"흰 눈 위를 굴러 커져": "Roll on white snow to grow", "보라 수정은 몸으로 못 지나간다": "Your body can't pass purple crystals",
+	"초록 점선!\n던지기": "Green dotted line!\nTHROW",
 	# tofu.gd (공통 화면)
 	"< 메뉴": "< Menu", "< 처음부터": "< Restart", "< 목록": "< List", "평가": "Rate", "탭해서 시작": "Tap to start",
-	"이 게임 어때요?": "How was it?", "닫기": "Close", "한마디": "Comment", "고마워요!": "Thanks!",
+	"이 게임 어때요?": "How's this game?", "닫기": "Close", "한마디": "Comment", "고마워요!": "Thanks!",
 	"보내는 중": "Sending", "한마디 보냈어요": "Comment sent", "저장 안 됨 · 별을 다시 탭": "Not saved · tap a star again",
 	# 버튼
 	"뛰기": "JUMP", "쪼개기": "SPLIT", "버티기": "HOLD", "던지기": "THROW",
@@ -5405,98 +5402,90 @@ const EN := {
 	"신전 계곡": "Temple Valley", "수로 · 뛰기": "Aqueduct · JUMP", "갈림길 · 쪼개기": "Crossroads · SPLIT",
 	"절벽 · 버티기": "Cliffs · HOLD", "광장 · 위에서": "Plaza · From Above", "설산 · 눈 굴리기": "Snow Peak · Snowball",
 	"협곡 · 던지기": "Canyon · THROW", "해안 · 추격": "Coast · Chase", "조수 정원 · 물살 타기": "Tide Garden · Currents",
-	"공명 제단 · 눌렀다 놓기": "Echo Altar · Hold & Release", "바다 신전 · 마지막 도약": "Sea Temple · Final Leap",
-	"물살을 타면 빨라진다 · 버티면 제자리": "Ride the current = speed up · HOLD = stay put", "물살을 타면 빨라진다!": "Riding the current speeds you up!", "눈 위를 구르면
-몸이 커진다!": "Rolling on snow
-makes you BIGGER!", "물살을 타고
-초록이면 던져": "Ride the current
-THROW on green",
-	"황금 발판에서 버티기 → 힘이 차면 손을 떼 발사": "HOLD on the golden pad → release when charged",
-	"키우고 → 던지고 → 가볍게 날아 바다 신전까지": "Grow → throw → fly light to the sea temple",
+	"공명 제단 · 눌렀다 놓기": "Echo Altar · Press and Release", "바다 신전 · 마지막 도약": "Sea Temple · Final Leap",
+	"물살을 타면 빨라진다 · 버티면 제자리": "Ride the current = speed up · HOLD = stay put", "물살을 타면 빨라진다!": "Riding the current speeds you up!", "눈 위를 구르면\n몸이 커진다!": "Roll on snow\nand your body grows!", "물살을 타고\n초록이면 던져": "Ride the current\nTHROW on green",
+	"황금 발판에서 버티기 → 힘이 차면 손을 떼 발사": "HOLD on the golden pad → when charged, let go to launch",
+	"키우고 → 던지고 → 가볍게 날아 바다 신전까지": "Grow → throw → fly light all the way to the sea temple",
 	# 안내
-	"11개의 길 너머\n마지막 신전으로": "Across 11 roads\nto the last temple",
+	"11개의 길 너머\n마지막 신전으로": "Beyond 11 roads\nto the last temple",
 	"끌어서 항아리를 깔아봐": "Drag to crush the pots",
-	"빨간 기둥은 옆으로 피해": "Dodge the red pillars",
-	"큰 돌은 무거워\n오르막 전엔 욕심내지 마": "Big = heavy\ndon't overeat before hills",
+	"빨간 기둥은 옆으로 피해": "Dodge the red pillars to the side",
+	"큼 = 무거움": "Big = heavy",
 	"노란 경사대에서\n저절로 날아간다": "Yellow ramp\nlaunches you",
-	"다리는 가운데로": "Stay center on bridges",
-	"틈! 뛰기": "Gap! JUMP", "담도 뛰어": "Jump the wall too", "석상!\n뛰거나 깔거나": "Statue!\njump or crush", "석상 뒤에 틈!\n깔고 뛰거나 넘거나": "Gap behind the statue!\ncrush & jump, or leap over",
+	"다리는 가운데로": "Keep to the middle on bridges",
+	"틈! 뛰기": "Gap! JUMP", "담도 뛰어": "Jump the wall too", "석상!\n뛰거나 깔거나": "Statue!\njump or crush", "석상 뒤에 틈!\n깔고 뛰거나 넘거나": "Gap behind the statue!\nCrush and jump, or jump over",
 	"담과 틈:\n한 번에!": "Wall and gap:\nin one go!",
-	"쪼개면 가볍고\n잠깐 돌진: 집도 뚫는다": "SPLIT = lighter\n+ dash through houses",
-	"섞기: 깔면 무거워\n회전에서 밀린다": "Mix: crushing = heavy\nturns push you out",
+	"쪼개면 가볍고\n잠깐 돌진: 집도 뚫는다": "SPLIT makes you light\nShort dash: breaks even houses",
+	"섞기: 깔면 무거워\n회전에서 밀린다": "Mix: crushing makes you heavy\nturns push you out",
 	"쪼개서 가볍게!": "SPLIT to get light!", "뛰어!": "JUMP!",
 	"떨어지며 조종": "Steer while falling",
-	"파란 머리 탑!\n떨어지며 버티기로 쾅": "Blue-capped tower!\nHOLD while falling to SLAM",
+	"파란 머리 탑!\n떨어지며 버티기로 쾅": "Blue-roofed tower!\nHOLD while falling to SLAM",
 	"탑을 부수면 빨라진다": "Smashed towers speed you up",
-	"황금 신상은\n버티기로만 깨진다": "Golden idol breaks\nonly with a HOLD slam",
+	"황금 신상은\n버티기로만 깨진다": "The golden idol breaks\nonly with HOLD",
 	"섞기: 뛰고\n내려찍고": "Mix: jump\nthen slam",
-	"구멍 피해\n신상을 내려찍어": "Avoid holes\nslam the idol",
+	"구멍 피해\n신상을 내려찍어": "Avoid the holes\nslam down on the idol",
 	"회전!\n버티거나 쪼개": "Turn!\nHOLD or SPLIT",
 	"길을 골라": "Pick a path", "좁은 문!": "Narrow gate!",
 	"흰 눈 위를 구르면\n커진다": "Roll on white snow\nto grow",
 	"얼음벽만큼 커야\n깬다": "Be as big as the ice wall\nto break it",
-	"오르막 전에\n노란 길에서 녹여": "Melt on yellow\nbefore the hill",
+	"오르막 전에\n노란 길에서 녹여": "Before the hill\nmelt down on the yellow road",
 	"다시 키워!": "Grow again!", "녹는 길": "Melting road",
 	"섞기: 눈으로 키워\n얼음벽 깨기": "Mix: grow in snow\nbreak the ice wall",
-	"무거운 몸으로\n뛰어!": "JUMP while heavy!",
+	"무거운 몸으로\n뛰어!": "JUMP\nwith a heavy body!",
 	"오르막!\n쪼개서 가볍게": "Hill!\nSPLIT to get light",
-	"던지기 = 내 몸 한 덩이를\n앞으로 (작아진다)": "THROW = toss a chunk of yourself\nforward (you shrink)",
-	"보라 벽은 몸으로 못 지나간다\n점선이 초록이면 던져": "Purple walls block you\nTHROW when the line is green",
+	"던지기 = 내 몸 한 덩이를\n앞으로 (작아진다)": "THROW = one chunk of your body\nforward (you shrink)",
+	"보라 벽은 몸으로 못 지나간다\n점선이 초록이면 던져": "Your body can't pass purple walls\nTHROW when the dotted line is green",
 	"다시 키워": "Grow again", "빠를수록 멀리 닿는다": "Faster = longer throw",
 	"노랑은 받고\n빨강은 피해": "Catch yellow\ndodge red",
-	"좁다! 빨강은\n쪼개서 막아": "Narrow! SPLIT\nto block red",
-	"해안 응용: 배운 것을 섞어!": "Coast: mix everything!",
+	"좁다! 빨강은\n쪼개서 막아": "Narrow! Block red\nby SPLITTING",
+	"해안 응용: 배운 것을 섞어!": "Coast finale: mix what you learned!",
 	"눈으로 키우고": "Grow in snow",
 	"회전! 버티기": "Turn! HOLD", "구멍 피해\n내려찍기": "Avoid holes\nslam",
 	"물살은 몸을 옆으로!\n화살표를 봐": "Currents push you sideways!\nWatch the arrows",
 	"버티면 덜 밀린다": "HOLD = pushed less",
-	"이번엔 반대 방향\n뛰면 물살을 벗어난다": "Other way now\nJUMP to escape",
-	"섞기: 눈으로 탄약 확보": "Mix: grow ammo in snow",
+	"이번엔 반대 방향\n뛰면 물살을 벗어난다": "Opposite way this time\nJUMP to leave the current",
+	"섞기: 눈으로 탄약 확보": "Mix: get ammo from snow",
 	"물살을 버티며\n초록이면 던져": "HOLD in the current\nTHROW on green",
 	"벽을 열고 물살 밖에서 뛰어!": "Open the wall, JUMP out of the current!",
-	"반대 물살 착지\n가운데로 조종": "Land in the reverse current\nsteer to center",
+	"반대 물살 착지\n가운데로 조종": "Land in the reverse current\nsteer to the middle",
 	"앞의 넓은 틈:\n보통 점프로는 짧다": "Wide gap ahead:\na normal jump falls short",
-	"황금 발판에서 버티기!\n초록이 되면 손을 떼": "HOLD on the golden pad!\nRelease on green",
+	"황금 발판에서 버티기!\n초록이 되면 손을 떼": "HOLD on the golden pad!\nLet go when it turns green",
 	"공중에서 버티면 내려찍기\n착지까지는 손을 떼자": "HOLD in the air = slam\nlet go until you land",
-	"섞기: 눈으로 몸을 키워": "Mix: grow in snow",
-	"무거운 몸으로 발판 누르기\n초록에서 손을 떼!": "Press the pad while heavy\nrelease on green!",
-	"착지 후 수정을 던져 깨고": "After landing, THROW at the crystal",
+	"섞기: 눈으로 몸을 키워": "Mix: grow your body in snow",
+	"무거운 몸으로 발판 누르기\n초록에서 손을 떼!": "Press the pad with a heavy body\nlet go on green!",
+	"착지 후 수정을 던져 깨고": "After landing, THROW to break the crystal",
 	"마지막 신전이 보인다": "The last temple is in sight",
-	"마지막 응용\n눈으로 탄약을 만들고": "Final mix\nmake ammo in snow",
-	"물살 뒤 황금 발판\n버티다가 손을 떼!": "Golden pad after the current\nHOLD, then release!",
-	"돌아왔다\n신전의 빛을 향해": "Home again\ntoward the temple light",
+	"마지막 응용\n눈으로 탄약을 만들고": "Final mix\nmake ammo with snow",
+	"물살 뒤 황금 발판\n버티다가 손을 떼!": "Golden pad after the current\nHOLD, then let go!",
+	"돌아왔다\n신전의 빛을 향해": "Back again\ntoward the temple's light",
 	# 순간 글
 	"← 갈림길 →": "← Fork →", "왼쪽!": "Left!", "오른쪽!": "Right!", "삐걱!": "Creak!",
-	"지하로!": "Down below!", "떨어진다!": "Falling!", "날아라!": "Fly!",
-	"떨어짐!": "Fell off!", "쾅!": "Crash!", "수로 합류! 다음 틈을 봐": "Back on the aqueduct! Watch the next gap",
-	"돌진 관통!": "Dashed through!", "느려!": "Too slow!", "멈췄다": "Stopped",
+	"지하로!": "To the underground!", "떨어진다!": "Falling!", "날아라!": "Fly!",
+	"떨어짐!": "Fell!", "쾅!": "Boom!", "수로 합류! 다음 틈을 봐": "Joined the aqueduct! Watch the next gap",
+	"돌진 관통!": "Dashed right through!", "느려!": "Slow!", "멈췄다": "Stopped",
 
-	"커진다": "Growing", "녹는다": "Melting", "너무 작다": "Too small", "던졌다!": "Thrown!", "깼다!": "Broken!",
-	"닿는다! 던져": "In range! THROW", "%d개 쾅!": "%d smashed!", "쾅 착지!": "Big landing!",
-	"황금 신상 쾅! 가속": "Idol smashed! Speed up", "탑 쾅! 가속": "Tower smashed! Speed up", "커졌다!": "Bigger!",
-	"수정은 던져서!": "THROW at crystals!", "위에서 버티기로 쾅!": "HOLD-slam it from above!", "드르륵": "SCRAPE", "기와에 긁혀 느려졌다
-떨어질 때 버티기 = 깨고 가속": "Scraped over the roof - slowed
-HOLD while falling = smash + speed",
-	"더 커지거나\n직전에 쪼개서 돌진!": "Grow bigger, or\nSPLIT right before to dash!",
-	"더 커져야!": "Need to be bigger!", "쿵!": "Bonk!", "더 못 쪼갠다": "Can't split more",
-	"쪼개서 돌진!": "Split dash!", "막았다!": "Blocked!", "받았다!": "Caught!",
-	"숨은 수정 동굴!\n보석을 모아 노란 출구로": "Hidden crystal cave!\nGrab gems, head for the yellow exit",
+	"커진다": "Getting bigger", "녹는다": "Melting", "너무 작다": "Too small", "던졌다!": "Threw it!", "깼다!": "Broke it!",
+	"닿는다! 던져": "It reaches! THROW", "%d개 쾅!": "%d smashed!", "쾅 착지!": "Boom landing!",
+	"황금 신상 쾅! 가속": "Golden idol smashed! Speed up", "탑 쾅! 가속": "Tower smashed! Speed up", "커졌다!": "Bigger!",
+	"수정은 던져서!": "Crystals: THROW at them!", "위에서 버티기로 쾅!": "HOLD from above to slam!", "드르륵": "Scrrrape", "기와에 긁혀 느려졌다\n떨어질 때 버티기 = 깨고 가속": "Scraped by the roof tiles, slowed down\nHOLD while falling = break it and speed up",
+	"더 커지거나\n직전에 쪼개서 돌진!": "Grow bigger, or\nSPLIT right before and dash!",
+	"더 커져야!": "Must be bigger!", "쿵!": "Thud!", "더 못 쪼갠다": "Can't split any more",
+	"쪼개서 돌진!": "SPLIT dash!", "막았다!": "Blocked!", "받았다!": "Caught it!",
+	"숨은 수정 동굴!\n보석을 모아 노란 출구로": "Hidden crystal cave!\nCollect gems, go to the yellow exit",
 	"보석 +40": "Gem +40", "힘이 찼다!\n손을 떼서 날아": "Charged!\nLet go to fly", "공명 도약!": "Echo leap!",
 	"바다에 도착했다!": "You reached the sea!",
-	"숨은 수정 동굴": "Hidden crystal cave", "잠든 지하 신전": "The Sleeping Under-Temple", "다음 틈을 봐": "Watch the next gap",
-	"안 닿았다!\n더 빨리, 더 가까이": "Fell short!\nFaster, or get closer",
+	"숨은 수정 동굴": "Hidden crystal cave", "낮잠자는 지하 신전": "The Napping Under-Temple", "다음 틈을 봐": "Watch the next gap",
+	"안 닿았다!\n더 빨리, 더 가까이": "Didn't reach!\nFaster, closer",
 	# 숨은 길(지름길) 지명판
-	"눈 줄을 따라 지그재그": "Weave along the snow lanes", "깨고 녹이고 올라": "Smash, melt, climb",
-	"던지고, 눈으로 다시 채우고": "Throw, then refill in the snow", "무거우면 회전에서 밀린다
-던져서 가볍게": "Heavy = pushed out on turns
-THROW to lighten",
+	"눈 줄을 따라 지그재그": "Zigzag along the snow lanes", "깨고 녹이고 올라": "Break, melt, climb",
+	"던지고, 눈으로 다시 채우고": "Throw, then refill in the snow", "무거우면 회전에서 밀린다\n던져서 가볍게": "Heavy = pushed out on turns\nTHROW to get lighter",
 	"방파제가 좁아진다": "The breakwater narrows", "뛰어 건너!": "Jump across!",
-	"구역 · 지름길로 가기": "Go to stage · shortcut",
-	"끌어서 조향\n느려지면 끝": "Drag to steer\nToo slow = out", "섞기: 깔고 뛰기": "Mix: crush then jump",
+	"구역 · 지름길로 가기": "Go to zone · shortcuts",
+	"끌어서 조향": "Drag to steer", "섞기: 깔고 뛰기": "Mix: crush then jump",
 	"치익!": "Sizzle!",
-	"지름길!": "Shortcut!", "옛 배수로": "Old Drain", "깊은 물길": "Deep Current", "순풍 길": "Tailwind Draft", "뒷골목": "Back Alley",
+	"지름길!": "Shortcut!", "옛 배수로": "Old Drain", "깊은 물길": "Deep Waterway", "순풍 길": "Tailwind Road", "뒷골목": "Back Alley",
 	"숨은 저수조": "Hidden Cistern", "얼음 골짜기": "Ice Gully", "수정 맥 길": "Crystal Vein Cut", "하늘 수로": "Sky Aqueduct",
-	"쪼개서 돌진!\n아니면 더 빨리": "SPLIT-dash it!\nOr come in faster",
+	"쪼개서 돌진!\n아니면 더 빨리": "SPLIT and dash!\nOr go faster",
 	# 결과 카드: 왜 끝났는지
 
 
@@ -5508,25 +5497,25 @@ THROW to lighten",
 
 
 	# 화면 글
-	"구역 다시": "Retry region", "처음부터": "From start", "한 번 더": "Once more",
+	"구역 다시": "Retry zone", "처음부터": "From start", "한 번 더": "Once more",
 	"%d점   ·   속도 %02d m/s": "%d pts   ·   speed %02d m/s",
 	"%02d / %02d   ·   %s   ·   크기 %.1f": "%02d / %02d   ·   %s   ·   size %.1f",
 	"끌어서 항아리를 깔고 빨간 기둥은 피해": "Drag to crush pots, dodge red pillars",
-	"뛰기 · 떨어지면 저 아래 지하 신전으로": "JUMP · fall and you land in the temple far below",
-	"쪼개면 잠깐 돌진 · 집을 뚫고 가볍게 회전": "SPLIT = short dash · smash houses, turn light",
-	"파란 머리 탑·신상 = 공중에서 버티기로 쾅 → 가속": "Blue caps = HOLD-slam from the air → speed up",
-	"집을 깔거나 뛰어넘어 길을 골라": "Crush or jump houses, pick your path",
-	"흰 빗금 눈 = 성장 · 노란 길 = 해빙": "White snow = grow · yellow = melt",
-	"초록 점선에서 던져 수정에 통로를 열어": "THROW on the green line to open crystals",
-	"노란 돌은 받아 · 빨간 돌은 피해 / 쪼개서 막아": "Catch yellow rocks · dodge red / SPLIT to block",
+	"뛰기 · 떨어지면 저 아래 지하 신전으로": "JUMP · if you fall, you drop to the underground temple far below",
+	"쪼개면 잠깐 돌진 · 집을 뚫고 가볍게 회전": "SPLIT = short dash · break through houses, turn while light",
+	"파란 머리 탑·신상 = 공중에서 버티기로 쾅 → 가속": "Blue-roofed towers, idols = HOLD in the air to slam → speed up",
+	"집을 깔거나 뛰어넘어 길을 골라": "Crush or jump over houses, pick your road",
+	"흰 빗금 눈 = 성장 · 노란 길 = 해빙": "White hatched snow = grow · yellow road = melt",
+	"초록 점선에서 던져 수정에 통로를 열어": "THROW on the green dotted line to open a way through crystals",
+	"노란 돌은 받아 · 빨간 돌은 피해 / 쪼개서 막아": "Catch yellow stones · dodge red stones / SPLIT to block",
 	"발판 힘 %d%% · %s": "Pad power %d%% · %s", "손을 떼서 발사!": "Let go to launch!", "버티기를 길게 눌러": "Keep holding HOLD",
 	"얼음벽 4.5 / 내 몸 %.1f\n%s": "Ice wall 4.5 / you %.1f\n%s",
-	"돌진 중! 그대로 뚫어": "Dashing! Smash through", "눈으로 키우거나 · 벽 앞에서 쪼개 돌진": "Grow in snow · or SPLIT-dash at the wall",
-	"충분히 커졌다 · 벽을 깨자": "Big enough · break the wall",
-	"금메달": "Gold", "은메달": "Silver", "동메달": "Bronze", " · 바다 도착": " · Reached the sea",
-	"다시 굴러가자": "Roll again", "아직 없음": "none yet",
+	"돌진 중! 그대로 뚫어": "Dashing! Break straight through", "눈으로 키우거나 · 벽 앞에서 쪼개 돌진": "Grow with snow · or SPLIT and dash at the wall",
+	"충분히 커졌다 · 벽을 깨자": "Big enough · let's break the wall",
+	"금메달": "Gold medal", "은메달": "Silver medal", "동메달": "Bronze medal", " · 바다 도착": " · Reached the sea",
+	"다시 굴러가자": "Let's roll again", "아직 없음": "none yet",
 	"%s   ·   %d점\n최고 완주 %s\n%s": "%s   ·   %d pts\nBest finish %s\n%s",
 	"새 시간 기록!": "New time record!", "최고 점수 %d": "Best score %d",
-	"금 3:00 / 은 4:00 / 동 완주\n재도전 %d회 · 출발부터 실패 시간 포함": "Gold 3:00 / Silver 4:00 / Bronze finish\n%d retries · time includes fails",
+	"금 3:00 / 은 4:00 / 동 완주\n재도전 %d회 · 출발부터 실패 시간 포함": "Gold 3:00 / Silver 4:00 / Bronze = finish\n%d retries · time from the start, fails included",
 	"%s\n%s에서 이어서": "%s\nContinue from %s",
 }
