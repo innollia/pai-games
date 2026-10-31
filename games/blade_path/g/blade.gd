@@ -26,11 +26,6 @@ const ARROW := ["←", "→", "↑", "↓"]
 const T_WIND := [Vector3(-0.75, 0.1, -0.4), Vector3(0.75, 0.1, -0.4), Vector3(0, 0.75, -0.4), Vector3(0, -0.55, -0.4)]
 const T_HIT := [Vector3(-1.35, 0.0, 1.5), Vector3(1.35, 0.0, 1.5), Vector3(0, 1.25, 1.5), Vector3(0, -1.15, 1.5)]
 const SWING := [1.0, -1.0, 1.0, -1.0]  # 베기: 젖힌 칼이 도는 쪽
-## 내 칼 자세 (카메라 기준): 위치, z 회전 (왼·오·위·아래)
-const POSE := [Vector3(-0.8, -0.1, 2.5), Vector3(0.8, -0.1, 2.5), Vector3(0, 0.55, 2.5), Vector3(0, -0.85, 2.5)]
-const TURN := [0.25, -0.25, PI / 2, PI / 2]
-const REST_P := Vector3(0.55, -1.25, 2.5)
-const REST_R := -0.6
 const CAM_O := Vector3(0, 0.3, 5)
 const NAMES := ["찌르기 검객", "속임수 검객", "베기 검객", "거합 검객", "끝판왕 검귀"]
 const TIPS := [
@@ -110,7 +105,11 @@ const PERKS := [
 	["gap", "긴 빈틈", "빈틈(초록)이 30% 더 오래 열려요", 3],
 ]
 
-## 아래 탭 줄: 칸 i 는 탭 i + 1 (탭 0 업그레이드는 없앴다)
+## 개발 도구(g/dev.gd)에서 고친 글·UI 자리. [내보내기]한 내용을 여기 붙여 넣으면 출시판에도 그대로 남는다.
+const BAKED_TEXT := {}
+const BAKED_UI := {}
+
+## 아래 탭 줄 (칸 번호 = tab)
 const TABS := ["전투", "캐릭터", "도감"]
 const DEX := ["찌르기", "속임수", "베기", "거합", "검귀"]
 const NAV_Y := 1150.0
@@ -156,9 +155,6 @@ var blade_rest := Vector3(0.95, -0.3, 0.6)
 var blade_rr := Vector3(0, 0, 0.5)
 var stance := -1  # 내가 밀어서 잡은 칼 방향 (-1 = 아직)
 var stance_l: Label
-var rig: Node3D
-var sword: MeshInstance3D
-var my_col := WHITE
 var cam_base := Vector3.ZERO
 # 결투
 var mode := "intro"
@@ -178,7 +174,7 @@ var odir := 0
 var dmap := [0, 1, 2, 3]
 var feint_at := -1.0
 var feinting := false  # 이번 칼이 방향을 바꾸는 속임수인가 (속임수 칼만 흔들린다)
-var show_at := 0.0  # 거합: 이때부터 빨간 상자가 보인다
+var show_at := 0.0  # 거합: 이때 칼이 칼집에서 빠져나와 잔상 길이 보인다
 var tell_at := -1.0  # 거합: 이때 눈이 번쩍 (이보다 먼저 휘두르면 헛공격)
 var told := true
 var shown := true
@@ -187,9 +183,7 @@ var whiff_t := 0.0
 var fl := Vector3.ZERO
 var slow := 0.0
 var gp := false  # 지금 빈틈이 간파로 연 것인가 (헛공격하면 피해 없이 간파만 끝남)
-var sw_t := 0.0
 var flash_t := 0.0
-var hurt_t := 0.0
 var shake_t := 0.0
 var blink := 0.0
 var start := Vector2.ZERO
@@ -212,7 +206,7 @@ var tut_l: Label
 var skip_l: Label
 # 로비 (쓰러진 뒤, 다시 켤 때)
 var lobby: Control
-var tab := 1
+var tab := 0
 var pages: Array[Control] = []
 var nav_bg: Array[ColorRect] = []
 var nav_l: Array[Label] = []
@@ -236,14 +230,20 @@ var set_box: ColorRect  # 설정 창 (로비 위 [설정])
 var set_btn: ColorRect
 var set_fill: Array[ColorRect] = []
 var set_val: Array[Label] = []
+# 고칠 수 있는 글·UI (개발 도구가 바꾼다)
+var say := {}  # 글 키 -> 글
+var ui := {}  # UI 이름 -> Control
+var btn_at := {"guard": GUARD_P, "cut": CUT_P}  # 막기·베기 버튼 자리
+var btn_r := {"guard": BTN_R, "cut": BTN_R}
+var title_l: Label
 
-const SKIP_R := Rect2(470, 296, 250, 90)
 const GUARD_P := Vector2(185, 1150)
 const CUT_P := Vector2(535, 1150)
 const BTN_R := 105.0
 const PLAY_R := Rect2(110, 880, 500, 150)
 const TUT_R := Rect2(200, 1050, 320, 80)
 const SET_R := Rect2(586, 118, 124, 68)
+const DEV := "res://g/dev.gd"  # 개발 도구. 출시 때는 이 파일만 지우면 된다
 const SET_CLOSE := Rect2(210, 860, 300, 100)
 
 
@@ -312,13 +312,10 @@ func _per() -> float:
 
 # ---- 화면 글자 ----
 func _setup() -> void:
-	howto = ""
-	time_limit = 0.0
 	_load_save()
 	_apply_vol()
 	for i in 4:
 		var ap := AudioStreamPlayer.new()
-		ap.stream = SND["whiff"] if i % 2 == 0 else SND["miss"]
 		add_child(ap)
 		sfx_p.append(ap)
 	var hud := CanvasLayer.new()
@@ -346,10 +343,72 @@ func _setup() -> void:
 	tut_l.position.x = 20
 	tut_l.size.x = 680
 	skip_l = _label(tl, 32, 310, 60)
-	skip_l.text = "건너뛰기 >"
 	skip_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	skip_l.size.x = 696
+	skip_l.position.x = 456
+	skip_l.size.x = 240
 	_lobby_ui()
+	ui = {"info": info_l, "stance": stance_l, "score": _score_l, "bar": _bar_bg, "msg": _msg_l, "tut": tut_box, "skip": skip_l,
+		"top": top_l.get_parent(), "set": set_btn, "title": title_l, "home": home_l.get_parent(), "play": play_edge, "tut_again": tut_again}
+	_default_say()
+	say.merge(BAKED_TEXT, true)
+	_apply_ui(BAKED_UI)
+	_apply_text()
+	if ResourceLoader.exists(DEV):
+		add_child(load(DEV).new())
+
+
+## 글 기본값 (개발 도구 [대사 편집]에서 바꿀 수 있다)
+func _default_say() -> void:
+	say = {"title": "일격의 길", "tut_look": "검객이 공격하려고 해요. 잘 봐요!"}
+	for i in TUT_SAY.size():
+		say["tut%d" % i] = TUT_SAY[i]
+	say["tut_wait"] = "이번엔 칼이 거의 닿을 때까지\n기다려요…"
+	say["tut_good"] = "좋아요!"
+	say["tut_end"] = "준비 끝!\n검객을 쓰러뜨리면 능력을 하나 골라요.\n체력은 저절로 차지 않아요. 갈수록 적이 세져요.\n\n탭해서 싸우러 가기"
+	say["skip"] = "건너뛰기 >"
+	say["play"] = "전투"
+	say["tut_again"] = "튜토리얼 다시 보기"
+	for i in NAMES.size():
+		say["name%d" % i] = NAMES[i]
+		say["tip%d" % i] = TIPS[i]
+	for pk: Array in PERKS:
+		say["pk_%s" % pk[0]] = pk[1]
+		say["pkd_%s" % pk[0]] = pk[2]
+	say.merge({"parry": "간파!", "parry_go": "간파!\n지금 초록 쪽으로 베요!", "parry_twice": "간파!\n한 번 더 와요!", "block": "막기",
+		"cut": "베기!", "x2": "간파 일격! x2", "link": "연격!", "whiff": "헛공격!  체력 -1\n빈틈을 보였어요",
+		"whiff_steady": "헛공격!\n빈틈을 보였어요", "eguard": "헛막기", "lose": "간파 놓침", "win": "승리!", "dead": "쓰러짐"})
+
+
+func _s(k: String) -> String:
+	return say.get(k, k)
+
+
+## 글이 바뀌면 화면에 늘 떠 있는 글자에 다시 넣는다
+func _apply_text() -> void:
+	title_l.text = _s("title")
+	skip_l.text = _s("skip")
+	(play_bg.get_child(0) as Label).text = _s("play")
+	tut_again.text = _s("tut_again")
+	if lobby.visible:
+		_lobby_refresh()
+
+
+## UI 자리·크기: 이름 -> [x, y, 크기]. 막기·베기 버튼은 [가운데 x, 가운데 y, 크기]
+func _apply_ui(d: Dictionary) -> void:
+	for k in d:
+		var v: Array = d[k]
+		if btn_at.has(k):
+			btn_at[k] = Vector2(v[0], v[1])
+			btn_r[k] = BTN_R * float(v[2])
+			if _btns.has(k):
+				_btns[k].pos = btn_at[k]
+				_btns[k].r = btn_r[k]
+		elif ui.has(k):
+			var c: Control = ui[k]
+			c.pivot_offset = c.size * 0.5
+			c.position = Vector2(v[0], v[1])
+			c.scale = Vector2.ONE * float(v[2])
+			c.set_meta("s0", c.scale)
 
 
 func _panel(parent: Node, r: Rect2, c: Color) -> ColorRect:
@@ -382,35 +441,33 @@ func _lobby_ui() -> void:
 	top_l = _white(_label(top, 38, 0, 84))
 	top_l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	top_l.size.x = 580  # 오른쪽은 [설정] 자리
-	for i in 4:
+	for i in TABS.size():
 		var pg := Control.new()
 		pg.size = Vector2(720, 1280)
 		pg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		lobby.add_child(pg)
 		pages.append(pg)
-	# 0 업그레이드: 없앴다 (빈 쪽). 능력은 싸우다 검객을 쓰러뜨리면 고른다
-	# 1 전투 (뒤에 검객이 서 있다)
-	var title := _label(pages[1], 72, 210, 100)
-	title.text = "일격의 길"
-	var card := _panel(pages[1], Rect2(60, 320, 600, 150), Color(0.12, 0.08, 0.05, 0.7))
+	# 0 전투 (뒤에 검객이 서 있다)
+	title_l = _label(pages[0], 72, 210, 100)
+	var card := _panel(pages[0], Rect2(60, 320, 600, 150), Color(0.12, 0.08, 0.05, 0.7))
 	home_l = _white(_label(card, 30, 0, 150))
 	home_l.size.x = 600
 	home_l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	play_edge = _panel(pages[1], Rect2(PLAY_R.position + Vector2(-8, -8), PLAY_R.size + Vector2(16, 24)), INK)
-	play_bg = _panel(pages[1], PLAY_R, D)
+	play_edge = _panel(pages[0], Rect2(PLAY_R.position + Vector2(-8, -8), PLAY_R.size + Vector2(16, 24)), INK)
+	play_bg = _panel(play_edge, Rect2(8, 8, PLAY_R.size.x, PLAY_R.size.y), D)
 	var pl := _label(play_bg, 80, 0, PLAY_R.size.y)
 	pl.size.x = PLAY_R.size.x
 	pl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	pl.text = "전투"
-	tut_again = _label(pages[1], 30, TUT_R.position.y, TUT_R.size.y)
+	tut_again = _label(pages[0], 30, TUT_R.position.y, TUT_R.size.y)
 	tut_again.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	tut_again.text = "튜토리얼 다시 보기"
-	# 2 캐릭터: 상자 검객 그림 + 능력치 + 기록
-	_panel(pages[2], Rect2(0, 194, 720, NAV_Y - 194), Color(0.12, 0.08, 0.05, 0.8))
+	tut_again.position.x = TUT_R.position.x
+	tut_again.size.x = TUT_R.size.x
+	# 1 캐릭터: 상자 검객 그림 + 능력치 + 기록
+	_panel(pages[1], Rect2(0, 194, 720, NAV_Y - 194), Color(0.12, 0.08, 0.05, 0.8))
 	var fig := Control.new()
 	fig.position = Vector2(310, 220)
 	fig.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	pages[2].add_child(fig)
+	pages[1].add_child(fig)
 	var sw := _panel(fig, Rect2(118, -10, 16, 190), WHITE)
 	sw.rotation = 0.5
 	_panel(fig, Rect2(10, 40, 60, 56), Color("3b2a20"))
@@ -420,18 +477,18 @@ func _lobby_ui() -> void:
 	_panel(fig, Rect2(4, 216, 30, 44), INK)
 	_panel(fig, Rect2(46, 216, 30, 44), INK)
 	_panel(fig, Rect2(90, 120, 40, 26), ME)
-	char_l = _white(_label(pages[2], 32, 500, 640))
+	char_l = _white(_label(pages[1], 32, 500, 640))
 	char_l.label_settings.line_spacing = 4
-	# 3 도감: 위 칩 다섯, 가운데 검객(3D), 아래 설명 카드
+	# 2 도감: 위 칩 다섯, 가운데 검객(3D), 아래 설명 카드
 	for i in 5:
-		var bg := _panel(pages[3], _dex_r(i), SOFT)
+		var bg := _panel(pages[2], _dex_r(i), SOFT)
 		dex_bg.append(bg)
 		var l := _label(bg, 30, 0, 84)
 		l.size.x = 131
 		l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		l.label_settings.outline_size = 0
 		dex_l.append(l)
-	var dc := _panel(pages[3], Rect2(30, 860, 660, 270), Color(0.12, 0.08, 0.05, 0.8))
+	var dc := _panel(pages[2], Rect2(30, 860, 660, 270), Color(0.12, 0.08, 0.05, 0.8))
 	dex_card = _white(_label(dc, 30, 0, 270))
 	dex_card.size.x = 660
 	dex_card.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -527,27 +584,26 @@ func _buzz(ms: int, amp: float) -> void:
 
 ## 막기·베기 버튼 (여러 손가락: 한 손가락으로 밀면서 다른 손가락으로 누른다). 상점에서는 뺀다.
 func _buttons() -> void:
-	kit_button("guard", "막기", GUARD_P, BTN_R, B)
-	kit_button("cut", "베기", CUT_P, BTN_R, A)
+	kit_button("guard", "막기", btn_at.guard, btn_r.guard, B)
+	kit_button("cut", "베기", btn_at.cut, btn_r.cut, A)
 
 
 func _lobby_refresh() -> void:
 	top_l.text = "최고 %d명 쓰러뜨림" % best_n
-	for i in 4:
-		pages[i].visible = i == tab
 	for i in TABS.size():
-		nav_bg[i].color = D if i + 1 == tab else Color("5a4632")
-		nav_l[i].label_settings.font_size = 36 if i + 1 == tab else 30
+		pages[i].visible = i == tab
+		nav_bg[i].color = D if i == tab else Color("5a4632")
+		nav_l[i].label_settings.font_size = 36 if i == tab else 30
 	match tab:
-		1:
+		0:
 			var h := last_run if last_run != "" else "매 판 맨몸으로 시작해요\n검객을 쓰러뜨릴 때마다 능력을 하나 골라요"
 			if best_dmg > 0:
 				h += "\n끝판왕 최고 피해 %d" % best_dmg
 			home_l.text = h
-		2:
-			char_l.text = "나 · 떠돌이 검객\n\n체력 6 · 베기 힘 1 · 간파 0.20초\n(판마다 맨몸으로 시작,\n검객을 쓰러뜨리면 능력을 골라요)\n\n— 기록 —\n최고 %d명 쓰러뜨림 · 끝판왕 최고 피해 %d\n싸운 판 %d · 막기 %d · 간파 %d" % [
+		1:
+			char_l.text = "나 · 떠돌이 검객\n\n체력 6 · 베기 힘 1 · 간파 0.15초\n(판마다 맨몸으로 시작,\n검객을 쓰러뜨리면 능력을 골라요)\n\n— 기록 —\n최고 %d명 쓰러뜨림 · 끝판왕 최고 피해 %d\n싸운 판 %d · 막기 %d · 간파 %d" % [
 				best_n, best_dmg, runs, blocks, perfects]
-		3:
+		2:
 			for i in 5:
 				dex_l[i].text = DEX[i] if seen[i] > 0 else "???"
 				dex_bg[i].color = D if i == dex_pick else (SOFT if seen[i] > 0 else Color("8a7a66"))
@@ -556,7 +612,7 @@ func _lobby_refresh() -> void:
 				dex_card.text = "???\n아직 못 만났어요\n싸우다 보면 열려요"
 			else:
 				var rec := "만남 %d번 · 쓰러뜨림 %d번" % [seen[i], kills[i]] if i < 4 else "만남 %d번 · 준 피해 최고 %d" % [seen[i], best_dmg]
-				dex_card.text = "%s\n%s\n%s" % [NAMES[i], TIPS[i].replace("\n", " "), rec]
+				dex_card.text = "%s\n%s\n%s" % [_s("name%d" % i), _s("tip%d" % i).replace("\n", " "), rec]
 
 
 ## 로비로 (t = 탭). 막기·베기 버튼은 뺀다.
@@ -579,7 +635,7 @@ func _to_lobby(t: int) -> void:
 func _set_tab(t: int) -> void:
 	tab = t
 	# 전투 탭 = 마지막 상대, 도감 = 고른 검객(못 만났으면 검은 그림자)
-	if t == 3:
+	if t == 2:
 		_spawn(BOSS_AT if dex_pick == 4 else dex_pick)
 		if seen[dex_pick] == 0:
 			for c in piv.get_children():
@@ -609,26 +665,19 @@ func _reset() -> void:
 		box(Vector3.ZERO, Vector3(0.82, 0.82, 0.06), Color.BLACK, g)
 		box(Vector3(0, 0, 0.04), Vector3(0.6, 0.6, 0.06), GOOD, g)
 		ind.append(g)
-	rig = Node3D.new()
-	world.add_child(rig)
-	sword = box(REST_P, Vector3(0.12, 1.7, 0.12), WHITE, rig)
-	sword.rotation.z = REST_R
-	sword.visible = false  # 1인칭 칼 없음 (눈앞 칼이 막은 것처럼 보여 헷갈렸다)
 	cam_base = CAM_O
 	cam.position = cam_base
 	cam.look_at(Vector3.ZERO)
 	score = n
 	slow = 0.0
-	sw_t = 0.0
 	flash_t = 0.0
-	hurt_t = 0.0
 	shake_t = 0.0
 	armed = false
 	stun = 0.0
 	whiff_t = 0.0
 	stance = -1
 	if tut_done:
-		_to_lobby(1)
+		_to_lobby(0)
 		return
 	_begin_tut()
 
@@ -653,8 +702,8 @@ func _begin_tut() -> void:
 	hp_back.visible = false
 	hp_fill.visible = false
 	_intro()
-	msg("일격의 길", 1.4)
-	tut_l.text = "검객이 공격하려고 해요. 잘 봐요!"
+	msg(_s("title"), 1.4)
+	tut_l.text = _s("tut_look")
 
 
 func _scenery() -> void:
@@ -665,8 +714,6 @@ func _scenery() -> void:
 	box(Vector3(0, 1.8, -3.5), Vector3(6.0, 0.2, 0.3), INK)
 	box(Vector3(0, -5.1, 0), Vector3(24, 6, 24), FIELD)
 	_reeds()
-	if Look.ON:
-		Look.stage(self)
 	for m: Vector3 in [Vector3(-12, 6, -45), Vector3(6, 10, -52), Vector3(20, 4, -42)]:
 		box(m, Vector3(16, m.y * 2.0 + 6.0, 4), B)
 		box(m + Vector3(0, m.y + 3.0, 0.2), Vector3(6, 2, 4), WHITE)
@@ -713,33 +760,20 @@ func _spawn(k: int) -> void:
 	var hp_y := 2.0
 	var eye_y := 0.6
 	var eye_z := 0.6 if ftype == 4 else 0.5
-	var top := 1.5
-	if Look.ON and ftype < 4:
-		# 설정화 모양 (g/look.gd, 끄려면 거기서 ON = false)
-		var lk := Look.dress(self, ftype, minf(0.6, floorf(k / 4.0) * 0.3), piv)
-		body = lk.body
-		eye_y = lk.eye_y
-		eye_z = lk.eye_z
-		top = lk.top
-		hp_y = lk.hp_y
-		if ftype == 3:
-			blade_rest = Vector3(0.7, -0.55, 0.45)
-			blade_rr = Vector3(PI / 2, 0, 0)
-	else:
-		_dress_box(col)
-		if ftype == 4:
-			hp_y = 2.9
-			eye_y = 0.95
+	_dress_box(col)
+	if ftype == 4:
+		hp_y = 2.9
+		eye_y = 0.95
 	body.set_meta("col", (body.material_override as StandardMaterial3D).albedo_color)
 	if ftype < 4:
 		for i in mini(k / 2, 5):
-			box(Vector3((i - (mini(k / 2, 5) - 1) * 0.5) * 0.36, top, 0), Vector3(0.22, 0.3, 0.22), D, piv)
+			box(Vector3((i - (mini(k / 2, 5) - 1) * 0.5) * 0.36, 1.5, 0), Vector3(0.22, 0.3, 0.22), D, piv)
 	for s in [-1.0, 1.0]:
-		eyes.append(box(Vector3(s * 0.33 * (0.75 if Look.ON and ftype < 4 else 1.0), eye_y, eye_z), Vector3(0.24, 0.24, 0.06) * (0.75 if Look.ON and ftype < 4 else 1.0), INK, piv))
+		eyes.append(box(Vector3(s * 0.33, eye_y, eye_z), Vector3(0.24, 0.24, 0.06), INK, piv))
 	_spawn_rest(k, hp_y)
 
 
-## 예전 상자 검객 몸
+## 상자 검객 몸
 func _dress_box(col: Color) -> void:
 	match ftype:
 		0:
@@ -854,9 +888,6 @@ func _start_run() -> void:
 	perk = {}
 	life = max_life
 	stun = 0.0
-	my_col = WHITE
-	sword.material_override = mat(my_col)
-	sword.visible = false
 	pend.clear()
 	slow = 0.0
 	floor_m.material_override = mat(SOFT)
@@ -867,7 +898,6 @@ func _start_run() -> void:
 	fl = Vector3(0, 0, -10)
 	mode = "enter"
 	mode_t = 1.0
-	play("tap")
 
 
 func _pat() -> Array:
@@ -1037,30 +1067,16 @@ func _step(dt: float) -> void:
 			if mode_t <= 0.0:
 				_intro()
 		"dead":
-			sword.position = sword.position.lerp(Vector3(0.3, -3.0, 2.5), minf(1.0, dt * 4.0))
-			sword.rotation.z = lerpf(sword.rotation.z, -1.5, minf(1.0, dt * 4.0))
 			if mode_t <= 0.0:
 				if ftype == 4:
 					last_run = "지난 판: %d번째 상대에게 %d 피해\n%s" % [n + 1, boss_dmg, _perk_text()]
 				else:
 					last_run = "지난 판: %d번째 상대에게 쓰러짐\n%s" % [n + 1, _perk_text()]
 				lobby_k = n
-				_to_lobby(1)
+				_to_lobby(0)
 	piv.position = fl
 	mark.position = piv.position
 	mark.rotation.z = piv.rotation.z
-	# 내 칼은 카메라를 따라간다
-	rig.transform = Transform3D(cam.basis, cam_base) * Transform3D(Basis(), -CAM_O)
-	if sw_t > 0.0:
-		sw_t -= dt
-	elif stun > 0.0 and mode != "dead":
-		# 헛공격: 칼이 아래로 처진다
-		sword.position = sword.position.lerp(Vector3(0.2, -1.9, 2.5), minf(1.0, dt * 10.0))
-		sword.rotation.z = lerpf(sword.rotation.z, -1.2, minf(1.0, dt * 10.0))
-	elif mode != "dead" and mode != "lobby":
-		# 밀어서 잡은 방향에 칼을 대고 있는다
-		sword.position = sword.position.lerp(REST_P if stance < 0 else POSE[stance], minf(1.0, dt * 16.0))
-		sword.rotation.z = lerpf(sword.rotation.z, REST_R if stance < 0 else TURN[stance], minf(1.0, dt * 16.0))
 	stance_l.visible = mode != "lobby"
 	_score_l.visible = mode != "lobby"
 	stance_l.text = "버튼을 누른 채 칼이 오는 쪽으로 밀기" if stance < 0 else "버튼을 밀어 방향 · 지금 %s" % ARROW[stance]
@@ -1068,10 +1084,6 @@ func _step(dt: float) -> void:
 		flash_t -= dt
 		if flash_t <= 0.0:
 			body.material_override = mat(body.get_meta("col"))
-	if hurt_t > 0.0:
-		hurt_t -= dt
-		if hurt_t <= 0.0:
-			sword.material_override = mat(my_col)
 	cam.position = cam_base
 	if shake_t > 0.0:
 		shake_t -= dt
@@ -1104,8 +1116,7 @@ func _fight(dt: float) -> void:
 			stop = (tut == 1 or tut == 3) and fs_t >= 0.05
 		if stop:
 			hold = true
-			tut_l.text = TUT_SAY[tut]
-			beep(660.0, 0.1, 0.0, 0.18)
+			tut_l.text = _s("tut%d" % tut)
 			return
 	var k := 0.0
 	match fs:
@@ -1120,7 +1131,6 @@ func _fight(dt: float) -> void:
 					told = true
 					for e in eyes:
 						e.material_override = mat(WHITE)
-					beep(1700.0, 0.04, 0.0, 0.16)
 					sfx(SND["iai1"])
 				if told:
 					# 칼집에서 칼이 그쪽으로 빠져나온다: 칼만 보고도 방향을 안다
@@ -1134,7 +1144,6 @@ func _fight(dt: float) -> void:
 				shown = true
 				_eyes()
 				_path(sdir)
-				beep(1200.0, 0.05, 2400.0, 0.25)
 				sfx(SND["iai2"])
 			# 연격: 처음엔 흰 칼 하나만, 반쯤 와서야 노랑 칼이 뒤에 붙는다 (10/31)
 			if link and fs_t >= link_at and not link_b.visible:
@@ -1147,7 +1156,6 @@ func _fight(dt: float) -> void:
 			if feint_at >= 0.0 and fs_t >= feint_at and sdir != rdir:
 				sdir = rdir
 				_path(rdir, _twice_next())
-				beep(880.0, 0.06, 500.0, 0.2)
 			k = clampf((fs_t - show_at) / (win - show_at), 0.0, 1.0)
 			var l: Vector3 = LEAN[sdir]
 			match sty:
@@ -1181,7 +1189,6 @@ func _fight(dt: float) -> void:
 			blade_m.rotation.z = lerpf(blade_m.rotation.z, ROT[rdir] + 0.7, minf(1.0, dt * 12.0))
 			ind[odir].scale = Vector3.ONE * (1.2 - 0.6 * k)
 			if fs_t >= win:
-				beep(260.0, 0.1, 200.0, 0.15)
 				_rest(_pat()[0])
 		3:
 			if fs_t >= 0.5:
@@ -1211,7 +1218,7 @@ func _attack(linked := false) -> void:
 	if tut >= 0:
 		mv = TUT_MV[0 if tut < 2 else 1]
 		if tut == 2:
-			tut_l.text = "이번엔 칼이 거의 닿을 때까지\n기다려요…"
+			tut_l.text = _s("tut_wait")
 	else:
 		mv = _pat()[2][ci][mi]
 		if mi == 0 and not linked:
@@ -1256,7 +1263,6 @@ func _attack(linked := false) -> void:
 	link = _link_next()
 	link_at = win * 0.5
 	# 느린 예비 동작은 낮은 소리, 갑작스러운 건 높은 소리
-	beep(lerpf(760.0, 300.0, clampf((win - 0.3) / 0.9, 0.0, 1.0)), 0.06, 0.0, 0.17)
 
 
 ## 연격 사이 텀 (10/31): 막은 뒤 다음 칼이 그 자리에 들린 채 잠깐 서서 흰색 → 노랑으로 바뀐 뒤 들어온다
@@ -1271,7 +1277,7 @@ func _link_beat() -> void:
 	blade_m.material_override = mat(WHITE)
 	blade_m.position = _bpos(sdir, 0.0)
 	blade_m.rotation = _brot(sdir, 0.0)
-	msg("연격!", 0.5)
+	msg(_s("link"), 0.5)
 
 
 func _flag(mv: Array) -> int:
@@ -1287,7 +1293,6 @@ func _twice_next() -> bool:
 
 
 func _hurt() -> void:
-	play("bad")
 	msg("맞음 -%d" % foe_atk, 0.5)
 	fs = 3
 	fs_t = 0.0
@@ -1300,14 +1305,12 @@ func _hurt() -> void:
 
 func _damage(v: int) -> void:
 	life -= v
-	sword.material_override = mat(BAD)
-	hurt_t = 0.3
 	shake_t = 0.22
 	if life <= 0:
 		sfx(SND["death"])
 		mode = "dead"
 		mode_t = 1.4
-		msg("쓰러짐", 1.4)
+		msg(_s("dead"), 1.4)
 		best_n = maxi(best_n, n)
 		if ftype == 4:
 			best_dmg = maxi(best_dmg, boss_dmg)
@@ -1319,7 +1322,7 @@ func _damage(v: int) -> void:
 func _whiff(wrong := false) -> void:
 	sfx(SND["miss"] if wrong else SND["whiff"])
 	var steady := _lv("steady") > 0  # 능력 "흔들림 없는 손": 체력은 안 깎인다
-	msg("헛공격!\n빈틈을 보였어요" if steady else "헛공격!  체력 -1\n빈틈을 보였어요", 0.9)
+	msg(_s("whiff_steady") if steady else _s("whiff"), 0.9)
 	stun = 0.55
 	whiff_t = 0.35
 	floor_m.material_override = mat(BAD)
@@ -1333,8 +1336,7 @@ func _whiff(wrong := false) -> void:
 
 ## 헛막기: 칼이 오지 않을 때 막기. 피해는 없지만 잠깐 굳어서 진짜 칼을 놓칠 수 있다
 func _empty_guard() -> void:
-	beep(240.0, 0.12, 160.0, 0.2)
-	msg("헛막기", 0.5)
+	msg(_s("eguard"), 0.5)
 	stun = 0.35
 
 
@@ -1351,17 +1353,6 @@ func _act(a: int) -> void:
 			sfx(SND["whiff"])
 		return
 	var d := stance
-	if d >= 0:
-		if a == 0:
-			# 막기: 잡은 자리에서 칼을 앞으로 내민다
-			sword.position = POSE[d] + Vector3(0, 0, -0.35)
-			sword.rotation.z = TURN[d]
-		else:
-			# 베기: 잡은 쪽에서 반대쪽으로 휘두른다
-			var o: Vector3 = POSE[OPP[d]]
-			sword.position = Vector3(o.x * 0.5, o.y * 0.5, 2.2)
-			sword.rotation.z = TURN[d] - 0.9
-		sw_t = 0.16
 	if tut >= 0:
 		if not hold:
 			return
@@ -1369,16 +1360,14 @@ func _act(a: int) -> void:
 		var want_a := 0 if fs == 1 else 1
 		if d != want:
 			msg("버튼을 누른 채 %s 쪽으로 밀어요!" % ARROW[want], 0.8)
-			beep(300.0, 0.05, 150.0, 0.1)
 			return
 		if a != want_a:
 			msg("[%s]를 눌러요!" % ACT[want_a], 0.8)
-			beep(300.0, 0.05, 150.0, 0.1)
 			return
 		hold = false
 		tut += 1
 		tut_l.modulate.a = 1.0
-		tut_l.text = "좋아요!"
+		tut_l.text = _s("tut_good")
 		if fs == 1:
 			_parry(tut == 3)
 		else:
@@ -1387,8 +1376,6 @@ func _act(a: int) -> void:
 	if mode != "fight":
 		if a == 1:
 			sfx(SND["whiff"])
-		else:
-			beep(300.0, 0.05, 150.0, 0.1)
 		return
 	if a == 0:
 		# 막기: 칼이 보일 때만. 잡은 방향이 다르거나 속임수에 먼저 막으면 맞는다
@@ -1402,8 +1389,7 @@ func _act(a: int) -> void:
 			# 간파 빈틈에 헛막기: 간파 기회도 사라진다 (10/31)
 			_lose_chance()
 			_empty_guard()
-			msg("헛막기
-간파 놓침", 0.6)
+			msg("%s\n%s" % [_s("eguard"), _s("lose")], 0.6)
 		elif fs == 0 or fs == 1 or fs == 2 or fs == 5:
 			_empty_guard()
 		return
@@ -1412,7 +1398,7 @@ func _act(a: int) -> void:
 		2:
 			if d == odir:
 				_cut()
-				msg("베기!", 0.35)
+				msg(_s("cut"), 0.35)
 			elif gp:
 				_lose_chance()
 			else:
@@ -1427,7 +1413,7 @@ func _act(a: int) -> void:
 ## 간파 빈틈에 엉뚱한 쪽으로 휘두름: 피해 없이 간파만 끝난다
 func _lose_chance() -> void:
 	sfx(SND["miss"])
-	msg("간파 놓침", 0.6)
+	msg(_s("lose"), 0.6)
 	gp = false
 	slow = 0.0
 	floor_m.material_override = mat(SOFT)
@@ -1462,14 +1448,14 @@ func _parry(perfect: bool) -> void:
 			# 능력 "숨 고르기": 간파하면 체력이 조금 찬다
 			if _lv("leech") > 0 and life < max_life:
 				life = mini(max_life, life + _lv("leech"))
-		msg("간파!" if perfect else "막기", 0.6)
+		msg(_s("parry") if perfect else _s("block"), 0.6)
 	if perfect and twice:
-		msg("간파!\n한 번 더 와요!", 0.7)
+		msg(_s("parry_twice"), 0.7)
 	elif perfect:
 		slow = 0.7
 		floor_m.material_override = mat(B)
 		if tut < 0:
-			msg("간파!\n지금 초록 쪽으로 베요!", 0.8)
+			msg(_s("parry_go"), 0.8)
 	# 간파하면 연속기 중간이라도 끊고 내가 벨 차례 (초록 상자)
 	if linked and mi < combos[ci].size():
 		_link_beat()
@@ -1502,7 +1488,7 @@ func _cut() -> void:
 		return
 	foe_hp -= dmg
 	if gp:
-		msg("간파 일격! x2", 0.6)
+		msg(_s("x2"), 0.6)
 	if ftype == 4:
 		boss_dmg += dmg
 		foe_hp = maxi(foe_hp, 1)  # 끝판왕은 쓰러지지 않는다
@@ -1512,8 +1498,7 @@ func _cut() -> void:
 		_save()
 		mode = "fall"
 		mode_t = 1.4
-		msg("승리!", 1.2)
-		play("win")
+		msg(_s("win"), 1.2)
 		hp_back.visible = false
 		hp_fill.visible = false
 		return
@@ -1532,7 +1517,6 @@ func _cut() -> void:
 		mode = "shift"
 		mode_t = 1.2
 		msg("%d단" % (ph + 1), 1.0)
-		beep(440.0, 0.25, 220.0, 0.25)
 		_eyes()
 
 
@@ -1562,10 +1546,9 @@ func _open_pick() -> void:
 		if i < pick.size():
 			var p: Array = PERKS[pick[i]]
 			var lv := _lv(p[0])
-			pick_l[i].text = "%s%s\n%s" % [p[1], "" if lv == 0 else " (+%d)" % lv, p[2]]
+			pick_l[i].text = "%s%s\n%s" % [_s("pk_" + p[0]), "" if lv == 0 else " (+%d)" % lv, _s("pkd_" + p[0])]
 			pick_bg[i].scale = Vector2.ONE
 	pick_box.visible = true
-	play("win")
 
 
 func _choose(i: int) -> void:
@@ -1576,8 +1559,7 @@ func _choose(i: int) -> void:
 		life += 4
 	elif k == "mend":
 		life = mini(max_life, life + ceili(max_life / 2.0))
-	play("good")
-	msg(PERKS[pick[i]][1], 0.8)
+	msg(_s("pk_" + k), 0.8)
 	_press(pick_bg[i]).tween_callback(_next_foe)
 	mode = "picked"
 
@@ -1598,7 +1580,7 @@ func _tut_done() -> void:
 	hold = true
 	mode = "ready"
 	_clear()
-	tut_l.text = "준비 끝!\n검객을 쓰러뜨리면 능력을 하나 골라요.\n체력은 저절로 차지 않아요. 갈수록 적이 세져요.\n\n탭해서 싸우러 가기"
+	tut_l.text = _s("tut_end")
 
 
 func _tap(p: Vector2) -> void:
@@ -1614,7 +1596,7 @@ func _tap(p: Vector2) -> void:
 		return
 	if mode == "picked":
 		return
-	if tut >= 0 and SKIP_R.has_point(p):
+	if tut >= 0 and skip_l.get_global_rect().grow(16).has_point(p):
 		_start_run()
 		return
 	if mode == "ready":
@@ -1630,7 +1612,7 @@ func _perk_text() -> String:
 	for p: Array in PERKS:
 		var lv := _lv(p[0])
 		if lv > 0:
-			s.append(p[1] if lv == 1 else "%s+%d" % [p[1], lv])
+			s.append(_s("pk_" + p[0]) if lv == 1 else "%s+%d" % [_s("pk_" + p[0]), lv])
 	return "고른 능력 없음" if s.is_empty() else "능력: " + ", ".join(s)
 
 
@@ -1648,55 +1630,48 @@ func _lobby_tap(p: Vector2) -> void:
 					else:
 						vib = clampi(vib + dv, 0, 10)
 						_buzz(160, 1.0)  # 바뀐 세기를 바로 느껴 본다
-					play("tap")
 					_save()
 					_set_refresh()
 					return
-		if SET_CLOSE.has_point(p) or SET_R.has_point(p) or p.y >= NAV_Y:
-			play("tap")
+		if SET_CLOSE.has_point(p) or set_btn.get_global_rect().has_point(p) or p.y >= NAV_Y:
 			set_box.visible = false
 		return
-	if SET_R.has_point(p):
+	if set_btn.get_global_rect().has_point(p):
 		_press(set_btn)
-		play("tap")
 		_set_refresh()
 		set_box.visible = true
 		return
 	for i in TABS.size():
 		if _tab_r(i).has_point(p):
 			_press(nav_bg[i])
-			if i + 1 != tab:
-				play("tap")
-				_set_tab(i + 1)
+			if i != tab:
+				_set_tab(i)
 			return
 	match tab:
-		1:
+		0:
 			# 눌린 버튼이 다시 튀어 오르는 걸 보여 주고 출발
-			if PLAY_R.has_point(p):
+			if play_edge.get_global_rect().has_point(p):
 				going = true
-				play("tap")
-				_press(play_edge)
-				_press(play_bg).tween_callback(_start_run)
-			elif TUT_R.has_point(p):
+				_press(play_edge).tween_callback(_start_run)
+			elif tut_again.get_global_rect().has_point(p):
 				going = true
-				play("tap")
 				_press(tut_again).tween_callback(_begin_tut)
-		3:
+		2:
 			for i in 5:
 				if _dex_r(i).has_point(p):
 					_press(dex_bg[i])
 					dex_pick = i
-					play("tap")
-					_set_tab(3)
+					_set_tab(2)
 					return
 
 
 ## 버튼 누름 애니메이션: 쑥 들어갔다가 살짝 튀어 오르며 제자리
 func _press(c: Control) -> Tween:
 	c.pivot_offset = c.size * 0.5
+	var s0: Vector2 = c.get_meta("s0", Vector2.ONE)  # UI 편집으로 바꾼 크기로 돌아온다
 	var tw := create_tween()
-	tw.tween_property(c, "scale", Vector2.ONE * 0.86, 0.06)
-	tw.tween_property(c, "scale", Vector2.ONE, 0.16).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_property(c, "scale", s0 * 0.86, 0.06)
+	tw.tween_property(c, "scale", s0, 0.16).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	return tw
 
 
@@ -1746,7 +1721,6 @@ func _aim(d: int) -> void:
 	if mode == "lobby" or mode == "dead" or d == stance:
 		return
 	stance = d
-	beep(900.0, 0.03, 0.0, 0.1)
 
 
 func _lift(_p: Vector2) -> void:
@@ -1784,7 +1758,7 @@ func _btn_fire(k: String) -> void:
 
 ## PC: 방향키/WASD = 칼 방향, J = 막기, K = 베기
 func _input(event: InputEvent) -> void:
-	if not event is InputEventKey or not event.pressed or event.echo or over or _rating:
+	if not event is InputEventKey or not event.pressed or event.echo:
 		return
 	match event.keycode:
 		KEY_LEFT, KEY_A: _aim(0)
@@ -1795,12 +1769,7 @@ func _input(event: InputEvent) -> void:
 		KEY_K, KEY_X: _act(1)
 
 
-## 효과음 한 번 (효과음 전용 줄 넷을 돌려 쓴다. 삑 소리와 섞여 끊기지 않게. 소리 크기 설정은 버스 0 에 걸려 있다)
-## 파이 요청(10/31): 파이가 보낸 효과음(sfx)만 쓴다. 틀(tofu)의 삑 소리는 전부 끈다.
-func beep(_freq: float, _dur := 0.08, _to := 0.0, _vol := 0.2) -> void:
-	pass
-
-
+## 효과음 한 번 (줄 넷을 돌려 써서 겹쳐도 안 끊긴다. 소리 크기 설정은 버스 0 에 걸려 있다). 소리는 파이가 보낸 sfx 뿐이다.
 func sfx(st: AudioStream) -> void:
 	var p: AudioStreamPlayer = sfx_p[sfx_i]
 	sfx_i = (sfx_i + 1) % sfx_p.size()
