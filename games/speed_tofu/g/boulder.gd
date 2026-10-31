@@ -204,6 +204,8 @@ var arrow_mesh: ArrayMesh
 # v7: 쪼개기 돌진, 수로 밑 수정 동굴(떨어지면 딴 세상)
 var dash_t := 0.0
 var crumble: Array = []  # [거리, 조각] 고르지 않은 갈래 조각: 돌이 다가가면 무너진다
+var stall_d := 0.0  # 멈춤 검사: 마지막으로 앞으로 나아간 자리
+var stall_t := 0.0
 var bump_t := 0.0  # 기둥에 튕긴 직후: 붉은 깜빡임 없이
 var look_soft := 0.0  # 갈래를 고른 직후 카메라를 천천히 돌린다
 var zone_queue: Array = []  # 나눠 짓는 중인 구역 (한 프레임에 한 조각)
@@ -655,6 +657,8 @@ func _reset() -> void:
 	dash_t = 0.0
 	zone_queue.clear()
 	crumble.clear()
+	stall_d = 0.0
+	stall_t = 0.0
 	branch_nodes.clear()
 	fork_rail_end = -1.0
 	hs_t = 0.0
@@ -1400,7 +1404,16 @@ func _draw_road(o: Dictionary, a: int, b: int, z: Dictionary) -> void:
 						_column(o, fq, sd * (hw + rng.randf_range(9.0, 34.0)), h + rng.randf_range(-12.0, 26.0), rng.randf_range(6.0, 13.0), [ROCK, STONE, WHITE].pick_random(), nd)
 			"aq":
 				if q % 15 == 0 and tg == "aq":
-					_column(o, fq, 0.0, h - 1.2, 1.6, WHITE, nd, DEEP + 2.0 if int(z.k) == 1 and not tutorial else 70.0)
+					if int(z.k) == 1 and not tutorial:
+						# 수로 기둥은 동굴 천장 위 바위 들보에 선다: 굴 안까지 내려오면 등뒤 카메라를 가린다
+						var hall := int(floorf((fq - float(z.start)) / CAVE_SEC)) % 2 == 0
+						var roof_y := h - DEEP + (22.0 if hall else 13.0) + 3.0
+						_column(o, fq, 0.0, h - 1.2, 1.6, WHITE, nd, h - roof_y)
+						var beam := box(_opos(o, fq, 0.0, roof_y - 1.0), Vector3(14.0, 2.0, 3.0), ROCK, nd)
+						_apply_art(beam, "valley", Color("5e4f40"))
+						beam.rotation.y = _oyaw(o, fq)
+					else:
+						_column(o, fq, 0.0, h - 1.2, 1.6, WHITE, nd, 70.0)
 				if q % 25 == 5:
 					_column(o, fq, -(28.0 + rng.randf_range(0.0, 20.0)), h + rng.randf_range(-4.0, 18.0), rng.randf_range(6.0, 12.0), [GRASS, ROCK].pick_random(), nd)
 			"village":
@@ -2372,8 +2385,15 @@ func _step(dt: float) -> void:
 	if underground:
 		_gems()
 		_wake(dist + 6.0, 10.0)
-	# 멈춤 검사
-	if on_ground and v < VSTOP and not won:
+	# 멈춤 검사: 땅이나 땅 가까운 공중(튕기는 중)에서 느리면, 또는 2.5초 동안 3m 도 못 나아가면(같은 벽에 계속 박힘)
+	var gg := _ground(dist, bx)
+	var near := on_ground or (not is_nan(gg) and by - gg < 6.0)
+	if dist > stall_d + 3.0 or rising or wind_on or won or not near:
+		stall_d = dist
+		stall_t = 0.0
+	else:
+		stall_t += dt
+	if near and (v < VSTOP or stall_t > 2.5) and not won and not rising and not wind_on:
 		slow_t += dt
 		warn_t -= dt
 		if warn_t <= 0.0:
