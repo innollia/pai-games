@@ -1,11 +1,11 @@
 # 화면 밖 경주 · Off the Screen! — 문서 안내
 
-제출준비작 screenrace. 지금 버전은 **v27**(2026-10-31). 잼 마감은 2026-11-01 00:00 KST다.
+제출준비작 screenrace. 지금 버전은 **v28**(2026-10-31). 잼 마감은 2026-11-01 00:00 KST다.
 
 - 잼 제출본(단독판): `games/off_screen/` → https://innollia.github.io/pai-games/games/off_screen/web/
-- SPEED 두부 목록 "● 화면 밖 경주"를 누르면 단독판으로 넘어간다. 그 아래 "⚖ 실험: …" 20개는 경제 실험판으로, SPEED 두부 안에서 바로 돈다.
+- SPEED 두부 목록 "● 화면 밖 경주"를 누르면 단독판으로 넘어간다. 경제 실험판 20개는 v28에서 뺐다.
 
-## 지금 게임 한눈에 (v27)
+## 지금 게임 한눈에 (v28)
 
 **이기는 법**: 우체통에 배달한 짐 수가 이긴다. 끝까지 살아남는 게임이 아니다.
 - 코스마다 빨간 우체통이 7~9개 있고, 우체통 하나에는 짐 하나만 들어간다. 먼저 넣는 사람이 차지한다.
@@ -68,7 +68,6 @@
 | 타이틀·연습 | `g/sr_front.gd` |
 | 위 진행 줄·조작 버튼·짐 벽 | `g/sr_hud.gd` |
 | 모드/특전/길 카드·카운트다운·결과 영수증 | `g/sr_menus.gd` |
-| 경제 실험판 20개(배수표 `tune`만 바꿈) | `g/screenrace_t_<키>_<x2/x05>.gd` |
 | 3D 모델·배경 | `art/screenrace/` (목록 `MANIFEST.md`) |
 | UI 그림 27종 | `art/screenrace/ui/` (목록 `LIST.md`) |
 | 효과음 17개(nkido) | `art/screenrace/sfx/`, 만드는 스크립트 `work/build_sfx.py` |
@@ -78,7 +77,7 @@
 
 | 문서 | 내용 |
 | --- | --- |
-| `DECISIONS.md` | 버전별로 무엇을 왜 바꿨는지(v8~v27). 숫자의 근거 |
+| `DECISIONS.md` | 버전별로 무엇을 왜 바꿨는지(v8~v28). 숫자의 근거 |
 | `CONTENT.md` | 노는 내용: 구간·모드·연습·끝·다시 할 이유 |
 | `ITCH_PAGE.md`, `HOWTO_EN.md` | itch.io 페이지 글(영어), 복사해서 붙인다 |
 | `DESIGN_SYSTEM.md`, `UI_SPEC.md` | UI 규칙과 Gemini 디자인 명세(미니멀로 줄이기 전 원안) |
