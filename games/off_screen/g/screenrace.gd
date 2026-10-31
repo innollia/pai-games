@@ -525,6 +525,9 @@ var tell_t := 0.0
 var tut_skipped := false  # left the practice with SKIP: the opening gets the one edge-rule line
 var tut_step_max := -1  # furthest practice step seen (sr_front.step)
 var quick_ok := false  # v22: 이번 판 빠른 출발을 아직 노릴 수 있다
+var key_l := false  # v32: 컴퓨터 조작 (플레이테스트용) 눌린 방향키
+var key_r := false
+var key_hint: Label  # 제목 화면 아래 키 안내 (터치 화면이 아닐 때만)
 var goal_l: Label  # v31: 출발 때 이기는 법 한 줄 (초보가 승리 조건을 몰랐다)
 var goal_t := 0.0
 var attract_on := false  # v21: 제목 화면 뒤에서 넷이 알아서 경주한다 (나도 경쟁자처럼 AI). 이동안 경기 소리·도장은 끈다
@@ -906,6 +909,39 @@ func _open_title() -> void:
 
 
 ## sr_front: course 1 opening flat as an empty practice yard (no rivals, one crate).
+## v32: 컴퓨터 조작 (플레이테스트용). 경주·연습 중에만 키를 조작 키트에 넣는다. 제목·카드의 Enter/Space 는 각 화면이 먼저 받는다.
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and _key_play(event as InputEventKey):
+		get_viewport().set_input_as_handled()
+		return
+	super._unhandled_input(event)
+
+
+func _key_play(k: InputEventKey) -> bool:
+	if k.echo or over or _rating or not (phase == "race" or phase == "count" or phase == "tutorial"):
+		return false
+	var c := k.keycode
+	var btn := ""
+	if c == KEY_LEFT or c == KEY_A:
+		key_l = k.pressed
+	elif c == KEY_RIGHT or c == KEY_D:
+		key_r = k.pressed
+	elif c == KEY_UP or c == KEY_W or c == KEY_SPACE or c == KEY_Z:
+		btn = "jump"
+	elif c == KEY_DOWN or c == KEY_S or c == KEY_SHIFT or c == KEY_X:
+		btn = "drop"
+	else:
+		return false
+	if btn != "":
+		if _btns.has(btn):
+			_btns[btn].down = k.pressed
+			if k.pressed:
+				_justs[btn] = true
+	else:
+		kit_move = Vector2(float(key_r) - float(key_l), 0.0)
+	return true
+
+
 func tutorial_begin() -> void:
 	_attract_end()  # v31: 제목 경주 중 나는 AI 다. 끝내지 않으면 아래에서 경쟁자와 함께 숨겨져(alive=false) 연습 화면이 안 따라왔다
 	menus.hide_all()
@@ -1167,6 +1203,8 @@ func _elim_sound() -> void:
 
 
 func _process(dt: float) -> void:
+	if key_l or key_r:
+		kit_move = Vector2(float(key_r) - float(key_l), 0.0)  # v32: 판이 바뀌어 조작이 비워져도 누르고 있는 키는 그대로
 	super._process(dt)
 	tell_t = maxf(tell_t - dt, 0.0)
 	back_arm_t = maxf(back_arm_t - dt, 0.0)
@@ -1415,6 +1453,12 @@ func _setup() -> void:
 	goal_l.size = Vector2(640, 140)
 	goal_l.visible = false
 	gl_layer.add_child(goal_l)
+	key_hint = SrTheme.make_label("", 24, SrTheme.NAVY, 8, SrTheme.WHITE)
+	key_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	key_hint.position = Vector2(20, 1190)
+	key_hint.size = Vector2(680, 40)
+	key_hint.visible = false
+	gl_layer.add_child(key_hint)
 	route_l = _label(layer, 30, 250, 160)
 	result_l = _label(layer, 30, 240, 570)
 	result_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -2725,6 +2769,9 @@ func _step(dt: float) -> void:
 			pass  # the paper cards (sr_menus) emit the choice
 	if attract_on and not _title_idle():
 		_attract_end()
+	if key_hint:
+		key_hint.visible = phase == "title" and not DisplayServer.is_touchscreen_available()
+		key_hint.text = L("키보드: ←→ 달리기 · ↑/Space 점프 · ↓/Shift [짐] · Enter 시작", "Keys: ←→ run · ↑/Space jump · ↓/Shift BOX · Enter start")
 	if goal_l:
 		goal_t = maxf(goal_t - dt, 0.0) if phase == "race" or phase == "count" else 0.0
 		goal_l.visible = goal_t > 0.0 and not attract_on
