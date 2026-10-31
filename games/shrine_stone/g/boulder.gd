@@ -1339,6 +1339,55 @@ func _sink(n: Node3D, delay: float) -> void:
 	tw.tween_callback(n.queue_free)
 
 
+## 드로우콜 줄이기: 길 조각 안에서 같은 모양·같은 재질인 정적 물체(길 판·턱 줄·물·기둥·풍경)를 MultiMesh 하나로 묶는다.
+## 조각 노드는 그대로라 갈래 무너뜨리기(_sink)와 멀리 숨기기가 그대로 된다. 다른 데서 붙잡고 있는 물체는 조각에 넣지 않는다.
+func _batch_chunks(root: Node3D) -> void:
+	for c in root.get_children():
+		if c is Node3D and (c as Node3D).has_meta("ci"):
+			_batch(c as Node3D)
+
+
+## 이번에 지은 길 조각만 묶는다 (구역 전체를 다시 훑으면 길을 지을 때 멈칫한다)
+var touched: Dictionary = {}
+func _batch_touched() -> void:
+	for c in touched:
+		if is_instance_valid(c):
+			_batch(c as Node3D)
+	touched.clear()
+
+
+func _batch(c: Node3D) -> void:
+	var groups := {}
+	for ch in c.get_children():
+		var m := ch as MeshInstance3D
+		if m == null or m.get_child_count() > 0 or m.mesh == null or not m.visible:
+			continue
+		var key := "%d:%d" % [m.mesh.get_instance_id(), m.material_override.get_instance_id() if m.material_override else 0]
+		if not groups.has(key):
+			groups[key] = []
+		(groups[key] as Array).append(m)
+	for key in groups:
+		var list: Array = groups[key]
+		if list.size() < 2:
+			continue
+		var first: MeshInstance3D = list[0]
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.mesh = first.mesh
+		mm.instance_count = list.size()
+		for q in list.size():
+			mm.set_instance_transform(q, (list[q] as MeshInstance3D).transform)
+		var mi := MultiMeshInstance3D.new()
+		mi.multimesh = mm
+		mi.material_override = first.material_override
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mi.visibility_range_end = 260.0
+		c.add_child(mi)
+		for m: MeshInstance3D in list:
+			c.remove_child(m)
+			m.free()
+
+
 ## 길 조각(16m)마다 노드 하나: 고르지 않은 갈래를 조각 단위로 차례차례 무너뜨린다
 const CHUNK := 16
 func _road_chunk(root: Node3D, i: int) -> Node3D:
@@ -1349,6 +1398,7 @@ func _road_chunk(root: Node3D, i: int) -> Node3D:
 		c.name = nm
 		c.set_meta("ci", i / CHUNK)
 		root.add_child(c)
+	touched[c] = true
 	return c
 
 
@@ -1414,6 +1464,7 @@ func _draw_road(o: Dictionary, a: int, b: int, z: Dictionary) -> void:
 			_plate(o, float(edge), float(edge) + 0.65, -float(o.hw[edge]), float(o.hw[edge]), BAD, nd, 0.18)
 	# 기둥(속도 눈금)과 옆 풍경
 	if bool(z.get("bare", false)):
+		_batch_touched()
 		return
 	var rng := RandomNumberGenerator.new()
 	rng.seed = int(z.k) * 1000 + a + int(absf(float(o.px[a])))
@@ -1484,6 +1535,9 @@ func _draw_road(o: Dictionary, a: int, b: int, z: Dictionary) -> void:
 
 
 ## 땅 밑 깊은 곳에서 top 까지 솟은 기둥
+	_batch_touched()
+
+
 func _column(o: Dictionary, d: float, x: float, top: float, w: float, col: Color, nd: Node3D, depth := 70.0) -> void:
 	var bot := _oh(o, d) - depth
 	var m := box(_opos(o, d, x, (top + bot) * 0.5), Vector3(w, top - bot, w), col, nd)
@@ -1589,18 +1643,21 @@ func _make_things(it: Dictionary, o: Dictionary, loc0: float, d0: float, z: Dict
 ## 길 위 얇은 판 (구멍·눈·녹는 길)
 func _plate(o: Dictionary, la: float, lb: float, x0: float, x1: float, col: Color, nd: Node3D, lift: float) -> void:
 	var xm := (x0 + x1) * 0.5
+	var holder := Node3D.new()  # 판 조각들은 MultiMesh 하나로 묶는다
+	nd.add_child(holder)
 	# 짧은 판으로 지면을 따라가 눈·구멍 무늬가 경사 위에 뜨지 않게 한다.
 	var d := la
 	while d < lb:
 		var next := minf(d + 4.0, lb)
 		var p0 := _opos(o, d, xm, _oh(o, d))
 		var p1 := _opos(o, next, xm, _oh(o, next))
-		var m := box(Vector3.ZERO, Vector3.ONE, col, nd)
+		var m := box(Vector3.ZERO, Vector3.ONE, col, holder)
 		_plate_skin(m, col)
 		m.basis = Basis.looking_at((p1 - p0).normalized(), Vector3.UP)
 		m.scale = Vector3(x1 - x0, 0.2, (p1 - p0).length() + 0.02)
 		m.position = (p0 + p1) * 0.5 + Vector3.UP * lift
 		d = next
+	_batch(holder)
 
 
 ## 뒤집은 껍질 외곽선: 같은 메시를 조금 키워 앞면을 버리고 진한 색으로 (작은 것이 배경에 묻히지 않게)
@@ -3470,18 +3527,28 @@ func _build_tunnel(a: float, b: float, nd: Node3D, opt := {}) -> Array:
 	# 바닥 길: 수로 끝 너머 80m 까지 (늦게 떨어져도 착지할 곳). 끝 너머는 마지막 방향으로 곧게 잇는다.
 	var e := b - 1.0
 	var fwe := Vector3(-sin(_yaw(e)), 0.0, -cos(_yaw(e)))
+	var floor_root := Node3D.new()  # 바닥 판은 60m 마다 MultiMesh 로 묶는다
+	nd.add_child(floor_root)
 	var d := a
 	while d < b + ext:
 		var end_d := minf(d + 12.0, b + ext)  # 12m 판: 바닥 조각 수를 1/3 로
 		var p0 := _pos(d, 0.0, _h(d) - dp) if d <= e else _pos(e, 0.0, _h(e) - dp) + fwe * (d - e)
 		var p1 := _pos(end_d, 0.0, _h(end_d) - dp) if end_d <= e else _pos(e, 0.0, _h(e) - dp) + fwe * (end_d - e)
 		var bs := Basis.looking_at((p1 - p0).normalized(), Vector3.UP)
-		var slab := box((p0 + p1) * 0.5 - bs.y * 1.0, Vector3.ONE, Color("c9b28c"), nd)
+		var fk := "f%d" % int((d - a) / 60.0)
+		var fc := floor_root.get_node_or_null(fk) as Node3D
+		if fc == null:
+			fc = Node3D.new()
+			fc.name = fk
+			fc.set_meta("ci", int((d - a) / 60.0))
+			floor_root.add_child(fc)
+		var slab := box((p0 + p1) * 0.5 - bs.y * 1.0, Vector3.ONE, Color("c9b28c"), fc)
 		_apply_art(slab, "valley", Color("f0dcb4"))
 		slab.basis = bs
 		# 지옥 협곡: 바닥 폭이 굴방·굴길을 따른다 (밝은 돌길 = 용암 위에서 또렷하게)
 		slab.scale = Vector3(_cave_hw(d + 6.0) * 2.0 if bool(opt.get("cave", false)) else 12.0, 2.0, p0.distance_to(p1) + 0.3)
 		d = end_d
+	_batch_chunks(floor_root)
 	d = a
 	while d < b:
 		var h := _h(d)
@@ -3632,6 +3699,9 @@ func _build_cave(a: float, b: float, dp: float, nd: Node3D) -> void:
 	var rim := StandardMaterial3D.new()
 	rim.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	rim.albedo_color = Color("ffd27a")
+	var st := Node3D.new()  # 용암·띠는 MultiMesh 로 묶는다 (60m 마다 한 덩이)
+	nd.add_child(st)
+	var bucket := {}
 	var seg := 20.0
 	var d := a
 	while d < b + 70.0:
@@ -3641,13 +3711,20 @@ func _build_cave(a: float, b: float, dp: float, nd: Node3D) -> void:
 		var yw := _yaw(dd)
 		var hw := _cave_hw(mid)
 		for sd: float in [-1.0, 1.0]:
-			var lv := box(_pos(dd, sd * (hw + 40.0), fl - 2.5), Vector3(80.0, 0.5, seg + 0.6), WHITE, nd)
+			var ck := int((d - a) / 60.0)
+			if not bucket.has(ck):
+				var bn := Node3D.new()
+				bn.set_meta("ci", ck)
+				st.add_child(bn)
+				bucket[ck] = bn
+			var lv := box(_pos(dd, sd * (hw + 40.0), fl - 2.5), Vector3(80.0, 0.5, seg + 0.6), WHITE, bucket[ck])
 			lv.material_override = lava
 			lv.rotation.y = yw
-			var eg := box(_pos(dd, sd * (hw + 0.15), fl - 0.4), Vector3(0.5, 1.0, seg + 0.6), WHITE, nd)
+			var eg := box(_pos(dd, sd * (hw + 0.15), fl - 0.4), Vector3(0.5, 1.0, seg + 0.6), WHITE, bucket[ck])
 			eg.material_override = rim
 			eg.rotation.y = yw
 		d += seg
+	_batch_chunks(st)
 	lava_mats.append(lava)
 
 
