@@ -2496,7 +2496,7 @@ func _items(dt: float, up: Vector3) -> void:
 		_btns["drop"].color = GOOD if over_tg else B
 
 
-## v18 건너뛰기 (?skip=1): 오른쪽 위 "건너뛰기" 버튼(PC는 N) = 남은 부탁 하나를 바로 끝낸다. 엔딩까지 빨리 보려는 시험용
+## v18 건너뛰기 (?skip=1): 오른쪽 위 "건너뛰기" 버튼(PC는 N) = 남은 부탁 하나를 바로 끝낸다. 엔딩까지 빨리 보려는 시험용. v19: 그 아래 TP(PC는 T) = 다음 별로 순간이동
 var _skip_on := false
 var _skip_shown := false
 
@@ -2509,9 +2509,24 @@ func _skip_btn() -> void:
 		_skip_shown = want
 		if want:
 			kit_button("skip", "Skip", Vector2(650, 470), 46.0, Color("8a6d3b"))
-		elif _btns.has("skip"):
-			_btns["skip"].pos = Vector2(-600, -600)
-			_btns["skip"].r = 1.0
+			kit_button("tp", "TP", Vector2(650, 580), 46.0, Color("6a4fc9"))
+		else:
+			for nm in ["skip", "tp"]:
+				if _btns.has(nm):
+					_btns[nm].pos = Vector2(-600, -600)
+					_btns[nm].r = 1.0
+	# v19 행성 순간이동 (TP 버튼·PC는 T): 다음 별(불 별 빼고)의 물건 놓인 자리로. 주민 별이면 주민 곁이다
+	if want and (kit_just("tp") or _kb_edge(KEY_T)):
+		var nk := cur
+		for i in BD.size():
+			nk = (nk + 1) % BD.size()
+			if BD[nk].kind != "fire":
+				break
+		home_b = nk
+		home_d = HOME_D.normalized()
+		_respawn()
+		msg(tr(BD[nk].name), 1.2)
+		return
 	if want and (kit_just("skip") or _kb_edge(KEY_N)):
 		var k := -1
 		for i in 5:
