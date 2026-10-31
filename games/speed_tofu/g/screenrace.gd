@@ -94,6 +94,7 @@ const SrFront = preload("res://g/sr_front.gd")
 const SrMenus = preload("res://g/sr_menus.gd")
 const SR_HUD = preload("res://g/sr_hud.gd")
 const SrTheme = preload("res://g/sr_theme.gd")
+const SrBoard = preload("res://g/sr_board.gd")
 const MODE_KIT := {"base": "jump", "lantern": "drop", "over": "mode_over"}  # _pick_mode takes the old kit names
 const KIT_PHASES := ["count", "race", "roundend", "tutorial"]  # the stick and buttons only work here
 const BACK_ARM_PHASES := ["race", "count", "perk", "route", "roundend"]
@@ -258,7 +259,7 @@ const MB_FULL := Color("6E7391")  # 찬 우체통: 잿빛 남색 (골판지 땅�
 # v13 따라잡기 (뒤처지면 확정 패배 + 판이 안 끝나던 것)
 const CATCH_MAX := 0.25  # 선두보다 반 화면(hwv) 넘게 뒤면 최고 속도 +25%, 가속은 +50% (붙어 있으면 0)
 const CATCH_NEAR := 2.0  # 이만큼 안이면 보너스 없음
-const GOLD_VAL := 3  # 결승 앞 금색 우체통 하나 = 배달 3개
+const GOLD_VAL := 3  # 결승 앞 금색 우체통 하나 = 든 짐을 3개까지 한꺼번에 (v44, 넣은 개수만큼 점수)
 const MB_GOLD := Color("F7B336")
 const FAR_SCREENS := 2.0  # 선두보다 화면 이만큼 넘게 뒤에서
 const FAR_T := 4.0  # 이만큼 있으면 왼쪽 끝으로 다시 들어온다
@@ -538,7 +539,7 @@ var quick_ok := false  # v22: 이번 판 빠른 출발을 아직 노릴 수 있�
 var key_l := false  # v32: 컴퓨터 조작 (플레이테스트용) 눌린 방향키
 var key_r := false
 var key_hint: Label  # 제목 화면 아래 키 안내 (터치 화면이 아닐 때만)
-var board_l: Label  # v37: 판 끝 결과판 (누가 이겼는지, 모두의 배달 수, 동네 승수)
+var board_l: SrBoard  # v37/v44: 판 끝 결과판 (누가 이겼는지, 모두의 배달 수, 동네 승수)
 var goal_l: Label  # v31: 출발 때 이기는 법 한 줄 (초보가 승리 조건을 몰랐다)
 var goal_t := 0.0
 var attract_on := false  # v21: 제목 화면 뒤에서 넷이 알아서 경주한다 (나도 경쟁자처럼 AI). 이동안 경기 소리·도장은 끈다
@@ -1458,12 +1459,7 @@ func _setup() -> void:
 	goal_l.size = Vector2(640, 140)
 	goal_l.visible = false
 	gl_layer.add_child(goal_l)
-	board_l = SrTheme.make_label("", 38, SrTheme.NAVY, 12, SrTheme.WHITE)
-	board_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	board_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	board_l.position = Vector2(40, 150)  # 위 진행 줄 아래 하늘 (가운데 도장과 겹치지 않게)
-	board_l.size = Vector2(640, 320)
-	board_l.visible = false
+	board_l = SrBoard.new()  # v44: 종이 카드 결과판 (위 진행 줄 아래 하늘, 가운데 도장과 겹치지 않게)
 	gl_layer.add_child(board_l)
 	key_hint = SrTheme.make_label("", 24, SrTheme.NAVY, 8, SrTheme.WHITE)
 	key_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -2279,7 +2275,9 @@ func _place_mailboxes() -> void:
 		if gy > -1.0e8:
 			_add_mailbox(gxx, gy, true)
 			break
-	var want := maxi(1, roundi(gen.randi_range(7, 9) * tn("mail")))
+	# v44 "대쉬 왕창 하고 마지막 3점만 먹어도 이겨": 판이 짧아진(v37) 뒤로 우체통이 5~7개뿐이라 경쟁자 1등이 거의 다 가져가고
+	# 나머지는 0~1개, 금 3점 + 1등 도착 1점이면 이겼다. 우체통 10~12개로 늘려 배달로 이기는 판이 되게
+	var want := maxi(1, roundi(gen.randi_range(10, 12) * tn("mail")))
 	var step := (x1 - x0) / float(want)
 	var offs := [0.0, 2.0, -2.0, 4.0, -4.0, 6.0, -6.0, 8.0, -8.0, 11.0, -11.0, 14.0]
 	for k in want:
@@ -2290,13 +2288,18 @@ func _place_mailboxes() -> void:
 			if y > -1.0e8:
 				_add_mailbox(x, y)
 				break
-	# 평평한 곳이 모자란 코스: 앞에서부터 더 찾아 6개는 채운다
+	# 평평한 곳이 모자란 코스: 앞에서부터 더 찾아 채운다 (이웃 우체통과 5m 넘게 떨어진 곳만)
 	var sx := x0
-	while mailboxes.size() < mini(6, want) and sx < x1:
+	while mailboxes.size() < want + 1 and sx < x1:
 		var sy := _mb_spot(sx)
-		if sy > -1.0e8:
+		var far := true
+		for mb in mailboxes:
+			if absf(float(mb.x) - sx) < 5.0:
+				far = false
+				break
+		if sy > -1.0e8 and far:
 			_add_mailbox(sx, sy)
-		sx += 3.0
+		sx += 2.0
 	mailboxes.sort_custom(func(a, b): return a.x < b.x)
 
 
@@ -2508,9 +2511,14 @@ func _deliver(r: Courier) -> bool:
 		return false
 	var mb: Dictionary = mailboxes[i]
 	var val: int = mb.val
+	var cost := 1
+	if val > 1:
+		# v44: 금색은 든 짐을 3개까지 한꺼번에 넣고 넣은 개수만큼 점수 (짐 1개로 3점이던 것: 대시로 짐을 다 쓰고 금색만 먹어도 이겼다)
+		val = mini(r.cargo, GOLD_VAL)
+		cost = val
 	if not r.ai and absf(float(mb.x) - r.p.x) > 1.5:
 		_fly_parcel(Vector3(r.p.x, r.p.y + 1.6, 0.4), Vector3(float(mb.x), float(mb.y) + 2.0, 0.4))
-	r.cargo -= 1
+	r.cargo -= cost
 	r.got += val
 	r.posts += 1
 	r.drop_cd = 0.35
@@ -3476,29 +3484,23 @@ func _round_over(w: Courier) -> void:
 	if w == pl:
 		score += 10
 		play("win")
-		_stamp("최다 배달 · %d" % pl.got, "MOST DELIVERED · %d" % pl.got, ST_GOOD, null, 1.4)
+		# v44: "최다 배달" 도장은 뺐다 (결과판이 같은 말을 하고, 도장이 결과판 아래를 가렸다)
 		_burst(Vector3(pl.p.x, pl.p.y + 1.2, 0.6), 8, P_GREEN)
 		_burst(Vector3(pl.p.x, pl.p.y + 3.0, 0.6), 6, P_GOLD)
 		shk = maxf(shk, 0.15)
 	else:
 		_sfx("lost")
-		_stamp("%s 최다 배달 · %d" % [w.nick, w.got], "%s DELIVERED MOST · %d" % [w.nick_en.to_upper(), w.got], ST_BAD, w, 1.4)
 
 
 ## v37: 판 끝 결과판. 이긴 사람을 맨 위에 크게, 아래에 모두의 배달 수와 이 동네 승수(WINS 먼저 = 다음 동네)
 func _show_board(w: Courier) -> void:
 	if board_l == null:
 		return
-	var head := L("내가 이겼다!", "YOU WIN!") if w == pl else L("%s 승리", "%s WINS") % [w.nick if lang == "ko" else w.nick_en]
+	var head := L("내가 이겼다!", "YOU WIN!") if w == pl else L("%s 승리", "%s WINS") % [w.nick if lang == "ko" else w.nick_en.to_upper()]
 	var rows := []
 	for r in _deliv_order():
-		var nm: String = r.nick if lang == "ko" else r.nick_en
-		rows.append(L("%s  배달 %d  · 승 %d/%d", "%s  delivered %d  · wins %d/%d") % [nm, r.got, r.wins, WINS])
-	board_l.text = head + "
-" + "
-".join(rows)
-	board_l.modulate = Color(1, 1, 1, 1)
-	board_l.visible = true
+		rows.append({"name": r.nick if lang == "ko" else r.nick_en, "col": r.col, "got": r.got, "wins": r.wins, "me": r == pl, "top": r == w})
+	board_l.show_board(head, SrTheme.GREEN if w == pl else w.col.darkened(0.15), rows, WINS)
 
 
 func _after_round() -> void:
@@ -4092,19 +4094,21 @@ func _ai(r: Courier, dt: float) -> void:
 			var mb: Dictionary = mailboxes[mi]
 			if r.mb_seen != mi:
 				r.mb_seen = mi
-				var p := clampf(0.55 + 2.0 * (r.skill - AI_SKILL0), minf(0.35 + 0.03 * ci, 0.5), 0.7) * tn("ai")  # v14: 기술만큼 55 ~ 70% (v20: 첫 두 동네는 35%까지)
+				# v44 "상대 0개, 나 7개 / 가만히 있었더니 3,1,0,0": 경쟁자 배달이 너무 약했다 (55~70% 에서 1등·화면 끝 벌점이 겹치면 10~30%).
+				# 기술만큼 80 ~ 92%, 첫 동네도 72% 부터. 1등·화면 끝 벌점은 '앞이 안 보인다' 맛만 남게 작게
+				var p := clampf(0.8 + 2.0 * (r.skill - AI_SKILL0), minf(0.72 + 0.03 * ci, 0.8), 0.92) * tn("ai")
 				var fast := clampf((absf(r.v.x) - RUN_MAX * 0.7) / (RUN_MAX * 0.4), 0.0, 1.0)
 				if _leader() == r:
-					p -= 0.35 * fast + 0.1
+					p -= 0.2 * fast + 0.05
 				if r.p.x - camx > hwv * 0.35:
-					p -= 0.25  # 화면 오른쪽 끝: 우체통이 화면에 늦게 들어온다
+					p -= 0.1  # 화면 오른쪽 끝: 우체통이 화면에 늦게 들어온다
 				if mode == "lantern" and not _lit(float(mb.x)):
 					p = 0.12  # 안개 속 우체통은 거의 못 본다
 				if dark_on:
-					p -= 0.25
+					p -= 0.15
 				if int(mb.val) > 1:
 					p += 0.15  # 금색 우체통 (x3): 경쟁자도 노린다
-				r.mb_go = randf() < clampf(p, 0.05, 0.8)
+				r.mb_go = randf() < clampf(p, 0.05, 0.95)
 			if r.mb_go:
 				aim = true
 				var dx: float = float(mb.x) - r.p.x
