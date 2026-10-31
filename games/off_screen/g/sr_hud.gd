@@ -71,6 +71,10 @@ var _badge_col := T.NAVY
 var _deny_t := 0.0
 var _drop_was_down := false
 const T_DENY := 0.25
+# v14: '포기할래요?' 작은 종이 버튼 (가만히 8초 / 20초 안에 반송 3번이면 막대 아래 가운데에 뜬다, 움직이면 사라진다)
+const GIVEUP_RECT := Rect2(250, 136, 220, 62)
+var _giveup: Control
+var _giveup_lang := ""
 
 
 class Pane extends Control:
@@ -94,6 +98,17 @@ func setup(g) -> void:
 	_top = _pane(self, Rect2(0, 0, 720, 96), _draw_top)
 	_line = _pane(self, Rect2(0, LINE_Y - 24.0, 720, 48), _draw_line)
 	_line.modulate.a = 0.0
+	var gb := T.PaperButton.new()
+	gb.face = T.CREAM
+	gb.font_size = 26
+	gb.position = GIVEUP_RECT.position
+	gb.size = GIVEUP_RECT.size
+	gb.visible = false
+	gb.pressed.connect(func() -> void:
+		if game != null and is_instance_valid(game):
+			game.give_up())
+	add_child(gb)
+	_giveup = gb
 	# tofu 의 큰 "0" 점수는 이 게임에 뜻이 없다.
 	if game._score_l != null:
 		(game._score_l as Label).visible = false
@@ -176,6 +191,18 @@ func _process(dt: float) -> void:
 	else:
 		_line_a = maxf(_line_a - dt / 0.4, 0.0)
 	_line.modulate.a = _line_a
+	# 포기 버튼
+	var gu: bool = not frozen and ph == "race" and game.get("giveup_on") == true
+	if gu and _giveup_lang != lg:
+		_giveup_lang = lg
+		_giveup.text = game.L("포기할래요?", "Give up?")
+	if gu and not _giveup.visible:
+		_giveup.visible = true
+		_giveup.scale = Vector2(0.85, 0.85)
+		_giveup.pivot_offset = _giveup.size * 0.5
+		create_tween().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT).tween_property(_giveup, "scale", Vector2.ONE, 0.2)
+	elif not gu and _giveup.visible:
+		_giveup.visible = false
 
 
 func _read_rail() -> bool:
@@ -500,7 +527,12 @@ func _draw_box(c: Control, pos: Vector2, r: float, k: float, g) -> void:
 	if g.pl != null:
 		cg = maxi(int(g.pl.cargo), 0)
 	var face := T.KRAFT.darkened(0.08 * k)
-	if cg <= 0:
+	# v14: 앞에 빈 우체통이 있으면 짐 버튼 = 배달 (초록 + 우체통). 눌러도 안 던지고, 닿으면 넣는다
+	var post: bool = cg > 0 and g.has_method("post_ready") and g.post_ready()
+	var cdk: float = g.dash_cd_k() if g.has_method("dash_cd_k") else 0.0
+	if post:
+		face = T.GREEN.darkened(0.08 * k)
+	elif cg <= 0:
 		face = face.lerp(T.EMPTY_SLOT, 0.6)
 	var p := pos + Vector2(0, dy)
 	if _deny_t > 0.0:
@@ -508,6 +540,13 @@ func _draw_box(c: Control, pos: Vector2, r: float, k: float, g) -> void:
 	c.draw_circle(pos + Vector2(0, 7), r, Color(T.NAVY, 0.2), true, -1.0, true)
 	c.draw_circle(p, r, Color(T.WHITE, 0.95), true, -1.0, true)
 	c.draw_circle(p, r - 4.0, Color(face, 0.9), true, -1.0, true)
+	if post:
+		_draw_post(c, p)
+		return
+	if cdk > 0.0 and cg > 0:
+		# 던지기 쿨다운: 남은 만큼 남색 고리가 줄어든다 (다 돌면 다시 던질 수 있다)
+		c.draw_circle(p, r - 4.0, Color(T.NAVY, 0.18 * cdk), true, -1.0, true)
+		c.draw_arc(p, r + 5.0, -PI * 0.5, -PI * 0.5 + TAU * cdk, 40, Color(T.NAVY, 0.85), 7.0, true)
 	if cg > 0:
 		# 버튼 얼굴 = 남은 짐 더미 (아래부터 쌓인 작은 상자, 마지막 하나는 빨강). 숫자는 없다: 더미가 곧 짐 수.
 		# 짐이 바뀌면 더미가 한 번 부풀고 (얻으면 초록, 잃으면 빨강 빛) 돌아온다.
@@ -533,3 +572,14 @@ func _draw_box(c: Control, pos: Vector2, r: float, k: float, g) -> void:
 			c.draw_texture_rect(ic, Rect2(p - Vector2(28, 28), Vector2(56, 56)), false, Color(1, 1, 1, 0.45))
 		else:
 			T.draw_parcel_icon(c, p, 34.0, false)
+
+
+## v14: 짐 버튼 위 흰 우체통 (둥근 지붕 몸통 + 투입구 + 기둥) = 지금 누르면 배달
+func _draw_post(c: Control, p: Vector2) -> void:
+	var body := Rect2(p + Vector2(-22, -20), Vector2(44, 30))
+	c.draw_rect(Rect2(p + Vector2(-4, 10), Vector2(8, 18)), T.WHITE)
+	c.draw_circle(p + Vector2(0, -20), 22.0, T.WHITE, true, -1.0, true)
+	c.draw_rect(body, T.WHITE)
+	c.draw_rect(Rect2(p + Vector2(-13, -12), Vector2(26, 6)), T.GREEN.darkened(0.3))
+	c.draw_rect(Rect2(p + Vector2(22, -26), Vector2(5, 22)), T.GOLD)
+	c.draw_rect(Rect2(p + Vector2(22, -26), Vector2(14, 9)), T.GOLD)
