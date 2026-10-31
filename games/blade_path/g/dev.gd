@@ -96,6 +96,11 @@ func _load() -> void:
 		for key in ["text", "ui", "text_en"]:
 			if d.get(key) is Dictionary:
 				edits[key] = d[key]
+		# 10/31: 예전 "검객 설명"(tip) 칸은 도감 설명(dexd)으로 바뀌었다. 지운 예전 칸은 버린다
+		for key in ["text", "text_en"]:
+			for k in edits[key].keys():
+				if (k as String).begins_with("tip"):
+					edits[key].erase(k)
 
 
 func _save() -> void:
@@ -238,8 +243,8 @@ func _tname(k: String) -> String:
 		return TEXT_NAMES[k]
 	if k.begins_with("name"):
 		return "검객 이름 %d" % (int(k.substr(4)) + 1)
-	if k.begins_with("tip"):
-		return "검객 설명 %d" % (int(k.substr(3)) + 1)
+	if k.begins_with("dexd"):
+		return "도감: 검객 설명 %d (도감에만 나와요)" % (int(k.substr(4)) + 1)
 	if k.begins_with("pkd_"):
 		return "능력 설명: " + g._s("pk_" + k.substr(4))
 	if k.begins_with("pk_"):

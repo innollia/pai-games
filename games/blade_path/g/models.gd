@@ -4,6 +4,8 @@ const GOLD := Color("ffbf28")
 const DARK := Color("343535")
 const STEEL := Color("686b70")
 const STRAW := Color("d7ac62")
+## 칼 쥔 손 자리 (외형 번호마다 몸 옆, 10/31). 빈손은 x 를 뒤집은 자리
+const HAND := [Vector3(0.95, -0.62, 0.42), Vector3(1.15, -0.55, 0.45), Vector3(0.9, -0.6, 0.52), Vector3(0.95, -0.7, 0.45), Vector3(1.12, -0.55, 0.58)]
 
 static func material(c: Color) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
@@ -70,7 +72,8 @@ func build(kind: int) -> void:
 	for side in [-1,1]:
 		cube(self,Vector3(side * 0.38,-1.24,0.03),Vector3(0.24,0.48,0.27),DARK)
 		cube(self,Vector3(side * 0.38,-1.48,0.16),Vector3(0.36,0.14,0.48),DARK)
-	ball(self,Vector3(-1.0,-0.64,0.12),0.20,hand_color)
+	var h: Vector3 = HAND[kind]
+	ball(self,Vector3(-h.x,h.y,0.12),0.20,hand_color)
 	match kind:
 		0: # Low polygon iron helmet, black visor and red tunic.
 			cube(self,Vector3(0,-0.61,0),Vector3(1.14,0.92,0.72),Color("ad3928"))

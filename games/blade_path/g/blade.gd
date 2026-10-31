@@ -230,6 +230,9 @@ var ind: Array[Node3D] = []  # 빈틈 표시: 검은 테두리 + 초록 면
 var ghosts: Array[MeshInstance3D] = []  # 적 칼이 지나갈 길 (흐린 잔상 셋 + 두 번째 칼)
 var blade_rest := Vector3(0.95, -0.3, 0.6)
 var blade_rr := Vector3(0, 0, 0.5)
+var hand_p := Vector3(0.95, -0.62, 0.42)  # 칼 쥔 손 자리 (models.gd HAND)
+var sheath_p := Vector3.ZERO  # 칼집에 든 칼 자리 (거합·끝판왕의 발도 수)
+var sheath_rr := Vector3.ZERO
 var stance := -1  # 내가 밀어서 잡은 칼 방향 (-1 = 아직)
 var stance_l: Label
 var cam_base := Vector3.ZERO
@@ -469,7 +472,7 @@ func _default_say() -> void:
 	say["tut_again"] = "튜토리얼 다시 보기"
 	for i in NAMES.size():
 		say["name%d" % i] = NAMES[i]
-		say["tip%d" % i] = TIPS[i]
+		say["dexd%d" % i] = TIPS[i]  # 도감에만 나오는 검객 설명 (10/31: 전투 글과 따로)
 	for pk: Array in PERKS:
 		say["pk_%s" % pk[0]] = pk[1]
 		say["pkd_%s" % pk[0]] = pk[2]
@@ -785,7 +788,7 @@ func _lobby_refresh() -> void:
 				dex_card.text = _s("dex_none")
 			else:
 				var rec := _f("dex_rec", [seen[i], kills[i]]) if i < 4 else _f("dex_rec_boss", [seen[i], best_dmg])
-				dex_card.text = "%s\n%s\n%s" % [_s("name%d" % i), _s("tip%d" % i).replace("\n", " "), rec]
+				dex_card.text = "%s\n%s\n%s" % [_s("name%d" % i), _s("dexd%d" % i).replace("\n", " "), rec]
 
 
 ## 로비로 (t = 탭). 막기·베기 버튼은 뺀다.
@@ -958,9 +961,22 @@ func _dress_box(_col: Color) -> void:
 		if m.has_meta("signal_eye"):
 			m.set_meta("eye_col", m.material_override.albedo_color)
 			eyes.append(m)
+	# 칼은 검객마다 쥔 손(팔) 자리에서 (10/31). 거합 칼은 허리 칼집에 손잡이가 앞으로
+	hand_p = preload("res://g/models.gd").HAND[LOOK[ftype]]
+	var tip := Vector3(0.3, -0.35, -0.89).normalized()  # 칼집 칼: 칼끝은 뒤·아래, 손잡이는 앞으로
+	sheath_rr = Basis(Quaternion(Vector3.UP, tip)).get_euler()
+	sheath_p = _grip_rest(hand_p, sheath_rr)
+	blade_rr = Vector3(0, 0, 0.5)
+	blade_rest = _grip_rest(hand_p, blade_rr)
 	if ftype == 3:
-		blade_rest = Vector3(0.85, -0.55, 0.55)
-		blade_rr = Vector3(PI / 2, 0, 0)
+		blade_rest = sheath_p
+		blade_rr = sheath_rr
+
+
+## 칼 손잡이(쥔 손 공)가 hand 에 오는 칼 자리
+func _grip_rest(hand: Vector3, rr: Vector3) -> Vector3:
+	var l := 2.0 if ftype == 2 else 1.7
+	return hand - Basis.from_euler(rr) * Vector3(0, -(0.38 * l + 0.16), -0.06)
 
 
 ## 찌르기 검객 = 파이가 보낸 모델. 상자 몸(body)은 숨겨 두고 번쩍임 색만 받는다
@@ -1371,12 +1387,22 @@ func _fight(dt: float) -> void:
 						e.material_override = mat(WHITE)
 					sfx(SND["iai1"])
 				if told:
-					# 칼집에서 칼이 그쪽으로 빠져나온다: 칼만 보고도 방향을 안다
-					blade_m.position = blade_m.position.lerp(_bpos(sdir, 0.0), minf(1.0, dt * 9.0))
-					blade_m.rotation = blade_m.rotation.lerp(_brot(sdir, 0.0), minf(1.0, dt * 9.0))
+					# 발도 (10/31): 먼저 손잡이가 앞으로 쑥 나오고, 이어 칼이 칼집에서 빠져 그쪽으로 간다
+					var p := (fs_t - tell_at) / maxf(0.01, show_at - tell_at)
+					if p < 0.45:
+						var out := sheath_p - Vector3(0.3, -0.35, -0.89).normalized() * 0.6
+						blade_m.position = blade_m.position.lerp(out, minf(1.0, dt * 16.0))
+						blade_m.rotation = blade_m.rotation.lerp(sheath_rr, minf(1.0, dt * 16.0))
+					else:
+						blade_m.position = blade_m.position.lerp(_bpos(sdir, 0.0), minf(1.0, dt * 22.0))
+						blade_m.rotation = blade_m.rotation.lerp(_brot(sdir, 0.0), minf(1.0, dt * 22.0))
 					fl = fl.lerp(Vector3(0, -0.15, 0), minf(1.0, dt * 6.0))
 				else:
 					_relax(dt)
+					if ftype == 4:
+						# 끝판왕의 발도 수: 칼을 허리 칼집 자리에 넣고 기다린다
+						blade_m.position = blade_m.position.lerp(sheath_p, minf(1.0, dt * 10.0))
+						blade_m.rotation = blade_m.rotation.lerp(sheath_rr, minf(1.0, dt * 10.0))
 				if fs_t < show_at:
 					return
 				shown = true
@@ -1477,8 +1503,8 @@ func _attack(linked := false) -> void:
 	if _flag(mv) == 2:
 		# 거합: 서 있는 시간은 무작위, 뽑는 건 순식간
 		win = randf_range(1.0, 2.4)
-		show_at = win - maxf(0.2, 0.32 * spd)
-		tell_at = win - maxf(0.42, 0.65 * spd)
+		show_at = win - maxf(0.14, 0.22 * spd)  # 10/31: 뽑는 칼이 더 빠르게 (0.32 → 0.22)
+		tell_at = win - maxf(0.4, 0.6 * spd)
 		told = false
 		shown = false
 		feint_at = -1.0
@@ -2083,8 +2109,8 @@ func _hold(on: bool) -> void:
 		return
 	drawn = on
 	if on:
-		blade_rest = Vector3(0.95, -0.3, 0.6)
 		blade_rr = Vector3(0, 0, 0.5)
+		blade_rest = _grip_rest(hand_p, blade_rr)
 	else:
-		blade_rest = Vector3(0.7, -0.55, 0.45)
-		blade_rr = Vector3(PI / 2, 0, 0)
+		blade_rest = sheath_p
+		blade_rr = sheath_rr
