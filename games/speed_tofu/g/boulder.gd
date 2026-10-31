@@ -311,6 +311,9 @@ func _init() -> void:
 
 
 func _setup() -> void:
+	# 깊이 정밀도: 가까운 면을 0.05m 로 두면 먼 바닥 판끼리 지직거린다
+	cam.near = 0.4
+	cam.far = 1500.0
 	_lang()
 	howto = "굴러라 신전석\n끌어서 조향 · 느려지면 끝\n바다 신전까지 굴러가자!"
 	time_limit = 0.0
@@ -478,7 +481,7 @@ func _zones_list() -> Array:
 				"fence": [102], "holes": [[115, 121, -6, 0], [150, 156, 6, 12]], "say": [[40, "길을 골라"], [158, "좁은 문!"]]},
 				# 섞기: 집 두 채가 길을 막는다(커서 깔거나, 뛰어 내려찍거나) → 바로 틈 뛰기
 				{"legs": [[20, -4, 8], [14, -1, 8, 0, "gap"], [30, -6, 8]], "put": [["house", 8, -3.5], ["house", 8, 3.5]],
-					"say": [[0, "섞기: 깔고 뛰기"]]}]},
+					"cam": [[0, "back"]], "say": [[0, "섞기: 깔고 뛰기"]]}]},
 		# 설산: 굴리는 길 자체가 자원. 흰 눈 줄에서 커지고(얼음벽을 깰 자격) 노란 길에서 녹는다(오르막을 넘을 가벼움).
 		{"msg": "설산 · 눈 굴리기", "mode": "iso", "skill": "", "road": ICE, "floor": Color("abcbd8"), "accent": B, "posts": false, "scen": "snow",
 			"items": [{"legs": [[20, -3, 8], [130, -24, 9], [24, -1, 9], [58, -10.8, 9], [12, -2.2, 9, 0, "mouthL"]],
@@ -1021,6 +1024,7 @@ func _zone_items(z: Dictionary) -> void:
 				zn.add_child(bn)
 				branch_nodes.append(bn)
 				z["node"] = bn
+				bn.position.y = 0.04 * side  # 두 갈래 입구가 같은 높이로 겹쳐 깜빡이지 않게
 				# 숨은 갈림길 두 갈래는 가까이 붙어 가서, 옆 풍경 기둥이 다른 갈래 길 위에 선다 (옛 배수로: 큰길 155m 왼쪽 반을 막는 20m 기둥) → 풍경 없이
 				z["bare"] = bool(it.get("hidden", false))
 				_draw_road(o, 0, o.px.size() - 1, z)
@@ -1031,7 +1035,20 @@ func _zone_items(z: Dictionary) -> void:
 				vis.erase("say")
 				pair.append(_make_things(vis, o, 0.0, d0, z))
 				z["node"] = zn
-			z.fork = {"at": d0, "things": pair, "seal": null, "nodes": branch_nodes.slice(branch_nodes.size() - 2)}
+			z.fork = {"at": d0, "things": pair, "seal": null, "nodes": branch_nodes.slice(branch_nodes.size() - 2), "arrows": []}
+			if not bool(it.get("hidden", false)):
+				var os := [_gen(st, it.fork[0].legs), _gen(st, it.fork[1].legs)]
+				for sd in 2:
+					var o2: Dictionary = os[sd]
+					var ar := MeshInstance3D.new()
+					ar.mesh = _flow_arrow()
+					z.node.add_child(ar)
+					ar.position = _pos(d0 - 7.0, -2.6 if sd == 0 else 2.6, _h(d0 - 7.0) + 0.35)
+					# 화살표 메시는 +X 를 가리킨다: 그 갈래 12m 앞 방향으로 돌린다
+					ar.rotation.y = _oyaw(o2, 12.0) + PI * 0.5
+					ar.scale = Vector3(3.2, 1.0, 3.2)
+					ar.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+					z.fork.arrows.append(ar)
 			if bool(it.get("hidden", false)):
 				_hidden_fork(it, d0, o0, z)
 			else:
@@ -1085,6 +1102,9 @@ func _choose(z: Dictionary) -> void:
 	if bns.size() == 2 and is_instance_valid(bns[1 - side]):
 		(bns[1 - side] as Node3D).queue_free()
 	fork_rail_end = float(fk.at) + 35.0
+	var ars: Array = fk.get("arrows", [])
+	if ars.size() == 2 and is_instance_valid(ars[1 - side]):
+		(ars[1 - side] as Node3D).queue_free()
 	_extend(br.legs)
 	z.things.append_array(fk.things[side])
 	var acc := float(fk.at)
@@ -1245,7 +1265,7 @@ func _draw_road(o: Dictionary, a: int, b: int, z: Dictionary) -> void:
 		_apply_art(m, "plank" if tg in ["rope", "bridge"] else _ground_art(int(z.k)))
 		m.basis = bs
 		m.scale = Vector3(hw * 2.0, thick, ln + 0.4 + hw * absf(o.yw[j] - o.yw[i]))
-		m.position = (p0 + p1) * 0.5 - up * thick * 0.5
+		m.position = (p0 + p1) * 0.5 - up * thick * 0.5 + up * (0.025 * float(i % 3))  # 겹친 이음매가 깜빡이지 않게
 		if ln > 5.0:
 			if tg == "aq":
 				var w := box(Vector3.ZERO, Vector3.ONE, WATER, nd)
@@ -1721,6 +1741,14 @@ func _extras(z: Dictionary) -> void:
 
 func _zones_tick() -> void:
 	for z: Dictionary in zones:
+		if z.fork != null and z.fork.has("arrows") and (z.fork.arrows as Array).size() == 2:
+			var near := float(z.fork.at) - dist < 70.0
+			for sd in 2:
+				var ar: MeshInstance3D = z.fork.arrows[sd]
+				if is_instance_valid(ar):
+					var mine := (bx < 0.0) == (sd == 0)
+					ar.material_override = mat(G_TOP.lerp(WHITE, 0.25 + 0.25 * sin(clock * 12.0)) if mine and near else Color("e9dcc2"))
+					ar.scale = Vector3(3.8, 1.0, 3.8) if mine and near else Vector3(2.8, 1.0, 2.8)
 		if z.fork != null and dist >= float(z.fork.at) - 4.0:
 			_choose(z)
 	var last: Dictionary = zones.back()
