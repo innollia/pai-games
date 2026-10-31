@@ -148,8 +148,9 @@ var lookd := Vector3.FORWARD
 var grounded := true
 var airjump := false
 var has_sail := false
-var lives := 3
-var die_t := 0.0
+var die_t := 0.0  # v17 "힐링인데 죽음 별로": 죽음·목숨 없앰. 늘 0 (멈춤 조건으로만 남음)
+var haz_cd := 0.0  # v17 불 별·울타리 튕김 소리·셈 간격
+var stun_t := 0.0  # v17 운석에 맞으면 잠깐 비틀 (조작 안 먹음)
 var fin_t := 0.0
 var step_d := 0.0
 var air_t := 0.0
@@ -646,9 +647,10 @@ var vil_bobs: Array = []  # [몸 노드, 바닥 높이, 위상]
 
 func _reset() -> void:
 	rng.randomize()
-	lives = 3
 	has_sail = false
 	die_t = 0.0
+	haz_cd = 0.0
+	stun_t = 0.0
 	fin_t = 0.0
 	bub_t = 0.0
 	bub_talk = false
@@ -699,11 +701,7 @@ func _reset() -> void:
 	hearts.clear()
 	heart_t = 0.0
 	heart_lost = -1
-	for i in 3:
-		var h := _proc("heart", Callable(self, "_shape_heart"), me)
-		h.position = Vector3(-0.32 + 0.32 * i, 1.95, 0)
-		h.visible = false  # v6: 목숨을 잃을 때·다시 설 때만 잠깐
-		hearts.append(h)
+	# v17: 목숨이 없어 하트도 안 만든다
 	# v6 값싼 그림자: 흐린 잉크색 원판 (빛 없음, 반투명). 나는 발밑 별 면에 비추고, 높이 뜰수록 작고 옅게
 	shadow_me = MeshInstance3D.new()
 	var pm := PlaneMesh.new()
@@ -909,7 +907,7 @@ func _build() -> void:
 		_landmark(k, n)
 		_deco(k, n)
 	# v7 지뢰 울타리 (옛 빨간 바위 띠): 노을 별 → 장미 별 곧은 길을 막는다. 덩어리로 뭉쳐 "끌지 않는 빨간 별"처럼 보이던 것을
-	# 띄엄띄엄 떨어진 가시 지뢰 18개(3층 × 6줄, MultiMesh 하나) + 그 사이를 잇는 가는 빨간 줄(한 메시)로. 줄 사이도 닿으면 죽는 칸이다
+	# 띄엄띄엄 떨어진 가시 지뢰 18개(3층 × 6줄, MultiMesh 하나) + 그 사이를 잇는 가는 빨간 줄(한 메시)로. 줄 사이도 닿으면 튕겨 나는 칸이다 (v17: 죽지 않음)
 	var r2 := RandomNumberGenerator.new()
 	r2.seed = 991
 	var bmm := _mm("mine", 18, world)
@@ -1060,7 +1058,6 @@ func _respawn() -> void:
 	sail_open = 0.0
 	if rings.has(cur):
 		ring_in = home_d.angle_to(rings[cur].c) * R < float(rings[cur].r)
-	_hearts_show(-1)
 	_dots_off()
 	_place_me()
 	_emit("respawn")
@@ -1939,11 +1936,7 @@ func _play(dt: float) -> void:
 			_place_me()
 		_camera(dt)
 		if die_t <= 0.0:
-			if lives <= 0:
-				hud2.visible = false
-				end()
-			else:
-				_respawn()
+			_respawn()  # v17: 목숨 없음 — 끝은 부탁을 다 들어줬을 때뿐
 		return
 	if tow_t > 0.0:
 		_tow(dt)
@@ -1951,6 +1944,8 @@ func _play(dt: float) -> void:
 		return
 	tower_cd -= dt
 	bump_cd -= dt
+	haz_cd -= dt
+	stun_t -= dt
 	if grounded:
 		ff = 1.0
 		_ground(dt, p.normalized())
@@ -1998,10 +1993,12 @@ func _ground(dt: float, up: Vector3) -> void:
 	var lift := sqrt(maxf(gp + grip, 0.5) * R)
 	var cright := cfwd.cross(up).normalized()
 	var want := Vector3.ZERO
-	if kit_move.length() > 0.05:
+	if kit_move.length() > 0.05 and stun_t <= 0.0:  # v17: 운석에 맞아 비틀하는 동안은 조작이 안 먹는다
 		want = (cright * kit_move.x - cfwd * kit_move.y) * TOP
 	var acc: float = ACC * float(P.acc)
-	if want.length() < 0.1:
+	if stun_t > 0.0:
+		acc = ACC * 0.35  # v17: 밀려난 기세로 조금 미끄러진다
+	elif want.length() < 0.1:
 		acc = maxf(acc, ACC)  # v14 "멈추니까 혼자 좀 걷다 멈췄어": 얼음이어도 손을 떼면 바로 선다 (미끄러짐은 출발·방향 바꿀 때만)
 	vel = vel.move_toward(want, acc * dt)
 	vel -= up * vel.dot(up)
@@ -2138,13 +2135,13 @@ func _fly(dt: float) -> bool:
 			_emit("sail")
 		else:
 			sfx("liftoff", -4.0, 1.25)
-	# 위험: 불 별, 바위 띠, 떠내려감
+	# 위험: 불 별, 바위 띠, 떠내려감. v17 "힐링인데 죽음 별로": 죽지 않고 통 튕겨 나간다
 	if P.kind == "fire" and r <= R + 0.4:
-		_die("fire")
-		return true
+		_fire_bounce(up)
+		return false
 	if _in_belt(w):
-		_die("rocks")
-		return true
+		_belt_bounce(w)
+		return false
 	if dm < 0:
 		var far := (w - MID).length()
 		if far > BOUND:
@@ -2158,7 +2155,7 @@ func _fly(dt: float) -> bool:
 					drift_said = true
 					_react("drift_warning" if has_sail else "drift_warning_ns")
 			if far > BOUND + 10.0:
-				_die("drift")
+				_tow_start()  # v17: 깊은 우주로 가도 죽지 않고 마지막 별로 끌려 돌아온다
 				return true
 	if r <= R and vel.dot(up) <= 0.0 and P.kind != "fire":
 		_land(up)
@@ -2174,7 +2171,7 @@ func _land(up: Vector3) -> void:
 	sfx("land_hard" if hit > 4.0 else "land", -2.0 + clampf(hit, 0.0, 6.0))
 	_emit("land", {"hard": hit > 4.0, "speed": hit})
 	if item != "" and ij >= 0 and bool((JOB[ij] as Dictionary).get("frag", false)):
-		var c := clampf((hit - 3.0) / 4.0, 0.0, 1.0)
+		var c := clampf((hit - 3.0) / 4.0, 0.0, 1.0) * 0.5  # v17 "깨지는 아이템 체력 2배": 금은 반만
 		if c > 0.0:
 			crack += c
 			sfx("crack", 3.0)
@@ -2203,9 +2200,6 @@ func _land(up: Vector3) -> void:
 		if not visited.has(cur):
 			visited[cur] = true
 			score += 5
-			if lives < 3:
-				lives = 3
-				_hearts_show(-1)  # 새 별: 목숨이 차는 걸 잠깐 보여 준다
 			sfx("deliver", -6.0, 1.25)
 			_emit("new_planet", {"k": cur})
 			_emit("score", {"n": 5, "pos": mp + p.normalized() * 1.5})
@@ -2242,6 +2236,10 @@ func _collide(up: Vector3) -> void:
 					o = o.normalized()
 					vel -= o * vel.dot(o)
 				vel -= nu * vel.dot(nu)
+				# v16: 담에 붙어 미끄러지면 느려진다 (담이 땅에 붙잡아 둔 채 이륙선 넘게 빨라졌다가 점프 한 번에 우주로 튕기던 것)
+				var wlim := sqrt(maxf(gp + float(P.grip), 0.5) * R) * 0.6
+				if vel.length() > wlim:
+					vel = vel.normalized() * wlim
 				if bump_cd <= 0.0:
 					bump_cd = 0.5
 					sfx("land", -4.0, 1.5)
@@ -2505,7 +2503,7 @@ func _item_landed() -> void:
 	sfx("land", -6.0, 1.4)
 	var J: Dictionary = JOB[ij]
 	var tg: Vector3 = (J.tdir as Vector3).normalized()
-	if J.frag and fall_h0 > 5.5:
+	if J.frag and fall_h0 > 11.0:  # v17 유리 2배 튼튼: 깨지는 높이 5.5 → 11
 		_break()
 		return
 	var off := (fall_dir * br[fall_pl]).distance_to(tg * br[fall_pl])
@@ -2931,36 +2929,44 @@ func _can(id: int) -> bool:
 	return clock >= float(nag.get(id, -1.0))
 
 
-func _die(why: String) -> void:
-	if die_t > 0.0:
+## v17 "힐링인데 죽음 별로": _die(죽음·목숨)는 없앴다. 위험은 모두 부드럽게 튕기거나 밀어낼 뿐 (든 물건·막대 그대로)
+## 부딪힌 일 알림: 글·혼잣말·소리 (튕길 때마다가 아니라 haz_cd 간격으로 한 번)
+func _bump_say(why: String) -> void:
+	if haz_cd > 0.0:
 		return
-	lives -= 1
-	_hearts_show(lives)  # v6: 잃은 하트가 줄어들며 사라지는 걸 2초 보여 준다
-	die_t = 1.3
-	shake = 0.4
-	play("bad")
-	_emit("die", {"why": why})
-	msg(_tx("die." + why), 1.2)
+	haz_cd = 1.2
+	shake = 0.15
+	sfx("land_hard", -4.0, 1.35)  # 아픈 소리 대신 통 튀는 소리
+	_emit("bump", {"why": why})
+	msg(_tx("die." + why), 1.0)
 	_react("die_" + why, false, true)
-	# 마지막으로 내려앉은 자리에서 다시: 든 물건은 그 물건 주인 별 제자리로 (v9: 순서와 상관없이 JOB[ij].src)
-	if ij >= 0 and (item != "" or fall_on):
-		var J: Dictionary = JOB[ij]
-		item = ""
-		item_b.visible = false
-		fall_on = false
-		ig_on = true
-		ig_pl = J.src
-		ig_dir = HOME_D.normalized()
-		ig_b.visible = true
-		_drop_btn(false)
-	crack = 0.0
-	# 바람·띠 막대는 0부터 (하는 중인 것만)
-	if js[0] == 1:
-		wprog = 0.0
-	if js[3] == 1:
-		bprog = 0.0
-		band_a = 0.6
-	_dots_off()
+
+
+## v17 불 별: 닿으면 "앗 뜨거!" 하고 바깥으로 통 튕겨 나간다. 이 별의 끌림 둘레 밖까지 올라갈 만큼 (안 그러면 계속 통통 튄다)
+func _fire_bounce(up: Vector3) -> void:
+	var rr := R + 0.45
+	p = up * rr
+	var vr := vel.dot(up)
+	var tang := vel - up * vr
+	var need := sqrt(maxf(2.0 * mu * (1.0 / rr - 1.0 / bsoi[cur]), 0.0)) * 1.12
+	vel = tang * 0.7 + up * maxf(-vr * 0.6, need)
+	sim_cd = 0
+	_bump_say("fire")
+
+
+## v17 지뢰 울타리: 닿으면 온 쪽으로 밀려난다 (속도 반사, 반쯤 줄임)
+func _belt_bounce(w: Vector3) -> void:
+	var l := _bl(w)
+	var tt := clampf(l.x / _blen, -0.08, 1.08)
+	var off := _bu * (l.x - _blen * tt) + _bn * l.z
+	var n := off.normalized() if off.length() > 0.01 else (_bn if vel.dot(_bn) < 0.0 else -_bn)
+	p += n * maxf(2.4 - off.length(), 0.0)
+	var vn := vel.dot(n)
+	if vn < 0.0:
+		vel -= n * vn * 2.0
+	vel *= 0.55
+	sim_cd = 0
+	_bump_say("rocks")
 
 
 ## 운석: 유리꽃을 들고 유리꽃의 별 위에 있으면 나를 노린다
@@ -3007,7 +3013,23 @@ func _meteors(dt: float, up: Vector3) -> void:
 				sfx("meteor_hit")
 				_emit("meteor_hit", {"pos": bc[cur] + d * R})
 				if p.distance_to(d * R) < 2.2:
-					_die("meteor")
+					_meteor_knock(d)
+
+
+## v17 운석에 맞으면: 죽지 않고 조금 밀려나 잠깐 비틀. 유리꽃을 들었으면 금이 조금 (유리 2배 튼튼: 0.25)
+func _meteor_knock(d: Vector3) -> void:
+	var up := p.normalized()
+	var away := _flat(p - d * R, up) if (p - d * R).length() > 0.05 else _flat(-fwd, up)
+	if grounded:
+		vel = away * 5.0
+	else:
+		vel += away * 3.0
+	stun_t = 0.6
+	if item != "" and ij >= 0 and bool((JOB[ij] as Dictionary).get("frag", false)):
+		crack += 0.25
+		sfx("crack", 3.0)
+		_emit("crack")
+	_bump_say("meteor")
 
 
 func _place_me() -> void:
@@ -3154,17 +3176,9 @@ func _lost_check(dt: float) -> void:
 
 func _tow_start() -> void:
 	_help_ev("tow", {})  # v10: 우주 미아 셈 (airjump 가 이번 비행 그대로일 때)
-	# v14 "체력도 안 떨어져": 끌려 돌아오면 목숨 하나. 마지막 목숨이면 보통 죽음(떠내려감)으로
-	if lives <= 1:
-		lost_t = 0.0
-		tip_t = 0.0
-		lost_now = false
-		main_lost = false
-		_die("drift")
+	# v17 "힐링인데 죽음 별로": v14 의 목숨 하나 잃기는 없앴다. 휙 날아갔다 끌려 돌아오는 느낌만
+	if tow_t > 0.0:
 		return
-	lives -= 1
-	_hearts_show(lives)
-	play("bad")
 	tow_t = TOW_T
 	lost_t = 0.0
 	tip_t = 0.0
@@ -3778,7 +3792,7 @@ func _hearts_anim(dt: float) -> void:
 	for i in hearts.size():
 		var h := hearts[i]
 		var sc := 0.0
-		if i < lives:
+		if i < hearts.size():  # v17: 목숨 없음 (하트를 안 만들어 이 줄은 돌지 않는다)
 			sc = _bo(clampf((age - i * 0.06) / 0.25, 0.0, 1.0)) * out
 		elif i == heart_lost:
 			# 크게 튀었다가 0.7초에 걸쳐 줄어 사라진다
@@ -5092,9 +5106,7 @@ func play(nm: String) -> void:
 	match nm:
 		"good": sfx("pickup")
 		"bad":
-			# _die 에서 이미 울렸다: end() 의 "bad" 는 다시 울리지 않는다
-			if not won and not over:
-				sfx("die")
+			pass  # v17: 죽음이 없어 아픈 소리도 없다
 		"win": sfx("deliver")
 		"tap": sfx("ui_tap")
 		_: super(nm)
@@ -5609,14 +5621,10 @@ func _help_ev(nm: String, d: Dictionary) -> void:
 			h_lost += 1
 			if has_sail and not airjump:
 				h_sailmiss += 1
-		"die":
+		"bump":  # v17: 죽음 대신 튕김을 센다 (불 별·울타리에 자꾸 부딪히면 새총 힌트)
 			var why := str(d.get("why", ""))
 			if why == "fire" or why == "rocks":
 				h_fire += 1
-			elif why == "drift":
-				h_lost += 1
-				if has_sail and not airjump:
-					h_sailmiss += 1
 		"crack", "shatter":
 			h_crack += 1
 		"sail":

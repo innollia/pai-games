@@ -828,6 +828,8 @@ func event(ev: String, d := {}) -> void:
 			_hit(0.16, 0.0)
 			_red_t = 0.5
 			_burst_at(_pos + _up * 0.8, false)
+		"bump":  # v17: 죽음 대신 부드럽게 튕김 — 살짝 흔들림만 (빨간 번쩍 없음)
+			_shake_on(0.06)
 		"respawn":
 			_end_slowmo()
 			_reset_fx()

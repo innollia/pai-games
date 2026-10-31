@@ -31,7 +31,7 @@ const TEXT := {
 	"name.rose": ["장미의 별", "Rose Planet"],  # 별 5 이름 | -
 	"name.chimney_moon": ["굴뚝 달", "Chimney Moon"],  # 소포 받는 달 이름 | -
 	"name.friend_moon": ["친구 달", "Friend Moon"],  # 유리꽃 받는 달 이름 | -
-	"name.fire": ["불 별", "Fire Star"],  # 닿으면 죽는 불 별 이름 | -
+	"name.fire": ["불 별", "Fire Star"],  # 닿으면 튕겨 나는 불 별 이름 (v17) | -
 	"who.windmill": ["풍차지기", "Windmill Keeper"],  # 별 1 주민 이름 (말풍선 위) | -
 	"who.post": ["우체부", "Mail Carrier"],  # 별 2 주민 이름 | -
 	"who.glass": ["정원사", "Gardener"],  # 별 3 주민 이름 | -
@@ -80,7 +80,7 @@ const TEXT := {
 	# ---- 날기·내려앉기 ----
 	"react.first_liftoff": ["어… 나 지금 나는 거야?", "Wait... am I flying?"],  # 처음으로 중력을 벗어나는 점프 (한 번) | 너?
 	"react.first_landing": ["착지 성공. 여긴 어디지?", "Landed. Where am I?"],  # 다른 별에 처음 내려앉음 (한 번) | 너?
-	"react.new_planet": ["새 별이다. 기운이 솟는다", "A new planet. I feel recharged"],  # 그 뒤 새 별에 처음 내려앉음 (목숨이 3으로 참) | 너?
+	"react.new_planet": ["새 별이다. 반가워", "A new planet. Hello there"],  # 그 뒤 새 별에 처음 내려앉음 (v17: 목숨 없음) | 너?
 	"react.slingshot": ["별 옆을 스치니 슝 빨라졌다!", "Skimmed a planet. Whoosh, faster!"],  # 다른 별 곁을 지나 휘어 내려앉음 | 너?
 	"react.orbit_landing": ["빙글빙글 돌다 사뿐히 착지!", "Round and round, then a soft landing!"],  # 대기에서 오래 돌다 살살 앉음 | 너?
 	"msg.next": ["다음: {planet}", "Next: {planet}"],  # 부탁 하나 끝난 뒤 알림 | -
@@ -136,20 +136,20 @@ const TEXT := {
 	"p5.idle1": ["…뭘 그렇게 빤히 쳐다봐?|덮개가 마음에 들어서 가만히 있는 것뿐이거든.|사진 같은 건 절대 찍지 마.", "...What are you staring at?|I'm only sitting still because I happen to like the dome.|Don't even think about taking photos."],  # 부탁을 끝낸 뒤 곁에 서면 60초에 한 번 | 장미
 	"p5.idle2": ["덮개에 비치는 별빛이 조금 예쁘긴 하네.|형님 밥 약속보다는 백 배 믿을 만하고.", "The starlight on the dome is a little pretty.|A hundred times more reliable than Big Bro's dinner promise."],  # 위와 같음 | 장미
 
-	# ---- 우주 미아·죽음 ----
+	# ---- 우주 미아·튕김 (v17: 죽음 없음) ----
 	"msg.drift_warn": ["떠내려가는 중…", "Drifting away..."],  # 어느 별에도 안 끌리고 멀어질 때 (날다리 있음) | -
 	"msg.drift_warn_ns": ["떠내려가는 중!", "Drifting away!"],  # 위와 같음, 날다리 받기 전 | -
 	"react.drift_warning": ["어어, 멀어진다… 날다리로 돌리자!", "Uh-oh, drifting... turn with the Glidewing!"],  # 위 상황 첫 번 (날다리 있음) | 너?
 	"react.drift_warning_ns": ["어어, 멀어진다… 초록 점선에서 뛰자", "Uh-oh, drifting... jump on green dots"],  # 위 상황 첫 번 (날다리 받기 전) | 너?
 	"banner.lost": ["우주 미아 · 마지막 별로 돌아가는 중", "Lost in space · returning to the last planet"],  # 못 닿는 길로 2.6초 넘게 날면 끌려 돌아감 | -
-	"die.fire": ["불 별에 닿음", "Touched the Fire Star"],  # 불 별에 닿음 | -
-	"react.die_fire": ["앗 뜨거. 다음엔 스치기만 하자", "Ouch, hot. Just skim it next time"],  # 위 바로 뒤 | 너?
-	"die.rocks": ["빨간 지뢰 울타리에 부딪힘", "Hit the red mine fence"],  # 빨간 지뢰 울타리에 닿음 | -
-	"react.die_rocks": ["울타리는 무리. 불 별 쪽으로 돌아가자", "Can't go through. Curve around the Fire Star"],  # 위 바로 뒤 | 너?
-	"die.drift": ["깊은 우주로 떠내려감", "Drifted into deep space"],  # 너무 멀리 떠내려감 | -
-	"react.die_drift": ["우주 너무 넓다…|다음엔 초록 점선 보고 뛰자", "Space is huge...|Next time, jump on green dots"],  # 위 바로 뒤 | 너?
-	"die.meteor": ["떨어지는 운석에 맞음", "Hit by a falling meteor"],  # 운석에 맞음 | -
-	"react.die_meteor": ["빨간 그림자는 미리 피하자", "Get off red shadows early"],  # 위 바로 뒤 | 너?
+	"die.fire": ["앗 뜨거! 통!", "Hot! Boing!"],  # v17 불 별에 닿아 튕겨 나감 | -
+	"react.die_fire": ["앗 뜨거. 스치기만 하자", "Hot! Just skim it"],  # 위 바로 뒤 | 너?
+	"die.rocks": ["울타리에 통!", "Boing off the fence!"],  # v17 빨간 울타리에 닿아 밀려남 | -
+	"react.die_rocks": ["못 지나가네. 불 별로 돌아가자", "Can't pass. Curve around the Fire Star"],  # 위 바로 뒤 | 너?
+	"die.drift": ["너무 멀리 왔다", "Too far out"],  # 너무 멀리 떠내려감 (v17: 끌려 돌아옴) | -
+	"react.die_drift": ["우주 너무 넓다…|초록 점선 보고 뛰자", "Space is huge...|Jump on green dots"],  # 위 바로 뒤 | 너?
+	"die.meteor": ["운석에 콩!", "Bonk! A meteor"],  # v17 운석에 맞아 밀려남 | -
+	"react.die_meteor": ["빨간 그림자는 피하자", "Dodge red shadows"],  # 위 바로 뒤 | 너?
 
 	# ---- 도움 힌트 (v10, 아래 말풍선. 못 할 때만 나온다. 1 = 처음, 2 = 계속 못 할 때 더 자세히 + 그림·도와주기) ----
 	"help.idle1": ["조이스틱을 밀어 달려 봐", "Push the joystick to run"],  # 거의 안 달려 본 채 8초 가만히 | -
@@ -166,7 +166,7 @@ const TEXT := {
 	"help.glass2": ["잠깐 내려앉기가 더 부드러워져.|빙 돌며 천천히.", "Landings are gentler for a while.|Circle and go slow."],  # 또 그럴 때 (25초 동안 내려가는 빠르기 한도 낮춤) | -
 	"help.band1": ["띠와 같은 빠르기로!|얼음이라 조이스틱은 살살.", "Match the band's speed!|It's icy, so ease the joystick."],  # 노을 띠를 3번 놓침 | -
 	"help.band2": ["잠깐 띠가 느려졌어.|띠 위에 머물러 봐.", "The band is slower for a while.|Stay on it."],  # 또 그럴 때 (25초 동안 띠 느리게) | -
-	"help.fire1": ["불 별 옆을 스쳐 가.|휘어서 장미의 별로 돌아가.", "Skim past the Fire Star.|You'll curve around to Rose Planet."],  # 불 별·지뢰 울타리에 2번 죽음 | -
+	"help.fire1": ["불 별 옆을 스쳐 가.|휘어서 장미의 별로 돌아가.", "Skim past the Fire Star.|You'll curve around to Rose Planet."],  # 불 별·지뢰 울타리에 2번 튕김 (v17) | -
 	"help.fire2": ["노을의 별에 초록 점선 길을 보여 줄게.|그 길 쪽으로 힘껏 달려.|그리고 점프!", "Green dots on Sunset Planet show a curving path.|Sprint that way.|Then jump!"],  # 또 그럴 때 (40초 동안 새총 길 점선) | -
 	"help.fire2b": ["잠깐 땅에서도 점선이 보여.|초록이 될 때 점프.", "For a while, you can see the dots on the ground.|Jump when they turn green."],  # 위와 같은데 길을 못 찾았을 때 (땅 점선을 늘 보임) | -
 	"help.sail1": ["빗나갈 것 같아?|날 때 '날다리' 버튼!", "About to miss?|Tap 'Glide' in flight!"],  # 날다리를 받고도 안 쓰고 빗나간 비행 3번 | -
@@ -182,14 +182,14 @@ const TEXT := {
 	"ending.4": ["언젠가 또 바람이 불면, 다시 달려 날아가야지.", "Someday, when the wind blows again, I'll run and fly once more."],  # 혼잣말 4 | 너?
 	"end.win_head": ["모든 부탁 완료!", "All requests done!"],  # 끝 화면 제목 (이김) | -
 	"end.win_msg": ["다섯 별이 모두 웃고 있어", "All five planets are smiling"],  # 끝 화면 글 (이김) | -
-	"end.lose_head": ["목숨 0", "Out of lives"],  # 끝 화면 제목 (목숨 0) | -
-	"end.lose_msg": ["다시 하면 첫 별부터", "Again starts from the first planet"],  # 끝 화면 글 (목숨 0) | -
+	"end.lose_head": ["오늘은 여기까지", "That's all for today"],  # 끝 화면 제목 (v17: 안 쓰임, 목숨 없음) | -
+	"end.lose_msg": ["다시 하면 첫 별부터", "Again starts from the first planet"],  # 끝 화면 글 (v17: 안 쓰임) | -
 	"end.delivered": ["배달", "Delivered"],  # 기록 줄 1 | -
 	"end.time": ["걸린 시간", "Time"],  # 기록 줄 2 (이김) | -
-	"end.survived": ["버틴 시간", "Time survived"],  # 기록 줄 2 (목숨 0) | -
+	"end.survived": ["걸린 시간", "Time"],  # 기록 줄 2 (v17: 안 쓰임) | -
 	"end.slings": ["새총", "Slingshots"],  # 기록 줄 3 (불 별·다른 별 곁을 휘어 돈 수) | -
 	"end.best_time": ["최고 기록", "Best time"],  # 기록 줄 4 (이김) | -
-	"end.best_count": ["최고 배달", "Most delivered"],  # 기록 줄 4 (목숨 0) | -
+	"end.best_count": ["최고 배달", "Most delivered"],  # 기록 줄 4 (v17: 안 쓰임) | -
 	"end.new_best": ["새 기록", "New best"],  # 기록을 깼을 때 딱지 | -
 	"end.again": ["다시", "AGAIN"],  # 끝 화면 버튼 (첫 별부터 다시) | -
 

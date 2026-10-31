@@ -14,7 +14,7 @@ name.sunset	[별·주민 이름] 별 4 이름		노을의 별	Sunset Planet
 name.rose	[별·주민 이름] 별 5 이름		장미의 별	Rose Planet	
 name.chimney_moon	[별·주민 이름] 소포 받는 달 이름		굴뚝 달	Chimney Moon	
 name.friend_moon	[별·주민 이름] 유리꽃 받는 달 이름		친구 달	Friend Moon	
-name.fire	[별·주민 이름] 닿으면 죽는 불 별 이름		불 별	Fire Star	
+name.fire	[별·주민 이름] 닿으면 튕겨 나는 불 별 이름 (v17)		불 별	Fire Star	
 who.windmill	[별·주민 이름] 별 1 주민 이름 (말풍선 위)		풍차지기	Windmill Keeper	
 who.post	[별·주민 이름] 별 2 주민 이름		우체부	Mail Carrier	
 who.glass	[별·주민 이름] 별 3 주민 이름		정원사	Gardener	
@@ -55,7 +55,7 @@ p1.idle1	[별 1 풍차의 별] 부탁을 끝낸 뒤 곁에 서면 60초에 한 �
 p1.idle2	[별 1 풍차의 별] 위와 같음	풍차지기	이웃 별 녀석들이 온종일 릴스만 들여다보고 있네.|하도 고개를 숙이고 있어서 궤도가 비뚤어질 지경이야.	The neighbor planets do nothing but watch Reels all day.|They hang their heads so low their orbits are going crooked.	
 react.first_liftoff	[날기·내려앉기] 처음으로 중력을 벗어나는 점프 (한 번)	너?	어… 나 지금 나는 거야?	Wait... am I flying?	
 react.first_landing	[날기·내려앉기] 다른 별에 처음 내려앉음 (한 번)	너?	착지 성공. 여긴 어디지?	Landed. Where am I?	
-react.new_planet	[날기·내려앉기] 그 뒤 새 별에 처음 내려앉음 (목숨이 3으로 참)	너?	새 별이다. 기운이 솟는다	A new planet. I feel recharged	
+react.new_planet	[날기·내려앉기] 그 뒤 새 별에 처음 내려앉음 (v17: 목숨 없음)	너?	새 별이다. 반가워	A new planet. Hello there	
 react.slingshot	[날기·내려앉기] 다른 별 곁을 지나 휘어 내려앉음	너?	별 옆을 스치니 슝 빨라졌다!	Skimmed a planet. Whoosh, faster!	
 react.orbit_landing	[날기·내려앉기] 대기에서 오래 돌다 살살 앉음	너?	빙글빙글 돌다 사뿐히 착지!	Round and round, then a soft landing!	
 msg.next	[날기·내려앉기] 부탁 하나 끝난 뒤 알림		다음: {planet}	Next: {planet}	
@@ -102,19 +102,19 @@ p5.thanks	[별 5 장미의 별] 덮개 배달, 마지막 부탁이었을 때	장
 p5.thanks_more	[별 5 장미의 별] 덮개 배달, 남은 부탁이 있을 때	장미	…바람이 하나도 안 느껴져, 따뜻해.|그… 덮개 가져다줘서, 고마워.	...I can't feel the wind at all. It's warm.|Th-thanks for bringing the dome.	
 p5.idle1	[별 5 장미의 별] 부탁을 끝낸 뒤 곁에 서면 60초에 한 번	장미	…뭘 그렇게 빤히 쳐다봐?|덮개가 마음에 들어서 가만히 있는 것뿐이거든.|사진 같은 건 절대 찍지 마.	...What are you staring at?|I'm only sitting still because I happen to like the dome.|Don't even think about taking photos.	
 p5.idle2	[별 5 장미의 별] 위와 같음	장미	덮개에 비치는 별빛이 조금 예쁘긴 하네.|형님 밥 약속보다는 백 배 믿을 만하고.	The starlight on the dome is a little pretty.|A hundred times more reliable than Big Bro's dinner promise.	
-msg.drift_warn	[우주 미아·죽음] 어느 별에도 안 끌리고 멀어질 때 (날다리 있음)		떠내려가는 중…	Drifting away...	
-msg.drift_warn_ns	[우주 미아·죽음] 위와 같음, 날다리 받기 전		떠내려가는 중!	Drifting away!	
-react.drift_warning	[우주 미아·죽음] 위 상황 첫 번 (날다리 있음)	너?	어어, 멀어진다… 날다리로 돌리자!	Uh-oh, drifting... turn with the Glidewing!	
-react.drift_warning_ns	[우주 미아·죽음] 위 상황 첫 번 (날다리 받기 전)	너?	어어, 멀어진다… 초록 점선에서 뛰자	Uh-oh, drifting... jump on green dots	
-banner.lost	[우주 미아·죽음] 못 닿는 길로 2.6초 넘게 날면 끌려 돌아감		우주 미아 · 마지막 별로 돌아가는 중	Lost in space · returning to the last planet	
-die.fire	[우주 미아·죽음] 불 별에 닿음		불 별에 닿음	Touched the Fire Star	
-react.die_fire	[우주 미아·죽음] 위 바로 뒤	너?	앗 뜨거. 다음엔 스치기만 하자	Ouch, hot. Just skim it next time	
-die.rocks	[우주 미아·죽음] 빨간 지뢰 울타리에 닿음		빨간 지뢰 울타리에 부딪힘	Hit the red mine fence	
-react.die_rocks	[우주 미아·죽음] 위 바로 뒤	너?	울타리는 무리. 불 별 쪽으로 돌아가자	Can't go through. Curve around the Fire Star	
-die.drift	[우주 미아·죽음] 너무 멀리 떠내려감		깊은 우주로 떠내려감	Drifted into deep space	
-react.die_drift	[우주 미아·죽음] 위 바로 뒤	너?	우주 너무 넓다…|다음엔 초록 점선 보고 뛰자	Space is huge...|Next time, jump on green dots	
-die.meteor	[우주 미아·죽음] 운석에 맞음		떨어지는 운석에 맞음	Hit by a falling meteor	
-react.die_meteor	[우주 미아·죽음] 위 바로 뒤	너?	빨간 그림자는 미리 피하자	Get off red shadows early	
+msg.drift_warn	[우주 미아·튕김] 어느 별에도 안 끌리고 멀어질 때 (날다리 있음)		떠내려가는 중…	Drifting away...	
+msg.drift_warn_ns	[우주 미아·튕김] 위와 같음, 날다리 받기 전		떠내려가는 중!	Drifting away!	
+react.drift_warning	[우주 미아·튕김] 위 상황 첫 번 (날다리 있음)	너?	어어, 멀어진다… 날다리로 돌리자!	Uh-oh, drifting... turn with the Glidewing!	
+react.drift_warning_ns	[우주 미아·튕김] 위 상황 첫 번 (날다리 받기 전)	너?	어어, 멀어진다… 초록 점선에서 뛰자	Uh-oh, drifting... jump on green dots	
+banner.lost	[우주 미아·튕김] 못 닿는 길로 2.6초 넘게 날면 끌려 돌아감		우주 미아 · 마지막 별로 돌아가는 중	Lost in space · returning to the last planet	
+die.fire	[우주 미아·튕김] v17 불 별에 닿아 튕겨 나감		앗 뜨거! 통!	Hot! Boing!	
+react.die_fire	[우주 미아·튕김] 위 바로 뒤	너?	앗 뜨거. 스치기만 하자	Hot! Just skim it	
+die.rocks	[우주 미아·튕김] v17 빨간 울타리에 닿아 밀려남		울타리에 통!	Boing off the fence!	
+react.die_rocks	[우주 미아·튕김] 위 바로 뒤	너?	못 지나가네. 불 별로 돌아가자	Can't pass. Curve around the Fire Star	
+die.drift	[우주 미아·튕김] 너무 멀리 떠내려감 (v17: 끌려 돌아옴)		너무 멀리 왔다	Too far out	
+react.die_drift	[우주 미아·튕김] 위 바로 뒤	너?	우주 너무 넓다…|초록 점선 보고 뛰자	Space is huge...|Jump on green dots	
+die.meteor	[우주 미아·튕김] v17 운석에 맞아 밀려남		운석에 콩!	Bonk! A meteor	
+react.die_meteor	[우주 미아·튕김] 위 바로 뒤	너?	빨간 그림자는 피하자	Dodge red shadows	
 help.idle1	[도움 힌트] 거의 안 달려 본 채 8초 가만히		조이스틱을 밀어 달려 봐	Push the joystick to run	
 help.idle2	[도움 힌트] 또 그럴 때 (조이스틱 자리에 손가락 그림 깜빡)		조이스틱은 왼쪽 아래에 있어.|손가락으로 밀어 봐.	The joystick is at the bottom left.|Drag it with your finger.	
 help.lift1	[도움 힌트] 달리는데 이륙선 60%를 못 넘은 채 20초		조이스틱을 끝까지 밀어 봐.|그럼 더 빨리 달려.	Push the joystick all the way.|You'll run faster.	
@@ -129,7 +129,7 @@ help.glass1	[도움 힌트] 유리 금·깨짐 2번		곧장 꽂지 마.|빙 돌�
 help.glass2	[도움 힌트] 또 그럴 때 (25초 동안 내려가는 빠르기 한도 낮춤)		잠깐 내려앉기가 더 부드러워져.|빙 돌며 천천히.	Landings are gentler for a while.|Circle and go slow.	
 help.band1	[도움 힌트] 노을 띠를 3번 놓침		띠와 같은 빠르기로!|얼음이라 조이스틱은 살살.	Match the band's speed!|It's icy, so ease the joystick.	
 help.band2	[도움 힌트] 또 그럴 때 (25초 동안 띠 느리게)		잠깐 띠가 느려졌어.|띠 위에 머물러 봐.	The band is slower for a while.|Stay on it.	
-help.fire1	[도움 힌트] 불 별·지뢰 울타리에 2번 죽음		불 별 옆을 스쳐 가.|휘어서 장미의 별로 돌아가.	Skim past the Fire Star.|You'll curve around to Rose Planet.	
+help.fire1	[도움 힌트] 불 별·지뢰 울타리에 2번 튕김 (v17)		불 별 옆을 스쳐 가.|휘어서 장미의 별로 돌아가.	Skim past the Fire Star.|You'll curve around to Rose Planet.	
 help.fire2	[도움 힌트] 또 그럴 때 (40초 동안 새총 길 점선)		노을의 별에 초록 점선 길을 보여 줄게.|그 길 쪽으로 힘껏 달려.|그리고 점프!	Green dots on Sunset Planet show a curving path.|Sprint that way.|Then jump!	
 help.fire2b	[도움 힌트] 위와 같은데 길을 못 찾았을 때 (땅 점선을 늘 보임)		잠깐 땅에서도 점선이 보여.|초록이 될 때 점프.	For a while, you can see the dots on the ground.|Jump when they turn green.	
 help.sail1	[도움 힌트] 날다리를 받고도 안 쓰고 빗나간 비행 3번		빗나갈 것 같아?|날 때 '날다리' 버튼!	About to miss?|Tap 'Glide' in flight!	
@@ -143,14 +143,14 @@ ending.3	[엔딩·끝 화면] 혼잣말 3	너?	차가운 유리 너머로 전해
 ending.4	[엔딩·끝 화면] 혼잣말 4	너?	언젠가 또 바람이 불면, 다시 달려 날아가야지.	Someday, when the wind blows again, I'll run and fly once more.	
 end.win_head	[엔딩·끝 화면] 끝 화면 제목 (이김)		모든 부탁 완료!	All requests done!	
 end.win_msg	[엔딩·끝 화면] 끝 화면 글 (이김)		다섯 별이 모두 웃고 있어	All five planets are smiling	
-end.lose_head	[엔딩·끝 화면] 끝 화면 제목 (목숨 0)		목숨 0	Out of lives	
-end.lose_msg	[엔딩·끝 화면] 끝 화면 글 (목숨 0)		다시 하면 첫 별부터	Again starts from the first planet	
+end.lose_head	[엔딩·끝 화면] 끝 화면 제목 (v17: 안 쓰임, 목숨 없음)		오늘은 여기까지	That's all for today	
+end.lose_msg	[엔딩·끝 화면] 끝 화면 글 (v17: 안 쓰임)		다시 하면 첫 별부터	Again starts from the first planet	
 end.delivered	[엔딩·끝 화면] 기록 줄 1		배달	Delivered	
 end.time	[엔딩·끝 화면] 기록 줄 2 (이김)		걸린 시간	Time	
-end.survived	[엔딩·끝 화면] 기록 줄 2 (목숨 0)		버틴 시간	Time survived	
+end.survived	[엔딩·끝 화면] 기록 줄 2 (v17: 안 쓰임)		걸린 시간	Time	
 end.slings	[엔딩·끝 화면] 기록 줄 3 (불 별·다른 별 곁을 휘어 돈 수)		새총	Slingshots	
 end.best_time	[엔딩·끝 화면] 기록 줄 4 (이김)		최고 기록	Best time	
-end.best_count	[엔딩·끝 화면] 기록 줄 4 (목숨 0)		최고 배달	Most delivered	
+end.best_count	[엔딩·끝 화면] 기록 줄 4 (v17: 안 쓰임)		최고 배달	Most delivered	
 end.new_best	[엔딩·끝 화면] 기록을 깼을 때 딱지		새 기록	New best	
 end.again	[엔딩·끝 화면] 끝 화면 버튼 (첫 별부터 다시)		다시	AGAIN	
 tofu.list	[tofu 공통 글] 단독판을 목록에서 열었을 때 왼쪽 위 (tofu 공통 글: 한국어는 여기서 고쳐도 안 바뀜, 영어만)		< 목록	< List	
