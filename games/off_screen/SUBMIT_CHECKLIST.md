@@ -26,10 +26,10 @@
 Off the Screen!
 ```
 
-- [ ] Short description (복사):
+- [ ] Short description (복사, 120자 이내):
 
 ```
-A four-courier delivery race: post parcels into mailboxes — but the leader can't see them coming, and the screen is only as wide as the parcels you all carry.
+Race 3 rival couriers and post the most parcels. Lead too fast and you overshoot the mailboxes.
 ```
 
 - [ ] Kind of project: HTML → 위 zip 업로드 → "This file will be played in the browser" 체크
