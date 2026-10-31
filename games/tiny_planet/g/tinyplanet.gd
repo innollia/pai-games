@@ -711,9 +711,7 @@ func _reset() -> void:
 	heart_t = 0.0  # 첫 시작엔 하트를 안 띄운다
 	cam_up = START
 	lookd = Vector3.FORWARD
-	msg(_tx("msg.start", {"planet": tr(BD[0].name)}), 2.0)
-	if not ui.title_visible():
-		_banner(_tx("banner.intro"), 3.6)  # 다시 하기: 할 일을 처음부터 또렷하게
+	# v8: 시작 글은 위 목표 칸 + 풍차지기 말풍선 둘뿐 (별 이름·소개 알림판은 겹쳐 혼란스러워 뺐다)
 	if DisplayServer.get_name() == "headless" and not _counted:
 		_counted = true
 		_count_draws.call_deferred()
@@ -1484,9 +1482,7 @@ func _emit(nm: String, d := {}) -> void:
 func _on_title_start() -> void:
 	if not over:
 		hud2.visible = true
-	msg(_tx("msg.start", {"planet": tr(BD[0].name)}), 2.0)
-	# v7: 할 일이 처음부터 또렷하게 — "나는 배달부" 알림판 + 풍차지기 부탁은 첫 프레임에 바로(_tick), 조작 안내는 그 뒤에 이어서
-	_banner(_tx("banner.intro"), 3.6)
+	# v8: 별 이름·"나는 배달부" 알림판은 뺐다 (글 뭉치가 셋이 겹쳐 혼란). 풍차지기 부탁은 첫 프레임에 바로(_tick), 조작 안내는 그 뒤에
 	var cf := ConfigFile.new()
 	cf.load(CFG_BODY)
 	if not bool(cf.get_value("hint", "first", false)):
