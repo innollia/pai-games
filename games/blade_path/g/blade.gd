@@ -166,7 +166,7 @@ var mode_t := 0.0
 var ph := 0
 var ci := 0
 var mi := 0
-var fs := 0  # 0 쉼, 1 예비 동작, 2 빈틈, 3 내가 맞음, 4 상대 휘청, 5 연격 사이 텀(흰→주황)
+var fs := 0  # 0 쉼, 1 예비 동작, 2 빈틈, 3 내가 맞음, 4 상대 휘청, 5 연격 사이 텀(흰→노랑)
 var beat := 0.3  # 연격 사이 텀 길이
 var fs_t := 0.0
 var gap := 0.5
@@ -199,9 +199,10 @@ var sty := 0  # 이번 공격 모양 (위 T_WIND 설명)
 var hitstop := 0.0  # 막은 순간 화면이 멈추는 시간
 var sparks: Array = []  # 불꽃: [상자, 속도, 남은 시간, 처음 시간]
 var going := false  # 로비 버튼 누름 애니메이션 끝나고 출발하는 중
-var link := false  # 연격: 지금 칼 뒤에 다음 칼이 이미 오고 있다 (주황)
-var link_b: MeshInstance3D  # 연격 칼 (주황)
-var link_g: Array[MeshInstance3D] = []  # 연격 칼이 지나갈 길 (주황 잔상)
+var link := false  # 연격: 지금 칼 뒤에 다음 칼이 이미 오고 있다 (노랑)
+var link_at := -1.0  # 연격 칼(노랑)이 이때부터 보인다 (처음엔 흰 칼 하나만, 10/31)
+var link_b: MeshInstance3D  # 연격 칼 (노랑)
+var link_g: Array[MeshInstance3D] = []  # 연격 칼이 지나갈 길 (노랑 잔상)
 var sfx_p: Array[AudioStreamPlayer] = []  # 효과음 전용 줄 (삑 소리에 밀려 끊기지 않게)
 var sfx_i := 0
 # 화면 글자
@@ -782,14 +783,14 @@ func _spawn_rest(k: int, hp_y: float) -> void:
 		gh.material_override = gm
 		gh.visible = false
 		ghosts.append(gh)
-	link_b = box(Vector3.ZERO, blade_m.scale, A, piv)
+	link_b = box(Vector3.ZERO, blade_m.scale, D, piv)
 	link_b.visible = false
 	link_g.clear()
 	for i in 3:
 		var om := StandardMaterial3D.new()
 		om.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		om.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		om.albedo_color = Color(A, [0.25, 0.38, 0.55][i])
+		om.albedo_color = Color(D, [0.25, 0.38, 0.55][i])
 		var og := box(Vector3.ZERO, blade_m.scale, A, piv)
 		og.material_override = om
 		og.visible = false
@@ -949,7 +950,7 @@ func _link_next() -> bool:
 	return _flag(c[mi + 1]) == 0
 
 
-## 연격 칼(주황)을 다음 칼 쪽에 들어 올려 두고 주황 잔상으로 길을 보여 준다. false 면 숨김
+## 연격 칼(노랑)을 다음 칼 쪽에 들어 올려 두고 주황 잔상으로 길을 보여 준다. false 면 숨김
 func _link_show(on: bool) -> void:
 	link = on
 	if link_b == null:
@@ -1135,6 +1136,14 @@ func _fight(dt: float) -> void:
 				_path(sdir)
 				beep(1200.0, 0.05, 2400.0, 0.25)
 				sfx(SND["iai2"])
+			# 연격: 처음엔 흰 칼 하나만, 반쯤 와서야 노랑 칼이 뒤에 붙는다 (10/31)
+			if link and fs_t >= link_at and not link_b.visible:
+				_link_show(true)
+			# 간파할 수 있는 거리에 들어오면 칼이 빨갛게 (맑은 눈으로 넓어지면 더 일찍 빨개진다)
+			var can := win - fs_t <= _per() and not (feint_at >= 0.0 and fs_t < feint_at)
+			var bc := mat(BAD if can else WHITE)
+			if blade_m.material_override != bc:
+				blade_m.material_override = bc
 			if feint_at >= 0.0 and fs_t >= feint_at and sdir != rdir:
 				sdir = rdir
 				_path(rdir, _twice_next())
@@ -1178,9 +1187,9 @@ func _fight(dt: float) -> void:
 			if fs_t >= 0.5:
 				_rest(_pat()[0])
 		5:
-			# 앞 절반은 흰 칼, 뒤 절반은 주황 칼로 바뀌며 살짝 더 젖힌다 (곧 온다)
-			if fs_t >= beat * 0.5 and blade_m.material_override != mat(A):
-				blade_m.material_override = mat(A)
+			# 앞 절반은 흰 칼, 뒤 절반은 노랑 칼로 바뀌며 살짝 더 젖힌다 (곧 온다)
+			if fs_t >= beat * 0.5 and blade_m.material_override != mat(D):
+				blade_m.material_override = mat(D)
 			var bp := _bpos(sdir, 0.0)
 			if fs_t >= beat * 0.5:
 				bp += (bp - Vector3(0, 0.3, 0)).normalized() * 0.12
@@ -1196,7 +1205,7 @@ func _fight(dt: float) -> void:
 					_rest(_pat()[0])
 
 
-## linked = 앞 칼을 그냥 막아서 이미 오던 연격 칼이 바로 이어 들어온다 (주황 칼, 예비 시간 짧음)
+## linked = 앞 칼을 그냥 막아서 이미 오던 연격 칼이 이어 들어온다 (텀 뒤, 예비 시간 조금 짧음)
 func _attack(linked := false) -> void:
 	var mv: Array
 	if tut >= 0:
@@ -1224,10 +1233,10 @@ func _attack(linked := false) -> void:
 		_clear()
 		return
 	win = float(mv[2]) * (1.0 if tut >= 0 else spd)
-	blade_m.material_override = mat(A if linked else WHITE)
+	blade_m.material_override = mat(WHITE)
 	if linked:
-		# 이미 오고 있던 칼: 주황 칼 자리에서 이어서, 막을 틈은 남긴다
-		win = maxf(0.32, win * 0.7)
+		# 이미 오고 있던 칼: 노랑 칼 자리에서 이어서, 막을 틈은 넉넉히 남긴다
+		win = maxf(0.45, win * 0.85)
 		blade_m.position = _bpos(sdir, 0.0)
 		blade_m.rotation = _brot(sdir, 0.0)
 	if _flag(mv) == 1:
@@ -1243,19 +1252,21 @@ func _attack(linked := false) -> void:
 	feint_at = win * 0.5 if sdir != rdir else -1.0
 	feinting = feint_at >= 0.0
 	_path(sdir, _twice_next())
-	_link_show(_link_next())
+	_link_show(false)
+	link = _link_next()
+	link_at = win * 0.5
 	# 느린 예비 동작은 낮은 소리, 갑작스러운 건 높은 소리
 	beep(lerpf(760.0, 300.0, clampf((win - 0.3) / 0.9, 0.0, 1.0)), 0.06, 0.0, 0.17)
 
 
-## 연격 사이 텀 (10/31): 막은 뒤 다음 칼이 그 자리에 들린 채 잠깐 서서 흰색 → 주황색으로 바뀐 뒤 들어온다
+## 연격 사이 텀 (10/31): 막은 뒤 다음 칼이 그 자리에 들린 채 잠깐 서서 흰색 → 노랑으로 바뀐 뒤 들어온다
 func _link_beat() -> void:
 	var mv: Array = _pat()[2][ci][mi]
 	sdir = dmap[mv[0]]
 	sty = _style(mv)
 	fs = 5
 	fs_t = 0.0
-	beat = maxf(0.26, 0.42 * spd)
+	beat = maxf(0.4, 0.6 * spd)
 	_clear()
 	blade_m.material_override = mat(WHITE)
 	blade_m.position = _bpos(sdir, 0.0)
@@ -1387,6 +1398,12 @@ func _act(a: int) -> void:
 				_parry(win - fs_t <= _per())
 			else:
 				_hurt()
+		elif fs == 2 and gp:
+			# 간파 빈틈에 헛막기: 간파 기회도 사라진다 (10/31)
+			_lose_chance()
+			_empty_guard()
+			msg("헛막기
+간파 놓침", 0.6)
 		elif fs == 0 or fs == 1 or fs == 2 or fs == 5:
 			_empty_guard()
 		return
@@ -1458,7 +1475,8 @@ func _parry(perfect: bool) -> void:
 		_link_beat()
 		return
 	if twice or (tut < 0 and not perfect and mi < combos[ci].size()):
-		_rest(0.03 if twice else 0.12)
+		# 그냥 막은 뒤 다음 칼은 숨 돌릴 틈을 두고 온다 (10/31: 0.12 → 0.6)
+		_rest(0.03 if twice else 0.6)
 		return
 	ci = (ci + 1) % combos.size()
 	mi = 0
