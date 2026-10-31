@@ -38,7 +38,7 @@ const KIND := {
 	# 부수면 느려지지 않고 오히려 빨라진다(boost). 집 다음 단계: 탑 → 황금 신상.
 	"tower": {"size": Vector3(4.2, 9.0, 4.2), "need": 99.0, "pts": 20, "grow": 0.4, "mass": 0.0, "col": [Color("cfe6ff"), WHITE], "slam": true, "boost": 9.0},
 	# 절벽 아래 착지 자리를 통째로 덮는 파란 지붕 탑: 떨어지며 버티기로만 깨진다 (그냥 날아 넘거나 돌아갈 수 없다)
-	"roof": {"size": Vector3(30.0, 5.0, 26.0), "need": 99.0, "pts": 40, "grow": 0.4, "mass": 0.0, "col": [Color("cfe6ff"), WHITE], "slam": true, "boost": 12.0},
+	"roof": {"size": Vector3(30.0, 5.0, 52.0), "need": 99.0, "pts": 40, "grow": 0.4, "mass": 0.0, "col": [Color("cfe6ff"), WHITE], "slam": true, "boost": 12.0},
 	"gold": {"size": Vector3(5.6, 7.0, 5.6), "need": 99.0, "pts": 50, "grow": 0.2, "mass": 0.0, "col": [D], "slam": true, "boost": 16.0},
 	# 숨은 길 봉인(한 차선에만, 빨간 띠 없음): 못 열면 살짝 튕겨 큰길로 밀려날 뿐(soft). ram = 이 속도면 몸으로 뚫는다(게이지 금빛 눈금)
 	"door": {"size": Vector3(4.0, 5.0, 1.2), "need": 6.0, "pts": 10, "grow": 0.0, "mass": 0.05, "col": [STONE], "nodive": true, "soft": true, "ram": 42.0},
@@ -51,7 +51,7 @@ const DEEP := 90.0
 const UNDER_SKY := Color("9cc3d6")
 # 신전 계곡 깔 것 [종류, 거리, 길 가운데에서 옆으로]
 const PUT1 := [
-	["pot", 36, 0.0], ["pot", 48, 0.0], ["pot", 64, -2.0], ["pot", 84, -3.0], ["pot", 88, 3.0],
+	["pot", 36, -4.5], ["pot", 36, -1.5], ["pot", 36, 1.5], ["pot", 36, 4.5], ["pot", 48, 0.0],  # 첫 항아리는 길을 가로질러 놓아 못 피한다: 깔아도 된다는 걸 몸으로 ["pot", 64, -2.0], ["pot", 84, -3.0], ["pot", 88, 3.0],
 	["pot", 112, 1.5], ["pot", 120, -2.0], ["pot", 126, 3.5],
 	["pillar", 148, 0.0], ["pot", 156, -3.8], ["pot", 156, 3.8],
 	["pot", 175, -1.0], ["statue", 185, 2.5], ["pot", 195, -3.0], ["pot", 205, 1.0], ["statue", 215, -2.5],
@@ -465,16 +465,16 @@ func _zones_list() -> Array:
 				{"legs": [[40, -6, 7], [30, -5, 7]], "put": [["pot", 20, -2], ["pot", 25, 2]], "say": [[34, "떨어지며 조종"]]},
 				# 배우기: 24m 절벽. 버티기를 누르면 빨리 떨어져 약 10m 앞에 내려찍는다: 그 자리에 탑. 안 누르면 30m 날아가 탑을 놓친다
 				{"legs": [[3, -24, 8, 0, "drop"], [50, -5, 12], [25, -3, 8]],
-					"put": [["roof", 19, 0], ["pot", 38, -4], ["pot", 42, 0], ["pot", 46, 4]],
+					"put": [["roof", 31, 0], ["pot", 62, -4], ["pot", 66, 0], ["pot", 70, 4]],
 					"say": [[2, "파란 머리 탑!\n떨어지며 버티기로 쾅"]]},
 				# 무리: 36m 절벽 아래 넓은 착지 광장 한가운데 탑 넷. 한 번에 쾅 하면 크게 빨라진다. 구멍은 가장자리에만
 				{"legs": [[20, -4, 8], [3, -36, 9, 0, "drop"], [60, -6, 14], [25, -3, 8]],
-					"put": [["roof", 39, 0], ["pot", 58, -6], ["pot", 60, 0], ["pot", 62, 6]],
+					"put": [["roof", 51, 0], ["pot", 82, -6], ["pot", 84, 0], ["pot", 86, 6]],
 					"holes": [[66, 82, -14.3, -10], [66, 82, 10, 14.3]], "say": [[86, "탑을 부수면 빨라진다"]]},
 				# 두 단 절벽: 탑 둘 판 -> 바로 다시 떨어져 황금 신상과 둘레 탑 판
 				{"legs": [[20, -4, 8], [3, -28, 9, 0, "drop"], [45, -5, 12], [3, -22, 9, 0, "drop"], [50, -6, 12], [25, -3, 8]],
-					"put": [["roof", 38, 0], ["roof", 87, 0], ["pot", 104, 0]],
-					"say": [[2, "황금 신상은\n버티기로만 깨진다"]]},
+					"put": [["roof", 45, 0], ["roof", 98, 0], ["pot", 128, 0]],
+					"say": [[2, "파란 머리 탑!\n떨어지며 버티기로 쾅"]]},
 				# 섞기: 틈 뛰기 → 떨어지며 구멍 피해 집 내려찍기 → 착지 뒤 큰 회전(버티기 또는 쪼개기)
 				{"legs": [[20, -4, 8], [10, 4, 6, 0, "ramp"], [16, -6, 6, 0, "gap"], [30, -4, 8], [3, -30, 12, 0, "drop"], [50, -6, 12],
 					[30, -5, 7, 60], [20, -3, 7]],
@@ -998,15 +998,19 @@ func _curv(d: float) -> float:
 ## (d, x) 아래 땅 높이. 땅이 없으면 NAN
 ## 구멍으로 떨어지는 중 앞쪽 길 판 옆면: 빠르면 구멍 건너편 판 두께 속으로 파고들어 그냥 뚫고 지나갔다 → 벽처럼 박고 튕긴다
 func _hole_wall(d_prev: float) -> void:
-	if not underground or on_ground or fallen or wind_on:
+	if on_ground or fallen or wind_on or d_prev >= _len():
+		return
+	# 아직 지하로 넘어가기 전(틈 속 4m)도 본다: 동굴로 넘어가는 순간보다 판에 먼저 닿는다
+	if not underground and pd.sol[_oi(pd, d_prev)] != 0:
 		return
 	var top := _h(dist)
 	if by > top - 0.3 or by + s < top - 6.0:  # 판(두께 약 6m) 높이에 몸이 걸칠 때만
 		return
+	var was_under := underground
 	underground = false
 	var solid_now := not is_nan(_ground(dist, bx))
 	var solid_was := not is_nan(_ground(d_prev, bx))
-	underground = true
+	underground = was_under
 	if solid_now and not solid_was:
 		dist = d_prev - 0.3
 		v = maxf(4.0, v * 0.25)
@@ -1843,6 +1847,8 @@ func _zones_tick() -> void:
 func _enter(z: Dictionary) -> void:
 	var first := cur_k < 0
 	cur_k = z.k
+	if int(z.k) == 1 and not tutorial:
+		_prewarm(z.node)
 	var def: Dictionary = Z[cur_k]
 	mode = def.mode
 	# 돌 테두리: 어두운 얼음길(설산)에서는 크림색이라야 돌이 보인다
@@ -2339,6 +2345,11 @@ func _step(dt: float) -> void:
 			continue
 		var sz: Vector3 = th.kd.size
 		if absf(dd) < (s + sz.z) * 0.5 and absf(th.x - bx) < (s + sz.x) * 0.45 and by < th.base + sz.y * 0.8 and by + s > th.base:
+			if th.kd == KIND.wall and not on_ground and by > th.base + sz.y * 0.3:
+				# 담 위쪽 모서리만 스쳤다: 넉백하지 않고 담 위로 넘겨 준다
+				by = maxf(by, th.base + sz.y + 0.05)
+				vy = maxf(vy, 3.0)
+				continue
 			var need: float = th.kd.need
 			var slam: bool = th.kd.get("slam", false)
 			var dive_ok: bool = diving and not th.kd.get("nodive", false) and (hold if slam else need < 90.0)
@@ -2348,7 +2359,7 @@ func _step(dt: float) -> void:
 			var ram_ok: bool = v >= float(th.kd.get("ram", 999.0))
 			if s_goal >= need or dive_ok or dash_ok or ram_ok:
 				_crush(th, mm, not diving and not dash_ok and not ram_ok)
-			elif hurt <= 0.0:
+			elif hurt <= 0.0 and bump_t <= 0.0:
 				_bonk(th)
 			elif bool(th.kd.get("soft", false)):
 				# 봉인은 밀려나는 동안만 막는다 (속도는 그대로: 멈춤 탈락으로 이어지지 않게)
@@ -2653,10 +2664,8 @@ func _bonk(th: Thing) -> void:
 			vy = 6.0
 			on_ground = false
 			by += 0.05
-		hurt = 0.4
-		bump_t = 0.4
+		bump_t = 0.35  # 붉은 깜빡임(hurt)·찌그러짐 없이 튕기기만
 		shake = 0.7
-		sq = 0.4
 		_hitstop(0.06)
 		sfx("bonk", 0.0, randf_range(0.9, 1.1))
 		_burst(_pos(dist + s * 0.5, bx, by + s * 0.5), th.shard_tint, 5, 7.0, 0.5, th.shard)
@@ -2798,6 +2807,8 @@ func _fall(text: String) -> void:
 		sfx("fall", 0.0, 0.8)
 		deep_landed = false
 		_cave(true)
+		if cave_span.size() >= 2:
+			_wake(dist + 30.0, 70.0, 60.0)  # 떨어지는 동안 아래 수정이 먼저 깨어나 굴을 비춘다
 		return
 	sling_keep = 0.0
 	if ram_tick:
@@ -2898,10 +2909,17 @@ func _place(dt: float) -> void:
 	if plunge:
 		# 옆에서 길게: 돌은 화면 위 가운데, 아래로 잠든 도시가 달려든다
 		var lag := cam_y - by
-		off = rt * (30.0 + lag * 0.6) - fw * 4.0 + Vector3.UP * (2.0 + lag * 0.15)
-		look = Vector3.UP * (by - cam_y - 8.0) + fw * (4.0 + v * 0.1)
-		up = (Vector3.UP + rt * 0.12).normalized()
-		fov = 70.0
+		if cave_span.size() >= 2:
+			# 동굴 맵: 뒤 위에서 천장 틈 아래로 내려다본다 (깨어나는 수정과 굴 바닥이 달려든다)
+			off = -fw * 9.0 + Vector3.UP * (8.0 + lag * 0.2)
+			look = Vector3.UP * (by - cam_y - 24.0) + fw * (10.0 + v * 0.2)
+			up = fw
+			fov = 72.0
+		else:
+			off = rt * (30.0 + lag * 0.6) - fw * 4.0 + Vector3.UP * (2.0 + lag * 0.15)
+			look = Vector3.UP * (by - cam_y - 8.0) + fw * (4.0 + v * 0.1)
+			up = (Vector3.UP + rt * 0.12).normalized()
+			fov = 70.0
 	elif rising and by < _h(dist) - 2.0:
 		# 물기둥: 아래에서 올려다본다
 		off = rt * 16.0 - fw * 8.0 + Vector3.UP * -6.0
@@ -3089,13 +3107,18 @@ func _stone_mesh(n: MeshInstance3D) -> void:
 
 ## 협곡 아래로 내려가고 올라온다: 올려다본 하늘·먼 절벽 색이 바뀐다
 func _cave(on: bool) -> void:
-	sky_to = UNDER_SKY if on else Z[maxi(cur_k, 0)].sky
-	hz_to = Color("f2dcb8") if on else (Z[maxi(cur_k, 0)].hz as Color)
+	var deep := on and cave_span.size() >= 2
+	sky_to = (Color("2b2119") if deep else UNDER_SKY) if on else Z[maxi(cur_k, 0)].sky
+	hz_to = (Color("5c4632") if deep else Color("f2dcb8")) if on else (Z[maxi(cur_k, 0)].hz as Color)
 	if hero_rim:
 		hero_rim.set_shader_parameter("ink", INK)
 	_air_set("cave" if on else str(AIR_OF.get(Z[maxi(cur_k, 0)].get("scen", "rock"), "dust")))
-	far_k = -1
-	_far_build(maxi(cur_k, 0), on)
+	# 먼 풍경을 새로 짓지 않는다(떨어지는 순간 렉): 동굴에서는 숨기고, 나오면 다시 보인다
+	if far:
+		far.visible = not deep
+	if not deep:
+		far_k = -1
+		_far_build(maxi(cur_k, 0), on)
 	if on:
 		shake = 0.6
 	else:
@@ -3334,15 +3357,15 @@ func _under_things(a: float, b: float, z: Dictionary) -> Array:
 				1:
 					put = [[0.0, -5.0, "statue"], [0.0, 5.0, "statue"], [4.0, 0.0, "pot"], [8.0, -2.0, "pot"], [8.0, 2.0, "pot"]]
 				2:
-					put = [[0.0, 0.0, "pot"], [3.0, -6.0, "pot"], [3.0, 6.0, "pot"], [6.0, 0.0, "pot"], [10.0, 0.0, "pillar"]]  # 석순은 하나씩: 둘을 나란히 두면 큰 몸이 못 지나간다
+					put = [[0.0, 0.0, "pot"], [3.0, -6.0, "pot"], [3.0, 6.0, "pot"], [6.0, 0.0, "pot"], [10.0, 0.0, "statue"]]  # 석순은 하나씩: 둘을 나란히 두면 큰 몸이 못 지나간다
 		else:
 			match n % 3:
 				0:
-					put = [[0.0, -2.6, "pillar"], [9.0, 2.6, "pillar"], [18.0, -2.6, "pillar"], [4.5, 2.4, "pot"], [13.5, -2.4, "pot"]]
+					put = [[0.0, -2.6, "statue"], [9.0, 2.6, "statue"], [18.0, -2.6, "statue"], [4.5, 2.4, "pot"], [13.5, -2.4, "pot"]]
 				1:
 					put = [[0.0, -2.2, "wall"], [0.0, 2.2, "wall"], [8.0, 0.0, "pot"]]
 				2:
-					put = [[0.0, 0.0, "pillar"], [6.0, -3.0, "pot"], [6.0, 3.0, "pot"], [12.0, 0.0, "wall"]]
+					put = [[0.0, 0.0, "statue"], [6.0, -3.0, "pot"], [6.0, 3.0, "pot"], [12.0, 0.0, "wall"]]
 		for pt: Array in put:
 			var dd := d + float(pt[0])
 			var th := _thing(pd, dd, dd, clampf(float(pt[1]), -_cave_hw(dd) + 1.0, _cave_hw(dd) - 1.0), str(pt[2]), z)
@@ -3469,6 +3492,33 @@ func _build_tunnel(a: float, b: float, nd: Node3D, opt := {}) -> Array:
 	return route
 
 
+## 처음 그려질 때 재질 셰이더를 만드느라 멈칫한다: 그 구역 재질을 카메라 앞에 한 번씩 아주 작게 그려 미리 만든다
+func _prewarm(root: Node) -> void:
+	if not cam:
+		return
+	var mats := {}
+	var stack: Array = [root]
+	while stack.size() > 0:
+		var n: Node = stack.pop_back()
+		if n is MeshInstance3D and (n as MeshInstance3D).material_override:
+			mats[(n as MeshInstance3D).material_override] = true
+		stack.append_array(n.get_children())
+	var holder := Node3D.new()
+	cam.add_child(holder)
+	holder.position = Vector3(0, 0, -2.0)
+	var i := 0
+	for m in mats.keys():
+		var b := MeshInstance3D.new()
+		var bm := BoxMesh.new()
+		bm.size = Vector3.ONE * 0.002
+		b.mesh = bm
+		b.material_override = m
+		b.position = Vector3(float(i % 10) * 0.003, float(i / 10) * 0.003, 0)
+		holder.add_child(b)
+		i += 1
+	get_tree().create_timer(0.5).timeout.connect(holder.queue_free)
+
+
 ## 동굴 맵: 양쪽 바위 벽과 천장으로 닫힌 굴. 넓은 굴방(폭 22m)과 좁은 굴길(폭 11m)이 60m 마다 번갈아 나온다.
 ## 천장은 수로 틈 밑(떨어져 들어오는 구멍)과 순풍 길 위만 뚫려 있다. 종유석이 매달리고, 벽에 박힌 수정이 길을 비춘다.
 const CAVE_SEC := 60.0
@@ -3501,13 +3551,16 @@ func _build_cave(a: float, b: float, dp: float, nd: Node3D) -> void:
 			var w := box(_pos(dd, sd * (hw + 2.0), fl + ch * 0.5), Vector3(4.0, ch + 2.0, seg + 0.6), ROCK, nd)
 			_apply_art(w, "valley", Color("7d6a56") if sd < 0.0 else Color("6c5a48"))
 			w.rotation.y = yw
-		if not open:
-			var roof := box(_pos(dd, 0.0, fl + ch + 1.5), Vector3(hw * 2.0 + 8.0, 3.0, seg + 0.6), ROCK, nd)
-			_apply_art(roof, "valley", Color("5e4f40"))
-			roof.rotation.y = yw
-			for j in 3:
-				var tl := (2.5 if hw > 8.0 else 1.6) + float((k * 3 + j) % 4) * 1.0
-				var tip := box(_pos(dd - 6.0 + j * 6.0, (-0.6 + float((k + j) % 3) * 0.6) * hw, fl + ch - tl * 0.5), Vector3(1.1, tl, 1.1), ROCK, nd)
+		# 천장은 가운데 긴 틈(폭 12m)을 남긴 양쪽 선반: 수로 어디서 떨어져도 천장을 뚫지 않고 틈으로 들어온다
+		var slot := 6.0
+		if not open and hw > slot:
+			for sd: float in [-1.0, 1.0]:
+				var shelf_w := hw + 4.0 - slot
+				var roof := box(_pos(dd, sd * (slot + shelf_w * 0.5), fl + ch + 1.5), Vector3(shelf_w, 3.0, seg + 0.6), ROCK, nd)
+				_apply_art(roof, "valley", Color("5e4f40"))
+				roof.rotation.y = yw
+				var tl := 2.5 + float((k * 3 + int(sd + 1.0)) % 4) * 1.0
+				var tip := box(_pos(dd - 4.0 * sd, sd * (slot + 1.5), fl + ch - tl * 0.5), Vector3(1.1, tl, 1.1), ROCK, nd)
 				_apply_art(tip, "crystal", Color("a88f70"))
 				tip.rotation.y = yw
 		if hw > 8.0 and k % 3 == 1:
