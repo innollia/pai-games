@@ -2671,7 +2671,7 @@ func _throw() -> void:
 	cool = 0.4
 	shot_d = dist + s * 0.5 + 0.8
 	shot_x = bx
-	shot_v = v * 1.5 + 30.0
+	shot_v = v * 2.0 + 45.0  # 빨리 날아가야 던진 맛이 난다 (닿는 거리는 _throw_range 그대로)
 	shot_t = _throw_range() / shot_v
 	shot_hit = false
 	shot.visible = true
