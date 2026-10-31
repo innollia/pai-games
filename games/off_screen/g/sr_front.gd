@@ -28,7 +28,7 @@ const REC_PATH := "user://screenrace_v12.cfg"  # game.RECORDS 를 못 읽을 때
 var auto_tutorial_on_play := true
 
 var game  # screenrace.gd (Tofu)
-var state := ""  # "" 숨김 / "title" / "tutorial"
+var state := ""  # "" 숨김 / "title" / "tutorial" / "codex" (v50 도감, 제목 위에 덮임)
 
 # ---- 제목 화면
 var _root: Control
@@ -44,6 +44,8 @@ var _tag_l: Label
 var _deck: _Deck
 var _play: Control  # T.PaperButton
 var _howto: Control  # T.PaperButton
+var _guide_btn: Control  # v50: 도감 버튼
+var _codex: Control  # v50: 도감 화면 (sr_codex)
 var _pill: _Pill
 var _blockers: Array[Control] = []
 var _bob: Tween
@@ -161,6 +163,7 @@ func refresh_text() -> void:
 		return
 	_play.set("text", game.L("배달 시작!", "PLAY"))
 	_howto.set("text", "?")
+	_guide_btn.set("text", game.L("도감", "Guide"))
 	_ko_tag.text = ""  # 부제 없음: 한국어 시작 버튼 '배달 시작!'이 이미 화면을 한국어로 만든다
 	_ko_tag.visible = false
 	_pill.ko = str(game.lang) == "ko"
@@ -179,8 +182,12 @@ func tap(p: Vector2) -> bool:
 				_on_play()
 			elif _hit(_howto, p):
 				_on_howto()
+			elif _hit(_guide_btn, p):
+				_on_guide()
 			elif _hit(_pill, p):
 				_on_lang()
+		return true
+	if state == "codex":
 		return true
 	if state == "tutorial" and _hit(_skip, p):
 		_on_skip()
@@ -270,14 +277,29 @@ func _build_title() -> void:
 	hb.font_size = 40
 	hb.radius = 50.0
 	hb.size = Vector2(100, 100)
-	hb.position = Vector2(206, 1040)
+	hb.position = Vector2(130, 1040)
 	hb.pressed.connect(_on_howto)
 	_title.add_child(hb)
 	_howto = hb
+	# v50: 도감 (동네·길·기물 설명)
+	var gb := T.PaperButton.new()
+	gb.face = T.CREAM
+	gb.text_color = T.NAVY
+	gb.font_size = 34
+	gb.radius = 50.0
+	gb.size = Vector2(190, 100)
+	gb.position = Vector2(265, 1040)
+	gb.pressed.connect(_on_guide)
+	_title.add_child(gb)
+	_guide_btn = gb
+	_codex = preload("res://g/sr_codex.gd").new()
+	_codex.game = game
+	_codex.closed.connect(_on_guide_closed)
+	_root.add_child(_codex)
 	# 언어 알약
 	_pill = _Pill.new()
 	_pill.size = Vector2(100, 100)
-	_pill.position = Vector2(414, 1040)
+	_pill.position = Vector2(490, 1040)
 	_pill.pressed.connect(_on_lang)
 	_title.add_child(_pill)
 
@@ -330,6 +352,18 @@ func _on_howto() -> void:
 	game.play("tap")
 	hide_title()
 	tutorial_pressed.emit(false)
+
+
+func _on_guide() -> void:
+	if state != "title" or _busy:
+		return
+	state = "codex"
+	game.play("tap")
+	_codex.open()
+
+
+func _on_guide_closed() -> void:
+	state = "title"
 
 
 func _on_lang() -> void:

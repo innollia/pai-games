@@ -2819,7 +2819,7 @@ func _step(dt: float) -> void:
 	if attract_on and not _title_idle():
 		_attract_end()
 	if key_hint:
-		key_hint.visible = phase == "title" and not DisplayServer.is_touchscreen_available()
+		key_hint.visible = phase == "title" and front.state != "codex" and not DisplayServer.is_touchscreen_available()  # v50: 도감 위에는 안 띄운다
 		key_hint.text = L("키보드: ←→ 달리기 · ↑/Space 점프 · ↓/Shift [짐] · Enter 시작", "Keyboard: ←→ run · ↑/Space jump · ↓/Shift [BOX] · Enter start")
 	if board_l and board_l.visible and phase != "roundend":
 		board_l.visible = false
@@ -3555,9 +3555,7 @@ func _pick_route(n: String) -> void:
 	_build_course()
 	_start_round()
 	if goal_l and TWISTS.has(twist):
-		goal_l.text = L("다음 길: %s
-%s", "Next road: %s
-%s") % [_tw(twist, 0), _tw(twist, 1)]
+		goal_l.text = L("다음 길: %s", "Next road: %s") % _tw(twist, 0)  # v50: 설명은 도감에 (이름만)
 		goal_t = 3.5
 
 
@@ -3734,10 +3732,7 @@ func _gate_tick(dt: float) -> void:
 				var gd: float = float(gp) - (r.p.x + HW)
 				if gd > -0.2 and gd < 0.15 and (r.ai or r.mx > 0.1):
 					at = true
-				if r == pl and gd > 0.0 and gd < 9.0 and not gate_told.has(gp):
-					gate_told[gp] = true
-					goal_l.text = L("낮은 문: 짐 %d개만 지나간다\n더 많으면 문에 걸려 하나씩 떨어진다", "Low door: only %d boxes get through\nAny more catch on the door and fall off one by one") % GATE_MAX
-					goal_t = 3.0
+				# v50: 문 앞 설명 글은 뺐다 ("매번 붙이지 말고 도감에"). 빨간 "짐 8 → 4" 표시는 그대로
 		if not at:
 			r.gate_t = 0.0
 			continue

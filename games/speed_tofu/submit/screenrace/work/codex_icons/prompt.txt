@@ -1,0 +1,23 @@
+Generate ONE image with your built-in image generation tool and save it as sheet.png in this folder (C:\projects\pai-games\games\speed_tofu\submit\screenrace\work\codex_icons\sheet.png), 2048x2048 PNG.
+
+It is a 4x4 grid of 16 game UI icons for a cozy paper-craft courier racing game. Match the style of the reference icons in this folder (ref_icon_gate.png, ref_icon_spring.png, ref_icon_ice.png): flat cut-paper look, thick dark navy (#2A2C44) outline, soft cream paper fill, a small drop shadow, cheerful warm palette (post red #E85244, gold #F7B336, kraft brown #D99B5B, green #2B9348, blue #3D78B5). Each icon centered in its own 512x512 cell on a plain light cream background (#FFFDF5), simple, readable at 96px, no text, no letters, no numbers.
+
+Cells in reading order (left to right, top to bottom):
+1 red street mailbox on a post
+2 gold mailbox with a small star
+3 red brick wall block with an arrow jumping over it
+4 gap between two ground blocks with a red edge
+5 wooden crate with ramps on both sides
+6 blue moving water conveyor with a right arrow
+7 small train front on rails
+8 rope bridge with wooden planks, one plank falling
+9 balance scale with a stack of parcels on one pan
+10 metal roll-down shutter door half open
+11 wooden trapdoor floor hatch opening downward
+12 two rooftops with a gap between them
+13 a wide gap with a thrown parcel flying backward
+14 torn paper edge with a red warning arrow pointing left
+15 a cardboard parcel with red tape cross
+16 an open field guide book with a parcel on its cover
+
+Only make the image. Do not write code.
