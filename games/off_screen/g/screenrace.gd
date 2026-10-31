@@ -532,6 +532,7 @@ var quick_ok := false  # v22: 이번 판 빠른 출발을 아직 노릴 수 있�
 var key_l := false  # v32: 컴퓨터 조작 (플레이테스트용) 눌린 방향키
 var key_r := false
 var key_hint: Label  # 제목 화면 아래 키 안내 (터치 화면이 아닐 때만)
+var board_l: Label  # v37: 판 끝 결과판 (누가 이겼는지, 모두의 배달 수, 동네 승수)
 var goal_l: Label  # v31: 출발 때 이기는 법 한 줄 (초보가 승리 조건을 몰랐다)
 var goal_t := 0.0
 var attract_on := false  # v21: 제목 화면 뒤에서 넷이 알아서 경주한다 (나도 경쟁자처럼 AI). 이동안 경기 소리·도장은 끈다
@@ -1457,6 +1458,13 @@ func _setup() -> void:
 	goal_l.size = Vector2(640, 140)
 	goal_l.visible = false
 	gl_layer.add_child(goal_l)
+	board_l = SrTheme.make_label("", 38, SrTheme.NAVY, 12, SrTheme.WHITE)
+	board_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	board_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	board_l.position = Vector2(40, 150)  # 위 진행 줄 아래 하늘 (가운데 도장과 겹치지 않게)
+	board_l.size = Vector2(640, 320)
+	board_l.visible = false
+	gl_layer.add_child(board_l)
 	key_hint = SrTheme.make_label("", 24, SrTheme.NAVY, 8, SrTheme.WHITE)
 	key_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	key_hint.position = Vector2(20, 1190)
@@ -1785,7 +1793,7 @@ func _build_course() -> void:
 	else:
 		for part in LESSONS[ci]:
 			_seg(part)
-	var goal := ATTRACT_LEN if long_course else 380.0 + mini(ci, 3) * 45.0
+	var goal := ATTRACT_LEN if long_course else 250.0 + mini(ci, 3) * 30.0  # v37: 380+45n -> 250+30n ("한 판이 엄청 오래 걸려")
 	var segs: Array = cdef.segs
 	var last := ""
 	var n_river := 0
@@ -2787,6 +2795,8 @@ func _step(dt: float) -> void:
 	if key_hint:
 		key_hint.visible = phase == "title" and not DisplayServer.is_touchscreen_available()
 		key_hint.text = L("키보드: ←→ 달리기 · ↑/Space 점프 · ↓/Shift [짐] · Enter 시작", "Keys: ←→ run · ↑/Space jump · ↓/Shift BOX · Enter start")
+	if board_l and board_l.visible and phase != "roundend":
+		board_l.visible = false
 	if goal_l:
 		goal_t = maxf(goal_t - dt, 0.0) if phase == "race" or phase == "count" else 0.0
 		goal_l.visible = goal_t > 0.0 and not attract_on
@@ -3455,6 +3465,8 @@ func _round_over(w: Courier) -> void:
 		_stamp("미배달", "UNDELIVERED", ST_INK, null, 1.4)
 		return
 	w.wins += 1
+	pt = 3.6  # v37: 결과판을 읽을 시간 ("누가 이겼는지 보여주기")
+	_show_board(w)
 	if w == pl:
 		score += 10
 		play("win")
@@ -3465,6 +3477,22 @@ func _round_over(w: Courier) -> void:
 	else:
 		_sfx("lost")
 		_stamp("%s 최다 배달 · %d" % [w.nick, w.got], "%s DELIVERED MOST · %d" % [w.nick_en.to_upper(), w.got], ST_BAD, w, 1.4)
+
+
+## v37: 판 끝 결과판. 이긴 사람을 맨 위에 크게, 아래에 모두의 배달 수와 이 동네 승수(WINS 먼저 = 다음 동네)
+func _show_board(w: Courier) -> void:
+	if board_l == null:
+		return
+	var head := L("내가 이겼다!", "YOU WIN!") if w == pl else L("%s 승리", "%s WINS") % [w.nick if lang == "ko" else w.nick_en]
+	var rows := []
+	for r in _deliv_order():
+		var nm: String = r.nick if lang == "ko" else r.nick_en
+		rows.append(L("%s  배달 %d  · 승 %d/%d", "%s  delivered %d  · wins %d/%d") % [nm, r.got, r.wins, WINS])
+	board_l.text = head + "
+" + "
+".join(rows)
+	board_l.modulate = Color(1, 1, 1, 1)
+	board_l.visible = true
 
 
 func _after_round() -> void:
@@ -3495,8 +3523,8 @@ func _after_round() -> void:
 			routes.append(k)
 	routes.shuffle()
 	route_offer = routes.slice(0, 2)
-	phase = "route"
-	menus.show_routes(route_offer, _load0() + load_bonus)  # v12: 다음 판은 짐을 새로 받는다
+	# v37: "다음 길은?" 카드를 띄우지 않는다 (판마다 카드가 끼어 한 판이 오래 걸렸다). 길은 저절로 정하고 출발 때 크게 알린다
+	_pick_route("jump")
 
 
 func _pick_route(n: String) -> void:
@@ -3506,6 +3534,11 @@ func _pick_route(n: String) -> void:
 	_kit_clear()
 	_build_course()
 	_start_round()
+	if goal_l and TWISTS.has(twist):
+		goal_l.text = L("다음 길: %s
+%s", "Next road: %s
+%s") % [_tw(twist, 0), _tw(twist, 1)]
+		goal_t = 3.5
 
 
 func _pick_perk(n: String) -> void:
