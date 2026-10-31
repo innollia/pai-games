@@ -786,6 +786,18 @@ func _set_title_text() -> void:
 	_ribbon_l.text = small
 
 
+## PC 키보드 (플레이테스트용): 본체가 부른다
+func key_start() -> void:
+	_title_go(false)
+
+
+func key_todo() -> void:
+	if _todo_on:
+		_todo_close()
+	elif not _title_on:
+		_todo_show()
+
+
 func _title_go(_tut: bool) -> void:
 	if _title_out >= 0.0 or not _title_on:
 		return

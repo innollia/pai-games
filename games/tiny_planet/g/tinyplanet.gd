@@ -1479,8 +1479,49 @@ func _turn(a: Vector3, b: Vector3, t: float) -> Vector3:
 
 
 ## 매 프레임: 시작 화면이면 하늘을 천천히 돌고, 아니면 놀이. 끝에 ui·fx 에 상태를 넘긴다 (fx 는 _camera 뒤)
+## PC 키보드 (플레이테스트용): WASD·화살표 = 조이스틱, 스페이스 = 점프(날 땐 날다리), F·E = 놓기, Tab·Q = 할 일 목록, Enter = 시작
+var _kb_move := false
+var _kb_prev := {}
+
+
+func _kb_edge(k: Key) -> bool:
+	var on := Input.is_physical_key_pressed(k)
+	var was: bool = _kb_prev.get(k, false)
+	_kb_prev[k] = on
+	return on and not was
+
+
+func _keyboard() -> void:
+	var v := Vector2.ZERO
+	if Input.is_physical_key_pressed(KEY_A) or Input.is_physical_key_pressed(KEY_LEFT):
+		v.x -= 1.0
+	if Input.is_physical_key_pressed(KEY_D) or Input.is_physical_key_pressed(KEY_RIGHT):
+		v.x += 1.0
+	if Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP):
+		v.y -= 1.0
+	if Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN):
+		v.y += 1.0
+	if v != Vector2.ZERO:
+		kit_move = v.normalized()
+		_kb_move = true
+	elif _kb_move:
+		kit_move = Vector2.ZERO
+		_kb_move = false
+	if _kb_edge(KEY_SPACE):
+		_justs["jump"] = true
+		if _btns.has("sail"):
+			_justs["sail"] = true
+	if _kb_edge(KEY_F) or _kb_edge(KEY_E):
+		_justs["drop"] = true
+	if _kb_edge(KEY_TAB) or _kb_edge(KEY_Q):
+		ui.key_todo()
+	if _kb_edge(KEY_ENTER) and ui.title_visible():
+		ui.key_start()
+
+
 func _step(dt: float) -> void:
 	_stepped = true
+	_keyboard()
 	var t0 := Time.get_ticks_usec() if _dbg else 0
 	if ui.title_visible():
 		clock += dt
