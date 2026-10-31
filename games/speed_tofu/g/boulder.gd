@@ -1531,9 +1531,9 @@ func _thing(o: Dictionary, l: float, d: float, x: float, kind: String, z: Dictio
 		var foot := box(Vector3(0, -0.47, 0), Vector3(1.3, 0.08, 1.3), STONE, th.n)
 		_skin(foot, "wall")
 	elif kind == "wall":
-		_skin(th.n, "wall")
-		var cope := box(Vector3(0, 0.56, 0), Vector3(1.08, 0.14, 1.15), STONE, th.n)
-		_skin(cope, "wall", Color("fff1d6"))
+		_skin(th.n, "pillar_red")
+		var cope := box(Vector3(0, 0.58, 0), Vector3(1.1, 0.18, 1.2), STONE, th.n)
+		_skin(cope, "wall", Color("fff6e4"))
 	elif kind == "fence":
 		_apply_art(th.n, "plank")
 	elif kind == "tower":
@@ -3241,8 +3241,8 @@ func _build_tunnel(a: float, b: float, nd: Node3D, opt := {}) -> Array:
 		# 뒤 절벽: 위는 밝은 사암, 아래로 갈수록 진한 흙빛 (떨어지며 지층을 지나친다)
 		# 판 하나에 지층 그림(위 밝은 사암 -> 아래 진한 흙) : 예전엔 띠마다 상자라 그리기가 6배였다
 		if int(d - a) % 24 == 0:
-			var w := box(_pos(d + 12.0, -22.0, h - 4.0 - (dp - 4.0) * 0.5), Vector3(2.0, dp - 4.0, 24.4), WHITE, nd)
-			_skin(w, "strata")
+			var w := box(_pos(d + 12.0, -36.0, h - 4.0 - (dp - 4.0) * 0.5), Vector3(2.0, dp - 4.0, 26.0), WHITE, nd)
+			_skin(w, "strata", Color("e4ebee"))
 			w.rotation.y = yw
 		# 옛 기둥 폐허 (뒤쪽, 높이 제각각 = 부서진 기둥)
 		if int(d - a) % 24 == 8:
@@ -3587,33 +3587,29 @@ func _stamp_build() -> void:
 	# 지명판: 구역에 들어설 때·지하 신전에 닿을 때
 	plaque = Control.new()
 	# 왼쪽 안내 줄(x 24..524)에 맞춘다: 오른쪽 키트 버튼(x 534~)을 가리지 않게
-	plaque.position = Vector2(24, 520)
+	plaque.position = Vector2(40, 520)
 	plaque.size = Vector2(500, 120)
 	plaque.pivot_offset = Vector2(250, 60)
 	plaque.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	plaque.visible = false
 	stamp_layer.add_child(plaque)
-	ui_slab(plaque, Vector2.ZERO, Vector2(500, 120), 0, STONE, "plaque")
+	ui_slab(plaque, Vector2.ZERO, Vector2(640, 150), 0, STONE, "plaque")
+	plaque.pivot_offset = Vector2(320, 75)
 	plaque_stripe = ColorRect.new()
 	plaque_stripe.position = Vector2(18, 14)
 	plaque_stripe.size = Vector2(464, 8)
 	plaque_stripe.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	plaque_stripe.visible = false  # 그림 명패에는 띠가 그려져 있다
 	plaque.add_child(plaque_stripe)
-	for x: float in [30.0, 464.0]:
-		var cap := ColorRect.new()
-		cap.color = ROCK.darkened(0.2)
-		cap.position = Vector2(x, 30)
-		cap.size = Vector2(6, 60)
-		cap.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		plaque.add_child(cap)
-	plaque_l = ui_glyph(plaque, 50)
+	plaque_l = ui_glyph(plaque, 60)
 	plaque_l.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
-	plaque_l.position = Vector2(0, 22)
-	plaque_l.size = Vector2(500, 62)
-	plaque_sub = ui_glyph(plaque, 22, GLYPH_SUB)
+	plaque_l.position = Vector2(100, 22)
+	plaque_l.size = Vector2(440, 74)
+	plaque_l.label_settings.font_color = GLYPH.darkened(0.25)
+	plaque_sub = ui_glyph(plaque, 26, GLYPH_SUB)
 	plaque_sub.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
-	plaque_sub.position = Vector2(0, 82)
-	plaque_sub.size = Vector2(500, 26)
+	plaque_sub.position = Vector2(100, 94)
+	plaque_sub.size = Vector2(440, 30)
 	plaque_crack = Line2D.new()
 	plaque_crack.default_color = INK
 	plaque_crack.width = 0.0
@@ -3787,13 +3783,13 @@ func _plaque(word: String, sub: String, accent: Color, hold := 1.3) -> void:
 	if plaque_tw:
 		plaque_tw.kill()
 	plaque_l.text = tr(word)
-	plaque_l.label_settings.font_size = fit_fs(tr(word), 50, 420.0)
+	plaque_l.label_settings.font_size = fit_fs(tr(word), 60, 430.0)
 	plaque_sub.text = sub
 	plaque_stripe.color = accent
-	plaque_crack.points = PackedVector2Array([Vector2(270, 14), Vector2(288, 44), Vector2(276, 74), Vector2(300, 104)])
+	plaque_crack.points = PackedVector2Array([Vector2(330, 20), Vector2(348, 56), Vector2(336, 94), Vector2(360, 130)])
 	plaque_crack.width = 0.0
 	plaque.visible = true
-	plaque.position = Vector2(24, 520)
+	plaque.position = Vector2(40, 520)
 	plaque.modulate.a = 0.0
 	plaque.scale = Vector2.ONE * 1.5
 	plaque.rotation = -0.05
@@ -3805,7 +3801,7 @@ func _plaque(word: String, sub: String, accent: Color, hold := 1.3) -> void:
 		sfx("bonk", -2.0, 0.75)
 		shake = maxf(shake, 0.25)
 		plaque_crack.width = 3.0
-		_stamp_chips(Vector2(274, 640), 8, DUST))
+		_stamp_chips(Vector2(360, 670), 8, DUST))
 	plaque_tw.tween_property(plaque, "scale", Vector2(1.04, 0.96), 0.05)
 	plaque_tw.tween_property(plaque, "scale", Vector2.ONE, 0.08)
 	plaque_tw.tween_interval(hold)
@@ -4029,7 +4025,7 @@ func _build_journey_ui() -> void:
 	var layer := CanvasLayer.new()
 	layer.layer = 6
 	add_child(layer)
-	route_label = _label(layer, 28, 132, 48)
+	route_label = _label(layer, 28, 156, 48)
 	route_label.label_settings = route_label.label_settings.duplicate()
 	route_label.label_settings.font_color = INK
 	route_label.label_settings.outline_size = 6
@@ -4045,7 +4041,7 @@ func _build_journey_ui() -> void:
 	_msg_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_score_l.label_settings = _score_l.label_settings.duplicate()
 	_score_l.label_settings.font_size = 40
-	_score_l.position = Vector2(24, 82)
+	_score_l.position = Vector2(24, 50)
 	_score_l.size = Vector2(672, 50)
 	# 화면 글은 판 없이 흰 외곽선만: 길을 가리지 않게 덜어낸다
 	route_label.label_settings.outline_size = 10
@@ -4206,7 +4202,7 @@ func _gauge_build() -> void:
 	gauge_frame_sb = ui_box(STONE, 22, 4)
 	var frame := ui_panel(_bar_bg, Vector2(-8, -8), Vector2(616, 44), gauge_frame_sb)
 	_bar_bg.move_child(frame, 0)
-	var danger := ui_panel(_bar_bg, Vector2(0, 0), Vector2(600.0 * VSTOP / VMAX, 28), ui_box(Color(BAD, 0.3), 14, 0, false))
+	var danger := ui_panel(_bar_bg, Vector2(0, 0), Vector2(600.0 * VSTOP / VMAX, 28), ui_box(Color(G_SLOW, 0.35), 14, 0, false))
 	_bar_bg.move_child(danger, 1)
 	gauge_fill_sb = ui_box(GOOD, 14, 0, false)
 	gauge_fill = ui_panel(_bar, Vector2.ZERO, Vector2(28, 28), gauge_fill_sb)
@@ -4217,6 +4213,17 @@ func _gauge_build() -> void:
 	tick.size = Vector2(8, 48)
 	tick.position.x = 600.0 * VSTOP / VMAX - 4.0
 	_bar_bg.pivot_offset = Vector2(300, 14)
+	_bar_bg.position.y = 118.0  # 속도 숫자 바로 아래
+	_bar_bg.scale = GAUGE_S
+
+
+## 속도 바: 숫자 아래 짧고 가는 홈. 색은 칠한 그림 팔레트
+const GAUGE_S := Vector2(0.42, 0.5)
+const G_FAST := Color("3f8f9a")  # 길 금의 청록
+const G_MID := Color("d39a3e")   # 황토
+const G_SLOW := Color("c8553d")  # 테라코타
+const G_TOP := Color("e8b64a")   # 금
+const G_DASH := Color("9b6bb8")  # 자수정
 
 
 func gauge(frac: float, color: Color) -> void:
@@ -4224,11 +4231,11 @@ func gauge(frac: float, color: Color) -> void:
 	if gauge_fill == null:
 		return
 	var now := Time.get_ticks_msec() * 0.001
-	var c := color
+	var c := G_FAST if color == GOOD else (G_SLOW if color == BAD else G_MID)
 	if dash_t > 0.0:
-		c = C.lerp(WHITE, 0.25 + 0.25 * sin(now * 30.0))
+		c = G_DASH.lerp(WHITE, 0.2 + 0.2 * sin(now * 30.0))
 	elif frac >= 0.88:
-		c = D.lerp(WHITE, 0.5 + 0.5 * sin(now * 22.0))
+		c = G_TOP.lerp(Color("fff1d6"), 0.35 + 0.35 * sin(now * 22.0))
 	gauge_fill_sb.bg_color = c
 	gauge_fill.size.x = maxf(_bar.size.x, 28.0)
 	gauge_hl.size.x = maxf(0.0, gauge_fill.size.x - 16.0)
@@ -4239,7 +4246,7 @@ func gauge(frac: float, color: Color) -> void:
 		gauge_kick = 1.0
 	gauge_last_v = v
 	gauge_kick = move_toward(gauge_kick, 0.0, get_process_delta_time() / maxf(Engine.time_scale, 0.05) * 4.0)
-	_bar_bg.scale = Vector2(1.0 + gauge_kick * 0.04, 1.0 + gauge_kick * 0.45)
+	_bar_bg.scale = GAUGE_S * Vector2(1.0 + gauge_kick * 0.04, 1.0 + gauge_kick * 0.45)
 
 
 ## 키트 버튼 = 둥근 돌 단추: 곧은 아래 그림자, 누르면 가라앉음, 먹 테, 먹 글자. 새로 열리면 톡 튀어나온다
