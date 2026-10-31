@@ -78,7 +78,8 @@ var _rate_text := ""
 var _rate_wait := false  # 보내고 window.tofuLast 를 기다리는 중
 # 언제든 평가: 게임 중 오른쪽 위 "평가" -> 멈추고 같은 별 카드를 띄운다 (끝 화면이 없는 게임도 평가)
 var gver := 1  # 게임 버전 (main.gd GAME_VER). 평가 ver = "v<gver> <VER>"
-const _RATE_BTN := Rect2(620, 0, 100, 100)
+var _RATE_BTN := Rect2(620, 0, 100, 100)
+var back_on := true  # 단독판: 목록에서 왔을 때만 왼쪽 위 '<' 가 돈다
 const _CLOSE_RECT := Rect2(240, 1170, 240, 80)
 var _rating := false  # 언제든 평가 카드가 떠 있는 동안 시간·_step 멈춤
 var _rate_btn_l: Label
@@ -500,7 +501,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		var p: Vector2 = event.position
 		if event.pressed:
-			if p.x < 180.0 and p.y < 100.0:
+			if back_on and p.x < 180.0 and p.y < 100.0:
 				back.emit()
 				return
 			if _howto_box and _howto_box.visible:
@@ -634,7 +635,7 @@ func _kit_input(event: InputEvent) -> void:
 ## kind 1 누름, 0 끌기, -1 뗌
 func _finger(id: int, p: Vector2, kind: int) -> void:
 	if kind == 1:
-		if p.x < 180.0 and p.y < 100.0:
+		if back_on and p.x < 180.0 and p.y < 100.0:
 			back.emit()
 			return
 		if _howto_box and _howto_box.visible:

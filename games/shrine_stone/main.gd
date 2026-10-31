@@ -34,6 +34,11 @@ func _open() -> void:
 			game.restart()
 	if from_tofu:
 		_relabel(game)
+	else:
+		# itch 에서는 목록으로 돌아갈 곳도, 평가를 받을 곳도 없다: 두 구석 버튼을 끈다
+		game.back_on = false
+		game._RATE_BTN = Rect2()
+		game._rate_btn_l.visible = false
 	_title_open()
 
 
@@ -110,7 +115,7 @@ func _title_open() -> void:
 		for ln: String in lines:
 			if ln.length() > longest.length():
 				longest = ln
-		var fs: int = game.call("fit_fs", longest, 120, 450)
+		var fs: int = mini(game.call("fit_fs", longest, 120, 400), int(200.0 / maxf(1.0, lines.size() * 0.95)))
 		var tl: Label = game.call("ui_glyph", lintel, fs)
 		tl.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
 		tl.position = Vector2(125, 72)
@@ -259,7 +264,7 @@ func _title_close() -> void:
 			t.kill()
 	title_tws.clear()
 	game.set_process_unhandled_input(true)
-	_back_label(true)
+	_back_label(from_tofu)
 	game.process_mode = Node.PROCESS_MODE_PAUSABLE
 	game.play("tap")
 	# 글·버튼은 흐려지고 상인방은 위로 빠져나간다
