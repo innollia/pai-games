@@ -1356,3 +1356,106 @@ Geometry rebuilt with texture3d Model/box/lathe helpers in work/remodel_art.py; 
 Final GLB output (bytes / triangles): courier_coral 212496 / 1480; courier_blue 212496 / 1480; courier_mint 212496 / 1480; courier_gold 212496 / 1480; parcel 92164 / 324; train 365696 / 3364; bridge_board 175220 / 1188. Every GLB has one material, one embedded 512x512 JPEG atlas, unlit extension and baked vertex lighting. Each courier is natively height 1, feet y=0, X/Z centered. Final Blender subprocess exit code 0. Final finish_glb --remodel and check_remodel.py passed. Seven side-view previews and cover_match.png were rendered and visually inspected; large head/cap, chunky running silhouette, face, navy trousers and brown shoes now belong to the cover's paper-toy style.
 
 Failures and recovery: rg unavailable (CommandNotFoundException), oracle consulted, used PowerShell Select-String. One redirected PowerShell render wrapper returned 1 despite seven successful exports and previews; oracle consulted; final subprocess capture confirmed BLENDER_EXIT 0. Initial checker compared normalized byte vertex colors as raw integers; corrected normalization and checked actual transformed mesh bounds, then all checks passed. Get-CimInstance process inspection was denied (0x80041003), oracle consulted; Get-Process fallback found no Godot process. Optional global Godot import was not run, keeping this delivery within the named art files and avoiding concurrent UI import side effects. No image generation failures and no skipped requested assets. No .gd edits, git commands, or writes to art/screenrace/ui/. hwapongstuy was read only.
+
+## v25 우체통·가로등 (2026-10-31, hwapongstuy texture3d)
+
+모델: `work/street/build_street.py`(hwapongstuy `build_models.py`의 Model/box/lathe). 메시지: hwapongstuy `make_guides.py` + `build_message.py`(TEXTURE_META v001). 그림: `work/pipeline/run_codex_texture.py`(Codex가 프롬프트를 쓰고, 클린룸 서브에이전트가 선 그림을 참고 이미지로 한 번 그림). 512로 줄여 `render_preview.py`로 GLB에 입히고 KHR_materials_unlit 표시.
+
+### screenrace_mailbox
+Result: KEPT (attempt 1, image call 1회). Codex가 쓴 프롬프트 원문:
+
+```text
+[IMAGE] Square game texture atlas for a low-poly paper-craft street mailbox with 36 triangles, painted onto the attached UV layout.
+[LAYOUT] The attached line image is the exact layout: preserve the square canvas and every face at its exact position, size, and orientation; do not move, rotate, or stretch any face.
+[LAYOUT] Keep every area outside the outlined faces a single flat middle gray (#808080); fill each face edge to edge with a flat, front-facing painted surface.
+[LAYOUT] The top of each side face is the model's top; keep neighboring faces visually continuous across their shared edges.
+[LAYOUT] Show all marks as paint on the UV faces, with no perspective, volumetric objects, cast shadows, or small scenes inside faces; do not draw any face names or text.
+[SURFACES] Post FRONT face, at left 86%–89%, top 27%–47%: pale grey-white painted paper, with one darker band near the bottom and a cream highlight along the upper edge.
+[SURFACES] Post RIGHT face, at left 89%–92%, top 27%–47%: continue the pale grey-white painted paper, darker lower band, and cream upper-edge highlight across the shared edges.
+[SURFACES] Post BACK face, at left 92%–96%, top 27%–47%: continue the pale grey-white painted paper, darker lower band, and cream upper-edge highlight across the shared edges.
+[SURFACES] Post LEFT face, at left 83%–86%, top 27%–47%: continue the pale grey-white painted paper, darker lower band, and cream upper-edge highlight across the shared edges.
+[SURFACES] Post TOP face, at left 86%–89%, top 23%–27%: pale grey-white painted paper, lighter than the sides, with a cream highlight.
+[SURFACES] Post BOTTOM face, at left 86%–89%, top 47%–50%: pale grey-white painted paper, slightly darker than the sides.
+[SURFACES] Body FRONT face, at left 16%–38%, top 66%–84%: pale warm-white painted paper with a dark navy horizontal mail slot near the top and a small blank cream address label below it; no writing on the label.
+[SURFACES] Body RIGHT face, at left 38%–53%, top 66%–84%: plain pale warm-white painted paper with one simple folded-paper seam, continuous at the shared edges.
+[SURFACES] Body BACK face, at left 53%–75%, top 66%–84%: plain pale warm-white painted paper with one simple folded-paper seam, continuous at the shared edges.
+[SURFACES] Body LEFT face, at left 2%–16%, top 66%–84%: plain pale warm-white painted paper with one simple folded-paper seam, continuous at the shared edges.
+[SURFACES] Body TOP face, at left 16%–38%, top 52%–66%: pale warm-white painted paper, the lightest body face, with one broad painted highlight.
+[SURFACES] Body BOTTOM face, at left 16%–38%, top 84%–98%: pale warm-white painted paper, with a slightly darker lower edge.
+[SURFACES] Roof FRONT face, at left 17%–41%, top 32%–35%: pale warm-white painted paper with a thin darker lip along its lower edge.
+[SURFACES] Roof RIGHT face, at left 41%–57%, top 32%–35%: continue the pale warm-white painted paper and thin darker lower lip across the shared edge.
+[SURFACES] Roof BACK face, at left 57%–81%, top 32%–35%: continue the pale warm-white painted paper and thin darker lower lip across the shared edge.
+[SURFACES] Roof LEFT face, at left 2%–17%, top 32%–35%: continue the pale warm-white painted paper and thin darker lower lip across the shared edge.
+[SURFACES] Roof TOP face, at left 17%–41%, top 16%–32%: pale warm-white painted paper, lighter than the sides, with one broad painted highlight.
+[SURFACES] Roof BOTTOM face, at left 17%–41%, top 35%–50%: pale warm-white painted paper, gently darker toward the lower edge.
+[LIGHT] Paint soft light from above: top faces are brightest; side faces grow slightly darker toward their bottom edges, with the lowest edge darkest. Paint a thin light rim near face borders.
+[PALETTE] Pale warm white, pale grey-white, cream, dark navy, and middle gray (#808080).
+[NEGATIVE] No hyper-detailed fur, bark, stone, or leaf rendering; a few confident marks stand for each.
+No sky gradients, no cloud detail, no glow around the sun, moon, or lights.
+No glossy digital painting, no airbrushed smooth gradients, no plastic or waxy skin.
+No bloom, lens flare, god rays, or haze unless the subject asks for them.
+No shallow depth of field, bokeh, or photographic blur.
+No 3D render look, no subsurface skin sheen, no CGI lighting.
+No evenly spread detail; detail sits in one or two places only.
+No perfectly symmetrical faces, poses, or compositions.
+No generic fantasy decoration: floating particles, sparkles, magic circles, random runes or glyphs.
+No extra eyes, mouths, faces, limbs, or tentacles; no melted or fused anatomy; hands have the correct number of fingers.
+No characters, animals, or props that the subject did not ask for.
+No text, letters, captions, title, signature, monogram, watermark, logo, frame, or border.
+No oversaturated or neon color unless the style card asks for it.
+No muddy, smeared, or noisy surface texture.
+No perspective, no shading that implies a 3D view inside a face.
+No text or labels.
+```
+
+### screenrace_lamp
+Result: KEPT (attempt 1, image call 1회). Codex가 쓴 프롬프트 원문:
+
+```text
+[IMAGE] square game texture atlas for a low-poly 3D model, painted onto the attached UV layout; paper-craft street lamp seen from the side in the foreground, 54 triangles, mobile game prop.
+[LAYOUT] The attached line image is the exact layout.
+[LAYOUT] Keep the square image and every face at exactly the same position, size, and orientation as in the attached line image; do not move, rotate, or stretch any face.
+[LAYOUT] Fill every enclosed face edge to edge with a flat, front-facing painted surface; leave all areas outside the outlines a single flat medium gray (#808080).
+[LAYOUT] The top of every side face is the top of the model; do not draw text or face names.
+[LAYOUT] Keep details readable at small mobile-screen size, using a few large painted shapes; continue colors and patterns across shared edges.
+[SURFACES] Pole side strip, left 2%–13%, top 14%–98%: cream painted iron, with one broad navy band near the top continuing cleanly across the strip columns.
+[SURFACES] Arm FRONT face, left 5%–27%, top 6%–9%: navy painted iron with a cream highlight along its top edge.
+[SURFACES] Arm RIGHT face, left 27%–31%, top 6%–9%: navy painted iron with a cream highlight along its top edge.
+[SURFACES] Arm BACK face, left 31%–53%, top 6%–9%: navy painted iron with a cream highlight along its top edge.
+[SURFACES] Arm LEFT face, left 2%–5%, top 6%–9%: navy painted iron with a cream highlight along its top edge.
+[SURFACES] Arm TOP face, left 5%–27%, top 3%–6%: navy painted iron, brightest across the top plane with a cream edge highlight.
+[SURFACES] Arm BOTTOM face, left 5%–27%, top 9%–12%: navy painted iron, slightly darker toward its lower edge with a thin cream edge highlight.
+[SURFACES] Base FRONT face, left 23%–31%, top 83%–90%: dark navy painted iron with a cream edge highlight.
+[SURFACES] Base RIGHT face, left 31%–39%, top 83%–90%: dark navy painted iron with a cream edge highlight.
+[SURFACES] Base BACK face, left 39%–47%, top 83%–90%: dark navy painted iron with a cream edge highlight.
+[SURFACES] Base LEFT face, left 15%–23%, top 83%–90%: dark navy painted iron with a cream edge highlight.
+[SURFACES] Base TOP face, left 23%–31%, top 75%–83%: dark navy painted iron, brightest on the top plane with a cream edge highlight.
+[SURFACES] Base BOTTOM face, left 23%–31%, top 90%–98%: dark navy painted iron, darkest along its bottom edge with a cream edge highlight.
+[SURFACES] Lamp FRONT face, left 56%–63%, top 83%–91%: butter-yellow glass pane with a navy frame only along the edges, no glow.
+[SURFACES] Lamp RIGHT face, left 63%–70%, top 83%–91%: butter-yellow glass pane with a navy frame only along the edges, no glow.
+[SURFACES] Lamp BACK face, left 70%–77%, top 83%–91%: butter-yellow glass pane with a navy frame only along the edges, no glow.
+[SURFACES] Lamp LEFT face, left 49%–56%, top 83%–91%: butter-yellow glass pane with a navy frame only along the edges, no glow.
+[SURFACES] Lamp TOP face, left 56%–63%, top 76%–83%: butter-yellow glass pane with a navy frame only along the edges, brightest on top, no glow.
+[SURFACES] Lamp BOTTOM face, left 56%–63%, top 91%–98%: butter-yellow glass pane with a navy frame only along the edges, slightly darker toward the bottom, no glow.
+[SURFACES] Cap, the row of triangular faces at left 65%–96%, top 4%–12%: navy painted iron with a cream rim following the triangular outline.
+[SURFACES] Cap bottom, left 55%–63%, top 4%–12%: navy painted iron with a cream rim along the outer edge.
+[LIGHT] Paint soft light from above: top faces are brightest, side faces become slightly darker toward their lower edges, with the ground-contact bottom edges darkest; paint a thin bright edge line along face boundaries.
+[PALETTE] Dark navy painted iron, warm cream highlights and rim, butter-yellow glass, flat medium gray #808080 outside the faces.
+[NEGATIVE] No hyper-detailed fur, bark, stone, or leaf rendering; a few confident marks stand for each.
+No sky gradients, no cloud detail, no glow around the sun, moon, or lights.
+No glossy digital painting, no airbrushed smooth gradients, no plastic or waxy skin.
+No bloom, lens flare, god rays, or haze unless the subject asks for them.
+No shallow depth of field, bokeh, or photographic blur.
+No 3D render look, no subsurface skin sheen, no CGI lighting.
+No evenly spread detail; detail sits in one or two places only.
+No perfectly symmetrical faces, poses, or compositions.
+No generic fantasy decoration: floating particles, sparkles, magic circles, random runes or glyphs.
+No extra eyes, mouths, faces, limbs, or tentacles; no melted or fused anatomy; hands have the correct number of fingers.
+No characters, animals, or props that the subject did not ask for.
+No text, letters, captions, title, signature, monogram, watermark, logo, frame, or border.
+No oversaturated or neon color unless the style card asks for it.
+No muddy, smeared, or noisy surface texture.
+No perspective, no shading that implies a 3D view inside a face.
+No text or labels.
+```
+

@@ -1273,6 +1273,21 @@ func _art_fit(asset: String, parent: Node3D, center: Vector3, size: Vector3) -> 
 	return m
 
 
+## v25: 그림 모델을 모델 원점 그대로 발밑 foot 에 높이 height 로 (같은 비율). 못 놓으면 null.
+func _art_put(asset: String, parent: Node3D, foot: Vector3, height: float) -> MeshInstance3D:
+	var am := _art_merged(asset)
+	if am.is_empty():
+		return null
+	var ab: AABB = am[1]
+	var m := MeshInstance3D.new()
+	m.mesh = am[0]
+	var k := height / ab.size.y
+	m.scale = Vector3.ONE * k
+	m.position = foot - Vector3(0, ab.position.y * k, 0)
+	parent.add_child(m)
+	return m
+
+
 func _build_backdrop() -> void:
 	var names := ["market", "riverside", "crossing", "night_market", "bridge", "rooftops"]
 	var keys: Array = ["night", "night_market"] if mode == "lantern" else [names[ci]]
@@ -1723,8 +1738,10 @@ func _build_course() -> void:
 	while px < goal_x:
 		var y := _floor_top(px, 60.0)
 		if y > -100.0:
-			_vbox(Vector3(px, y + 2.0, 3.2), Vector3(0.22, 4.0, 0.22), WHITE)
-			_vbox(Vector3(px + 0.35, y + 4.0, 3.2), Vector3(0.9, 0.22, 0.3), cdef.top)
+			# v25: 그림 가로등이 있으면 그것 (높이 4.1, 팔은 오른쪽). 없으면 종이 막대 두 개
+			if _art_put("lamp_post", stage, Vector3(px, y, 3.2), 4.1) == null:
+				_vbox(Vector3(px, y + 2.0, 3.2), Vector3(0.22, 4.0, 0.22), WHITE)
+				_vbox(Vector3(px + 0.35, y + 4.0, 3.2), Vector3(0.9, 0.22, 0.3), cdef.top)
 		px += 9.0
 
 
@@ -2184,7 +2201,7 @@ func _add_mailbox(x: float, y: float, gold := false) -> void:
 	n.position = Vector3(x, y, -0.75)
 	n.scale = Vector3.ONE * (1.4 if gold else 1.25)  # 폰 화면에서 배달부만큼 크게 (금색은 조금 더)
 	var col := MB_GOLD if gold else MB_FREE
-	box(Vector3(0, 0.5, 0), Vector3(0.16, 1.0, 0.16), P_NAVY, n)
+	var post := box(Vector3(0, 0.5, 0), Vector3(0.16, 1.0, 0.16), P_NAVY, n)
 	var body := box(Vector3(0, 1.42, 0), Vector3(1.1, 0.86, 0.7), col, n)
 	var top := box(Vector3(0, 1.9, 0), Vector3(1.18, 0.16, 0.76), col.lightened(0.3), n)
 	if gold:
@@ -2200,8 +2217,13 @@ func _add_mailbox(x: float, y: float, gold := false) -> void:
 		tag.modulate = P_NAVY
 		tag.position = Vector3(-0.45, 2.66, 0.06)
 		n.add_child(tag)
-	box(Vector3(0, 1.6, 0.36), Vector3(0.62, 0.1, 0.02), P_NAVY, n)
-	box(Vector3(0, 1.28, 0.36), Vector3(0.5, 0.26, 0.02), P_CREAM, n)  # 흰 주소 딱지
+	var slot := box(Vector3(0, 1.6, 0.36), Vector3(0.62, 0.1, 0.02), P_NAVY, n)
+	var label := box(Vector3(0, 1.28, 0.36), Vector3(0.5, 0.26, 0.02), P_CREAM, n)  # 흰 주소 딱지
+	# v25: 그림 우체통 (밝은 종이색으로 칠한 것에 상태 색을 곱한다). 있으면 종이 상자 다섯 개는 숨긴다
+	var art := _art_fit("mailbox", n, Vector3(0, 1.005, 0), Vector3(1.18, 2.01, 0.76))
+	if art:
+		for b in [post, body, top, slot, label]:
+			b.visible = false
 	var flag := Node3D.new()
 	n.add_child(flag)
 	flag.position = Vector3(0.6, 1.2, 0.15)
@@ -2213,7 +2235,8 @@ func _add_mailbox(x: float, y: float, gold := false) -> void:
 		pc.mesh = null
 	pc.visible = false
 	mailboxes.append({"x": x, "y": y, "full": false, "owner": null, "node": n, "body": body, "top": top,
-		"flag": flag, "cloth": cloth, "parcel": pc, "t": 0.0, "val": GOLD_VAL if gold else 1, "col": col})
+		"flag": flag, "cloth": cloth, "parcel": pc, "t": 0.0, "val": GOLD_VAL if gold else 1, "col": col, "art": art})
+	_mb_paint(mailboxes[-1], col, col.lightened(0.3))
 
 
 ## 연습: 배달 단계에서 연습 우체통을 지나쳤으면 배달부 앞(연습 마당 끝 벽 x 80 안)으로 옮긴다.
@@ -2236,14 +2259,36 @@ func tut_mailbox_ahead() -> void:
 	_burst(Vector3(x, y + 1.4, 0.6), 4, MB_FREE)
 
 
+## 우체통 색 (빈 빨강·금·찬 골판지). v25: 그림 우체통이면 칠한 그림 위에 같은 색을 곱한다
+func _mb_paint(mb: Dictionary, c: Color, top_c: Color) -> void:
+	(mb.body as MeshInstance3D).material_override = mat(c)
+	(mb.top as MeshInstance3D).material_override = mat(top_c)
+	if mb.get("art") != null:
+		(mb.art as MeshInstance3D).material_override = _art_tint("mailbox", c.lightened(0.15))
+
+
+## v25: 그림 모델의 칠(텍스처)은 그대로, 색을 곱하고 조명 없이 (같은 색이면 같은 재질을 같이 쓴다)
+func _art_tint(asset: String, c: Color) -> Material:
+	var key := asset + c.to_html()
+	if not _mats.has(key):
+		var am := _art_merged(asset)
+		var src: BaseMaterial3D = (am[0] as ArrayMesh).surface_get_material(0) as BaseMaterial3D if not am.is_empty() else null
+		var sm := StandardMaterial3D.new()
+		sm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		if src:
+			sm.albedo_texture = src.albedo_texture
+		sm.albedo_color = c
+		_mats[key] = sm
+	return _mats[key]
+
+
 func _mb_reset() -> void:
 	for mb in mailboxes:
 		mb.full = false
 		mb.owner = null
 		mb.t = 0.0
 		var col: Color = mb.col
-		(mb.body as MeshInstance3D).material_override = mat(col)
-		(mb.top as MeshInstance3D).material_override = mat(col.lightened(0.3))
+		_mb_paint(mb, col, col.lightened(0.3))
 		(mb.cloth as MeshInstance3D).material_override = mat(P_GOLD)
 		(mb.flag as Node3D).rotation.z = -PI * 0.5
 		(mb.parcel as Node3D).visible = false
@@ -2332,8 +2377,7 @@ func _deliver(r: Courier) -> bool:
 	mb.full = true
 	mb.owner = r
 	mb.t = 0.45  # 깃발이 서는 시간
-	(mb.body as MeshInstance3D).material_override = mat(MB_FULL)
-	(mb.top as MeshInstance3D).material_override = mat(MB_FULL.lightened(0.2))
+	_mb_paint(mb, MB_FULL, MB_FULL.lightened(0.2))
 	(mb.cloth as MeshInstance3D).material_override = mat(r.col)
 	var pc: Node3D = mb.parcel
 	pc.visible = true

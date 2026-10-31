@@ -22,6 +22,8 @@
 | crate_props_atlas.jpg | 143114 | GLB가 쓰는 텍스처(가져오기 때 풀려 나옴) |
 | lantern.glb | 171892 | 밤 등불 모드 등불 |
 | lantern_props_atlas.jpg | 143114 | GLB가 쓰는 텍스처(가져오기 때 풀려 나옴) |
+| mailbox.glb | 227648 | 36 tris. v25 우체통(기둥·몸통·지붕). 밝은 종이색으로 칠하고 게임이 상태 색(빨강·금·찬 것)을 곱한다 |
+| lamp_post.glb | 224504 | 54 tris. v25 앞 가로등(받침·기둥·팔·등·덮개), 9m마다 |
 | market_stall.glb | 182348 | 평지 뒤 장식(_decor) |
 | market_stall_props_atlas.jpg | 143114 | GLB가 쓰는 텍스처(가져오기 때 풀려 나옴) |
 | parcel.glb | 92164 | 324 tris. 크라프트 상자, 날카로운 빨강 테이프 십자와 크림색 배송 라벨. 등짐·바닥 짐에 사용 |
