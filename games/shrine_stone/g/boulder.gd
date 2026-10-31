@@ -203,6 +203,8 @@ var bonk_why := ""
 var arrow_mesh: ArrayMesh
 # v7: 쪼개기 돌진, 수로 밑 수정 동굴(떨어지면 딴 세상)
 var dash_t := 0.0
+var branch_nodes: Array = []  # 갈림길 갈래 길 노드 (고르면 다른 쪽을 지운다)
+var fork_rail_end := -1.0     # 이 거리까지 길 가장자리가 난간
 var cave_nodes: Array = []  # 동굴 장식: 떨어지기 전엔 숨겨 둔다
 var gems: Array = []
 var under_route: Array = []  # 지금 떨어진 협곡 구간 [시작, 끝]
@@ -631,6 +633,8 @@ func _reset() -> void:
 	gates.clear()
 	Engine.time_scale = 1.0
 	dash_t = 0.0
+	branch_nodes.clear()
+	fork_rail_end = -1.0
 	hs_t = 0.0
 	slo_t = 0.0
 	slo_k = 1.0
@@ -1012,6 +1016,11 @@ func _zone_items(z: Dictionary) -> void:
 				var o := _gen(st, br.legs)
 				if side == 0:
 					o0 = o
+				var zn: Node3D = z.node
+				var bn := Node3D.new()
+				zn.add_child(bn)
+				branch_nodes.append(bn)
+				z["node"] = bn
 				# 숨은 갈림길 두 갈래는 가까이 붙어 가서, 옆 풍경 기둥이 다른 갈래 길 위에 선다 (옛 배수로: 큰길 155m 왼쪽 반을 막는 20m 기둥) → 풍경 없이
 				z["bare"] = bool(it.get("hidden", false))
 				_draw_road(o, 0, o.px.size() - 1, z)
@@ -1021,7 +1030,8 @@ func _zone_items(z: Dictionary) -> void:
 				var vis: Dictionary = br.duplicate()
 				vis.erase("say")
 				pair.append(_make_things(vis, o, 0.0, d0, z))
-			z.fork = {"at": d0, "things": pair, "seal": null}
+				z["node"] = zn
+			z.fork = {"at": d0, "things": pair, "seal": null, "nodes": branch_nodes.slice(branch_nodes.size() - 2)}
 			if bool(it.get("hidden", false)):
 				_hidden_fork(it, d0, o0, z)
 			else:
@@ -1070,6 +1080,11 @@ func _choose(z: Dictionary) -> void:
 			if open and ((bx < px) if px < 0.0 else (bx > px)):
 				side = 0
 	var br: Dictionary = it.fork[side]
+	# 고르지 않은 갈래 길은 지운다: 화면에 남아 있으면 그 위로 굴러가 바닥을 뚫고 떨어진다
+	var bns: Array = fk.get("nodes", [])
+	if bns.size() == 2 and is_instance_valid(bns[1 - side]):
+		(bns[1 - side] as Node3D).queue_free()
+	fork_rail_end = float(fk.at) + 35.0
 	_extend(br.legs)
 	z.things.append_array(fk.things[side])
 	var acc := float(fk.at)
@@ -1106,7 +1121,7 @@ func _hidden_fork(it: Dictionary, d0: float, o0: Dictionary, z: Dictionary) -> v
 	var ldy := float(it.get("lane_dy", 1.6))
 	_lane(pd, maxf(0.0, d0 - 36.0), d0 - 1.0, lx, ldy, z.node)
 	if not o0.is_empty():
-		_lane(o0, 1.0, 24.0, 0.0, ldy, z.node)
+		_lane(o0, 1.0, 24.0, 0.0, ldy, (z.fork.nodes[0] as Node3D) if z.fork != null and z.fork.has("nodes") else z.node)  # 지름길 위 바람은 지름길과 함께 지워진다
 
 
 ## 갈래 안 흔들다리 입구 기둥 (갈래 표본 o 위에)
@@ -1706,7 +1721,7 @@ func _extras(z: Dictionary) -> void:
 
 func _zones_tick() -> void:
 	for z: Dictionary in zones:
-		if z.fork != null and dist >= float(z.fork.at) - 9.0:
+		if z.fork != null and dist >= float(z.fork.at) - 4.0:
 			_choose(z)
 	var last: Dictionary = zones.back()
 	if float(last.end) >= 0.0 and int(last.k) + 1 < Z.size() and _len() - dist < 170.0:
@@ -2153,6 +2168,10 @@ func _step(dt: float) -> void:
 	if underground:
 		x_goal = clampf(x_goal, -5.0, 5.0)  # 지하 바닥판은 12m 폭
 	bx = lerpf(bx, x_goal, minf(1.0, dt * 10.0 / sqrt(mm)))
+	if dist < fork_rail_end and on_ground and not underground:
+		var rw: float = float(pd.hw[_oi(pd, dist)]) - 0.6
+		bx = clampf(bx, -rw, rw)
+		x_goal = clampf(x_goal, -rw, rw)
 	if on_ground:
 		var sl := _slope(dist)
 		if underground:
@@ -4458,6 +4477,12 @@ func end() -> void:
 		ram_tick.visible = false
 	if not won:
 		run_deaths += 1
+		if score > record_score:
+			record_score = score
+			var cfg := ConfigFile.new()
+			cfg.load(RECORD)
+			cfg.set_value("record", "score", record_score)
+			cfg.save(RECORD)
 	super()
 	result_title.text = tr("금메달" if finish_time <= GOLD_TIME else ("은메달" if finish_time <= SILVER_TIME else "동메달")) + tr(" · 바다 도착") if won else tr("다시 굴러가자")
 	var record_text := _format_time(best_time) if best_time > 0.0 else tr("아직 없음")
