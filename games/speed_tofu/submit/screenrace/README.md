@@ -90,7 +90,8 @@
 | `ITCH_PAGE.md`, `HOWTO_EN.md` | itch.io 페이지 글(영어), 복사해서 붙인다 |
 | `DESIGN_SYSTEM.md`, `UI_SPEC.md` | UI 규칙과 Gemini 디자인 명세(미니멀로 줄이기 전 원안) |
 | `ART.md`, `ART_LOG.md` | 그림 방향, 모든 그림 프롬프트 원문 |
-| `cover.png` | itch 표지 630×500 |
+| `cover.png`, `cover_16x9.png` | itch 표지 630×500, 16:9 표지 1920×1080(게임 장면 + 게임 속 제목 그림, `work/cover_shots.gd` → `work/make_cover16.py`) |
+| `shots/` | 세로 스크린샷 5장 720×1280 (`games/off_screen/tools/capture.gd`로 찍어 고름) |
 | `work/` | 작업 파일(스크립트·프롬프트). `work/ui/` 캡처·검토 기록(GEMINI_REVIEW_r1~3) |
 
 ## 사람이 할 일

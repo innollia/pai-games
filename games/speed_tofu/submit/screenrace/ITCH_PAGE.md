@@ -11,11 +11,11 @@ The camera follows the leader and leans ahead as they speed up, and a dash shove
 
 The screen's side walls are built from every parcel being carried, taped in each courier's color. Deliver, throw or lose a parcel and a brick pops out of the wall — the screen gets narrower and the race gets tighter. Parcels are also weight: carry more and you run slower and jump lower. Tap BOX away from a mailbox to throw one backward for a burst of speed — but every thrown parcel lands on the road for a rival to pick up and deliver.
 
-Each course plays differently: flowing riverbanks, a railway crossing with a train coming at you, blackouts in the night market, a rope bridge that cracks under heavy runners, rooftops with no walls. Crates and walls have ramps: walk up and you slow down (more with heavy parcels), jump over and you keep your speed. Every round mixes in a new road — a low gate that knocks extra parcels off your back, an ice slide, or a headwind — announced at the start line.
+Each course plays differently: flowing riverbanks, a railway crossing with a train coming at you, blackouts in the night market, a rope bridge that cracks under heavy runners, rooftops with no walls. Crates and walls have ramps: walk up and you slow down (more with heavy parcels), jump over and you keep your speed. Every round mixes in a new road — a low gate that only lets 4 parcels through and knocks the rest off your back, an ice slide, or a headwind — announced at the start line.
 
 New spots flip the answer: scales launch heavy runners up, updrafts lift light ones, trapdoors break under heavy feet, shutters slam on whoever leads. Right after you learn one, it is mixed with an older one.
 
-Three modes: Basic; Night Lantern (the leader holds the only light, and mailboxes only show inside it); Speeding Delivery (carry 4 parcels or fewer for ceiling boosts and wall bounces). Finish all six courses and the final delivery, earn gold/silver/bronze per course, and beat your best delivery record.
+Each town is won by taking 2 rounds; a round is a short ~30-second dash. Finish all six towns and the final delivery, earn gold/silver/bronze per town, and beat your best delivery record.
 
 Theme: Speed — speed costs you: the leader can't see the mailboxes ahead, and the fastest way to go faster is to throw away the parcels you're supposed to deliver.
 
@@ -30,12 +30,10 @@ Tools used: Godot, Claude (Anthropic), Codex (OpenAI), GPT image generation (Ope
 Code, planning and text were developed with Claude and Codex; Gemini (Google, via Antigravity) wrote the UI design spec and reviewed screenshots. Character and prop textures were painted with OpenAI image generation onto low-poly models built in Blender (texture3d pipeline); course backdrops are OpenAI-generated paintings. The cover image was made with OpenAI image generation. Sound effects were built from raw oscillators and noise rendered with nkido (MIT, no samples) and shaped in Python (numpy/scipy); no AI-generated audio. UI font: Pretendard. English is the default language; Korean is one tap away.
 
 # Page settings
-Kind: HTML (embed 360×640, mobile friendly, orientation: portrait, fullscreen button on). Classification: Games. Genre: Racing. Visibility: Public (set at submission time). Comments: enabled.
+Kind: HTML (embed 360×640, mobile friendly, orientation: portrait, fullscreen button on). Classification: Games. Genre: Action (or Racing). Visibility: Public (set at submission time). Comments: enabled.
 
 # Tags
 ai, mobile, portrait, touch, slapjam, speed, racing, party, side-scroller, low-poly
 
 # 사람이 할 일 (에이전트가 대신하지 않음)
-- itch.io 업로드(계정 필요): `games/off_screen/web/` 빌드 ZIP(`games/off_screen/SUBMIT_CHECKLIST.md`), "This file will be played in the browser", Mobile friendly 체크, Orientation Portrait.
-- 잼 페이지 Submit, 상금 연락처 이메일(비공개 칸), 도구 체크리스트(위 Tools used와 맞게).
-- 스크린샷 3장(폰 실제 캡처, 밝은 장면). 표지 630×500은 `submit/screenrace/cover.png`(Codex 그림).
+순서와 파일 위치는 `games/off_screen/SUBMIT_CHECKLIST.md`(itch 업로드, 잼 제출, Rosebud 신청).
