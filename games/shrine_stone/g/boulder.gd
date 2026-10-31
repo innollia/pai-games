@@ -203,6 +203,7 @@ var bonk_why := ""
 var arrow_mesh: ArrayMesh
 # v7: 쪼개기 돌진, 수로 밑 수정 동굴(떨어지면 딴 세상)
 var dash_t := 0.0
+var bridge_signs: Array = []  # [원, 재질, 버티는 크기, 판]
 var bridge_parts: Array = []  # 흔들다리 판·발판 (무거우면 이 자리가 부서진다)
 var branch_nodes: Array = []  # 갈림길 갈래 길 노드 (고르면 다른 쪽을 지운다)
 var fork_rail_end := -1.0     # 이 거리까지 길 가장자리가 난간
@@ -644,6 +645,7 @@ func _reset() -> void:
 	Engine.time_scale = 1.0
 	dash_t = 0.0
 	bridge_parts.clear()
+	bridge_signs.clear()
 	branch_nodes.clear()
 	fork_rail_end = -1.0
 	hs_t = 0.0
@@ -1550,7 +1552,7 @@ func _ink_outline(n: MeshInstance3D, col: Color) -> void:
 	n.add_child(o)
 
 
-## 흔들다리 앞 표지판: 나무 기둥 위 둥근 돌판에 "MAX 3.2" (이 크기까지만 버틴다)
+## 흔들다리 앞 표지판: 나무 기둥 위 둥근 돌판에 고리(버티는 크기)와 내 돌 크기 원
 func _bridge_sign(o: Dictionary, d: float, lim: float, nd: Node3D) -> void:
 	var hw: float = o.hw[_oi(o, d)]
 	var h := _oh(o, d)
@@ -1578,16 +1580,49 @@ func _bridge_sign(o: Dictionary, d: float, lim: float, nd: Node3D) -> void:
 	rim.mesh = tor
 	board.add_child(rim)
 	_red(rim)
-	var lab := Label3D.new()
-	lab.text = tr("MAX") + "\n%.1f" % lim
-	lab.font = _font
-	lab.font_size = 110
-	lab.outline_size = 0
-	lab.modulate = Color("5a2a1a")
-	lab.pixel_size = 0.012
-	lab.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	lab.position = _opos(o, d, x, h + 5.4) + Vector3.UP * 0.05
-	nd.add_child(lab)
+	# 글 대신 그림: 가운데 고리 = 다리가 버티는 크기, 안의 원 = 지금 내 돌 크기(실시간).
+	# 내 원이 고리 밖으로 넘치면 빨개진다 → 이대로 가면 다리가 끊어진다.
+	var fill := MeshInstance3D.new()
+	var fd := CylinderMesh.new()
+	fd.top_radius = 1.0
+	fd.bottom_radius = 1.0
+	fd.height = 0.28  # 판(0.2)보다 두꺼워 앞뒤 어느 쪽에서도 보인다
+	fd.radial_segments = 20
+	fill.mesh = fd
+	var fm := StandardMaterial3D.new()
+	fm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	fm.albedo_color = GOOD
+	fill.material_override = fm
+	board.add_child(fill)
+	var ring := MeshInstance3D.new()
+	var rt := TorusMesh.new()
+	rt.inner_radius = 0.5
+	rt.outer_radius = 0.6
+	rt.rings = 20
+	rt.ring_segments = 6
+	ring.mesh = rt
+	board.add_child(ring)
+	ring.scale = Vector3(1, 3.5, 1)
+	var rm := StandardMaterial3D.new()
+	rm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	rm.albedo_color = Color("5a2a1a")
+	ring.material_override = rm
+	bridge_signs.append([fill, fm, lim, board])
+
+
+## 표지판 안의 원을 지금 돌 크기에 맞춘다 (고리 = 버티는 크기)
+func _bridge_signs_tick() -> void:
+	for sg in bridge_signs:
+		var f: MeshInstance3D = sg[0]
+		if not is_instance_valid(f):
+			continue
+		var k := clampf(s_goal / float(sg[2]), 0.1, 1.6) * 0.55
+		f.scale = Vector3(k, 1, k)
+		var over := s_goal > float(sg[2]) + 0.05
+		(sg[1] as StandardMaterial3D).albedo_color = BAD if over else GOOD
+		var b: Node3D = sg[3]
+		b.position.x += (sin(clock * 40.0) * 0.04 if over else 0.0) - b.get_meta("wob", 0.0)
+		b.set_meta("wob", sin(clock * 40.0) * 0.04 if over else 0.0)
 
 
 ## 다리가 부서진다: 돌 둘레 14m 발판·밧줄이 사라지고 나무 조각이 사방으로 튄다
