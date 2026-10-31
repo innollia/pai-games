@@ -12,7 +12,11 @@
 - 16:9 표지 1920×1080:
   C:\projects\pai-games\games\speed_tofu\submit\tinyplanet\cover_16x9.png
 - 세로 스크린샷 5장 (720×1280):
-  SHOTS_HERE
+  C:\projects\pai-games\games\speed_tofu\submit\tinyplanet\shots\01_title.png
+  C:\projects\pai-games\games\speed_tofu\submit\tinyplanet\shots\02_windmill_keeper.png
+  C:\projects\pai-games\games\speed_tofu\submit\tinyplanet\shots\03_flying_path.png
+  C:\projects\pai-games\games\speed_tofu\submit\tinyplanet\shots\04_parcel_chimney_moon.png
+  C:\projects\pai-games\games\speed_tofu\submit\tinyplanet\shots\05_sunset_planet.png
 
 ## 2. itch.io 새 프로젝트 (itch.io → Upload new project)
 
