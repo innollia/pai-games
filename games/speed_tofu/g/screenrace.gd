@@ -2153,6 +2153,8 @@ func tut_mailbox_ahead() -> void:
 	if pl.p.x < float(mb.x) + 1.5:
 		return
 	var x := minf(pl.p.x + 9.0, 78.5)
+	if absf(x - float(mb.x)) < 0.5:
+		return  # 끝 벽(80)에 붙어 있으면 이미 바로 뒤(78.5, 배달 범위 안)에 있다
 	var y := _floor_top(x, 60.0)
 	if y < -50.0:
 		return

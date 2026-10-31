@@ -63,7 +63,7 @@ var _between := 0.0
 var _x0 := 0.0
 var _cargo0 := 0
 var _throws0 := 0
-const STUCK_T := 15.0  # 한 단계에서 이만큼 못 넘기면 넘겨 준다 (막혀서 연습이 멈추지 않게)
+const STUCK_T := 15.0  # 한 단계에서 이만큼 못 넘기면 넘겨 준다 (막혀서 연습이 멈추지 않게). 배달 단계는 빼고
 var _got0 := 0
 var _was_g := true
 var _jumped := false
@@ -472,7 +472,8 @@ func _tut_tick(dt: float) -> void:
 		return
 	var pl = game.pl
 	var g := bool(pl.grounded)
-	if step >= 0 and step < 4 and _tt > STUCK_T:
+	# 배달(2)은 꼭 배우고 넘어간다: 자동으로 넘기지 않는다 (우체통이 늘 앞에 다시 놓이니 막히지 않는다)
+	if step >= 0 and step < 4 and step != 2 and _tt > STUCK_T:
 		_ok()
 		return
 	match step:
