@@ -33,7 +33,7 @@ const KIND := {
 	# 얼음벽: 벽 높이(4.5)만큼 크거나, 쪼갠 직후 돌진이면 깨진다. 뛰어 내려찍기로는 안 깨진다.
 	"ice": {"size": Vector3(3.6, 4.5, 1.6), "need": 4.5, "pts": 6, "grow": 0.0, "mass": 0.22, "col": [ICEWALL, WHITE], "nodive": true},
 	# 수정: 몸으로는 못 깨고, 던진 덩이로만 깨진다.
-	"crystal": {"size": Vector3(3.6, 3.2, 1.2), "need": 99.0, "pts": 4, "grow": 0.0, "mass": 0.0, "col": [C], "nodive": true, "shot": true},
+	"crystal": {"size": Vector3(3.6, 7.0, 1.2), "need": 99.0, "pts": 4, "grow": 0.0, "mass": 0.0, "col": [C], "nodive": true, "shot": true},
 	# 파란 머리(버티기 색) = 공중에서 버티기로 내려찍어야 부서진다. 그냥 굴러 박거나 그냥 떨어지면 튕긴다.
 	# 부수면 느려지지 않고 오히려 빨라진다(boost). 집 다음 단계: 탑 → 황금 신상.
 	"tower": {"size": Vector3(4.2, 9.0, 4.2), "need": 99.0, "pts": 20, "grow": 0.4, "mass": 0.0, "col": [Color("cfe6ff"), WHITE], "slam": true, "boost": 9.0},
@@ -144,6 +144,9 @@ var cp_score := 0
 # 설산·협곡
 var pads: Array = []   # [거리0, 거리1, 옆0, 옆1, "snow"/"sun"]
 var pad_t := 0.0
+var ride_told := false
+var snow_told := false
+var guide_until := 0.0
 var shot: MeshInstance3D
 var shot_d := 0.0
 var shot_x := 0.0
@@ -581,17 +584,17 @@ func _zones_list() -> Array:
 						[200, "뛰어!"], [226, "구멍 피해\n내려찍기"]]}]},
 		# 물살은 지면 위에 있을 때만 몸을 옆으로 나른다. 작은 몸은 더 밀린다.
 		{"msg": "조수 정원 · 물살 타기", "mode": "iso", "skill": "", "road": STONE, "floor": WATER, "accent": B, "scen": "coast",
-			"objective": "화살표가 물살 방향 · 버티면 고정 / 뛰면 벗어남",
+			"objective": "물살을 타면 빨라진다 · 버티면 제자리",
 			"items": [
 				{"legs": [[36, -5, 10], [72, -10, 11], [36, -4, 10], [72, -10, 11], [36, -4, 9]],
 					"flow": [[40, 104, -11, 11, 1], [148, 212, -11, 11, -1]],
-					"put": [["pot", 52, -4], ["pot", 70, 0], ["pot", 88, 4], ["pillar", 116, 5], ["pot", 162, 4], ["pot", 184, -2], ["pillar", 224, -5]],
-					"say": [[4, "물살은 몸을 옆으로!\n화살표를 봐"], [30, "버티면 덜 밀린다"], [132, "이번엔 반대 방향\n뛰면 물살을 벗어난다"]]},
+					"put": [["pot", 52, -4], ["pot", 70, 0], ["pot", 88, 4], ["pot", 98, 8], ["pillar", 116, -5], ["pot", 162, 4], ["pot", 200, -8], ["pillar", 224, 5]],
+					"say": [[4, "물살은 몸을 옆으로!\n화살표를 봐"], [30, "물살을 타면 빨라진다!"], [132, "이번엔 반대 방향\n뛰면 물살을 벗어난다"]]},
 				{"legs": [[24, -4, 10], [72, -10, 10], [16, -2, 8], [14, -2, 8, 0, "gap"], [56, -8, 10], [24, -3, 9]],
 					"flow": [[24, 92, -10, 10, 1], [132, 184, -10, 10, -1]],
-					"put": [["pot", 8, 0], ["pot", 16, 0], ["pillar", 58, 4], ["pillar", 164, -4]],
+					"put": [["pot", 8, 0], ["pot", 16, 0], ["pillar", 58, -4], ["pillar", 164, 4]],
 					"row": [[88, "crystal"]], "snow": [[2, 23, -9, 9]],
-					"say": [[2, "섞기: 눈으로 탄약 확보"], [22, "물살을 버티며\n초록이면 던져"], [88, "벽을 열고 물살 밖에서 뛰어!"], [130, "반대 물살 착지\n가운데로 조종"]]}]},
+					"say": [[2, "섞기: 눈으로 탄약 확보"], [22, "물살을 타고\n초록이면 던져"], [88, "벽을 열고 물살 밖에서 뛰어!"], [130, "반대 물살 착지\n가운데로 조종"]]}]},
 		# 제동의 역할을 바꾼다: 발판에서 누르면 힘을 모으고, 떼면 크게 날아간다.
 		{"msg": "공명 제단 · 눌렀다 놓기", "mode": "back", "skill": "", "road": STONE, "floor": Color("b8cbd8"), "accent": D, "scen": "plaza",
 			"objective": "황금 발판에서 버티기 → 힘이 차면 손을 떼 발사",
@@ -631,6 +634,9 @@ func _reset() -> void:
 	finish_time = 0.0
 	failure_reason = ""
 	bonk_at = -99.0
+	ride_told = false
+	snow_told = false
+	guide_until = 0.0
 	new_record = false
 	drum_charge = 0.0
 	was_holding = false
@@ -1934,7 +1940,7 @@ func _zones_tick() -> void:
 	for i in range(says.size() - 1, -1, -1):
 		if dist >= float(says[i][0]):
 			if not underground:  # 지하에서는 위 수로 안내를 띄우지 않는다
-				msg(says[i][1], 2.2)
+				guide(says[i][1])
 			says.remove_at(i)
 
 
@@ -2545,8 +2551,13 @@ func _pads(dt: float) -> void:
 				if pad_t <= 0.0:
 					pad_t = 0.09
 					_burst(_pos(dist - s * 0.4, bx + randf_range(-0.5, 0.5) * s, by + 0.2), WHITE, 2, 5.0, 0.6)
+				if not snow_told:
+					snow_told = true
+					guide("눈 위를 구르면
+몸이 커진다!")
 				if floori(s_goal * 2.0) > before:
 					sfx("snow", -6.0)
+					sq = maxf(sq, 0.22)
 			else:
 				s_goal = maxf(2.0, s_goal - SUN_MELT * v * dt)
 				if pad_t <= 0.0:
@@ -2569,7 +2580,7 @@ func _throw() -> void:
 	cool = 0.4
 	shot_d = dist + s * 0.5 + 0.8
 	shot_x = bx
-	shot_v = v + 25.0
+	shot_v = v * 1.5 + 30.0
 	shot_t = _throw_range() / shot_v
 	shot_hit = false
 	shot.visible = true
@@ -2594,7 +2605,7 @@ func _shot(dt: float) -> void:
 			if th.kd.get("shot", false):
 				# 수정 줄은 맞은 자리 둘레가 함께 깨져 돌이 지나갈 틈이 난다
 				for t2: Thing in things:
-					if not t2.flat and t2.kd.get("shot", false) and absf(t2.d - th.d) < 0.5 and absf(t2.x - shot_x) < 4.2:
+					if not t2.flat and t2.kd.get("shot", false) and absf(t2.d - th.d) < 0.5 and absf(t2.x - shot_x) < 6.0:
 						_smash(t2)
 				play("good")
 				shake = maxf(shake, 0.3)
@@ -2619,7 +2630,7 @@ func _shot(dt: float) -> void:
 
 ## 던지는 거리: 구르는 속도에 비례한다 (점선 길이 = 이 거리)
 func _throw_range() -> float:
-	return 12.0 + v * 1.3
+	return 20.0 + v * 1.8
 
 
 ## 조준: 90m 안 가장 가까운 수정까지 땅에 점선, 수정 위에 깨질 너비 막대.
@@ -2781,10 +2792,9 @@ func _pillar_hit(th: Thing, rel: Vector2, rr: float) -> void:
 	var room_w := _cave_hw(dist) if underground and cave_span.size() >= 2 else float(pd.hw[_oi(pd, dist)])
 	if room_w - absf(bx) < s * 0.6 and signf(lat) == signf(bx):
 		lat = -lat
-	if vel.x < 0.0:
-		dist += vel.x * 0.12  # 정면: 뒤로 튄다
-	v = maxf(absf(vel.x) * (0.35 if vel.x < 0.0 else 1.0), minf(v, VSTOP + 2.0))
-	x_goal = bx + lat * 0.3
+	# 뒤로 튀지 않는다: 들어온 속도의 대부분을 옆으로 미끄러지며 지나간다 (정면일수록 조금 더 잃는다)
+	v = maxf(v * lerpf(0.95, 0.7, absf(n.x)), minf(v, VSTOP + 2.0))
+	x_goal = bx + signf(lat) * maxf(absf(lat) * 0.3, rr * 0.6)
 	if -vn > 6.0 and bump_t <= 0.0:
 		bump_t = 0.3
 		shake = clampf(-vn / 40.0, 0.2, 0.7)
@@ -2808,7 +2818,7 @@ func _bonk(th: Thing) -> void:
 		hurt = 0.5
 		x_goal = th.x + signf(-th.x) * ((s + sz.x) * 0.45 + 0.6)
 		shake = 0.4
-		sq = 0.25
+		sq = 0.0
 		_burst(_pos(dist + s * 0.5, bx, by + s * 0.5), th.shard_tint, 4, 6.0, 0.5, th.shard)
 		play("bad")
 		if th.kd.has("shot"):
@@ -2825,7 +2835,7 @@ func _bonk(th: Thing) -> void:
 	bonk_why = "쿵!" if float(th.kd.need) < 90.0 else "쾅!"
 	shake = 0.6
 	_hitstop(0.05)
-	sq = 0.35
+	sq = 0.0  # 부딪혀도 말랑하게 찌그러지지 않는다
 	_burst(_pos(dist + s * 0.5, bx, by + s * 0.5), th.shard_tint, 4, 6.0, 0.5, th.shard)
 	play("bad")
 	if th.kd.has("shot"):
@@ -2986,7 +2996,7 @@ func _place(dt: float) -> void:
 	ball.scale = Vector3.ONE * s
 	_streaks(dt, yw)
 	bump_t -= get_process_delta_time()
-	ball.material_override = _art_mat("stone", Color("ff7a6a")) if hurt > 0.0 and bump_t <= 0.0 and fmod(hurt, 0.2) < 0.1 else art_materials["stone"]
+	ball.material_override = art_materials["stone"]
 	if dash_t > 0.0 and hurt <= 0.0 and fmod(dash_t, 0.16) < 0.08:
 		ball.material_override = _art_mat("stone", C.lightened(0.3))  # 돌진 중: 쪼개기 색으로 물든 돌 그림이 깜빡
 	var q := floori(ang / (PI * 0.5))
@@ -5011,6 +5021,18 @@ func _process(dt: float) -> void:
 				return
 
 
+## 길 안내: 글 길이만큼 오래 보이고, 1.8초 동안은 짧은 사건 글이 덮지 못한다
+func guide(t: String) -> void:
+	super.msg(t, clampf(2.4 + tr(t).length() * 0.05, 2.8, 5.0))
+	guide_until = clock + 1.8
+
+
+func msg(t: String, dur := 0.6) -> void:
+	if clock < guide_until:
+		return
+	super.msg(t, maxf(dur, 1.2))
+
+
 func _current_tick(dt: float, hold: bool) -> void:
 	for flow: Dictionary in currents:
 		if dist < float(flow.a) - 80.0 or dist > float(flow.b) + 10.0:
@@ -5023,8 +5045,11 @@ func _current_tick(dt: float, hold: bool) -> void:
 		if dist >= float(flow.a) and dist < float(flow.b) and bx > float(flow.x0) and bx < float(flow.x1) and on_ground:
 			x_goal += float(flow.dir) * (2.5 + pulse * 5.0) / sqrt(s / 2.0) * (0.14 if hold else 1.0) * dt
 			# Flow pushes the body, so shedding weight also changes the steering problem.
-			if hold:
-				v += 7.0 * dt
+			if not hold:
+				v = minf(v + 9.0 * dt, VMAX * 0.9)
+				if not ride_told:
+					ride_told = true
+					guide("물살을 타면 빨라진다!")
 			return
 
 
@@ -5374,7 +5399,11 @@ const EN := {
 	"절벽 · 버티기": "Cliffs · HOLD", "광장 · 위에서": "Plaza · From Above", "설산 · 눈 굴리기": "Snow Peak · Snowball",
 	"협곡 · 던지기": "Canyon · THROW", "해안 · 추격": "Coast · Chase", "조수 정원 · 물살 타기": "Tide Garden · Currents",
 	"공명 제단 · 눌렀다 놓기": "Echo Altar · Hold & Release", "바다 신전 · 마지막 도약": "Sea Temple · Final Leap",
-	"화살표가 물살 방향 · 버티면 고정 / 뛰면 벗어남": "Arrows = current · HOLD to stay / JUMP to escape",
+	"물살을 타면 빨라진다 · 버티면 제자리": "Ride the current = speed up · HOLD = stay put", "물살을 타면 빨라진다!": "Riding the current speeds you up!", "눈 위를 구르면
+몸이 커진다!": "Rolling on snow
+makes you BIGGER!", "물살을 타고
+초록이면 던져": "Ride the current
+THROW on green",
 	"황금 발판에서 버티기 → 힘이 차면 손을 떼 발사": "HOLD on the golden pad → release when charged",
 	"키우고 → 던지고 → 가볍게 날아 바다 신전까지": "Grow → throw → fly light to the sea temple",
 	# 안내
