@@ -4065,7 +4065,7 @@ func _build_journey_ui() -> void:
 	result_band_sb = ui_box(D, 0, 0, false)
 	result_band_sb.corner_radius_top_left = 24
 	result_band_sb.corner_radius_top_right = 24
-	ui_panel(result_card, Vector2(43, 233), Vector2(634, 60), result_band_sb)
+	# 그림 돌판 위에 평평한 색 띠를 얹지 않는다(색은 메달 도장이 맡는다). 띠 색 바꾸는 코드는 그대로 둬도 안 보인다
 	result_title = _label(result_card, 52, 316, 72)
 	result_values = _label(result_card, 36, 392, 140)
 	result_note = _label(result_card, 26, 536, 96)
@@ -4089,7 +4089,7 @@ func _build_journey_ui() -> void:
 	seal_fr.border_color = Color(STONE, 0.85)
 	seal_fr.set_corner_radius_all(12)
 	seal_fr.anti_aliasing = true
-	ui_panel(result_seal, Vector2(12, 12), Vector2(126, 122), seal_fr)
+	# 메달 그림에 테두리가 그려져 있어 따로 네모 테를 두르지 않는다
 	var seal_ls := LabelSettings.new()
 	seal_ls.font = _font
 	seal_ls.font_size = 52
