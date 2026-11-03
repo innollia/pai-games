@@ -188,4 +188,18 @@ func _plan(i: int) -> Array:
 				_s(-1.0, func(gg): return gg.vx < -25.0, 120), _s(-1.0, func(_gg): return true, 1, true, true),
 				_s(-1.0, func(_gg): return false, 600, false, true),
 			]
+		12:  # 5-1: 질주, 구덩이 앞(열 ~7)에서 뛰어 쾅 → 날아 건너며 X
+			return [_s(1.0, func(gg): return gg.vx > 22.0 and gg.px > 6.5), _s(1.0, func(_gg): return true, 1, true, true), _s(1.0, func(_gg): return false, 600, false, true)]
+		13:  # 5-2: 보통 천장(열 1~8) 밑 열 ~5에서 뛰어 쾅, 가시 천장 밑을 날아 X
+			return [_s(1.0, func(gg): return gg.vx > 22.0 and gg.px > 4.8), _s(1.0, func(_gg): return true, 1, true, true), _s(1.0, func(_gg): return false, 600, false, true)]
+		14:  # 5-3: 굴뚝(열 14) 밑에 서서 뛰고 손 뗌 → 위층 왼쪽으로 → 왼쪽 끝 → 오른쪽 질주, 낮은 천장 밑 열 ~6에서 쾅 → X → 문
+			return [
+				_goto(14.5),
+				_s(0.0, func(gg): return absf(gg.px - 14.5) < 0.03, 120),
+				_s(0.0, func(gg): return gg.py > 5.05, 90, true, true),
+				_s(-0.6, func(gg): return gg.on_floor and gg.py > 4.9, 120), _stop(),
+				_s(-1.0, func(gg): return gg.px < 1.7, 300), _stop(),
+				_s(1.0, func(gg): return gg.vx > 22.0 and gg.px > 5.5), _s(1.0, func(_gg): return true, 1, true, true),
+				_s(1.0, func(_gg): return false, 600, false, true),
+			]
 	return []
