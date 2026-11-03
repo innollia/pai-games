@@ -82,6 +82,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" && GIT_TERMINAL_PROMPT=
 
 - 메뉴 본 목록은 ● 2 + 생존 8개뿐(overpower, overpower_edit, quicksilver_fp, screenrace_over, tinyplanet, scale_prison, compress, stretch_roll). 멸종 10개는 2차 폐기, speed_snake·climb_race는 보류. 자세한 건 GA.md "7세대 = 대멸종".
 - 다음 세대는 생존작의 새 별점부터. 새 게임을 다시 만들지는 사용자가 정한다(7세대에 "새로운 거 만들지 말자").
+- **puzzle-designer 브리프 규칙(사용자, 11/03)**: 오케스트레이터는 설계 결정을 하지 않는다. 브리프에는 게임 id·파일·폰 평가 원문·사용자 방 경로만 넣는다(예: "v5 ★5 '정말 쉽다. 재밌다' / v4 ★5 '정말 색다른 아이디어' / '버전4의 스테이지들도 좋았어'"). 방 합치기·난이도·방 선택 같은 결정은 에이전트가 한다.
 - 퍼즐 방 설계·수리는 프로젝트 서브에이전트 `puzzle-designer`(`.claude/agents/puzzle-designer.md`, fable/high)에게 맡긴다. 넘기기 전에 headless로 정답 CLEAR, 단순 입력 불가를 확인한다(견본 `tools/room_check_overpower.gd`).
 - quicksilver_fp 메뉴 이름은 "찰나 구조대 (1인칭)"(사용자: 영화 장면에서 온 것이라 "퀵실버"는 이상함). id는 평가 때문에 그대로.
 - 7세대 공통 브리프: 5세대 스크래치 폴더의 `ga7_common.md`.
