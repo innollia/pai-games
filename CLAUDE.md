@@ -13,6 +13,9 @@
 3. 작업했으면 `git add -A && git commit -m "<요약>"` 후 `git push`. 커밋 메시지 끝에 빈 줄과 `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
 4. 답장을 임시 md 파일로 쓰고 `python tools/discord.py reply <파일> --to <호출 message_id>`. 답장에는 한 일, 플레이 링크(`https://innollia.github.io/pai-games/games/<이름>/`, Pages 반영에 1~2분 걸린다고 한 줄), 다음에 해볼 만한 것 하나. 1500자 이내.
 
+## 조사 답
+- 대회·행사 목록 같은 조사 답에 넣는 링크는 하나씩 직접 열어, 그 항목의 페이지이고 상금·마감·자격이 페이지 내용과 같은지 본 뒤에 넣는다. 확인 못 한 항목은 빼거나 "확인 못 함"이라고 쓴다.
+
 ## 금지
 - 토큰·비밀값 출력·저장. 디스코드 @멘션. 이 스레드 밖에 쓰기.
 - 이 폴더 밖의 파일 수정.
