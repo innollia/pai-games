@@ -50,12 +50,7 @@ button{font:inherit;font-weight:700;border:0;cursor:pointer}
 <button class="more sq" id="more" hidden>더 보기</button>
 <div id="tray"><div class="row" id="trayRow"></div><div class="st" id="trayStatus"></div></div>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-const db = getFirestore(initializeApp({
-  apiKey: "AIzaSyCu1xkC5vL_crDyBBujk7UpCK_MtEQ8hh0", authDomain: "innollia-blog.firebaseapp.com",
-  projectId: "innollia-blog", appId: "1:435062365847:web:6cf3b416b51d9edc8753d2" }));
+<script>
 
 const PROXY = "https://2xm2lpyc57jvpyrd6jyauj72hi0ibhuv.lambda-url.ap-northeast-2.on.aws/";
 const $ = (id) => document.getElementById(id);
@@ -162,16 +157,11 @@ function queueSave() {
 async function save() {
   const items = [...picks.values()].slice(0, 30).map((it) => ({ src: it.src, id: clip(it.id, 200), title: clip(it.title, 200),
     img: clip(it.full || it.img, 1000), preview: clip(it.img, 1000), license: clip(it.license, 60), page: clip(it.page, 1000) }));
-  if (!items.length) {
-    try { await addDoc(collection(db, "megajam_refs"), { name: "비움", session, items: [{ src: "none", id: "" }], cleared: true, ts: serverTimestamp() }); } catch (e) {}
-    return;
-  }
   try {
-    await Promise.race([
-      addDoc(collection(db, "megajam_refs"), { name: clip(query || "refs", 60), session, items, ts: serverTimestamp() }),
-      new Promise((_, no) => setTimeout(() => no(new Error("timeout")), 10000)),
-    ]);
-    $("trayStatus").textContent = `${picks.size}개 고름 · 저장됨 ✓`;
+    const r = await fetch(PROXY + "?save=1", { method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name: clip(query || "refs", 60), session, items }) });
+    if (!r.ok) throw new Error(r.status);
+    $("trayStatus").textContent = items.length ? `${picks.size}개 고름 · 저장됨 ✓` : "";
   } catch (e) {
     $("trayStatus").textContent = `${picks.size}개 고름 · 저장 실패, 하나 더 누르면 다시 저장합니다`;
   }
