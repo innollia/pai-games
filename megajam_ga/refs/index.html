@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>레퍼런스 찾기</title>
+<style>
+:root{--bg:#fff;--fg:#111;--mut:#666;--line:#ddd;--card:#f5f5f5;--on:#1b6cff;--bar:#111;--barfg:#fff}
+@media (prefers-color-scheme:dark){:root{--bg:#121212;--fg:#eee;--mut:#9a9a9a;--line:#333;--card:#1e1e1e;--on:#5b9bff;--bar:#eee;--barfg:#111}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
+.sq{border-radius:18px;corner-shape:squircle}
+header{position:sticky;top:0;z-index:2;background:var(--bg);padding:12px 16px 8px;border-bottom:1px solid var(--line)}
+form{display:flex;gap:8px}
+input[type=search]{flex:1;min-width:0;font-size:17px;padding:11px 14px;border:1.5px solid var(--line);background:var(--card);color:var(--fg);outline:none}
+input[type=search]:focus{border-color:var(--on)}
+button{font:inherit;font-weight:700;border:0;cursor:pointer}
+.go{padding:0 18px;background:var(--bar);color:var(--barfg);font-size:16px}
+.src{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.src button{padding:7px 12px;font-size:14px;background:var(--card);color:var(--fg);border:1.5px solid var(--line)}
+.src button[aria-pressed=true]{border-color:var(--on);color:var(--on)}
+#msg{color:var(--mut);font-size:14px;padding:10px 16px 0;min-height:20px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;padding:10px 16px 120px}
+.card{position:relative;background:var(--card);overflow:hidden;border:3px solid transparent;cursor:pointer;padding:0;text-align:left;color:var(--fg)}
+.card[aria-pressed=true]{border-color:var(--on)}
+.card img,.card video{width:100%;aspect-ratio:1;object-fit:contain;display:block;background:#8881}
+.card .t{font-size:12px;line-height:1.3;padding:6px 8px;font-weight:500;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card .tag{position:absolute;top:6px;left:6px;font-size:11px;background:#000a;color:#fff;padding:2px 6px}
+.card .chk{position:absolute;top:6px;right:6px;width:28px;height:28px;background:var(--on);color:#fff;display:none;align-items:center;justify-content:center;font-size:17px}
+.card[aria-pressed=true] .chk{display:flex}
+.more{display:block;margin:0 auto 130px;padding:12px 22px;background:var(--card);color:var(--fg);border:1.5px solid var(--line)}
+#tray{position:fixed;left:0;right:0;bottom:0;z-index:3;background:var(--bar);color:var(--barfg);padding:10px 16px calc(10px + env(safe-area-inset-bottom));display:none}
+#tray.show{display:block}
+#tray .row{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px}
+#tray img{width:52px;height:52px;object-fit:cover;flex:none;background:#8884}
+#tray .st{font-size:14px;font-weight:600}
+</style>
+</head>
+<body>
+<header>
+  <form id="f"><input id="q" type="search" placeholder="찾을 것 (영어가 잘 찾아져요: knight, slime, forest)" autocomplete="off" enterkeyhint="search"><button class="go sq" type="submit">찾기</button></form>
+  <div class="src" id="src">
+    <button type="button" class="sq" data-s="patch" aria-pressed="true">3D·애니메이션</button>
+    <button type="button" class="sq" data-s="openverse" aria-pressed="false">사진·그림</button>
+    <button type="button" class="sq" data-s="wiki" aria-pressed="false">위키미디어</button>
+  </div>
+</header>
+<div id="msg">찾을 것을 입력하세요. 마음에 드는 그림을 누르면 고른 것으로 바로 저장됩니다.</div>
+<div class="grid" id="grid"></div>
+<button class="more sq" id="more" hidden>더 보기</button>
+<div id="tray"><div class="row" id="trayRow"></div><div class="st" id="trayStatus"></div></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+const db = getFirestore(initializeApp({
+  apiKey: "AIzaSyCu1xkC5vL_crDyBBujk7UpCK_MtEQ8hh0", authDomain: "innollia-blog.firebaseapp.com",
+  projectId: "innollia-blog", appId: "1:435062365847:web:6cf3b416b51d9edc8753d2" }));
+
+const PROXY = "https://2xm2lpyc57jvpyrd6jyauj72hi0ibhuv.lambda-url.ap-northeast-2.on.aws/";
+const $ = (id) => document.getElementById(id);
+let source = "patch", query = "", page = 1, cursor = null;
+const picks = new Map();   // key -> item
+const shown = new Map();   // key -> item (현재 결과)
+const clip = (s, n) => String(s ?? "").slice(0, n);
+
+async function getJSON(url) {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(r.status);
+  return r.json();
+}
+
+async function fetchPatch() {
+  const u = new URL(PROXY);
+  u.searchParams.set("q", query); u.searchParams.set("limit", "24");
+  if (cursor) u.searchParams.set("cursor", cursor);
+  const d = await getJSON(u);
+  cursor = d.next_cursor || d.cursor || null;
+  return { more: !!cursor, items: (d.hits || []).map((h) => {
+    const big = (h.thumbnail_levels || []).find((x) => x.width === 512);
+    const caps = (h.capabilities || {}).in_file || [];
+    return { src: "patch", id: h.id, title: h.title || "", img: big ? big.url : h.thumbnail_url,
+      video: h.loop_url || "", license: h.license || "", page: "https://patch.gg/assets/" + encodeURIComponent(h.id),
+      tag: [h.type, caps.includes("animated") ? "애니" : ""].filter(Boolean).join(" · ") };
+  }) };
+}
+
+async function fetchOpenverse() {
+  const d = await getJSON(`https://api.openverse.org/v1/images/?q=${encodeURIComponent(query)}&page_size=24&page=${page}`);
+  return { more: page < (d.page_count || 1), items: (d.results || []).map((x) => ({ src: "openverse", id: x.id,
+    title: x.title || "", img: x.thumbnail || x.url, full: x.url, license: `${x.license || ""} ${x.license_version || ""}`.trim(),
+    page: x.foreign_landing_url || "", tag: x.source || "" })) };
+}
+
+async function fetchWiki() {
+  const off = (page - 1) * 24;
+  const d = await getJSON(`https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrnamespace=6&gsrlimit=24&gsroffset=${off}&gsrsearch=${encodeURIComponent(query)}&prop=imageinfo&iiprop=url&iiurlwidth=500`);
+  const pages = Object.values((d.query || {}).pages || {}).sort((a, b) => a.index - b.index);
+  return { more: !!d.continue, items: pages.filter((p) => p.imageinfo).map((p) => ({ src: "wiki", id: String(p.pageid),
+    title: p.title.replace(/^File:/, "").replace(/\.[a-z0-9]+$/i, ""), img: p.imageinfo[0].thumburl, full: p.imageinfo[0].url,
+    license: "", page: p.imageinfo[0].descriptionurl, tag: "위키" })) };
+}
+
+const fetchers = { patch: fetchPatch, openverse: fetchOpenverse, wiki: fetchWiki };
+const keyOf = (it) => it.src + ":" + it.id;
+
+function card(it) {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "card sq";
+  const k = keyOf(it);
+  b.setAttribute("aria-pressed", picks.has(k) ? "true" : "false");
+  const media = it.video ? `<video src="${it.video}" autoplay loop muted playsinline poster="${it.img}"></video>`
+                         : `<img src="${it.img}" loading="lazy" alt="">`;
+  b.innerHTML = `${media}${it.tag ? `<span class="tag sq">${it.tag}</span>` : ""}<span class="chk sq">✓</span><div class="t"></div>`;
+  b.querySelector(".t").textContent = it.title;
+  b.onclick = () => {
+    if (picks.has(k)) picks.delete(k); else picks.set(k, it);
+    b.setAttribute("aria-pressed", picks.has(k) ? "true" : "false");
+    tray(); queueSave();
+  };
+  return b;
+}
+
+async function load(reset) {
+  if (reset) { $("grid").innerHTML = ""; shown.clear(); page = 1; cursor = null; }
+  $("more").hidden = true;
+  $("msg").textContent = "찾는 중…";
+  try {
+    const { items, more } = await fetchers[source]();
+    items.forEach((it) => { shown.set(keyOf(it), it); $("grid").appendChild(card(it)); });
+    $("msg").textContent = shown.size ? `"${query}" ${shown.size}개. 누르면 고른 것으로 저장됩니다.` : `"${query}"로 찾은 것이 없습니다. 영어로 바꿔 보세요.`;
+    $("more").hidden = !more;
+  } catch (e) {
+    $("msg").textContent = "불러오지 못했습니다. 잠시 뒤 다시 눌러 주세요.";
+  }
+}
+
+$("f").onsubmit = (e) => { e.preventDefault(); query = $("q").value.trim(); if (query) { $("q").blur(); load(true); } };
+$("more").onclick = () => { page++; load(false); };
+$("src").onclick = (e) => {
+  const s = e.target.dataset && e.target.dataset.s; if (!s) return;
+  source = s;
+  for (const b of $("src").children) b.setAttribute("aria-pressed", b.dataset.s === s ? "true" : "false");
+  if (query) load(true);
+};
+
+function tray() {
+  $("tray").classList.toggle("show", picks.size > 0);
+  $("trayRow").innerHTML = "";
+  for (const it of picks.values()) { const i = document.createElement("img"); i.src = it.img; i.className = "sq"; $("trayRow").appendChild(i); }
+}
+
+// 고를 때마다 1.5초 뒤 지금 고른 묶음 전체를 새 문서로 저장 (보내기 단추 없음). 도구는 가장 최근 문서를 읽는다.
+const session = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+let timer = null;
+function queueSave() {
+  clearTimeout(timer);
+  $("trayStatus").textContent = `${picks.size}개 고름 · 저장 중…`;
+  if (!picks.size) { $("trayStatus").textContent = ""; }
+  timer = setTimeout(save, 1500);
+}
+async function save() {
+  const items = [...picks.values()].slice(0, 30).map((it) => ({ src: it.src, id: clip(it.id, 200), title: clip(it.title, 200),
+    img: clip(it.full || it.img, 1000), preview: clip(it.img, 1000), license: clip(it.license, 60), page: clip(it.page, 1000) }));
+  if (!items.length) {
+    try { await addDoc(collection(db, "megajam_refs"), { name: "비움", session, items: [{ src: "none", id: "" }], cleared: true, ts: serverTimestamp() }); } catch (e) {}
+    return;
+  }
+  try {
+    await Promise.race([
+      addDoc(collection(db, "megajam_refs"), { name: clip(query || "refs", 60), session, items, ts: serverTimestamp() }),
+      new Promise((_, no) => setTimeout(() => no(new Error("timeout")), 10000)),
+    ]);
+    $("trayStatus").textContent = `${picks.size}개 고름 · 저장됨 ✓`;
+  } catch (e) {
+    $("trayStatus").textContent = `${picks.size}개 고름 · 저장 실패, 하나 더 누르면 다시 저장합니다`;
+  }
+}
+</script>
+</body>
+</html>
