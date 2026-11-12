@@ -81,7 +81,7 @@ async function fetchPatch() {
 }
 
 async function fetchOpenverse() {
-  const d = await getJSON(`https://api.openverse.org/v1/images/?q=${encodeURIComponent(query)}&page_size=24&page=${page}`);
+  const d = await getJSON(`https://api.openverse.org/v1/images/?q=${encodeURIComponent(query)}&page_size=20&page=${page}`);
   return { more: page < (d.page_count || 1), items: (d.results || []).map((x) => ({ src: "openverse", id: x.id,
     title: x.title || "", img: x.thumbnail || x.url, full: x.url, license: `${x.license || ""} ${x.license_version || ""}`.trim(),
     page: x.foreign_landing_url || "", tag: x.source || "" })) };
