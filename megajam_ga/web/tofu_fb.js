@@ -205,6 +205,7 @@ function listen() {
     snap.forEach((doc) => {
       const d = doc.data();
       if (d.game && d.game !== "theme") return; // 게임별 한마디는 여기 안 보인다
+      if (String(d.name || "").startsWith("회의")) return; // 폐기된 AI 회의 아이디어
       rows.push(`<div class="mj-item sq"><div class="mj-meta">${esc(d.name || "이름 없음")} · ${when(d.ts)}</div>${esc(d.text || "")}</div>`);
     });
     list.innerHTML = rows.length ? rows.join("") : '<div class="mj-item sq">아직 아이디어가 없어요. 첫 아이디어를 던져 주세요.</div>';
